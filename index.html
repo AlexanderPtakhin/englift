@@ -2306,7 +2306,9 @@
       </div>
     </div>
 
-    <script>
+    <script type="module">
+      import { saveWordToDb, deleteWordFromDb } from './db.js';
+
       // ============================================================
       // DATA
       // ============================================================
@@ -2387,9 +2389,7 @@
         }
         words.push(mkWord(en, ru, ex, tags));
         save();
-        import('./db.js').then(({ saveWordToDb }) =>
-          saveWordToDb(words[words.length - 1]),
-        );
+        saveWordToDb(words[words.length - 1]);
         gainXP(15, 'новое слово');
         checkBadges();
         return true;
@@ -2397,14 +2397,14 @@
       function delWord(id) {
         words = words.filter(w => w.id !== id);
         save();
-        import('./db.js').then(({ deleteWordFromDb }) => deleteWordFromDb(id));
+        deleteWordFromDb(id);
       }
       function updWord(id, data) {
         const w = words.find(w => w.id === id);
         if (w) {
           Object.assign(w, data);
           save();
-          import('./db.js').then(({ saveWordToDb }) => saveWordToDb(w));
+          saveWordToDb(w);
         }
       }
       function updStats(id, correct) {
