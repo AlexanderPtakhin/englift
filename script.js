@@ -1,5 +1,5 @@
-// import { saveWordToDb, deleteWordFromDb } from './db.js';
-// import './auth.js';
+import { saveWordToDb, deleteWordFromDb } from './db.js';
+import './auth.js';
 
 // ============================================================
 // SPEECH RECOGNITION SUPPORT
@@ -406,7 +406,7 @@ function addWord(en, ru, ex, tags) {
   // Показываем индикатор синхронизации
   showSyncStatus('syncing', 'Синхронизация...');
 
-  // saveWordToDb(newWord);
+  saveWordToDb(newWord);
   gainXP(5, 'новое слово');
   checkBadges();
 
@@ -424,7 +424,7 @@ function delWord(id) {
   // Показываем индикатор синхронизации
   showSyncStatus('syncing', 'Удаление...');
 
-  // deleteWordFromDb(id);
+  deleteWordFromDb(id);
 
   // Скрываем индикатор через некоторое время
   setTimeout(() => {
@@ -436,7 +436,7 @@ function updWord(id, data) {
   if (w) {
     Object.assign(w, data);
     save();
-    // saveWordToDb(w);
+    saveWordToDb(w);
   }
 }
 function updStats(id, correct) {
