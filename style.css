@@ -248,6 +248,13 @@ input[type='submit']:active {
   transform: scale(0.97);
 }
 
+/* Исключение для глазика - без анимаций */
+.password-toggle:hover,
+.password-toggle:active {
+  transform: translateY(-50%) !important;
+  filter: none !important;
+}
+
 .btn-primary {
   background: var(--primary);
   color: #fff;
@@ -1271,6 +1278,123 @@ body.dark .badge-learned {
 
 .modal-backdrop.open {
   display: flex;
+}
+
+/* AUTH GATE - обязательная авторизация */
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-gate.hidden {
+  display: none;
+}
+
+.auth-gate-container {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 3rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 420px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(20px);
+  animation: slideUp 0.6s ease 0.2s forwards;
+  opacity: 0;
+}
+
+@keyframes slideUp {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.auth-gate-logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-gate-logo .logo {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.auth-gate-logo .logo span {
+  color: var(--primary);
+}
+
+.auth-gate-subtitle {
+  text-align: center;
+  color: var(--muted);
+  margin-bottom: 2.5rem;
+  font-size: 1rem;
+}
+
+/* Основной контент скрыт до авторизации */
+body:not(.authenticated) > header,
+body:not(.authenticated) > main {
+  display: none;
+}
+
+/* Стили для полей пароля с иконкой показа/скрытия */
+.password-field-wrapper {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  user-select: none;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-control {
+  padding-right: 40px !important;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .modal-box {
