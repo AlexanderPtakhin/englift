@@ -2,8 +2,92 @@ import { saveWordToDb, deleteWordFromDb } from './db.js';
 import './auth.js';
 
 // ============================================================
-// VALIDATION & SECURITY
+// SPEECH RECOGNITION SUPPORT
 // ============================================================
+const speechRecognitionSupported = !!(
+  window.SpeechRecognition || window.webkitSpeechRecognition
+);
+let speechRecognition = null;
+
+if (speechRecognitionSupported) {
+  speechRecognition = new (
+    window.SpeechRecognition || window.webkitSpeechRecognition
+  )();
+  speechRecognition.lang = 'en-US';
+  speechRecognition.continuous = false;
+  speechRecognition.interimResults = false;
+  speechRecognition.maxAlternatives = 1;
+}
+
+// Проверка схожести произнесенного слова с правильным
+function checkSpeechSimilarity(spoken, correct) {
+  if (!spoken || !correct) return false;
+
+  // Точное совпадение
+  if (spoken === correct) return true;
+
+  // Удаляем артикли и предлоги для сравнения
+  const cleanSpoken = spoken
+    .replace(/\b(a|an|the|in|on|at|to|for|of|with)\b/gi, '')
+    .trim();
+  const cleanCorrect = correct
+    .replace(/\b(a|an|the|in|on|at|to|for|of|with)\b/gi, '')
+    .trim();
+
+  if (cleanSpoken === cleanCorrect) return true;
+
+  // Проверяем содержит ли одно другое
+  if (cleanSpoken.includes(cleanCorrect) || cleanCorrect.includes(cleanSpoken))
+    return true;
+
+  // Расстояние Левенштейна для похожих слов
+  const distance = levenshteinDistance(cleanSpoken, cleanCorrect);
+  const maxLength = Math.max(cleanSpoken.length, cleanCorrect.length);
+  const similarity = 1 - distance / maxLength;
+
+  // Считаем правильным если схожесть > 80%
+  return similarity > 0.8;
+}
+
+// Расстояние Левенштейна для сравнения строк
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1,
+        );
+      }
+    }
+  }
+
+  return matrix[str2.length][str1.length];
+}
+
+// Показываем предупреждение если Speech Recognition не поддерживается
+if (!speechRecognitionSupported) {
+  const speechCheckbox = document.querySelector('input[data-ex="speech"]');
+  if (speechCheckbox) {
+    speechCheckbox.disabled = true;
+    speechCheckbox.parentElement.style.opacity = '0.5';
+    speechCheckbox.parentElement.title =
+      'Ваш браузер не поддерживает распознавание речи (используйте Chrome/Edge)';
+  }
+}
 
 // Улучшенная функция экранирования HTML (полная защита от XSS)
 function esc(str) {
@@ -107,17 +191,6 @@ function normalizeTags(tagsString) {
     )
     .filter(tag => tag.length > 0 && tag.length <= 30)
     .slice(0, 10); // Максимум 10 тегов
-}
-
-// Проверка на XSS атаки
-function sanitizeInput(input) {
-  if (!input || typeof input !== 'string') return '';
-  return input
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
 }
 
 // ============================================================
@@ -334,7 +407,7 @@ function addWord(en, ru, ex, tags) {
   showSyncStatus('syncing', 'Синхронизация...');
 
   saveWordToDb(newWord);
-  gainXP(15, 'новое слово');
+  gainXP(5, 'новое слово');
   checkBadges();
 
   // Скрываем индикатор через некоторое время
@@ -393,7 +466,7 @@ function updStats(id, correct) {
   const wasLearned = w.stats.learned;
   w.stats.learned = w.stats.streak >= 3;
   if (!wasLearned && w.stats.learned) {
-    gainXP(50, 'слово выучено 🌟');
+    gainXP(20, 'слово выучено 🌟');
     checkBadges();
   }
   save();
@@ -402,7 +475,7 @@ function updStats(id, correct) {
 // ============================================================
 // XP + BADGES
 // ============================================================
-const XP_PER_LEVEL = 100;
+const XP_PER_LEVEL = 200;
 
 const BADGES_DEF = [
   {
@@ -490,6 +563,20 @@ const BADGES_DEF = [
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 1000,
   },
   {
+    id: 'xp_2500',
+    icon: '👑',
+    name: 'Легенда',
+    desc: 'Набери 2500 XP',
+    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 2500,
+  },
+  {
+    id: 'xp_5000',
+    icon: '🌟',
+    name: 'Мастер',
+    desc: 'Набери 5000 XP',
+    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 5000,
+  },
+  {
     id: 'perfect',
     icon: '🎯',
     name: 'Снайпер',
@@ -509,6 +596,27 @@ const BADGES_DEF = [
     name: 'Орёл',
     desc: 'Достигни 10 уровня',
     check: () => xpData.level >= 10,
+  },
+  {
+    id: 'streak_100',
+    icon: '🔥',
+    name: 'Непоколебимый',
+    desc: '100 дней подряд',
+    check: () => streak.count >= 100,
+  },
+  {
+    id: 'words_500',
+    icon: '📚',
+    name: 'Словарный гений',
+    desc: '500 слов в словаре',
+    check: () => words.length >= 500,
+  },
+  {
+    id: 'learned_100',
+    icon: '🌟',
+    name: 'Мастер слов',
+    desc: 'Выучи 100 слов',
+    check: () => words.filter(w => w.stats.learned).length >= 100,
   },
 ];
 
@@ -956,7 +1064,7 @@ function makeCard(w) {
   card.innerHTML = `
     <div class="wc-top">
       <div class="wc-english">${esc(w.en)}</div>
-      ${speechSupported ? `<button class="btn-audio audio-card-btn" data-word="${esc(w.en)}" title="Произнести">🔊</button>` : ''}
+      ${speechSupported ? `<button class="btn-audio audio-card-btn" data-word="${safeAttr(w.en)}" title="Произнести">🔊</button>` : ''}
     </div>
     <div class="wc-russian">${esc(w.ru)}</div>
     ${w.ex ? `<div class="wc-example">${esc(w.ex)}</div>` : ''}
@@ -1027,11 +1135,7 @@ document.getElementById('words-grid').addEventListener('click', e => {
         en: card.querySelector('.e-en').value.trim(),
         ru: card.querySelector('.e-ru').value.trim(),
         ex: card.querySelector('.e-ex').value.trim(),
-        tags: card
-          .querySelector('.e-tags')
-          .value.split(',')
-          .map(t => t.trim())
-          .filter(Boolean),
+        tags: normalizeTags(card.querySelector('.e-tags').value),
       });
       toast('✅ Слово обновлено!');
       renderWords();
@@ -1477,7 +1581,7 @@ function handleImportFile(file) {
               en: cols[0] || '',
               ru: cols[1] || '',
               ex: cols[2] || '',
-              tags: cols[3] ? cols[3].split(';').filter(Boolean) : [],
+              tags: normalizeTags(cols[3] || ''),
             };
           })
           .filter(w => w.en && w.ru);
@@ -1760,6 +1864,128 @@ function nextExercise() {
     btns.innerHTML = `<button class="btn btn-success" id="knew-btn">💚 Знал</button><button class="btn btn-danger" id="didnt-btn">❤️ Не знал</button>`;
     document.getElementById('knew-btn').onclick = () => recordAnswer(true);
     document.getElementById('didnt-btn').onclick = () => recordAnswer(false);
+  } else if (t === 'speech') {
+    if (!speechRecognitionSupported) {
+      // Если Speech Recognition не поддерживается, заменяем на другое упражнение
+      session.exTypes = session.exTypes.filter(x => x !== 'speech');
+      if (!session.exTypes.length) session.exTypes = ['flash'];
+      nextExercise();
+      return;
+    }
+
+    document.getElementById('ex-type-lbl').textContent = '🎤 Произнеси вслух';
+    content.innerHTML = `
+      <div class="speech-exercise">
+        <div class="speech-prompt">
+          <div class="speech-word">${esc(w.en)}</div>
+          <div class="speech-hint">Произнеси это слово вслух на английском</div>
+          ${w.ru ? `<div class="speech-translation">Перевод: ${esc(w.ru)}</div>` : ''}
+        </div>
+        <div class="speech-controls">
+          <button class="btn btn-primary btn-lg" id="speech-start-btn">
+            <span class="speech-icon">🎤</span>
+            <span class="speech-text">Начать запись</span>
+          </button>
+          <div class="speech-status" id="speech-status"></div>
+          <div class="speech-result" id="speech-result"></div>
+        </div>
+      </div>
+    `;
+
+    let isRecording = false;
+    let recognitionTimeout = null;
+
+    const startBtn = document.getElementById('speech-start-btn');
+    const statusEl = document.getElementById('speech-status');
+    const resultEl = document.getElementById('speech-result');
+
+    function startRecording() {
+      if (isRecording) return;
+
+      isRecording = true;
+      startBtn.classList.add('recording');
+      startBtn.querySelector('.speech-icon').textContent = '⏹️';
+      startBtn.querySelector('.speech-text').textContent = 'Остановить запись';
+      statusEl.innerHTML =
+        '<div class="recording-indicator">🔴 Слушаю...</div>';
+      resultEl.innerHTML = '';
+
+      // Останавливаем запись через 5 секунд автоматически
+      recognitionTimeout = setTimeout(() => {
+        stopRecording();
+      }, 5000);
+
+      speechRecognition.onresult = event => {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+        const confidence = event.results[0][0].confidence;
+        const correctWord = w.en.toLowerCase().trim();
+
+        // Проверяем схожесть слов
+        const isCorrect = checkSpeechSimilarity(transcript, correctWord);
+
+        resultEl.innerHTML = `
+          <div class="speech-feedback">
+            <div class="speech-heard">Ты сказал: "<strong>${esc(transcript)}</strong>"</div>
+            <div class="speech-confidence">Уверенность: ${Math.round(confidence * 100)}%</div>
+            <div class="speech-verdict ${isCorrect ? 'correct' : 'incorrect'}">
+              ${isCorrect ? '✅ Отлично! Правильно!' : '❌ Попробуй еще раз'}
+            </div>
+          </div>
+        `;
+
+        setTimeout(() => {
+          recordAnswer(isCorrect);
+          if (isCorrect) {
+            gainXP(15, 'произношение 🎤'); // Бонус за произношение
+          }
+          sIdx++;
+          nextExercise();
+        }, 2000);
+      };
+
+      speechRecognition.onerror = event => {
+        console.error('Speech recognition error:', event.error);
+        statusEl.innerHTML =
+          '<div class="speech-error">❌ Ошибка распознавания. Попробуй еще раз.</div>';
+        stopRecording();
+      };
+
+      speechRecognition.onend = () => {
+        stopRecording();
+      };
+
+      speechRecognition.start();
+    }
+
+    function stopRecording() {
+      if (!isRecording) return;
+
+      isRecording = false;
+      startBtn.classList.remove('recording');
+      startBtn.querySelector('.speech-icon').textContent = '🎤';
+      startBtn.querySelector('.speech-text').textContent = 'Начать запись';
+      statusEl.innerHTML = '';
+
+      if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout);
+        recognitionTimeout = null;
+      }
+
+      speechRecognition.stop();
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    // Автовоспроизведение слова
+    if (autoPron && speechSupported) {
+      setTimeout(() => speak(w.en), 500);
+    }
   } else if (t === 'multi') {
     document.getElementById('ex-type-lbl').textContent = '🎯 Выбор ответа';
     const dir = session.dir || 'both';
@@ -1924,9 +2150,9 @@ function showResults() {
   // XP
   const xpCorrect = resCorrect;
   const xpTotal = resTotal;
-  if (xpCorrect > 0) gainXP(xpCorrect * 10, xpCorrect + ' правильных');
+  if (xpCorrect > 0) gainXP(xpCorrect * 3, xpCorrect + ' правильных');
   const isPerfect = xpTotal >= 5 && xpCorrect === xpTotal;
-  if (isPerfect) gainXP(30, 'идеальная сессия 🎯');
+  if (isPerfect) gainXP(10, 'идеальная сессия 🎯');
   updStreak();
   checkBadges(isPerfect);
 }

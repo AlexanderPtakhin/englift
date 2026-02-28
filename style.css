@@ -1795,3 +1795,159 @@ body.dark .due-soon {
 .sync-status.error {
   color: var(--danger);
 }
+
+/* ============================================================
+   SPEECH RECOGNITION EXERCISE
+   ============================================================ */
+.speech-exercise {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.speech-prompt {
+  margin-bottom: 2rem;
+}
+
+.speech-word {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.speech-hint {
+  font-size: 1.1rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.speech-translation {
+  font-size: 1rem;
+  color: var(--text);
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.speech-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+#speech-start-btn {
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+#speech-start-btn.recording {
+  background: var(--danger);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.speech-icon {
+  font-size: 1.5rem;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--danger);
+  font-weight: 600;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.5;
+  }
+}
+
+.speech-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.speech-feedback {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-top: 1rem;
+  text-align: left;
+  max-width: 400px;
+}
+
+.speech-heard {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.speech-confidence {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.speech-verdict {
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.speech-verdict.correct {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  border: 2px solid var(--success);
+}
+
+.speech-verdict.incorrect {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  border: 2px solid var(--danger);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .speech-word {
+    font-size: 2rem;
+  }
+
+  .speech-hint {
+    font-size: 1rem;
+  }
+
+  #speech-start-btn {
+    min-width: 180px;
+    font-size: 0.9rem;
+  }
+
+  .speech-feedback {
+    max-width: 100%;
+    padding: 1rem;
+  }
+}
