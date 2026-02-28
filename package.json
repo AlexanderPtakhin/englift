@@ -9,6 +9,7 @@
     "firebase": "^10.14.1"
   },
   "devDependencies": {
+    "@parcel/transformer-webmanifest": "^2.16.4",
     "buffer": "^6.0.3",
     "parcel": "^2.16.4"
   },

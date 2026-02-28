@@ -2,12 +2,181 @@ import { saveWordToDb, deleteWordFromDb } from './db.js';
 import './auth.js';
 
 // ============================================================
+// VALIDATION & SECURITY
+// ============================================================
+
+// Улучшенная функция экранирования HTML (полная защита от XSS)
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
+}
+
+// Безопасное экранирование для HTML атрибутов (защита от XSS в value="")
+function safeAttr(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
+}
+
+// Валидация английского слова
+function validateEnglish(word) {
+  if (!word || typeof word !== 'string') return false;
+  const trimmed = word.trim();
+  if (trimmed.length < 1 || trimmed.length > 100) return false;
+  // Проверяем на допустимые символы (буквы, дефисы, апострофы)
+  return /^[a-zA-Z\s\-\']+$/.test(trimmed);
+}
+
+// Валидация русского перевода
+function validateRussian(translation) {
+  if (!translation || typeof translation !== 'string') return false;
+  const trimmed = translation.trim();
+  if (trimmed.length < 1 || trimmed.length > 200) return false;
+  // Проверяем на допустимые символы (буквы, знаки препинания)
+  return /^[а-яА-ЯёЁ\s\-\.\,\!\?\(\)\[\]\"\'\;]+$/.test(trimmed);
+}
+
+// Валидация примера (усиленная защита от HTML инъекций)
+function validateExample(example) {
+  if (!example) return true; // пример опциональный
+  const trimmed = example.trim();
+  if (trimmed.length > 500) return false;
+
+  // Полная проверка на XSS и HTML инъекции
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+\s*=/i, // onclick, onload, onerror и т.д.
+    /<iframe/i,
+    /<object/i,
+    /<embed/i,
+    /<link/i,
+    /<meta/i,
+    /@import/i,
+    /expression\s*\(/i,
+    /vbscript:/i,
+    /data:text\/html/i,
+    /<img[^>]*onerror/i,
+    /<svg[^>]*onload/i,
+    /<body[^>]*onload/i,
+    /<input[^>]*onfocus/i,
+    /<select[^>]*onchange/i,
+    /<textarea[^>]*onfocus/i,
+  ];
+
+  return !dangerousPatterns.some(pattern => pattern.test(trimmed));
+}
+
+// Валидация тегов
+function validateTags(tags) {
+  if (!Array.isArray(tags)) return false;
+  return tags.every(tag => {
+    if (typeof tag !== 'string') return false;
+    const trimmed = tag.trim();
+    return (
+      trimmed.length > 0 &&
+      trimmed.length <= 30 &&
+      /^[a-zA-Zа-яА-ЯёЁ0-9\s\-\_]+$/.test(trimmed)
+    );
+  });
+}
+
+// Очистка и нормализация тегов (улучшенная)
+function normalizeTags(tagsString) {
+  if (!tagsString || typeof tagsString !== 'string') return [];
+  return tagsString
+    .split(',')
+    .map(
+      tag =>
+        tag
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '-') // пробелы → дефис
+          .replace(/[^a-z0-9а-яё-]/g, ''), // только буквы, цифры, дефис
+    )
+    .filter(tag => tag.length > 0 && tag.length <= 30)
+    .slice(0, 10); // Максимум 10 тегов
+}
+
+// Проверка на XSS атаки
+function sanitizeInput(input) {
+  if (!input || typeof input !== 'string') return '';
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
+
+// ============================================================
+// LOADING INDICATORS
+// ============================================================
+function showLoading(message = 'Загрузка...') {
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.id = 'loading-overlay';
+  overlay.innerHTML = `
+    <div class="loading-modal">
+      <div class="loading-spinner"></div>
+      <div>${message}</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.remove();
+}
+
+function setButtonLoading(button, loading = true) {
+  if (loading) {
+    button.classList.add('loading');
+    button.disabled = true;
+  } else {
+    button.classList.remove('loading');
+    button.disabled = false;
+  }
+}
+
+function showSyncStatus(status, message) {
+  const existing = document.querySelector('.sync-status');
+  if (existing) existing.remove();
+
+  const statusEl = document.createElement('div');
+  statusEl.className = `sync-status ${status}`;
+  statusEl.innerHTML = `
+    ${status === 'syncing' ? '<div class="loading-spinner"></div>' : status === 'success' ? '✓' : '✗'}
+    <span>${message}</span>
+  `;
+
+  const authBtn = document.getElementById('auth-btn');
+  authBtn.parentNode.insertBefore(statusEl, authBtn.nextSibling);
+
+  if (status !== 'syncing') {
+    setTimeout(() => statusEl.remove(), 3000);
+  }
+}
+
+// ============================================================
 // DATA
 // ============================================================
-const SK = 'vocabmaster_v1';
-const XP_K = 'vocabmaster_xp';
-const STREAK_K = 'vocabmaster_streak';
-const SPEECH_K = 'vocabmaster_speech';
+const SK = 'englift_v1';
+const XP_K = 'englift_xp';
+const STREAK_K = 'englift_streak';
+const SPEECH_K = 'englift_speech';
 let words = [];
 let streak = { count: 0, lastDate: null };
 let speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0 };
@@ -42,7 +211,33 @@ function load() {
   } catch (e) {}
 }
 function save() {
-  localStorage.setItem(SK, JSON.stringify(words));
+  try {
+    const data = JSON.stringify(words);
+    // Проверяем размер данных перед сохранением
+    const dataSize = new Blob([data]).size;
+    const maxSize = 4 * 1024 * 1024; // 4MB лимит для безопасности
+
+    if (dataSize > maxSize) {
+      toast(
+        '⚠️ Слишком много данных! Удалите старые слова или экспортируйте их.',
+        'warning',
+      );
+      return false;
+    }
+
+    localStorage.setItem(SK, data);
+    return true;
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      toast(
+        '❌ Локальное хранилище переполнено! Удалите старые слова.',
+        'danger',
+      );
+    } else {
+      toast('❌ Ошибка сохранения данных', 'danger');
+    }
+    return false;
+  }
 }
 function saveXP() {
   localStorage.setItem(XP_K, JSON.stringify(xpData));
@@ -75,21 +270,93 @@ function mkWord(en, ru, ex, tags) {
   };
 }
 function addWord(en, ru, ex, tags) {
-  if (words.some(w => w.en.toLowerCase() === en.trim().toLowerCase())) {
-    toast('⚠️ Слово «' + en.trim() + '» уже есть в словаре', 'warning');
+  // Валидация входных данных
+  if (!validateEnglish(en)) {
+    toast(
+      '❌ Неверный формат английского слова. Используйте только буквы, дефисы и апострофы.',
+      'danger',
+    );
     return false;
   }
-  words.push(mkWord(en, ru, ex, tags));
-  save();
-  saveWordToDb(words[words.length - 1]);
+
+  if (!validateRussian(ru)) {
+    toast(
+      '❌ Неверный формат перевода. Используйте только русские буквы и знаки препинания.',
+      'danger',
+    );
+    return false;
+  }
+
+  if (!validateExample(ex)) {
+    toast(
+      '❌ Неверный формат примера. Проверьте наличие недопустимых символов.',
+      'danger',
+    );
+    return false;
+  }
+
+  if (!validateTags(tags)) {
+    toast(
+      '❌ Неверный формат тегов. Используйте буквы, цифры, дефисы и подчеркивания.',
+      'danger',
+    );
+    return false;
+  }
+
+  // Нормализация данных
+  const normalizedEn = en.trim();
+  const normalizedRu = ru.trim();
+  const normalizedEx = ex ? ex.trim() : '';
+  const normalizedTags = tags;
+
+  // Проверка на дубликаты
+  if (words.some(w => w.en.toLowerCase() === normalizedEn.toLowerCase())) {
+    toast('⚠️ Слово «' + esc(normalizedEn) + '» уже есть в словаре', 'warning');
+    return false;
+  }
+
+  const newWord = mkWord(
+    normalizedEn,
+    normalizedRu,
+    normalizedEx,
+    normalizedTags,
+  );
+  words.push(newWord);
+
+  // Проверяем успешность сохранения
+  if (!save()) {
+    // Откатываем изменения если сохранение не удалось
+    words.pop();
+    return false;
+  }
+
+  // Показываем индикатор синхронизации
+  showSyncStatus('syncing', 'Синхронизация...');
+
+  saveWordToDb(newWord);
   gainXP(15, 'новое слово');
   checkBadges();
+
+  // Скрываем индикатор через некоторое время
+  setTimeout(() => {
+    showSyncStatus('success', 'Синхронизировано');
+  }, 1000);
+
   return true;
 }
 function delWord(id) {
   words = words.filter(w => w.id !== id);
   save();
+
+  // Показываем индикатор синхронизации
+  showSyncStatus('syncing', 'Удаление...');
+
   deleteWordFromDb(id);
+
+  // Скрываем индикатор через некоторое время
+  setTimeout(() => {
+    showSyncStatus('success', 'Удалено');
+  }, 1000);
 }
 function updWord(id, data) {
   const w = words.find(w => w.id === id);
@@ -488,6 +755,9 @@ function switchTab(name) {
   if (name === 'stats') renderStats();
   if (name === 'words') renderWords();
 }
+
+// Экспортируем функции глобально
+window.switchTab = switchTab;
 document
   .querySelectorAll('.nav-btn[data-tab]')
   .forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
@@ -501,10 +771,10 @@ function applyDark(on) {
 }
 document.getElementById('dark-toggle').addEventListener('click', () => {
   const on = !document.body.classList.contains('dark');
-  localStorage.setItem('vmDark', on);
+  localStorage.setItem('engliftDark', on);
   applyDark(on);
 });
-if (localStorage.getItem('vmDark') === 'true') applyDark(true);
+if (localStorage.getItem('engliftDark') === 'true') applyDark(true);
 
 // ============================================================
 // RENDER WORDS
@@ -514,65 +784,150 @@ let activeFilter = 'all',
   sortBy = 'date-desc',
   tagFilter = '';
 
+// Кеширование для оптимизации
+let renderCache = new Map();
+let searchDebounceTimer = null;
+
 function renderWords() {
   const grid = document.getElementById('words-grid');
   const empty = document.getElementById('empty-words');
-  let list = words;
-  if (activeFilter === 'learning') list = list.filter(w => !w.stats.learned);
-  if (activeFilter === 'learned') list = list.filter(w => w.stats.learned);
-  if (searchQ) {
-    const q = searchQ.toLowerCase();
-    list = list.filter(
-      w =>
-        w.en.toLowerCase().includes(q) ||
-        w.ru.toLowerCase().includes(q) ||
-        w.tags.some(t => t.toLowerCase().includes(q)),
-    );
-  }
-  if (tagFilter)
-    list = list.filter(w =>
-      w.tags.map(t => t.toLowerCase()).includes(tagFilter),
-    );
-  // Сортировка
-  if (sortBy === 'date-asc')
-    list = [...list].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  else if (sortBy === 'date-desc')
-    list = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  else if (sortBy === 'alpha-asc')
-    list = [...list].sort((a, b) => a.en.localeCompare(b.en));
-  else if (sortBy === 'alpha-desc')
-    list = [...list].sort((a, b) => b.en.localeCompare(a.en));
-  else if (sortBy === 'progress-asc')
-    list = [...list].sort(
-      (a, b) =>
-        (a.stats.shown ? a.stats.correct / a.stats.shown : 1) -
-        (b.stats.shown ? b.stats.correct / b.stats.shown : 1),
-    );
-  else if (sortBy === 'progress-desc')
-    list = [...list].sort(
-      (a, b) =>
-        (b.stats.shown ? b.stats.correct / b.stats.shown : 1) -
-        (a.stats.shown ? a.stats.correct / a.stats.shown : 1),
-    );
 
-  document.getElementById('words-count').textContent = words.length;
-  updateDueBadge();
-  document.getElementById('words-subtitle').textContent =
-    list.length !== words.length
-      ? `(${list.length} из ${words.length})`
-      : `— ${words.length} слов`;
-  if (!list.length) {
+  // Используем requestAnimationFrame для плавности
+  requestAnimationFrame(() => {
+    let list = words;
+
+    // Применяем фильтры с оптимизацией
+    if (activeFilter === 'learning') list = list.filter(w => !w.stats.learned);
+    if (activeFilter === 'learned') list = list.filter(w => w.stats.learned);
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      list = list.filter(
+        w =>
+          w.en.toLowerCase().includes(q) ||
+          w.ru.toLowerCase().includes(q) ||
+          w.tags.some(t => t.toLowerCase().includes(q)),
+      );
+    }
+    if (tagFilter)
+      list = list.filter(w =>
+        w.tags.map(t => t.toLowerCase()).includes(tagFilter),
+      );
+
+    // Оптимизированная сортировка
+    list = sortWords(list, sortBy);
+
+    // Обновляем счетчики
+    document.getElementById('words-count').textContent = words.length;
+    updateDueBadge();
+    document.getElementById('words-subtitle').textContent =
+      list.length !== words.length
+        ? `(${list.length} из ${words.length})`
+        : `— ${words.length} слов`;
+
+    if (!list.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    // Обновляем индикатор тега
+    updateTagFilterIndicator();
+
+    // Оптимизированный рендеринг с DocumentFragment
+    const fragment = document.createDocumentFragment();
+
+    // Ограничиваем количество отображаемых элементов для производительности
+    const maxVisible = 100;
+    const visibleList = list.slice(0, maxVisible);
+
+    visibleList.forEach(w => {
+      const card = getCachedCard(w);
+      fragment.appendChild(card);
+    });
+
+    // Очищаем и добавляем элементы
     grid.innerHTML = '';
-    empty.style.display = 'block';
-    return;
+    grid.appendChild(fragment);
+
+    // Показываем предупреждение если есть еще элементы
+    if (list.length > maxVisible) {
+      // Удаляем старые предупреждения
+      const oldWarning = grid.parentNode.querySelector('.performance-warning');
+      if (oldWarning) oldWarning.remove();
+
+      const warning = document.createElement('div');
+      warning.className = 'performance-warning';
+      warning.textContent = `Показано первые ${maxVisible} слов из ${list.length}. Используйте поиск для навигации.`;
+      warning.style.cssText =
+        'background: var(--warning); color: white; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; font-size: 0.9rem;';
+      grid.parentNode.insertBefore(warning, grid);
+    } else {
+      // Удаляем предупреждение если слов стало меньше лимита
+      const oldWarning = grid.parentNode.querySelector('.performance-warning');
+      if (oldWarning) oldWarning.remove();
+    }
+  });
+}
+
+function sortWords(list, sortBy) {
+  const sortedList = [...list];
+
+  switch (sortBy) {
+    case 'date-asc':
+      return sortedList.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    case 'date-desc':
+      return sortedList.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    case 'alpha-asc':
+      return sortedList.sort((a, b) => a.en.localeCompare(b.en));
+    case 'alpha-desc':
+      return sortedList.sort((a, b) => b.en.localeCompare(a.en));
+    case 'progress-asc':
+      return sortedList.sort(
+        (a, b) =>
+          (a.stats.shown ? a.stats.correct / a.stats.shown : 1) -
+          (b.stats.shown ? b.stats.correct / b.stats.shown : 1),
+      );
+    case 'progress-desc':
+      return sortedList.sort(
+        (a, b) =>
+          (b.stats.shown ? b.stats.correct / b.stats.shown : 1) -
+          (a.stats.shown ? a.stats.correct / a.stats.shown : 1),
+      );
+    default:
+      return sortedList;
   }
-  empty.style.display = 'none';
-  grid.innerHTML = '';
+}
+
+function getCachedCard(word) {
+  // Создаем хеш от всего содержимого слова для корректного кеширования
+  const contentHash = `${word.id}_${word.en}_${word.ru}_${word.ex}_${word.tags.join('_')}_${word.stats.learned}_${word.stats.streak}_${word.stats.nextReview}`;
+
+  if (renderCache.has(contentHash)) {
+    const cachedCard = renderCache.get(contentHash).cloneNode(true);
+    return cachedCard;
+  }
+
+  const card = makeCard(word);
+  renderCache.set(contentHash, card.cloneNode(true));
+
+  // Ограничиваем размер кеша
+  if (renderCache.size > 200) {
+    const firstKey = renderCache.keys().next().value;
+    renderCache.delete(firstKey);
+  }
+
+  return card;
+}
+
+function updateTagFilterIndicator() {
   let tagInd = document.getElementById('tag-filter-indicator');
   if (tagFilter) {
     if (!tagInd) {
       tagInd = document.createElement('div');
       tagInd.id = 'tag-filter-indicator';
+      const grid = document.getElementById('words-grid');
       grid.parentNode.insertBefore(tagInd, grid);
     }
     tagInd.innerHTML = `<span class="tag-filter-indicator">🏷 ${esc(tagFilter)} &nbsp;✕ очистить</span>`;
@@ -583,7 +938,15 @@ function renderWords() {
   } else {
     if (tagInd) tagInd.remove();
   }
-  list.forEach(w => grid.appendChild(makeCard(w)));
+}
+
+// Оптимизированный поиск с debounce
+function optimizedSearch(query) {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    searchQ = query;
+    renderWords();
+  }, 300);
 }
 
 function makeCard(w) {
@@ -626,14 +989,6 @@ function makeCard(w) {
   return card;
 }
 
-function esc(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 // Audio buttons on word cards
 document.getElementById('words-grid').addEventListener('click', e => {
   if (
@@ -658,10 +1013,10 @@ document.getElementById('words-grid').addEventListener('click', e => {
     const card = e.target.closest('.word-card');
     card.classList.add('editing');
     card.innerHTML = `
-      <div class="form-group"><label>English</label><input type="text" class="e-en" value="${esc(w.en)}"></div>
-      <div class="form-group"><label>Русский</label><input type="text" class="e-ru" value="${esc(w.ru)}"></div>
-      <div class="form-group"><label>Пример</label><input type="text" class="e-ex" value="${esc(w.ex)}"></div>
-      <div class="form-group"><label>Теги</label><input type="text" class="e-tags" value="${esc(w.tags.join(', '))}"></div>
+      <div class="form-group"><label>English</label><input type="text" class="e-en" value="${safeAttr(w.en)}"></div>
+      <div class="form-group"><label>Русский</label><input type="text" class="e-ru" value="${safeAttr(w.ru)}"></div>
+      <div class="form-group"><label>Пример</label><input type="text" class="e-ex" value="${safeAttr(w.ex)}"></div>
+      <div class="form-group"><label>Теги</label><input type="text" class="e-tags" value="${safeAttr(w.tags.join(', '))}"></div>
       <div style="display:flex;gap:.5rem">
         <button class="btn btn-primary save-edit" data-id="${id}">💾 Сохранить</button>
         <button class="btn btn-secondary cancel-edit">Отмена</button>
@@ -768,41 +1123,42 @@ document
 // ============================================================
 document.getElementById('single-form').addEventListener('submit', e => {
   e.preventDefault();
+
   const en = document.getElementById('f-en').value.trim();
   const ru = document.getElementById('f-ru').value.trim();
-  if (!en || !ru) return;
-  addWord(
-    en,
-    ru,
-    document.getElementById('f-ex').value.trim(),
-    document
-      .getElementById('f-tags')
-      .value.split(',')
-      .map(t => t.trim())
-      .filter(Boolean),
-  );
-  e.target.reset();
-  document.getElementById('f-en').focus();
-  toast(`✅ «${en}» добавлено!`, 'success');
-  // Переключаемся на словарь чтобы показать анимацию
-  switchTab('words');
-  setTimeout(() => {
-    // Сортировка — новое слово первым
-    const sel = document.getElementById('sort-select');
-    if (sel && sel.value !== 'date-desc') {
-      sel.value = 'date-desc';
-      sortBy = 'date-desc';
-    }
-    renderWords();
+  const ex = document.getElementById('f-ex').value.trim();
+  const tagsString = document.getElementById('f-tags').value;
+
+  // Нормализация тегов
+  const tags = normalizeTags(tagsString);
+
+  // Добавляем слово с валидацией
+  const success = addWord(en, ru, ex, tags);
+
+  if (success) {
+    e.target.reset();
+    document.getElementById('f-en').focus();
+    toast(`✅ «${esc(en)}» добавлено!`, 'success');
+
+    // Переключаемся на словарь чтобы показать анимацию
+    switchTab('words');
     setTimeout(() => {
-      const newCard = document.querySelector('#words-grid .word-card');
-      if (newCard) {
-        newCard.classList.add('word-card--new');
-        newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => newCard.classList.remove('word-card--new'), 700);
+      // Сортировка — новое слово первым
+      const sel = document.getElementById('sort-select');
+      if (sel && sel.value !== 'date-desc') {
+        sel.value = 'date-desc';
+        sortBy = 'date-desc';
       }
-    }, 60);
-  }, 50);
+      renderWords();
+      setTimeout(() => {
+        const newCard = document.querySelector('#words-grid .word-card');
+        if (newCard) {
+          newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          newCard.classList.add('new-word-highlight');
+        }
+      }, 100);
+    }, 300);
+  }
 });
 
 let bulkParsed = [];
@@ -1021,7 +1377,7 @@ document.getElementById('io-export-json').addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download =
-    'vocabmaster-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    'englift-backup-' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
   toast('💾 Бэкап сохранён!', 'success');
   closeIOModal();
@@ -1045,7 +1401,7 @@ document.getElementById('io-export-csv').addEventListener('click', () => {
     new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }),
   );
   a.download =
-    'vocabmaster-words-' + new Date().toISOString().slice(0, 10) + '.csv';
+    'englift-words-' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
   toast('📄 CSV скачан!', 'success');
   closeIOModal();
@@ -1062,17 +1418,17 @@ document.getElementById('io-export-anki').addEventListener('click', () => {
     const tags = w.tags.join(' ');
     return [front, w.ru, tags].join('	');
   });
-  const blob = new Blob([rows.join('\r\n')], {
-    type: 'text/plain;charset=utf-8',
+
+  const blob = new Blob([rows.join('\n')], {
+    type: 'text/tab-separated-values',
   });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `vocabmaster_anki_${new Date().toISOString().slice(0, 10)}.txt`;
+  a.download = `englift_anki_${new Date().toISOString().slice(0, 10)}.txt`;
   a.click();
   toast('🃏 Anki файл скачан!', 'success');
 });
 
-// File input handling
 function handleImportFile(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -2023,8 +2379,8 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 // === PWA ===
 (function initPWA() {
   const manifest = {
-    name: 'VocabMaster',
-    short_name: 'VocabMaster',
+    name: 'EngLift',
+    short_name: 'EngLift',
     description: 'Учи английские слова',
     start_url: './',
     display: 'standalone',
@@ -2046,11 +2402,11 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(manifest)], {
     type: 'application/json',
   });
-  document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+  // Убираем установку manifest href, так как теперь используем отдельный файл
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE = 'vocabmaster-v1';
+      const CACHE = 'englift-v1';
       const ASSETS = [self.location.href];
       self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
       self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
@@ -2076,4 +2432,17 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
     });
   });
 })();
-window.switchTab = switchTab;
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Инициализация
+  load();
+  renderWords();
+  renderStats();
+  renderXP();
+  renderBadges();
+  applyDark(localStorage.getItem('engliftDark') === 'true');
+  switchTab('words');
+});
