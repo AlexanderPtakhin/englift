@@ -1121,10 +1121,10 @@ document.getElementById('words-grid').addEventListener('click', e => {
     const card = e.target.closest('.word-card');
     card.classList.add('editing');
     card.innerHTML = `
-      <div class="form-group"><label>English</label><input type="text" class="e-en" value="${safeAttr(w.en)}"></div>
-      <div class="form-group"><label>Русский</label><input type="text" class="e-ru" value="${safeAttr(w.ru)}"></div>
-      <div class="form-group"><label>Пример</label><input type="text" class="e-ex" value="${safeAttr(w.ex)}"></div>
-      <div class="form-group"><label>Теги</label><input type="text" class="e-tags" value="${safeAttr(w.tags.join(', '))}"></div>
+      <div class="form-group"><label>English</label><input type="text" class="e-en form-control" value="${safeAttr(w.en)}"></div>
+      <div class="form-group"><label>Русский</label><input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}"></div>
+      <div class="form-group"><label>Пример</label><input type="text" class="e-ex form-control" value="${safeAttr(w.ex)}"></div>
+      <div class="form-group"><label>Теги</label><input type="text" class="e-tags form-control" value="${safeAttr(w.tags.join(', '))}"></div>
       <div style="display:flex;gap:.5rem">
         <button class="btn btn-primary save-edit" data-id="${id}">💾 Сохранить</button>
         <button class="btn btn-secondary cancel-edit">Отмена</button>
