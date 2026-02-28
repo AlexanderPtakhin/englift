@@ -1,5 +1,45 @@
 import { saveWordToDb, deleteWordFromDb } from './db.js';
+import { getCompleteWordData } from './api.js';
 import './auth.js';
+
+// ============================================================
+// API LOADING INDICATOR
+// ============================================================
+window.showApiLoading = function (show) {
+  const loadingEl = document.getElementById('api-loading');
+  if (loadingEl) {
+    loadingEl.style.display = show ? 'flex' : 'none';
+  }
+};
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const CONSTANTS = {
+  XP_PER_LEVEL: 200,
+  STORAGE_KEYS: {
+    WORDS: 'englift_v1',
+    XP: 'englift_xp',
+    STREAK: 'englift_streak',
+    SPEECH: 'englift_speech',
+    DARK_MODE: 'engliftDark',
+  },
+  LIMITS: {
+    MAX_WORD_LENGTH: 100,
+    MAX_TRANSLATION_LENGTH: 200,
+    MAX_EXAMPLE_LENGTH: 500,
+    MAX_TAG_LENGTH: 30,
+    MAX_TAGS: 10,
+    MAX_VISIBLE_WORDS: 100,
+    MAX_CACHE_SIZE: 200,
+    LOCAL_STORAGE_LIMIT: 4 * 1024 * 1024, // 4MB
+  },
+  SPEECH: {
+    SIMILARITY_THRESHOLD: 0.8,
+    RECOGNITION_TIMEOUT: 5000,
+    AUTO_LANG: 'en-US',
+  },
+};
 
 // ============================================================
 // SPEECH RECOGNITION SUPPORT
@@ -13,7 +53,7 @@ if (speechRecognitionSupported) {
   speechRecognition = new (
     window.SpeechRecognition || window.webkitSpeechRecognition
   )();
-  speechRecognition.lang = 'en-US';
+  speechRecognition.lang = CONSTANTS.SPEECH.AUTO_LANG;
   speechRecognition.continuous = false;
   speechRecognition.interimResults = false;
   speechRecognition.maxAlternatives = 1;
@@ -46,7 +86,7 @@ function checkSpeechSimilarity(spoken, correct) {
   const similarity = 1 - distance / maxLength;
 
   // Считаем правильным если схожесть > 80%
-  return similarity > 0.8;
+  return similarity > CONSTANTS.SPEECH.SIMILARITY_THRESHOLD;
 }
 
 // Расстояние Левенштейна для сравнения строк
@@ -117,7 +157,8 @@ function safeAttr(str) {
 function validateEnglish(word) {
   if (!word || typeof word !== 'string') return false;
   const trimmed = word.trim();
-  if (trimmed.length < 1 || trimmed.length > 100) return false;
+  if (trimmed.length < 1 || trimmed.length > CONSTANTS.LIMITS.MAX_WORD_LENGTH)
+    return false;
   // Проверяем на допустимые символы (буквы, дефисы, апострофы)
   return /^[a-zA-Z\s\-\']+$/.test(trimmed);
 }
@@ -126,7 +167,11 @@ function validateEnglish(word) {
 function validateRussian(translation) {
   if (!translation || typeof translation !== 'string') return false;
   const trimmed = translation.trim();
-  if (trimmed.length < 1 || trimmed.length > 200) return false;
+  if (
+    trimmed.length < 1 ||
+    trimmed.length > CONSTANTS.LIMITS.MAX_TRANSLATION_LENGTH
+  )
+    return false;
   // Проверяем на допустимые символы (буквы, знаки препинания)
   return /^[а-яА-ЯёЁ\s\-\.\,\!\?\(\)\[\]\"\'\;]+$/.test(trimmed);
 }
@@ -135,7 +180,7 @@ function validateRussian(translation) {
 function validateExample(example) {
   if (!example) return true; // пример опциональный
   const trimmed = example.trim();
-  if (trimmed.length > 500) return false;
+  if (trimmed.length > CONSTANTS.LIMITS.MAX_EXAMPLE_LENGTH) return false;
 
   // Полная проверка на XSS и HTML инъекции
   const dangerousPatterns = [
@@ -170,7 +215,7 @@ function validateTags(tags) {
     const trimmed = tag.trim();
     return (
       trimmed.length > 0 &&
-      trimmed.length <= 30 &&
+      trimmed.length <= CONSTANTS.LIMITS.MAX_TAG_LENGTH &&
       /^[a-zA-Zа-яА-ЯёЁ0-9\s\-\_]+$/.test(trimmed)
     );
   });
@@ -189,8 +234,10 @@ function normalizeTags(tagsString) {
           .replace(/\s+/g, '-') // пробелы → дефис
           .replace(/[^a-z0-9а-яё-]/g, ''), // только буквы, цифры, дефис
     )
-    .filter(tag => tag.length > 0 && tag.length <= 30)
-    .slice(0, 10); // Максимум 10 тегов
+    .filter(
+      tag => tag.length > 0 && tag.length <= CONSTANTS.LIMITS.MAX_TAG_LENGTH,
+    )
+    .slice(0, CONSTANTS.LIMITS.MAX_TAGS); // Максимум 10 тегов
 }
 
 // ============================================================
@@ -246,10 +293,10 @@ function showSyncStatus(status, message) {
 // ============================================================
 // DATA
 // ============================================================
-const SK = 'englift_v1';
-const XP_K = 'englift_xp';
-const STREAK_K = 'englift_streak';
-const SPEECH_K = 'englift_speech';
+const SK = CONSTANTS.STORAGE_KEYS.WORDS;
+const XP_K = CONSTANTS.STORAGE_KEYS.XP;
+const STREAK_K = CONSTANTS.STORAGE_KEYS.STREAK;
+const SPEECH_K = CONSTANTS.STORAGE_KEYS.SPEECH;
 let words = [];
 let streak = { count: 0, lastDate: null };
 let speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0 };
@@ -288,7 +335,7 @@ function save() {
     const data = JSON.stringify(words);
     // Проверяем размер данных перед сохранением
     const dataSize = new Blob([data]).size;
-    const maxSize = 4 * 1024 * 1024; // 4MB лимит для безопасности
+    const maxSize = CONSTANTS.LIMITS.LOCAL_STORAGE_LIMIT; // 4MB лимит для безопасности
 
     if (dataSize > maxSize) {
       toast(
@@ -322,9 +369,22 @@ function saveSpeech() {
   localStorage.setItem(SPEECH_K, JSON.stringify(speechCfg));
 }
 
+// Fallback для генерации UUID в старых браузерах
+function generateId() {
+  if (crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback для старых браузеров
+  return 'xxxx-xxxx-4xxx-yxxx-xxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function mkWord(en, ru, ex, tags) {
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     en: en.trim(),
     ru: ru.trim(),
     ex: (ex || '').trim(),
@@ -342,7 +402,7 @@ function mkWord(en, ru, ex, tags) {
     },
   };
 }
-function addWord(en, ru, ex, tags) {
+async function addWord(en, ru, ex, tags) {
   // Валидация входных данных
   if (!validateEnglish(en)) {
     toast(
@@ -406,37 +466,46 @@ function addWord(en, ru, ex, tags) {
   // Показываем индикатор синхронизации
   showSyncStatus('syncing', 'Синхронизация...');
 
-  saveWordToDb(newWord);
-  gainXP(5, 'новое слово');
-  checkBadges();
-
-  // Скрываем индикатор через некоторое время
-  setTimeout(() => {
+  // Асинхронная синхронизация с обработкой ошибок
+  try {
+    await saveWordToDb(newWord);
     showSyncStatus('success', 'Синхронизировано');
-  }, 1000);
+  } catch (error) {
+    console.error('Error saving word to DB:', error);
+    showSyncStatus('error', 'Ошибка синхронизации');
+  }
+
+  gainXP(5, 'новое слово');
 
   return true;
 }
-function delWord(id) {
+async function delWord(id) {
   words = words.filter(w => w.id !== id);
   save();
 
   // Показываем индикатор синхронизации
   showSyncStatus('syncing', 'Удаление...');
 
-  deleteWordFromDb(id);
-
-  // Скрываем индикатор через некоторое время
-  setTimeout(() => {
+  try {
+    await deleteWordFromDb(id);
     showSyncStatus('success', 'Удалено');
-  }, 1000);
+  } catch (error) {
+    console.error('Error deleting word from DB:', error);
+    showSyncStatus('error', 'Ошибка удаления');
+  }
 }
-function updWord(id, data) {
+async function updWord(id, data) {
   const w = words.find(w => w.id === id);
   if (w) {
     Object.assign(w, data);
     save();
-    saveWordToDb(w);
+
+    try {
+      await saveWordToDb(w);
+    } catch (error) {
+      console.error('Error updating word in DB:', error);
+      toast('⚠️ Ошибка синхронизации изменений', 'warning');
+    }
   }
 }
 function updStats(id, correct) {
@@ -475,7 +544,7 @@ function updStats(id, correct) {
 // ============================================================
 // XP + BADGES
 // ============================================================
-const XP_PER_LEVEL = 200;
+const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
 const BADGES_DEF = [
   {
@@ -736,6 +805,16 @@ const synth = window.speechSynthesis;
 let voices = [];
 let speechSupported = !!synth;
 
+// Оптимизированный AudioContext для звуков
+let audioContext = null;
+
+function getAudioContext() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+}
+
 function loadVoices() {
   voices = synth ? synth.getVoices() : [];
   const englishVoices = voices.filter(v => v.lang.startsWith('en'));
@@ -879,10 +958,11 @@ function applyDark(on) {
 }
 document.getElementById('dark-toggle').addEventListener('click', () => {
   const on = !document.body.classList.contains('dark');
-  localStorage.setItem('engliftDark', on);
+  localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
   applyDark(on);
 });
-if (localStorage.getItem('engliftDark') === 'true') applyDark(true);
+if (localStorage.getItem(CONSTANTS.STORAGE_KEYS.DARK_MODE) === 'true')
+  applyDark(true);
 
 // ============================================================
 // RENDER WORDS
@@ -947,7 +1027,7 @@ function renderWords() {
     const fragment = document.createDocumentFragment();
 
     // Ограничиваем количество отображаемых элементов для производительности
-    const maxVisible = 100;
+    const maxVisible = CONSTANTS.LIMITS.MAX_VISIBLE_WORDS;
     const visibleList = list.slice(0, maxVisible);
 
     visibleList.forEach(w => {
@@ -1021,7 +1101,7 @@ function getCachedCard(word) {
   renderCache.set(contentHash, card.cloneNode(true));
 
   // Ограничиваем размер кеша
-  if (renderCache.size > 200) {
+  if (renderCache.size > CONSTANTS.LIMITS.MAX_CACHE_SIZE) {
     const firstKey = renderCache.keys().next().value;
     renderCache.delete(firstKey);
   }
@@ -1225,6 +1305,87 @@ document
 // ============================================================
 // ADD WORDS
 // ============================================================
+
+// Обработчик кнопки автозаполнения
+document.getElementById('auto-fill-btn').addEventListener('click', async () => {
+  const enInput = document.getElementById('f-en');
+  const englishWord = enInput.value.trim();
+
+  if (!englishWord) {
+    toast('⚠️ Сначала введите английское слово', 'warning');
+    enInput.focus();
+    return;
+  }
+
+  // Проверяем, что это действительно английское слово
+  if (!validateEnglish(englishWord)) {
+    toast('❌ Неверный формат английского слова', 'danger');
+    return;
+  }
+
+  try {
+    console.log('Starting API request for word:', englishWord);
+    const data = await window.WordAPI.getCompleteWordData(englishWord);
+    console.log('Received API data:', data);
+
+    // Заполняем поля полученными данными
+    const ruInput = document.getElementById('f-ru');
+    const exInput = document.getElementById('f-ex');
+    const tagsInput = document.getElementById('f-tags');
+
+    let filledFields = 0;
+
+    if (data.translation) {
+      ruInput.value = data.translation;
+      ruInput.classList.add('auto-filled');
+      filledFields++;
+      console.log('Translation filled:', data.translation);
+    } else {
+      console.log('No translation received');
+    }
+
+    if (data.examples && data.examples.length > 0) {
+      exInput.value = data.examples[0];
+      exInput.classList.add('auto-filled');
+      filledFields++;
+      console.log('Example filled:', data.examples[0]);
+    } else {
+      console.log('No examples received');
+    }
+
+    if (data.tags && data.tags.length > 0) {
+      tagsInput.value = data.tags.slice(0, 3).join(', ');
+      tagsInput.classList.add('auto-filled');
+      filledFields++;
+      console.log('Tags filled:', data.tags);
+    } else {
+      console.log('No tags received');
+    }
+
+    if (filledFields > 0) {
+      toast(
+        `✅ Получено ${filledFields} поля! Проверьте и добавьте слово`,
+        'success',
+      );
+    } else {
+      toast(
+        '⚠️ Данные не найдены. Попробуйте другое слово или введите вручную',
+        'warning',
+      );
+    }
+
+    // Перемещаем фокус на следующее поле если перевод уже заполнен
+    if (data.translation) {
+      exInput.focus();
+    } else {
+      ruInput.focus();
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    toast(`❌ Ошибка: ${error.message}. Попробуйте ввести вручную`, 'danger');
+  }
+});
+
 document.getElementById('single-form').addEventListener('submit', e => {
   e.preventDefault();
 
@@ -1240,7 +1401,18 @@ document.getElementById('single-form').addEventListener('submit', e => {
   const success = addWord(en, ru, ex, tags);
 
   if (success) {
+    // Сбрасываем значения полей
     e.target.reset();
+
+    // Сбрасываем стили auto-filled
+    const fields = ['f-en', 'f-ru', 'f-ex', 'f-tags'];
+    fields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.classList.remove('auto-filled');
+      }
+    });
+
     document.getElementById('f-en').focus();
     toast(`✅ «${esc(en)}» добавлено!`, 'success');
 
@@ -1913,7 +2085,7 @@ function nextExercise() {
       // Останавливаем запись через 5 секунд автоматически
       recognitionTimeout = setTimeout(() => {
         stopRecording();
-      }, 5000);
+      }, CONSTANTS.SPEECH.RECOGNITION_TIMEOUT);
 
       speechRecognition.onresult = event => {
         const transcript = event.results[0][0].transcript.toLowerCase().trim();
@@ -2325,7 +2497,7 @@ renderStats();
 // === ЗВУКИ ===
 function playSound(type) {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioContext();
     if (type === 'correct') {
       const oscs = [];
       [
@@ -2348,7 +2520,9 @@ function playSound(type) {
         osc.stop(ctx.currentTime + delay + dur + 0.05);
         oscs.push(osc);
       });
-      oscs[oscs.length - 1].onended = () => ctx.close();
+      oscs[oscs.length - 1].onended = () => {
+        // Не закрываем контекст - переиспользуем его
+      };
     } else {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -2361,9 +2535,13 @@ function playSound(type) {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.25);
-      osc.onended = () => ctx.close();
+      osc.onended = () => {
+        // Не закрываем контекст - переиспользуем его
+      };
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Error playing sound:', e);
+  }
 }
 
 // === DUE BADGE ===
@@ -2402,11 +2580,14 @@ function renderWotd() {
     ${speechSupported ? `<button class="wotd-audio" id="wotd-audio-btn">🔊</button>` : ''}
   </div>`;
   if (speechSupported) {
-    document
-      .getElementById('wotd-audio-btn')
-      .addEventListener('click', function () {
-        speakBtn(w.en, this);
-      });
+    const audioBtn = document.getElementById('wotd-audio-btn');
+    // Удаляем старый обработчик перед добавлением нового
+    const newAudioBtn = audioBtn.cloneNode(true);
+    audioBtn.parentNode.replaceChild(newAudioBtn, audioBtn);
+
+    newAudioBtn.addEventListener('click', function () {
+      speakBtn(w.en, this);
+    });
   }
 }
 

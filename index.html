@@ -16,6 +16,7 @@
       rel="stylesheet"
     />
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="api.js"></script>
     <script defer type="module" src="script.js"></script>
   </head>
   <body>
@@ -71,12 +72,16 @@
         <div id="wotd-wrap"></div>
         <div class="words-toolbar">
           <input
-          class="form-control"
+            class="form-control"
             id="search-input"
             type="text"
             placeholder="🔍 Поиск..."
             autocomplete="off"
             autocorrect="off"
+            spellcheck="false"
+            name="q"
+            data-form-type="search"
+            aria-label="Поиск слов"
           />
           <div class="filter-pills">
             <button class="pill active" data-filter="all">Все</button>
@@ -112,41 +117,70 @@
             <h3>✏️ Одно слово</h3>
             <form id="single-form">
               <div class="form-group">
-                <label>Английское слово *</label
-                ><input
-                class="form-control"
-                  type="text"
-                  id="f-en"
-                  required
-                  placeholder="e.g. achieve"
-                />
+                <label>Английское слово *</label>
+                <div style="display: flex; gap: 0.5rem">
+                  <input
+                    class="form-control"
+                    type="text"
+                    id="f-en"
+                    required
+                    placeholder="e.g. achieve"
+                    autocomplete="off"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="auto-fill-btn"
+                    title="Автозаполнение перевода и примера"
+                  >
+                    🪄
+                  </button>
+                </div>
+                <div
+                  id="api-loading"
+                  style="
+                    display: none;
+                    margin-top: 0.5rem;
+                    font-size: 0.85rem;
+                    color: var(--primary);
+                  "
+                >
+                  <div
+                    class="loading-spinner"
+                    style="width: 16px; height: 16px; margin-right: 0.5rem"
+                  ></div>
+                  Получаю данные...
+                </div>
               </div>
               <div class="form-group">
                 <label>Перевод *</label
                 ><input
-                class="form-control"
+                  class="form-control"
                   type="text"
                   id="f-ru"
                   required
                   placeholder="e.g. достигать"
+                  autocomplete="off"
                 />
               </div>
               <div class="form-group">
                 <label>Пример (необязательно)</label
                 ><input
-                class="form-control"
+                  class="form-control"
                   type="text"
                   id="f-ex"
                   placeholder="I want to achieve my goals"
+                  autocomplete="off"
                 />
               </div>
               <div class="form-group">
                 <label>Теги через запятую</label
                 ><input
-                class="form-control"
+                  class="form-control"
                   type="text"
                   id="f-tags"
                   placeholder="verbs, important"
+                  autocomplete="off"
                 />
               </div>
               <button
@@ -164,7 +198,8 @@
               <div class="form-group">
                 <label>Формат: <code>слово - перевод</code></label>
                 <textarea
-                  id="bulk-text" class="form-control"
+                  id="bulk-text"
+                  class="form-control"
                   placeholder="achieve - достигать&#10;boundary - граница&#10;challenge - вызов"
                 ></textarea>
               </div>
@@ -207,7 +242,7 @@
                 </p>
               </div>
               <input
-              class="form-control"
+                class="form-control"
                 type="file"
                 id="file-input"
                 accept=".csv,.xlsx"
@@ -463,7 +498,8 @@
             </div>
             <div class="speech-row" style="margin-bottom: 0.75rem">
               <label>Скорость</label>
-              <input class="form-control"
+              <input
+                class="form-control"
                 type="range"
                 id="speed-range"
                 min="0.5"
@@ -477,7 +513,8 @@
             </div>
             <div class="speech-row" style="margin-bottom: 0.75rem">
               <label>Высота</label>
-              <input class="form-control"
+              <input
+                class="form-control"
                 type="range"
                 id="pitch-range"
                 min="0.5"
@@ -569,7 +606,8 @@
               >Поддерживается: .json (бэкап) · .csv (слова)</span
             >
           </div>
-          <input class="form-control"
+          <input
+            class="form-control"
             type="file"
             id="io-file-input"
             accept=".json,.csv"
@@ -604,7 +642,8 @@
         <h3 id="auth-modal-title">Войти</h3>
         <div class="form-group">
           <label>Email</label>
-          <input class="form-control"
+          <input
+            class="form-control"
             type="email"
             id="auth-email"
             placeholder="you@example.com"
@@ -613,7 +652,8 @@
         </div>
         <div class="form-group">
           <label>Пароль</label>
-          <input class="form-control"
+          <input
+            class="form-control"
             type="password"
             id="auth-password"
             placeholder="Минимум 6 символов"
@@ -655,6 +695,5 @@
         </div>
       </div>
     </div>
-
   </body>
 </html>
