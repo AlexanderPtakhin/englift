@@ -93,24 +93,12 @@ export function saveWordToDb(word) {
 }
 
 export function deleteWordFromDb(wordId) {
-  whenAuthed(user => {
-    deleteDoc(doc(wordsRef(user.uid), wordId))
-      .then(() => {
-        console.log('Word deleted successfully:', wordId);
-      })
-      .catch(e => {
-        console.error('deleteWordFromDb error:', e);
-        // Показываем уведомление об ошибке пользователю
-        if (window.toast) {
-          window.toast(
-            '❌ Ошибка удаления слова: ' + getErrorMessage(e),
-            'danger',
-          );
-        }
-        if (window.showSyncStatus) {
-          window.showSyncStatus('error', 'Ошибка удаления');
-        }
-      });
+  return new Promise((resolve, reject) => {
+    whenAuthed(user => {
+      deleteDoc(doc(wordsRef(user.uid), wordId))
+        .then(resolve)
+        .catch(reject);
+    });
   });
 }
 
@@ -144,48 +132,40 @@ export async function syncLocalWordsWithFirestore(localWords) {
   try {
     window.showLoading?.('Синхронизация данных...');
 
-    // 1. Получаем все слова из Firestore однократно
-    const q = query(wordsRef(auth.currentUser.uid));
-    const snapshot = await getDocs(q);
-    const firestoreWords = snapshot.docs.map(d => d.data());
+    // Получаем все слова из Firestore
+    const snapshot = await getDocs(wordsRef(auth.currentUser.uid));
+    const firestoreWords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const firestoreMap = new Map(firestoreWords.map(w => [w.id, w]));
 
-    // 2. Создаем Set для быстрой проверки дубликатов по полю 'en'
-    const firestoreEnSet = new Set(firestoreWords.map(w => w.en));
+    const batch = writeBatch(db);
+    const merged = [];
 
-    // 3. Находим локальные слова, которых еще нет в Firestore
-    const newWords = localWords.filter(
-      localWord => !firestoreEnSet.has(localWord.en),
-    );
+    // Сначала добавляем все слова из Firestore
+    firestoreWords.forEach(w => merged.push(w));
 
-    if (newWords.length === 0) {
-      console.log('Все локальные слова уже есть в Firestore');
-      window.hideLoading?.();
-      return {
-        success: true,
-        syncedCount: 0,
-        totalWords: firestoreWords.length,
-      };
+    // Обрабатываем локальные слова
+    localWords.forEach(local => {
+      const remote = firestoreMap.get(local.id);
+      if (!remote) {
+        // Новое слово – сохраняем в Firestore и добавляем в merged
+        batch.set(doc(wordsRef(auth.currentUser.uid), local.id), local);
+        merged.push(local);
+      } else if (new Date(local.updatedAt) > new Date(remote.updatedAt)) {
+        // Локальная версия новее – обновляем в Firestore
+        batch.set(doc(wordsRef(auth.currentUser.uid), local.id), local);
+        // заменяем в merged на локальную версию
+        const index = merged.findIndex(w => w.id === local.id);
+        merged[index] = local;
+      }
+      // если remote новее – ничего не делаем, merged уже содержит remote
+    });
+
+    if (batch._ops.length > 0) {
+      await batch.commit();
     }
 
-    // 4. Сохраняем только новые слова в Firestore
-    const batch = writeBatch(db);
-    newWords.forEach(w => {
-      batch.set(doc(wordsRef(auth.currentUser.uid), w.id), w);
-    });
-    await batch.commit();
-
-    console.log(`Синхронизировано ${newWords.length} новых слов в Firestore`);
-
-    // 5. Возвращаем объединенный массив слов
-    const mergedWords = [...firestoreWords, ...newWords];
-
     window.hideLoading?.();
-    return {
-      success: true,
-      syncedCount: newWords.length,
-      totalWords: mergedWords.length,
-      mergedWords: mergedWords,
-    };
+    return { success: true, mergedWords: merged };
   } catch (e) {
     console.error('syncLocalWordsWithFirestore error:', e);
     if (window.toast) {

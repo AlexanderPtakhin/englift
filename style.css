@@ -468,33 +468,6 @@ input[type='submit']:active {
 }
 
 /* ===== Поля ввода (общий стиль) ===== */
-/* input[type='text'],
-input[type='email'],
-input[type='password'],
-input[type='search'],
-textarea,
-select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  width: 100%;
-  padding: 0.7rem 1rem;
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 1rem;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-  box-sizing: border-box;
-}
-
-input[type='text']:focus,
-textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.12);
-} */
 /* === Поля ввода (общий класс) === */
 .form-control {
   width: 100%;
@@ -1936,6 +1909,9 @@ body.dark .due-soon {
   cursor: pointer;
   transition: border-color 0.18s;
   outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 .sort-select:hover,
 .sort-select:focus {
@@ -2458,4 +2434,82 @@ body.dark .due-soon {
     max-width: 100%;
     padding: 1rem;
   }
+}
+
+/* ===== Личный кабинет ===== */
+.user-menu {
+  position: relative;
+  margin-right: 0.5rem;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  color: var(--text);
+}
+
+.user-avatar:hover {
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  min-width: 200px;
+  box-shadow: var(--shadow-hover);
+  z-index: 1000;
+  margin-top: 0.5rem;
+}
+
+.user-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  width: 14px;
+  height: 14px;
+  background: var(--card);
+  border-left: 2px solid var(--border);
+  border-top: 2px solid var(--border);
+  transform: rotate(45deg);
+}
+
+.user-email {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  word-break: break-all;
+  color: var(--text);
+}
+
+.user-status {
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.user-status.verified {
+  color: var(--success);
+}
+
+.user-status.unverified {
+  color: var(--warning);
+}
+
+#dropdown-logout {
+  width: 100%;
 }

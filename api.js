@@ -96,17 +96,14 @@ async function translateText(text) {
 
   try {
     const url = `${API_CONFIG.MyMemory.URL}?q=${encodeURIComponent(text)}&langpair=en|ru&de=${encodeURIComponent(API_CONFIG.MyMemory.EMAIL)}`;
-    console.log('Translation URL:', url);
 
     const response = await fetch(url);
-    console.log('Translation response status:', response.status);
 
     if (!response.ok) {
       throw new Error(`MyMemory API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Translation response data:', data);
 
     if (data.responseStatus === 200 && data.responseData.translatedText) {
       const result = {
@@ -156,25 +153,19 @@ async function getWordData(word) {
 
   for (const url of urls) {
     try {
-      console.log('Dictionary URL:', url);
-
       const response = await fetch(url);
-      console.log('Dictionary response status:', response.status);
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`Word "${word}" not found in dictionary at ${url}`);
           continue; // Пробуем следующий URL
         }
         throw new Error(`Dictionary API error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Dictionary response data:', data);
 
       // Проверяем, что данные не пустые
       if (!data || (Array.isArray(data) && data.length === 0)) {
-        console.log(`Empty response from ${url}, trying next...`);
         continue;
       }
 
@@ -185,17 +176,9 @@ async function getWordData(word) {
 
       const entries = Array.isArray(data) ? data : [data];
 
-      console.log('Processing entries:', entries.length);
-
       entries.forEach((entry, entryIndex) => {
-        console.log(`Processing entry ${entryIndex}:`, entry);
-
         // Собираем теги из частей речи с приоритезацией
         if (entry.meanings) {
-          console.log(
-            `Found ${entry.meanings.length} meanings in entry ${entryIndex}`,
-          );
-
           // Сортируем meanings по количеству определений (самые используемые первые)
           const sortedMeanings = entry.meanings.sort(
             (a, b) =>
@@ -204,11 +187,6 @@ async function getWordData(word) {
           );
 
           sortedMeanings.forEach((meaning, meaningIndex) => {
-            console.log(
-              `Processing meaning ${meaningIndex}:`,
-              meaning.partOfSpeech,
-            );
-
             // Добавляем часть речи как тег
             if (meaning.partOfSpeech) {
               const partOfSpeech = meaning.partOfSpeech.toLowerCase();
@@ -220,46 +198,31 @@ async function getWordData(word) {
                 const mainPos = ['noun', 'verb', 'adjective', 'adverb'];
                 if (mainPos.includes(partOfSpeech)) {
                   tags.add(partOfSpeech);
-                  console.log(`Added main tag: ${partOfSpeech}`);
                 }
               } else {
                 tags.add(partOfSpeech);
-                console.log(`Added tag: ${partOfSpeech}`);
               }
             }
 
             // Собираем примеры и определения
             if (meaning.definitions) {
-              console.log(
-                `Found ${meaning.definitions.length} definitions in meaning ${meaningIndex}`,
-              );
-
               meaning.definitions.forEach((def, defIndex) => {
-                console.log(`Processing definition ${defIndex}:`, def);
-
                 // Добавляем определение
                 if (def.definition) {
                   definitions.push(def.definition);
-                  console.log(
-                    `Added definition: ${def.definition.substring(0, 50)}...`,
-                  );
                 }
 
                 // Добавляем примеры - ищем во всех определениях!
                 if (def.example) {
                   examples.push(def.example);
-                  console.log(`Found example: ${def.example}`);
                 }
               });
             }
           });
         } else {
-          console.log(`No meanings found in entry ${entryIndex}`);
+          // Нет meanings - пропускаем эту запись
         }
       });
-
-      console.log('Processed examples:', examples);
-      console.log('Processed tags:', Array.from(tags));
 
       // Генерируем дополнительные теги на основе анализа слова
       const generatedTags = generateTags(word, examples);
@@ -267,10 +230,8 @@ async function getWordData(word) {
 
       // Если примеров от API нет, генерируем свои
       if (examples.length === 0) {
-        console.log('No examples from API, generating examples...');
         const generatedExamples = generateExamples(word);
         examples.push(...generatedExamples);
-        console.log('Generated examples:', generatedExamples);
       }
 
       const result = {
@@ -278,8 +239,6 @@ async function getWordData(word) {
         tags: Array.from(tags).slice(0, 5), // Ограничиваем 5 тегами
         definitions: definitions.slice(0, 2), // Ограничиваем 2 определениями
       };
-
-      console.log('Final result:', result);
 
       // Если нашли хоть что-то полезное, кешируем и возвращаем
       if (result.examples.length > 0 || result.tags.length > 0) {
@@ -291,7 +250,6 @@ async function getWordData(word) {
 
         return result;
       } else {
-        console.log(`No useful data from ${url}, trying next...`);
         continue;
       }
     } catch (error) {
@@ -301,7 +259,6 @@ async function getWordData(word) {
   }
 
   // Если все URL не сработали, генерируем базовые теги и примеры
-  console.log('All dictionary URLs failed, generating basic tags and examples');
   const basicTags = generateTags(word, []);
   const generatedExamples = generateExamples(word);
 
@@ -733,5 +690,3 @@ window.WordAPI = {
   getCompleteWordData,
   clearApiCache,
 };
-
-console.log('API module loaded');

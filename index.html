@@ -134,22 +134,22 @@
         >
       </div>
       <div class="header-right">
-        <div
-          id="user-info"
-          style="
-            display: none;
-            margin-right: 1rem;
-            padding: 0.5rem 1rem;
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            font-size: 0.9rem;
-          "
-        >
-          <span id="user-email"></span>
-          <span
-            id="user-status"
-            style="margin-left: 0.5rem; font-size: 0.8rem"
-          ></span>
+        <!-- Личный кабинет (будет виден только после авторизации) -->
+        <div class="user-menu" id="user-menu">
+          <button
+            class="user-avatar"
+            id="user-avatar"
+            title="Меню пользователя"
+          >
+            👤
+          </button>
+          <div class="user-dropdown" id="user-dropdown" style="display: none">
+            <div class="user-email" id="dropdown-email">Загрузка...</div>
+            <div class="user-status" id="dropdown-status"></div>
+            <button class="btn btn-secondary btn-sm" id="dropdown-logout">
+              Выйти
+            </button>
+          </div>
         </div>
         <button
           class="sync-btn"
@@ -164,7 +164,6 @@
         <button class="btn btn-primary btn-sm" id="import-btn">
           ⬆️ Импорт
         </button>
-        <button class="btn btn-secondary btn-sm" id="auth-btn">Войти</button>
         <button class="dark-btn" id="dark-toggle">🌙</button>
       </div>
     </header>
@@ -771,92 +770,7 @@
       </div>
     </div>
     <!-- Import/Export Modal -->
-    <!-- AUTH MODAL -->
-    <div class="modal-backdrop" id="auth-modal">
-      <div class="modal-box" style="max-width: 380px">
-        <h3 id="auth-modal-title">Войти</h3>
-        <div class="form-group">
-          <label>Email</label>
-          <input
-            class="form-control"
-            type="email"
-            id="auth-email"
-            placeholder="you@example.com"
-            autocomplete="email"
-          />
-        </div>
-        <div class="form-group">
-          <label>Пароль</label>
-          <div class="password-field-wrapper">
-            <input
-              class="form-control"
-              type="password"
-              id="auth-password"
-              placeholder="Минимум 6 символов"
-              autocomplete="current-password"
-            />
-            <button
-              type="button"
-              class="password-toggle"
-              id="auth-password-toggle"
-            >
-              👁️
-            </button>
           </div>
-        </div>
-        <div class="form-group" id="auth-confirm-group" style="display: none">
-          <label>Подтвердите пароль</label>
-          <div class="password-field-wrapper">
-            <input
-              class="form-control"
-              type="password"
-              id="auth-confirm-password"
-              placeholder="Повторите пароль"
-              autocomplete="new-password"
-            />
-            <button
-              type="button"
-              class="password-toggle"
-              id="auth-confirm-toggle"
-            >
-              👁️
-            </button>
-          </div>
-        </div>
-        <div
-          id="auth-error"
-          style="
-            color: var(--danger);
-            font-size: 0.85rem;
-            font-weight: 700;
-            min-height: 1.2rem;
-            margin-bottom: 0.75rem;
-          "
-        ></div>
-        <div class="modal-actions" style="flex-direction: column; gap: 0.5rem">
-          <button
-            class="btn btn-primary"
-            style="width: 100%"
-            id="auth-submit-btn"
-          >
-            Войти
-          </button>
-          <button
-            class="btn btn-secondary"
-            style="width: 100%"
-            id="auth-toggle-btn"
-          >
-            Нет аккаунта? Зарегистрироваться
-          </button>
-          <button
-            class="btn"
-            style="width: 100%; color: var(--muted)"
-            id="auth-close-btn"
-          >
-            Отмена
-          </button>
-        </div>
-      </div>
     </div>
 
     <!-- Блок для неподтверждённого email -->

@@ -47,21 +47,6 @@ function initializeAuth(auth, firebaseAuth) {
   const gateToggleBtn = document.getElementById('gate-toggle-btn');
   const gateErrorEl = document.getElementById('gate-error');
 
-  // Элементы для обычного модального окна
-  const modal = document.getElementById('auth-modal');
-  const authBtn = document.getElementById('auth-btn');
-  const emailInput = document.getElementById('auth-email');
-  const passwordInput = document.getElementById('auth-password');
-  const confirmPasswordInput = document.getElementById('auth-confirm-password');
-  const confirmGroup = document.getElementById('auth-confirm-group');
-  const passwordToggle = document.getElementById('auth-password-toggle');
-  const confirmToggle = document.getElementById('auth-confirm-toggle');
-  const submitBtn = document.getElementById('auth-submit-btn');
-  const toggleBtn = document.getElementById('auth-toggle-btn');
-  const closeBtn = document.getElementById('auth-close-btn');
-  const errorEl = document.getElementById('auth-error');
-  const titleEl = document.getElementById('auth-modal-title');
-
   // Блок для неподтверждённого email
   const emailNotVerifiedBlock = document.getElementById('email-not-verified');
   const unverifiedEmailSpan = document.getElementById('unverified-email');
@@ -70,15 +55,16 @@ function initializeAuth(auth, firebaseAuth) {
     'logout-from-unverified',
   );
 
-  // Элементы информации о пользователе
-  const userInfo = document.getElementById('user-info');
-  const userEmail = document.getElementById('user-email');
-  const userStatus = document.getElementById('user-status');
+  // Элементы нового меню пользователя
+  const userAvatar = document.getElementById('user-avatar');
+  const userDropdown = document.getElementById('user-dropdown');
+  const dropdownEmail = document.getElementById('dropdown-email');
+  const dropdownStatus = document.getElementById('dropdown-status');
+  const dropdownLogout = document.getElementById('dropdown-logout');
 
-  // Переменная для хранения интервала проверки email
+  // Переменная для хранения интервала проверки email (пока закомментирована)
   let emailCheckInterval = null;
 
-  // Функция для остановки проверки email
   function stopEmailCheck() {
     if (emailCheckInterval) {
       clearInterval(emailCheckInterval);
@@ -86,7 +72,7 @@ function initializeAuth(auth, firebaseAuth) {
     }
   }
 
-  // Общая функция для обработки авторизации
+  // Общая функция для обработки авторизации (без изменений)
   async function handleAuth(
     email,
     password,
@@ -96,12 +82,10 @@ function initializeAuth(auth, firebaseAuth) {
     isGate = false,
   ) {
     if (!email || !password) return;
-
     if (isRegisterMode && password !== confirmPassword) {
       errorElement.textContent = 'Пароли не совпадают';
       return;
     }
-
     errorElement.textContent = '';
     submitButton.disabled = true;
     submitButton.textContent = '...';
@@ -162,13 +146,6 @@ function initializeAuth(auth, firebaseAuth) {
         ? 'Уже есть аккаунт? Войти'
         : 'Нет аккаунта? Зарегистрироваться';
       gateErrorEl.textContent = '';
-    } else {
-      titleEl.textContent = isRegisterMode ? 'Регистрация' : 'Войти';
-      submitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-      toggleBtn.textContent = isRegisterMode
-        ? 'Уже есть аккаунт? Войти'
-        : 'Нет аккаунта? Зарегистрироваться';
-      errorEl.textContent = '';
     }
     toggleConfirmPassword(isRegisterMode);
   }
@@ -186,12 +163,9 @@ function initializeAuth(auth, firebaseAuth) {
   function toggleConfirmPassword(show) {
     if (show) {
       gateConfirmGroup.style.display = 'block';
-      confirmGroup.style.display = 'block';
     } else {
       gateConfirmGroup.style.display = 'none';
-      confirmGroup.style.display = 'none';
       gateConfirmPasswordInput.value = '';
-      confirmPasswordInput.value = '';
     }
   }
 
@@ -210,19 +184,6 @@ function initializeAuth(auth, firebaseAuth) {
     gatePasswordInput.value = '';
     gateConfirmPasswordInput.value = '';
     gateErrorEl.textContent = '';
-  }
-
-  function openModal() {
-    modal.classList.add('open');
-    emailInput.focus();
-  }
-
-  function closeModal() {
-    modal.classList.remove('open');
-    errorEl.textContent = '';
-    emailInput.value = '';
-    passwordInput.value = '';
-    confirmPasswordInput.value = '';
   }
 
   function showEmailNotVerified(email) {
@@ -253,7 +214,29 @@ function initializeAuth(auth, firebaseAuth) {
     }
   }
 
-  // Обработчики
+  // ----- Обработчики для меню пользователя -----
+  // Открытие/закрытие дропдауна
+  userAvatar.addEventListener('click', e => {
+    e.stopPropagation();
+    const isVisible = userDropdown.style.display === 'block';
+    userDropdown.style.display = isVisible ? 'none' : 'block';
+  });
+
+  // Закрытие при клике вне меню
+  document.addEventListener('click', e => {
+    if (!userAvatar.contains(e.target) && !userDropdown.contains(e.target)) {
+      userDropdown.style.display = 'none';
+    }
+  });
+
+  // Выход
+  dropdownLogout.addEventListener('click', () => {
+    stopEmailCheck();
+    firebaseAuth.signOut(auth);
+    userDropdown.style.display = 'none';
+  });
+
+  // ----- Обработчики для форм (без изменений) -----
   gateToggleBtn.addEventListener('click', () => toggleAuthMode(true));
   gateSubmitBtn.addEventListener('click', () => {
     handleAuth(
@@ -279,38 +262,6 @@ function initializeAuth(auth, firebaseAuth) {
   gateConfirmToggle.addEventListener('click', () =>
     togglePasswordVisibility(gateConfirmPasswordInput, gateConfirmToggle),
   );
-  passwordToggle.addEventListener('click', () =>
-    togglePasswordVisibility(passwordInput, passwordToggle),
-  );
-  confirmToggle.addEventListener('click', () =>
-    togglePasswordVisibility(confirmPasswordInput, confirmToggle),
-  );
-
-  authBtn.addEventListener('click', () => {
-    if (auth.currentUser) {
-      stopEmailCheck();
-      firebaseAuth.signOut(auth);
-    } else {
-      openModal();
-    }
-  });
-
-  closeBtn.addEventListener('click', closeModal);
-  modal.addEventListener('click', e => {
-    if (e.target === modal) closeModal();
-  });
-
-  toggleBtn.addEventListener('click', () => toggleAuthMode(false));
-  submitBtn.addEventListener('click', () => {
-    handleAuth(
-      emailInput.value.trim(),
-      passwordInput.value.trim(),
-      confirmPasswordInput.value.trim(),
-      errorEl,
-      submitBtn,
-      false,
-    );
-  });
 
   if (resendEmailBtn) {
     resendEmailBtn.addEventListener('click', resendVerificationEmail);
@@ -322,23 +273,20 @@ function initializeAuth(auth, firebaseAuth) {
     });
   }
 
-  // Слушаем состояние авторизации
+  // ----- Слушаем состояние авторизации -----
   firebaseAuth.onAuthStateChanged(auth, async user => {
     if (user) {
       if (user.emailVerified) {
+        // Email подтверждён – пускаем в приложение
         hideEmailNotVerified();
         hideAuthGate();
         document.body.classList.add('authenticated');
 
-        authBtn.textContent = '👤 Выйти';
-        authBtn.title = user.email;
-
-        if (userInfo && userEmail && userStatus) {
-          userInfo.style.display = 'block';
-          userEmail.textContent = user.email;
-          userStatus.textContent = '✅ Подтвержден';
-          userStatus.style.color = 'var(--success)';
-        }
+        // Обновляем меню
+        dropdownEmail.textContent = user.email;
+        dropdownStatus.textContent = '✅ Подтвержден';
+        dropdownStatus.className = 'user-status verified';
+        userAvatar.textContent = user.email.charAt(0).toUpperCase(); // первая буква email
 
         if (window.clearUserData) window.clearUserData();
 
@@ -361,54 +309,32 @@ function initializeAuth(auth, firebaseAuth) {
 
         stopEmailCheck();
       } else {
+        // Email не подтверждён – блокируем доступ
         hideAuthGate();
         document.body.classList.remove('authenticated');
         showEmailNotVerified(user.email);
 
-        authBtn.textContent = '👤 Выйти';
-        authBtn.title = user.email;
-
-        if (userInfo && userEmail && userStatus) {
-          userInfo.style.display = 'block';
-          userEmail.textContent = user.email;
-          userStatus.textContent = '📧 Не подтвержден';
-          userStatus.style.color = 'var(--warning)';
-        }
+        // Меню всё равно не будет видно, но на всякий случай обновим
+        dropdownEmail.textContent = user.email;
+        dropdownStatus.textContent = '📧 Не подтвержден';
+        dropdownStatus.className = 'user-status unverified';
+        userAvatar.textContent = user.email.charAt(0).toUpperCase();
 
         if (window.clearUserData) window.clearUserData();
         window.authExports.unsubscribeWords();
 
-        // Временно отключаем проверку email из-за проблем с токенами
-        // stopEmailCheck();
-        // emailCheckInterval = setInterval(async () => {
-        //   if (user) {
-        //     try {
-        //       await user.reload();
-        //       if (user.emailVerified) {
-        //         stopEmailCheck();
-        //         window.location.reload(); // Просто перезагружаем страницу
-        //       }
-        //     } catch (error) {
-        //       console.error('Error checking email verification:', error);
-        //       if (error.code === 'auth/user-token-expired') {
-        //         stopEmailCheck();
-        //         firebaseAuth.signOut(auth);
-        //       }
-        //     }
-        //   }
-        // }, 3000);
+        // Проверка email отключена, как в вашем коде
       }
     } else {
+      // Пользователь не авторизован
       hideEmailNotVerified();
       showAuthGate();
       document.body.classList.remove('authenticated');
 
-      authBtn.textContent = 'Войти';
-      authBtn.title = '';
-
-      if (userInfo) {
-        userInfo.style.display = 'none';
-      }
+      // Сбрасываем меню
+      dropdownEmail.textContent = '';
+      dropdownStatus.textContent = '';
+      userAvatar.textContent = '👤';
 
       if (window.clearUserData) window.clearUserData();
       window.authExports.unsubscribeWords();

@@ -276,25 +276,6 @@ function setButtonLoading(button, loading = true) {
   }
 }
 
-function showSyncStatus(status, message) {
-  const existing = document.querySelector('.sync-status');
-  if (existing) existing.remove();
-
-  const statusEl = document.createElement('div');
-  statusEl.className = `sync-status ${status}`;
-  statusEl.innerHTML = `
-    ${status === 'syncing' ? '<div class="loading-spinner"></div>' : status === 'success' ? '✓' : '✗'}
-    <span>${message}</span>
-  `;
-
-  const authBtn = document.getElementById('auth-btn');
-  authBtn.parentNode.insertBefore(statusEl, authBtn.nextSibling);
-
-  if (status !== 'syncing') {
-    setTimeout(() => statusEl.remove(), 3000);
-  }
-}
-
 // ============================================================
 // DATA
 // ============================================================
@@ -492,15 +473,21 @@ async function addWord(en, ru, ex, tags) {
   }
 
   // Показываем индикатор синхронизации
-  showSyncStatus('syncing', 'Синхронизация...');
+  updateSyncIndicator('syncing');
+  toast('🔄 Синхронизация...', 'info');
+
+  // Устанавливаем флаг локальных изменений
+  window.hasLocalChanges = true;
 
   // Асинхронная синхронизация с обработкой ошибок
   try {
     await saveWordToDb(newWord);
-    showSyncStatus('success', 'Синхронизировано');
+    updateSyncIndicator('synced');
+    toast('✅ Синхронизировано', 'success');
   } catch (error) {
     console.error('Error saving word to DB:', error);
-    showSyncStatus('error', 'Ошибка синхронизации');
+    updateSyncIndicator('error');
+    toast('❌ Ошибка синхронизации', 'danger');
   }
 
   gainXP(5, 'новое слово');
@@ -509,25 +496,30 @@ async function addWord(en, ru, ex, tags) {
   return true;
 }
 async function delWord(id) {
-  words = words.filter(w => w.id !== id);
-
-  // Очищаем кеш рендеринга при удалении слова
-  renderCache.clear();
-
-  // Сбрасываем лимит видимых слов
-  visibleLimit = 30;
-
-  save();
-
-  // Показываем индикатор синхронизации
-  showSyncStatus('syncing', 'Удаление...');
-
   try {
+    // Показываем индикатор синхронизации
+    updateSyncIndicator('syncing');
+    toast('🔄 Удаление...', 'info');
+
+    // Сначала удаляем из Firestore
     await deleteWordFromDb(id);
-    showSyncStatus('success', 'Удалено');
+
+    // Только потом обновляем локальный массив
+    words = words.filter(w => w.id !== id);
+
+    // Очищаем кеш рендеринга при удалении слова
+    renderCache.clear();
+
+    // Сбрасываем лимит видимых слов
+    visibleLimit = 30;
+
+    save();
+
+    updateSyncIndicator('synced');
+    toast('✅ Слово удалено', 'success');
   } catch (error) {
-    console.error('Error deleting word from DB:', error);
-    showSyncStatus('error', 'Ошибка удаления');
+    updateSyncIndicator('error');
+    toast('❌ Ошибка удаления: ' + error.message, 'danger');
   }
 }
 async function updWord(id, data) {
@@ -535,6 +527,10 @@ async function updWord(id, data) {
   if (w) {
     Object.assign(w, data, { updatedAt: new Date().toISOString() }); // добавляем updatedAt
     save();
+    renderCache.clear(); // <-- добавляем очистку кеша рендеринга
+
+    // Устанавливаем флаг локальных изменений
+    window.hasLocalChanges = true;
 
     try {
       await saveWordToDb(w);
@@ -1191,6 +1187,11 @@ function setupNetworkMonitoring() {
   const updateNetworkStatus = () => {
     if (navigator.onLine) {
       updateSyncIndicator('synced', 'Онлайн');
+      // Если есть несохранённые изменения, запускаем forceSync
+      if (window.hasLocalChanges) {
+        forceSync();
+        window.hasLocalChanges = false;
+      }
     } else {
       updateSyncIndicator('offline', 'Офлайн');
     }
@@ -1511,6 +1512,10 @@ document.getElementById('words-grid').addEventListener('click', e => {
   visibleLimit = 30; // <-- сброс
   renderWords();
 });
+// Delete modal
+let pendingDelId = null;
+let searchTimer = null; // <-- добавляем searchTimer
+
 document.getElementById('search-input').addEventListener('input', e => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
@@ -1519,10 +1524,6 @@ document.getElementById('search-input').addEventListener('input', e => {
     renderWords();
   }, 280);
 });
-
-// Delete modal
-let pendingDelId = null;
-let searchTimer = null; // <-- добавляем searchTimer
 document.getElementById('del-confirm').addEventListener('click', () => {
   if (pendingDelId) {
     const wSnap = words.find(w => w.id === pendingDelId);
