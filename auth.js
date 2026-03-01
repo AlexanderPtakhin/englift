@@ -56,10 +56,10 @@ function initializeAuth(auth, firebaseAuth) {
   );
 
   // Элементы нового меню пользователя
+  const userMenu = document.getElementById('user-menu');
   const userAvatar = document.getElementById('user-avatar');
   const userDropdown = document.getElementById('user-dropdown');
   const dropdownEmail = document.getElementById('dropdown-email');
-  const dropdownStatus = document.getElementById('dropdown-status');
   const dropdownLogout = document.getElementById('dropdown-logout');
 
   // Переменная для хранения интервала проверки email (пока закомментирована)
@@ -215,18 +215,26 @@ function initializeAuth(auth, firebaseAuth) {
   }
 
   // ----- Обработчики для меню пользователя -----
-  // Открытие/закрытие дропдауна
-  userAvatar.addEventListener('click', e => {
-    e.stopPropagation();
-    const isVisible = userDropdown.style.display === 'block';
-    userDropdown.style.display = isVisible ? 'none' : 'block';
+  let hideTimeout;
+
+  userMenu.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimeout);
+    userDropdown.style.display = 'block';
   });
 
-  // Закрытие при клике вне меню
-  document.addEventListener('click', e => {
-    if (!userAvatar.contains(e.target) && !userDropdown.contains(e.target)) {
+  userMenu.addEventListener('mouseleave', () => {
+    hideTimeout = setTimeout(() => {
       userDropdown.style.display = 'none';
-    }
+    }, 200); // задержка 200мс
+  });
+
+  // Чтобы меню не исчезало, когда мышь на нём
+  userDropdown.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimeout);
+  });
+
+  userDropdown.addEventListener('mouseleave', () => {
+    userDropdown.style.display = 'none';
   });
 
   // Выход
@@ -284,8 +292,6 @@ function initializeAuth(auth, firebaseAuth) {
 
         // Обновляем меню
         dropdownEmail.textContent = user.email;
-        dropdownStatus.textContent = '✅ Подтвержден';
-        dropdownStatus.className = 'user-status verified';
         userAvatar.textContent = user.email.charAt(0).toUpperCase(); // первая буква email
 
         if (window.clearUserData) window.clearUserData();
@@ -316,8 +322,6 @@ function initializeAuth(auth, firebaseAuth) {
 
         // Меню всё равно не будет видно, но на всякий случай обновим
         dropdownEmail.textContent = user.email;
-        dropdownStatus.textContent = '📧 Не подтвержден';
-        dropdownStatus.className = 'user-status unverified';
         userAvatar.textContent = user.email.charAt(0).toUpperCase();
 
         if (window.clearUserData) window.clearUserData();
@@ -333,7 +337,6 @@ function initializeAuth(auth, firebaseAuth) {
 
       // Сбрасываем меню
       dropdownEmail.textContent = '';
-      dropdownStatus.textContent = '';
       userAvatar.textContent = '👤';
 
       if (window.clearUserData) window.clearUserData();

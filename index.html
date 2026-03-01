@@ -116,24 +116,32 @@
       <div class="logo">Eng<span>Lift</span></div>
       <nav>
         <button class="nav-btn active" data-tab="words">
-          📚 Словарь
+          <span>📚</span>
+          <span class="nav-text">Словарь</span>
           <span class="badge" id="words-count">0</span>
         </button>
+        <button class="nav-btn" data-tab="add">
+          <span>➕</span>
+          <span class="nav-text">Добавить</span>
+        </button>
         <button class="nav-btn" data-tab="practice">
-          🎯 Практика
+          <span>🎯</span>
+          <span class="nav-text">Практика</span>
           <span class="badge" id="due-count">0</span>
         </button>
-        <button class="nav-btn" data-tab="stats">📊 Статистика</button>
-        <button class="nav-btn" data-tab="add">➕ Добавить</button>
+        <button class="nav-btn" data-tab="stats">
+          <span>📊</span>
+          <span class="nav-text">Статистика</span>
+        </button>
       </nav>
-      <div class="xp-container">
-        <span
-          style="font-size: 0.7rem; color: var(--muted); white-space: nowrap"
-          id="xp-num"
-          >0/100</span
-        >
-      </div>
       <div class="header-right">
+        <button
+          class="sync-btn"
+          id="sync-indicator"
+          title="Статус синхронизации"
+        >
+          <span class="sync-icon" id="sync-icon">🔄</span>
+        </button>
         <!-- Личный кабинет (будет виден только после авторизации) -->
         <div class="user-menu" id="user-menu">
           <button
@@ -145,26 +153,16 @@
           </button>
           <div class="user-dropdown" id="user-dropdown" style="display: none">
             <div class="user-email" id="dropdown-email">Загрузка...</div>
-            <div class="user-status" id="dropdown-status"></div>
-            <button class="btn btn-secondary btn-sm" id="dropdown-logout">
-              Выйти
-            </button>
+            <div class="dropdown-item" id="dropdown-speech-settings">
+              🔊 Настройки
+            </div>
+            <div class="dropdown-item" id="dropdown-theme-toggle">
+              🌙 Тёмная тема
+            </div>
+            <div class="dropdown-item" id="dropdown-export">⬇️ Экспорт</div>
+            <div class="dropdown-item" id="dropdown-logout">🚪 Выйти</div>
           </div>
         </div>
-        <button
-          class="sync-btn"
-          id="sync-indicator"
-          title="Статус синхронизации"
-        >
-          <span class="sync-icon" id="sync-icon">🔄</span>
-        </button>
-        <button class="btn btn-secondary btn-sm" id="export-btn">
-          ⬇️ Экспорт
-        </button>
-        <button class="btn btn-primary btn-sm" id="import-btn">
-          ⬆️ Импорт
-        </button>
-        <button class="dark-btn" id="dark-toggle">🌙</button>
       </div>
     </header>
 
@@ -195,15 +193,15 @@
             <button class="pill active" data-filter="all">Все</button>
             <button class="pill" data-filter="learning">Учу</button>
             <button class="pill" data-filter="learned">Знаю ✅</button>
+            <select id="sort-select" class="sort-select" title="Сортировка">
+              <option value="date-desc">🕐 Новые</option>
+              <option value="date-asc">🕐 Старые</option>
+              <option value="alpha-asc">🔤 A → Z</option>
+              <option value="alpha-desc">🔤 Z → A</option>
+              <option value="progress-asc">💪 Сложные</option>
+              <option value="progress-desc">✅ Лёгкие</option>
+            </select>
           </div>
-          <select id="sort-select" class="sort-select" title="Сортировка">
-            <option value="date-desc">🕐 Новые</option>
-            <option value="date-asc">🕐 Старые</option>
-            <option value="alpha-asc">🔤 A → Z</option>
-            <option value="alpha-desc">🔤 Z → A</option>
-            <option value="progress-asc">💪 Сложные</option>
-            <option value="progress-desc">✅ Лёгкие</option>
-          </select>
         </div>
         <div id="words-grid" class="words-grid"></div>
         <div
@@ -550,7 +548,33 @@
 
       <!-- TAB: STATS -->
       <div class="tab-pane" id="tab-stats">
-        <div class="section-title">📊 Статистика</div>
+        <div class="xp-stats-row">
+          <div style="width: 100%">
+            <div class="xp-big" id="st-level">Уровень 1</div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                margin-top: 0.5rem;
+              "
+            >
+              <div class="xp-bar-wrap" style="flex: 1">
+                <div class="xp-bar-bg">
+                  <div class="xp-bar-fill" id="xp-bar" style="width: 0%"></div>
+                </div>
+              </div>
+              <div
+                class="xp-big"
+                id="st-xp"
+                style="font-size: 1.2rem; white-space: nowrap"
+              >
+                0/200 XP
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-num" id="st-total">0</div>
@@ -593,87 +617,9 @@
           <div class="spark-labels" id="spark-labels"></div>
         </div>
 
-        <!-- XP + Badges -->
-        <div class="xp-stats-row">
-          <div>
-            <div class="xp-big" id="st-level">Уровень 1</div>
-            <div class="xp-sub">Текущий уровень</div>
-          </div>
-          <div>
-            <div class="xp-big" id="st-xp" style="font-size: 1.2rem">
-              0/100 XP
-            </div>
-            <div class="xp-sub">До следующего уровня</div>
-          </div>
-        </div>
         <div class="badges-section">
           <h3>🏅 Бейджи</h3>
           <div class="badges-grid" id="badges-grid"></div>
-        </div>
-
-        <!-- Speech settings in stats -->
-        <div class="speech-settings">
-          <h3>🔊 Настройки произношения</h3>
-          <div id="no-speech-stats" class="no-speech" style="display: none">
-            Синтез речи не поддерживается браузером
-          </div>
-          <div id="speech-controls">
-            <div class="speech-row" style="margin-bottom: 0.75rem">
-              <label>Акцент</label>
-              <select id="accent-select" class="form-control">
-                <option value="US">🇺🇸 American (US)</option>
-                <option value="UK">🇬🇧 British (UK)</option>
-                <option value="all">🌍 Все голоса</option>
-              </select>
-            </div>
-            <div class="speech-row" style="margin-bottom: 0.75rem">
-              <label>Голос</label>
-              <select id="voice-select" class="form-control"></select>
-            </div>
-            <div class="speech-row" style="margin-bottom: 0.75rem">
-              <label>Скорость</label>
-              <input
-                class="form-control"
-                type="range"
-                id="speed-range"
-                min="0.5"
-                max="1.5"
-                step="0.1"
-                value="0.9"
-              />
-              <span id="speed-val" style="font-weight: 700; min-width: 30px"
-                >0.9x</span
-              >
-            </div>
-            <div class="speech-row" style="margin-bottom: 0.75rem">
-              <label>Высота</label>
-              <input
-                class="form-control"
-                type="range"
-                id="pitch-range"
-                min="0.5"
-                max="2"
-                step="0.1"
-                value="1"
-              />
-              <span id="pitch-val" style="font-weight: 700; min-width: 30px"
-                >1.0</span
-              >
-            </div>
-            <div class="voice-test">
-              <button class="btn btn-secondary" id="test-voice-btn">
-                🔊 Тест голоса
-              </button>
-              <span
-                style="
-                  color: var(--muted);
-                  font-size: 0.85rem;
-                  font-weight: 600;
-                "
-                >послушай как звучит</span
-              >
-            </div>
-          </div>
         </div>
 
         <div class="word-lists">
@@ -696,6 +642,95 @@
         <div class="modal-actions">
           <button class="btn btn-secondary" id="del-cancel">Отмена</button>
           <button class="btn btn-danger" id="del-confirm">🗑 Удалить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Speech Settings Modal -->
+    <div class="modal-backdrop" id="speech-modal">
+      <div class="modal-box">
+        <h3>🔊 Настройки произношения</h3>
+        <div id="no-speech-modal" class="no-speech" style="display: none">
+          Синтез речи не поддерживается браузером
+        </div>
+        <div id="speech-modal-controls">
+          <div class="form-group">
+            <label>Акцент</label>
+            <select id="modal-accent-select" class="form-control">
+              <option value="US">🇺🇸 American (US)</option>
+              <option value="UK">🇬🇧 British (UK)</option>
+              <option value="all">🌍 Все голоса</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Голос</label>
+            <select id="modal-voice-select" class="form-control"></select>
+          </div>
+          <div class="form-group">
+            <label>Скорость</label>
+            <div style="display: flex; align-items: center; gap: 1rem">
+              <input
+                class="form-control"
+                type="range"
+                id="modal-speed-range"
+                min="0.5"
+                max="1.5"
+                step="0.1"
+                value="0.9"
+                style="flex: 1"
+              />
+              <span
+                id="modal-speed-val"
+                style="font-weight: 700; min-width: 40px"
+                >0.9x</span
+              >
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Высота</label>
+            <div style="display: flex; align-items: center; gap: 1rem">
+              <input
+                class="form-control"
+                type="range"
+                id="modal-pitch-range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value="1"
+                style="flex: 1"
+              />
+              <span
+                id="modal-pitch-val"
+                style="font-weight: 700; min-width: 40px"
+                >1.0</span
+              >
+            </div>
+          </div>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              margin-bottom: 1rem;
+            "
+          >
+            <button class="btn btn-secondary" id="modal-test-voice-btn">
+              🔊 Тест голоса
+            </button>
+            <span
+              style="color: var(--muted); font-size: 0.85rem; font-weight: 600"
+            >
+              послушай как звучит
+            </span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="speech-modal-save">
+            Сохранить
+          </button>
+          <button class="btn btn-secondary" id="speech-modal-cancel">
+            Отмена
+          </button>
         </div>
       </div>
     </div>
@@ -768,9 +803,6 @@
           <button class="io-close" id="io-back-btn">← Назад</button>
         </div>
       </div>
-    </div>
-    <!-- Import/Export Modal -->
-          </div>
     </div>
 
     <!-- Блок для неподтверждённого email -->

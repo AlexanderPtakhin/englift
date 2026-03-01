@@ -872,8 +872,12 @@ function getAudioContext() {
 
 function loadVoices() {
   voices = synth ? synth.getVoices() : [];
-  const accentSelect = document.getElementById('accent-select');
-  const sel = document.getElementById('voice-select');
+  const accentSelect =
+    document.getElementById('modal-accent-select') ||
+    document.getElementById('accent-select');
+  const sel =
+    document.getElementById('modal-voice-select') ||
+    document.getElementById('voice-select');
   const selectedAccent = accentSelect ? accentSelect.value : 'US';
 
   // Фильтруем голоса по акценту
@@ -918,8 +922,15 @@ if (synth) {
   loadVoices();
 } else {
   document.getElementById('no-speech-banner').style.display = 'block';
-  document.getElementById('no-speech-stats').style.display = 'block';
-  document.getElementById('speech-controls').style.display = 'none';
+  const noSpeechStats = document.getElementById('no-speech-stats');
+  const noSpeechModal = document.getElementById('no-speech-modal');
+  const speechControls = document.getElementById('speech-controls');
+  const speechModalControls = document.getElementById('speech-modal-controls');
+
+  if (noSpeechStats) noSpeechStats.style.display = 'block';
+  if (noSpeechModal) noSpeechModal.style.display = 'block';
+  if (speechControls) speechControls.style.display = 'none';
+  if (speechModalControls) speechModalControls.style.display = 'none';
 }
 
 function speak(text, onEnd) {
@@ -954,44 +965,86 @@ function speakBtn(text, btn) {
 }
 
 // Speech settings UI
-document.getElementById('accent-select').addEventListener('change', e => {
-  speechCfg.accent = e.target.value;
-  saveSpeech();
-  loadVoices(); // Перезагружаем голоса для нового акцента
-});
-document.getElementById('voice-select').addEventListener('change', e => {
-  speechCfg.voiceURI = e.target.value;
-  saveSpeech();
-});
-document.getElementById('speed-range').addEventListener('input', e => {
-  speechCfg.rate = +e.target.value;
-  document.getElementById('speed-val').textContent = e.target.value + 'x';
-  saveSpeech();
-});
-document.getElementById('pitch-range').addEventListener('input', e => {
-  speechCfg.pitch = +e.target.value;
-  document.getElementById('pitch-val').textContent = (+e.target.value).toFixed(
-    1,
-  );
-  saveSpeech();
-});
-document
-  .getElementById('test-voice-btn')
-  .addEventListener('click', function () {
-    const btn = this;
-    const orig = btn.innerHTML;
-    btn.innerHTML =
-      '<div class="audio-wave"><span></span><span></span><span></span><span></span><span></span></div>';
-    btn.disabled = true;
-    speak('Hello! This is a voice test. How are you doing today?', () => {
-      btn.innerHTML = orig;
-      btn.disabled = false;
+function setupSpeechListeners() {
+  const accentSelect =
+    document.getElementById('modal-accent-select') ||
+    document.getElementById('accent-select');
+  const voiceSelect =
+    document.getElementById('modal-voice-select') ||
+    document.getElementById('voice-select');
+  const speedRange =
+    document.getElementById('modal-speed-range') ||
+    document.getElementById('speed-range');
+  const pitchRange =
+    document.getElementById('modal-pitch-range') ||
+    document.getElementById('pitch-range');
+  const speedVal =
+    document.getElementById('modal-speed-val') ||
+    document.getElementById('speed-val');
+  const pitchVal =
+    document.getElementById('modal-pitch-val') ||
+    document.getElementById('pitch-val');
+  const testBtn =
+    document.getElementById('modal-test-voice-btn') ||
+    document.getElementById('test-voice-btn');
+
+  if (accentSelect) {
+    accentSelect.addEventListener('change', e => {
+      speechCfg.accent = e.target.value;
+      saveSpeech();
+      loadVoices(); // Перезагружаем голоса для нового акцента
     });
-  });
-document.getElementById('speed-range').value = speechCfg.rate;
-document.getElementById('speed-val').textContent = speechCfg.rate + 'x';
-document.getElementById('pitch-range').value = speechCfg.pitch;
-document.getElementById('pitch-val').textContent = speechCfg.pitch.toFixed(1);
+  }
+
+  if (voiceSelect) {
+    voiceSelect.addEventListener('change', e => {
+      speechCfg.voiceURI = e.target.value;
+      saveSpeech();
+    });
+  }
+
+  if (speedRange) {
+    speedRange.addEventListener('input', e => {
+      speechCfg.rate = +e.target.value;
+      if (speedVal) speedVal.textContent = e.target.value + 'x';
+      saveSpeech();
+    });
+  }
+
+  if (pitchRange) {
+    pitchRange.addEventListener('input', e => {
+      speechCfg.pitch = +e.target.value;
+      if (pitchVal) pitchVal.textContent = (+e.target.value).toFixed(1);
+      saveSpeech();
+    });
+  }
+
+  if (testBtn) {
+    testBtn.addEventListener('click', function () {
+      const btn = this;
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '🔊 Играет...';
+      speak('Test pronunciation. This is how your voice sounds.', () => {
+        btn.innerHTML = orig;
+        btn.disabled = false;
+      });
+    });
+  }
+
+  // Set initial values
+  if (speedRange) speedRange.value = speechCfg.rate;
+  if (speedVal) speedVal.textContent = speechCfg.rate + 'x';
+  if (pitchRange) pitchRange.value = speechCfg.pitch;
+  if (pitchVal) pitchVal.textContent = speechCfg.pitch.toFixed(1);
+}
+
+// Initialize listeners when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupSpeechListeners);
+} else {
+  setupSpeechListeners();
+}
 
 // ============================================================
 // TOAST
@@ -1041,13 +1094,33 @@ document
 // ============================================================
 function applyDark(on) {
   document.body.classList.toggle('dark', on);
-  document.getElementById('dark-toggle').textContent = on ? '☀️' : '🌙';
+  const darkToggle = document.getElementById('dark-toggle');
+  if (darkToggle) darkToggle.textContent = on ? '☀️' : '🌙';
+
+  // Update dropdown menu item text and icon to show opposite theme
+  const themeToggle = document.getElementById('dropdown-theme-toggle');
+  if (themeToggle)
+    themeToggle.textContent = on ? '☀️ Светлая тема' : '🌙 Тёмная тема';
 }
-document.getElementById('dark-toggle').addEventListener('click', () => {
-  const on = !document.body.classList.contains('dark');
-  localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
-  applyDark(on);
-});
+
+// Theme toggle handlers
+const darkToggle = document.getElementById('dark-toggle');
+if (darkToggle) {
+  darkToggle.addEventListener('click', () => {
+    const on = !document.body.classList.contains('dark');
+    localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
+    applyDark(on);
+  });
+}
+
+document
+  .getElementById('dropdown-theme-toggle')
+  .addEventListener('click', () => {
+    const on = !document.body.classList.contains('dark');
+    localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
+    applyDark(on);
+  });
+
 if (localStorage.getItem(CONSTANTS.STORAGE_KEYS.DARK_MODE) === 'true')
   applyDark(true);
 
@@ -1881,16 +1954,50 @@ function closeIOModal() {
 }
 
 document
-  .getElementById('export-btn')
+  .getElementById('dropdown-export')
   .addEventListener('click', () => openIOModal('export'));
 document
-  .getElementById('import-btn')
-  .addEventListener('click', () => openIOModal('import'));
+  .getElementById('dropdown-speech-settings')
+  .addEventListener('click', () => {
+    document.getElementById('speech-modal').classList.add('open');
+    // Sync values when opening modal
+    const modalAccent = document.getElementById('modal-accent-select');
+    const modalVoice = document.getElementById('modal-voice-select');
+    const modalSpeed = document.getElementById('modal-speed-range');
+    const modalPitch = document.getElementById('modal-pitch-range');
+    const modalSpeedVal = document.getElementById('modal-speed-val');
+    const modalPitchVal = document.getElementById('modal-pitch-val');
+
+    if (modalAccent) modalAccent.value = speechCfg.accent || 'US';
+    if (modalSpeed) modalSpeed.value = speechCfg.rate;
+    if (modalSpeedVal) modalSpeedVal.textContent = speechCfg.rate + 'x';
+    if (modalPitch) modalPitch.value = speechCfg.pitch;
+    if (modalPitchVal) modalPitchVal.textContent = speechCfg.pitch.toFixed(1);
+
+    // Reload voices for modal
+    loadVoices();
+  });
 document
   .getElementById('io-close-export')
   .addEventListener('click', closeIOModal);
 document.getElementById('io-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeIOModal();
+});
+
+// Speech modal handlers
+document.getElementById('speech-modal-cancel').addEventListener('click', () => {
+  document.getElementById('speech-modal').classList.remove('open');
+});
+
+document.getElementById('speech-modal-save').addEventListener('click', () => {
+  document.getElementById('speech-modal').classList.remove('open');
+  toast('Настройки произношения сохранены', 'success');
+});
+
+document.getElementById('speech-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) {
+    document.getElementById('speech-modal').classList.remove('open');
+  }
 });
 
 // Back to export view
@@ -2876,13 +2983,28 @@ function renderStats() {
   });
 
   // Update speech settings UI
-  document.getElementById('speed-range').value = speechCfg.rate;
-  document.getElementById('speed-val').textContent = speechCfg.rate + 'x';
-  document.getElementById('pitch-range').value = speechCfg.pitch;
-  document.getElementById('pitch-val').textContent = speechCfg.pitch.toFixed(1);
+  const speedRange =
+    document.getElementById('modal-speed-range') ||
+    document.getElementById('speed-range');
+  const speedVal =
+    document.getElementById('modal-speed-val') ||
+    document.getElementById('speed-val');
+  const pitchRange =
+    document.getElementById('modal-pitch-range') ||
+    document.getElementById('pitch-range');
+  const pitchVal =
+    document.getElementById('modal-pitch-val') ||
+    document.getElementById('pitch-val');
+
+  if (speedRange) speedRange.value = speechCfg.rate;
+  if (speedVal) speedVal.textContent = speechCfg.rate + 'x';
+  if (pitchRange) pitchRange.value = speechCfg.pitch;
+  if (pitchVal) pitchVal.textContent = speechCfg.pitch.toFixed(1);
 
   // Устанавливаем выбранный акцент
-  const accentSelect = document.getElementById('accent-select');
+  const accentSelect =
+    document.getElementById('modal-accent-select') ||
+    document.getElementById('accent-select');
   if (accentSelect) {
     accentSelect.value = speechCfg.accent || 'US';
   }
