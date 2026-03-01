@@ -204,6 +204,7 @@ function validateExample(example) {
     /<textarea[^>]*onfocus/i,
   ];
 
+  // Проверяем только на опасные паттерны, разрешаем большинство символов
   return !dangerousPatterns.some(pattern => pattern.test(trimmed));
 }
 
@@ -232,7 +233,7 @@ function normalizeTags(tagsString) {
           .trim()
           .toLowerCase()
           .replace(/\s+/g, '-') // пробелы → дефис
-          .replace(/[^a-z0-9а-яё-]/g, ''), // только буквы, цифры, дефис
+          .replace(/[^a-z0-9а-яё\-\_]/g, ''), // только буквы, цифры, дефис, подчеркивание
     )
     .filter(
       tag => tag.length > 0 && tag.length <= CONSTANTS.LIMITS.MAX_TAG_LENGTH,
@@ -260,6 +261,10 @@ function hideLoading() {
   const overlay = document.getElementById('loading-overlay');
   if (overlay) overlay.remove();
 }
+
+// Делаем функции глобальными для доступа из других модулей
+window.showLoading = showLoading;
+window.hideLoading = hideLoading;
 
 function setButtonLoading(button, loading = true) {
   if (loading) {
@@ -297,14 +302,26 @@ const SK = CONSTANTS.STORAGE_KEYS.WORDS;
 const XP_K = CONSTANTS.STORAGE_KEYS.XP;
 const STREAK_K = CONSTANTS.STORAGE_KEYS.STREAK;
 const SPEECH_K = CONSTANTS.STORAGE_KEYS.SPEECH;
+
+// Функция для получения ключа с учётом текущего пользователя
+function getStorageKey() {
+  // Если пользователь авторизован – добавляем его uid
+  const userId = window.authExports?.auth?.currentUser?.uid;
+  const key = userId ? `${SK}_${userId}` : SK;
+  console.log('getStorageKey():', key, 'userId:', userId);
+  return key;
+}
+
 let words = [];
 let streak = { count: 0, lastDate: null };
-let speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0 };
+let speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0, accent: 'US' };
 let xpData = { xp: 0, level: 1, badges: [] };
 
 function load() {
   try {
-    words = JSON.parse(localStorage.getItem(SK)) || [];
+    const key = getStorageKey();
+    console.log('Loading from localStorage with key:', key);
+    words = JSON.parse(localStorage.getItem(key)) || [];
     words.forEach(w => {
       if (!w.stats.nextReview) {
         w.stats.nextReview = new Date().toISOString();
@@ -332,33 +349,40 @@ function load() {
 }
 function save() {
   try {
-    const data = JSON.stringify(words);
-    // Проверяем размер данных перед сохранением
-    const dataSize = new Blob([data]).size;
-    const maxSize = CONSTANTS.LIMITS.LOCAL_STORAGE_LIMIT; // 4MB лимит для безопасности
-
-    if (dataSize > maxSize) {
-      toast(
-        '⚠️ Слишком много данных! Удалите старые слова или экспортируйте их.',
-        'warning',
-      );
+    if (!window.authExports?.auth?.currentUser) {
+      console.warn('No user, skipping localStorage save');
       return false;
     }
-
-    localStorage.setItem(SK, data);
+    const key = getStorageKey();
+    console.log(
+      'Saving to localStorage with key:',
+      key,
+      'words count:',
+      words.length,
+    );
+    const data = JSON.stringify(words);
+    // Проверяем размер данных перед сохранением
+    if (data.length > 5 * 1024 * 1024) {
+      // 5MB limit
+      console.warn('Data size exceeds 5MB, trimming...');
+      words = words.slice(0, 1000); // Оставляем только первые 1000 слов
+    }
+    localStorage.setItem(key, data);
     return true;
   } catch (e) {
+    console.error('Save error:', e);
     if (e.name === 'QuotaExceededError') {
-      toast(
-        '❌ Локальное хранилище переполнено! Удалите старые слова.',
-        'danger',
-      );
+      toast('❌ Хранилище переполнено. Удалите старые слова.', 'danger');
     } else {
-      toast('❌ Ошибка сохранения данных', 'danger');
+      toast('❌ Ошибка сохранения', 'danger');
     }
     return false;
   }
 }
+
+// Делаем save глобальным для доступа из db.js
+window.save = save;
+
 function saveXP() {
   localStorage.setItem(XP_K, JSON.stringify(xpData));
 }
@@ -390,6 +414,7 @@ function mkWord(en, ru, ex, tags) {
     ex: (ex || '').trim(),
     tags: tags || [],
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(), // добавляем updatedAt
     stats: {
       shown: 0,
       correct: 0,
@@ -456,6 +481,9 @@ async function addWord(en, ru, ex, tags) {
   );
   words.push(newWord);
 
+  // Очищаем кеш рендеринга при добавлении нового слова
+  renderCache.clear();
+
   // Проверяем успешность сохранения
   if (!save()) {
     // Откатываем изменения если сохранение не удалось
@@ -476,11 +504,19 @@ async function addWord(en, ru, ex, tags) {
   }
 
   gainXP(5, 'новое слово');
+  visibleLimit = 30; // <-- сброс при добавлении слова
 
   return true;
 }
 async function delWord(id) {
   words = words.filter(w => w.id !== id);
+
+  // Очищаем кеш рендеринга при удалении слова
+  renderCache.clear();
+
+  // Сбрасываем лимит видимых слов
+  visibleLimit = 30;
+
   save();
 
   // Показываем индикатор синхронизации
@@ -497,7 +533,7 @@ async function delWord(id) {
 async function updWord(id, data) {
   const w = words.find(w => w.id === id);
   if (w) {
-    Object.assign(w, data);
+    Object.assign(w, data, { updatedAt: new Date().toISOString() }); // добавляем updatedAt
     save();
 
     try {
@@ -536,7 +572,7 @@ function updStats(id, correct) {
   w.stats.learned = w.stats.streak >= 3;
   if (!wasLearned && w.stats.learned) {
     gainXP(20, 'слово выучено 🌟');
-    checkBadges();
+    autoCheckBadges(); // Автоматическая проверка бейджей
   }
   save();
 }
@@ -727,6 +763,29 @@ function checkBadges(perfectSession) {
   }
 }
 
+// Автоматическая проверка бейджей при изменении данных
+function autoCheckBadges() {
+  const previousBadges = [...xpData.badges];
+  checkBadges();
+
+  // Если появились новые бейджи, показываем уведомление
+  const newBadges = xpData.badges.filter(id => !previousBadges.includes(id));
+  if (newBadges.length > 0) {
+    const newBadgeDefs = BADGES_DEF.filter(def => newBadges.includes(def.id));
+    console.log(
+      'Автоматически получены бейджи:',
+      newBadgeDefs.map(b => b.name),
+    );
+  }
+}
+
+// Периодическая проверка бейджей (каждые 30 секунд)
+function startBadgeAutoCheck() {
+  setInterval(() => {
+    autoCheckBadges();
+  }, 30000); // 30 секунд
+}
+
 function showXPToast(msg) {
   const el = document.createElement('div');
   el.className = 'xp-toast';
@@ -817,18 +876,44 @@ function getAudioContext() {
 
 function loadVoices() {
   voices = synth ? synth.getVoices() : [];
-  const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+  const accentSelect = document.getElementById('accent-select');
   const sel = document.getElementById('voice-select');
+  const selectedAccent = accentSelect ? accentSelect.value : 'US';
+
+  // Фильтруем голоса по акценту
+  let filteredVoices = voices;
+  if (selectedAccent === 'US') {
+    filteredVoices = voices.filter(
+      v => v.lang.startsWith('en-US') || v.lang.startsWith('en_'),
+    );
+  } else if (selectedAccent === 'UK') {
+    filteredVoices = voices.filter(
+      v => v.lang.startsWith('en-GB') || v.lang.startsWith('en_GB'),
+    );
+  }
+
+  // Если нет голосов для выбранного акцента, используем все английские
+  if (filteredVoices.length === 0) {
+    filteredVoices = voices.filter(v => v.lang.startsWith('en'));
+  }
+
+  // Если все еще нет голосов, используем все доступные
+  if (filteredVoices.length === 0) {
+    filteredVoices = voices;
+  }
+
   sel.innerHTML = '';
-  (englishVoices.length ? englishVoices : voices).forEach(v => {
+  filteredVoices.forEach(v => {
     const opt = document.createElement('option');
     opt.value = v.voiceURI;
     opt.textContent = `${v.name} (${v.lang})`;
     if (v.voiceURI === speechCfg.voiceURI) opt.selected = true;
     sel.appendChild(opt);
   });
+
   if (!sel.value && sel.options.length) {
     speechCfg.voiceURI = sel.options[0].value;
+    saveSpeech();
   }
 }
 
@@ -873,6 +958,11 @@ function speakBtn(text, btn) {
 }
 
 // Speech settings UI
+document.getElementById('accent-select').addEventListener('change', e => {
+  speechCfg.accent = e.target.value;
+  saveSpeech();
+  loadVoices(); // Перезагружаем голоса для нового акцента
+});
 document.getElementById('voice-select').addEventListener('change', e => {
   speechCfg.voiceURI = e.target.value;
   saveSpeech();
@@ -927,6 +1017,7 @@ function toast(msg, type = '') {
 // ============================================================
 function switchTab(name) {
   if (name === 'words') {
+    visibleLimit = 30; // <-- сброс при переключении на слова
     setTimeout(renderWotd, 0);
     updateDueBadge();
   }
@@ -972,19 +1063,162 @@ let activeFilter = 'all',
   sortBy = 'date-desc',
   tagFilter = '';
 
+// Infinite scroll переменные
+let visibleLimit = 30; // сколько слов показываем сейчас
+const PAGE_SIZE = 20; // сколько подгружаем за раз
+let isLoadingMore = false; // флаг, чтобы не делать множественных запросов
+let intersectionObserver = null; // сам наблюдатель
+
 // Кеширование для оптимизации
 let renderCache = new Map();
 let searchDebounceTimer = null;
 
+// Управление индикатором синхронизации
+function updateSyncIndicator(status, message = '') {
+  const indicator = document.getElementById('sync-indicator');
+  const icon = document.getElementById('sync-icon');
+
+  if (!indicator) return;
+
+  // Удаляем все классы статуса
+  indicator.classList.remove('syncing', 'synced', 'error', 'offline');
+
+  // Добавляем класс статуса и устанавливаем иконку
+  switch (status) {
+    case 'syncing':
+      indicator.classList.add('syncing');
+      icon.textContent = '🔄';
+      indicator.title = 'Синхронизация...';
+      break;
+    case 'synced':
+      indicator.classList.add('synced');
+      icon.textContent = '✅';
+      indicator.title = 'Синхронизировано';
+      break;
+    case 'error':
+      indicator.classList.add('error');
+      icon.textContent = '❌';
+      indicator.title = message || 'Ошибка синхронизации';
+      break;
+    case 'offline':
+      indicator.classList.add('offline');
+      icon.textContent = '📴';
+      indicator.title = 'Офлайн';
+      break;
+    default:
+      icon.textContent = '🔄';
+      indicator.title = message || 'Синхронизация...';
+  }
+}
+
+// Принудительная синхронизация
+async function forceSync() {
+  if (!window.authExports?.auth?.currentUser) {
+    toast('❌ Сначала авторизуйтесь', 'danger');
+    return;
+  }
+
+  updateSyncIndicator('syncing', 'Принудительная синхронизация...');
+
+  try {
+    const localWords = window._getLocalWords?.() || [];
+    const result =
+      await window.authExports?.syncLocalWordsWithFirestore?.(localWords);
+
+    if (result?.success) {
+      if (result.mergedWords) window._setWords(result.mergedWords);
+      updateSyncIndicator('synced', 'Синхронизировано');
+      toast('✅ Синхронизация завершена', 'success');
+    } else {
+      throw new Error(result?.error || 'Ошибка синхронизации');
+    }
+  } catch (error) {
+    console.error('Force sync error:', error);
+    updateSyncIndicator('error', 'Ошибка синхронизации');
+    toast('❌ Ошибка: ' + error.message, 'danger');
+  }
+}
+
+// Объединение слов с обнаружением конфликтов
+function mergeWords(localWords, firestoreWords) {
+  const merged = [];
+  const conflicts = [];
+
+  // Создаем Map для быстрого доступа
+  const firestoreMap = new Map(firestoreWords.map(w => [w.id, w]));
+
+  // Добавляем слова из Firestore
+  firestoreWords.forEach(word => {
+    merged.push({ ...word });
+  });
+
+  // Добавляем локальные слова, которых нет в Firestore
+  localWords.forEach(localWord => {
+    const firestoreWord = firestoreMap.get(localWord.id);
+
+    if (!firestoreWord) {
+      // Новое слово - добавляем
+      merged.push({ ...localWord });
+    } else if (firestoreWord.updatedAt !== localWord.updatedAt) {
+      // Конфликт - слово изменено в обоих местах
+      conflicts.push({
+        local: localWord,
+        remote: firestoreWord,
+        resolution: 'remote', // по умолчанию выбираем удаленную версию
+      });
+    }
+  });
+
+  // Показываем уведомление о конфликтах
+  if (conflicts.length > 0) {
+    showConflictNotification(conflicts);
+  }
+
+  return merged;
+}
+
+// Показ уведомления о конфликтах
+function showConflictNotification(conflicts) {
+  const message = `Обнаружено ${conflicts.length} конфликт(ов) при синхронизации. Использована версия из облака.`;
+  toast('⚠️ ' + message, 'warning', 5000);
+
+  // Логируем конфликты для отладки
+  console.log('Sync conflicts:', conflicts);
+}
+
+// Отслеживание состояния сети
+function setupNetworkMonitoring() {
+  const updateNetworkStatus = () => {
+    if (navigator.onLine) {
+      updateSyncIndicator('synced', 'Онлайн');
+    } else {
+      updateSyncIndicator('offline', 'Офлайн');
+    }
+  };
+
+  window.addEventListener('online', updateNetworkStatus);
+  window.addEventListener('offline', updateNetworkStatus);
+
+  // Начальный статус
+  updateNetworkStatus();
+}
+
 function renderWords() {
   const grid = document.getElementById('words-grid');
   const empty = document.getElementById('empty-words');
+  const trigger = document.getElementById('load-more-trigger');
+  const loadingMore = document.getElementById('loading-more');
 
-  // Используем requestAnimationFrame для плавности
+  // Отключаем старый наблюдатель (на всякий случай)
+  if (intersectionObserver) {
+    intersectionObserver.disconnect();
+    intersectionObserver = null;
+  }
+
   requestAnimationFrame(() => {
     let list = words;
 
-    // Применяем фильтры с оптимизацией
+    // Фильтры
     if (activeFilter === 'learning') list = list.filter(w => !w.stats.learned);
     if (activeFilter === 'learned') list = list.filter(w => w.stats.learned);
     if (searchQ) {
@@ -1001,10 +1235,8 @@ function renderWords() {
         w.tags.map(t => t.toLowerCase()).includes(tagFilter),
       );
 
-    // Оптимизированная сортировка
     list = sortWords(list, sortBy);
 
-    // Обновляем счетчики
     document.getElementById('words-count').textContent = words.length;
     updateDueBadge();
     document.getElementById('words-subtitle').textContent =
@@ -1015,48 +1247,73 @@ function renderWords() {
     if (!list.length) {
       grid.innerHTML = '';
       empty.style.display = 'block';
+      if (trigger) trigger.style.display = 'none';
+      if (loadingMore) loadingMore.style.display = 'none';
       return;
     }
 
     empty.style.display = 'none';
 
-    // Обновляем индикатор тега
-    updateTagFilterIndicator();
+    const visibleList = list.slice(0, visibleLimit);
 
-    // Оптимизированный рендеринг с DocumentFragment
     const fragment = document.createDocumentFragment();
-
-    // Ограничиваем количество отображаемых элементов для производительности
-    const maxVisible = CONSTANTS.LIMITS.MAX_VISIBLE_WORDS;
-    const visibleList = list.slice(0, maxVisible);
-
     visibleList.forEach(w => {
       const card = getCachedCard(w);
       fragment.appendChild(card);
     });
-
-    // Очищаем и добавляем элементы
     grid.innerHTML = '';
     grid.appendChild(fragment);
 
-    // Показываем предупреждение если есть еще элементы
-    if (list.length > maxVisible) {
-      // Удаляем старые предупреждения
-      const oldWarning = grid.parentNode.querySelector('.performance-warning');
-      if (oldWarning) oldWarning.remove();
+    updateTagFilterIndicator();
 
-      const warning = document.createElement('div');
-      warning.className = 'performance-warning';
-      warning.textContent = `Показано первые ${maxVisible} слов из ${list.length}. Используйте поиск для навигации.`;
-      warning.style.cssText =
-        'background: var(--warning); color: white; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; font-size: 0.9rem;';
-      grid.parentNode.insertBefore(warning, grid);
+    if (list.length > visibleLimit) {
+      if (trigger) trigger.style.display = 'block';
+      if (loadingMore) loadingMore.style.display = 'none'; // скрываем индикатор загрузки
+      setupLoadMoreObserver(list.length);
     } else {
-      // Удаляем предупреждение если слов стало меньше лимита
-      const oldWarning = grid.parentNode.querySelector('.performance-warning');
-      if (oldWarning) oldWarning.remove();
+      if (trigger) trigger.style.display = 'none';
+      if (loadingMore) loadingMore.style.display = 'none';
     }
   });
+}
+
+function setupLoadMoreObserver(totalCount) {
+  const trigger = document.getElementById('load-more-trigger');
+  if (!trigger) return;
+
+  // Если наблюдатель уже есть – отключаем и создаём новый (чтобы не дублировать)
+  if (intersectionObserver) {
+    intersectionObserver.disconnect();
+  }
+
+  intersectionObserver = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        // Если триггер виден и мы не грузим прямо сейчас
+        if (entry.isIntersecting && !isLoadingMore) {
+          isLoadingMore = true;
+          // Показываем индикатор загрузки
+          const loadingMore = document.getElementById('loading-more');
+          if (loadingMore) loadingMore.style.display = 'block';
+
+          // Подгружаем следующую порцию
+          visibleLimit += PAGE_SIZE;
+          renderWords(); // перерендерим с новым лимитом
+          // сброс после рендера с увеличенной задержкой
+          setTimeout(() => {
+            isLoadingMore = false;
+          }, 500);
+        }
+      });
+    },
+    {
+      root: null, // относительно окна
+      threshold: 0.1, // срабатывает, когда 10% триггера видно
+      rootMargin: '50px', // подгружаем чуть заранее, чтобы не было видно пустоты
+    },
+  );
+
+  intersectionObserver.observe(trigger);
 }
 
 function sortWords(list, sortBy) {
@@ -1093,12 +1350,14 @@ function getCachedCard(word) {
   const contentHash = `${word.id}_${word.en}_${word.ru}_${word.ex}_${word.tags.join('_')}_${word.stats.learned}_${word.stats.streak}_${word.stats.nextReview}`;
 
   if (renderCache.has(contentHash)) {
-    const cachedCard = renderCache.get(contentHash).cloneNode(true);
-    return cachedCard;
+    const cachedHTML = renderCache.get(contentHash);
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = cachedHTML;
+    return tempDiv.firstElementChild;
   }
 
   const card = makeCard(word);
-  renderCache.set(contentHash, card.cloneNode(true));
+  renderCache.set(contentHash, card.outerHTML);
 
   // Ограничиваем размер кеша
   if (renderCache.size > CONSTANTS.LIMITS.MAX_CACHE_SIZE) {
@@ -1234,11 +1493,13 @@ document.querySelectorAll('.pill').forEach(p =>
       .forEach(x => x.classList.remove('active'));
     p.classList.add('active');
     activeFilter = p.dataset.filter;
+    visibleLimit = 30; // <-- сброс
     renderWords();
   }),
 );
 document.getElementById('sort-select').addEventListener('change', e => {
   sortBy = e.target.value;
+  visibleLimit = 30; // <-- сброс
   renderWords();
 });
 document.getElementById('words-grid').addEventListener('click', e => {
@@ -1247,24 +1508,27 @@ document.getElementById('words-grid').addEventListener('click', e => {
   e.stopPropagation();
   const tag = tb.dataset.tag.toLowerCase();
   tagFilter = tagFilter === tag ? '' : tag;
+  visibleLimit = 30; // <-- сброс
   renderWords();
 });
-let searchTimer;
 document.getElementById('search-input').addEventListener('input', e => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     searchQ = e.target.value;
+    visibleLimit = 30; // <-- сброс
     renderWords();
   }, 280);
 });
 
 // Delete modal
 let pendingDelId = null;
+let searchTimer = null; // <-- добавляем searchTimer
 document.getElementById('del-confirm').addEventListener('click', () => {
   if (pendingDelId) {
     const wSnap = words.find(w => w.id === pendingDelId);
     delWord(pendingDelId);
     pendingDelId = null;
+    visibleLimit = 30; // <-- сброс
     renderWords();
     // Undo toast
     const undoEl = document.createElement('div');
@@ -1281,6 +1545,7 @@ document.getElementById('del-confirm').addEventListener('click', () => {
       if (wSnap) {
         words.push(wSnap);
         save();
+        visibleLimit = 30; // <-- сброс
         renderWords();
       }
       undoEl.remove();
@@ -1424,8 +1689,8 @@ document.getElementById('single-form').addEventListener('submit', e => {
       if (sel && sel.value !== 'date-desc') {
         sel.value = 'date-desc';
         sortBy = 'date-desc';
+        renderWords(); // вызываем renderWords только если изменили сортировку
       }
-      renderWords();
       setTimeout(() => {
         const newCard = document.querySelector('#words-grid .word-card');
         if (newCard) {
@@ -1433,7 +1698,7 @@ document.getElementById('single-form').addEventListener('submit', e => {
           newCard.classList.add('new-word-highlight');
         }
       }, 100);
-    }, 300);
+    }, 100);
   }
 });
 
@@ -1475,6 +1740,7 @@ document.getElementById('import-bulk-btn').addEventListener('click', () => {
   document.getElementById('bulk-text').value = '';
   bulkParsed = [];
   toast(`✅ Импортировано ${checked.length} слов!`);
+  visibleLimit = 30; // <-- сброс
   renderWords();
   switchTab('words');
 });
@@ -1591,6 +1857,7 @@ document.getElementById('import-file-btn').addEventListener('click', () => {
   document.getElementById('import-file-btn').style.display = 'none';
   fileParsed = [];
   toast(`✅ Импортировано ${added} слов из файла!`);
+  visibleLimit = 30; // <-- сброс
   renderWords();
   switchTab('words');
 });
@@ -1720,7 +1987,7 @@ function handleImportFile(file) {
         if (!data.words || !Array.isArray(data.words))
           throw new Error('Неверный формат JSON');
         pendingImport = { type: 'json', data };
-        infoEl.innerHTML = `✅ Найдено слов: <b>${data.words.length}</b>${data.xpData ? ' · XP и бейджи будут восстановлены' : ''}<br><span style="color:var(--danger);font-size:.75rem">⚠️ Текущие слова будут заменены!</span>`;
+        infoEl.innerHTML = `✅ Найдено слов: <b>${esc(data.words.length.toString())}</b>${data.xpData ? ' · XP и бейджи будут восстановлены' : ''}<br><span style="color:var(--danger);font-size:.75rem">⚠️ Текущие слова будут заменены!</span>`;
       } else if (file.name.endsWith('.csv')) {
         const lines = content
           .trim()
@@ -1759,7 +2026,7 @@ function handleImportFile(file) {
           .filter(w => w.en && w.ru);
         if (!parsed.length) throw new Error('Не найдено слов в CSV');
         pendingImport = { type: 'csv', data: parsed };
-        infoEl.innerHTML = `✅ Найдено слов: <b>${parsed.length}</b><br><span style="color:var(--warning);font-size:.75rem">ℹ️ Слова будут добавлены к существующим</span>`;
+        infoEl.innerHTML = `✅ Найдено слов: <b>${esc(parsed.length.toString())}</b><br><span style="color:var(--warning);font-size:.75rem">ℹ️ Слова будут добавлены к существующим</span>`;
       } else {
         throw new Error('Неверный формат файла');
       }
@@ -1796,30 +2063,174 @@ importDropZone.addEventListener('drop', e => {
   handleImportFile(e.dataTransfer.files[0]);
 });
 
+// Создание резервной копии перед импортом
+function createBackup() {
+  const backup = {
+    words: words,
+    xpData: xpData,
+    streak: streak,
+    speechCfg: speechCfg,
+    timestamp: new Date().toISOString(),
+    version: '1.0',
+  };
+
+  const backupData = JSON.stringify(backup, null, 2);
+  const blob = new Blob([backupData], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `englift-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  return backup;
+}
+
+// Показ предпросмотра импорта с опцией резервного копирования
+function showImportPreview(importData) {
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'modal-content';
+  content.style.cssText = `
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  `;
+
+  const wordsCount = importData.words ? importData.words.length : 0;
+  const currentWordsCount = words.length;
+
+  content.innerHTML = `
+    <h2 style="margin-bottom: 1rem; color: var(--text);">📦 Предпросмотр импорта</h2>
+    
+    <div style="background: var(--bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+      <h3 style="margin-bottom: 0.5rem; color: var(--text);">📊 Статистика импорта:</h3>
+      <ul style="margin: 0; padding-left: 1.5rem; color: var(--muted);">
+        <li>Слов в файле: <strong>${esc(wordsCount.toString())}</strong></li>
+        <li>Текущих слов: <strong>${esc(currentWordsCount.toString())}</strong></li>
+        ${importData.xpData ? '<li>Содержит данные XP и бейджи</li>' : ''}
+        ${importData.streak ? '<li>Содержит данные streak</li>' : ''}
+      </ul>
+    </div>
+    
+    <div style="background: var(--warning); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+      <strong>⚠️ Внимание!</strong><br>
+      Текущие слова (${esc(currentWordsCount.toString())}) будут заменены на слова из файла (${esc(wordsCount.toString())}).
+    </div>
+    
+    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+      <button id="create-backup-btn" class="btn btn-secondary" style="flex: 1;">
+        💾 Создать резервную копию
+      </button>
+      <button id="import-without-backup-btn" class="btn btn-danger" style="flex: 1;">
+        🔄 Импортировать без копии
+      </button>
+    </div>
+    
+    <button id="cancel-import-btn" class="btn btn-secondary" style="width: 100%; margin-top: 1rem;">
+      ❌ Отмена
+    </button>
+  `;
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+
+  // Обработчики
+  document.getElementById('create-backup-btn').addEventListener('click', () => {
+    createBackup();
+    modal.remove();
+    performImport(importData);
+  });
+
+  document
+    .getElementById('import-without-backup-btn')
+    .addEventListener('click', () => {
+      if (
+        confirm(
+          'Вы уверены, что хотите импортировать без создания резервной копии?',
+        )
+      ) {
+        modal.remove();
+        performImport(importData);
+      }
+    });
+
+  document.getElementById('cancel-import-btn').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  modal.addEventListener('click', e => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+// Выполнение импорта
+function performImport(importData) {
+  words = importData.words || [];
+  if (importData.xpData) {
+    xpData = importData.xpData;
+    saveXP();
+  }
+  if (importData.streak) {
+    streak = importData.streak;
+    saveStreak();
+  }
+  if (importData.speechCfg) {
+    speechCfg = importData.speechCfg;
+    saveSpeech();
+  }
+
+  save();
+  visibleLimit = 30; // <-- сброс
+  renderWords();
+  renderStats();
+  renderXP();
+  renderBadges();
+
+  toast(
+    '✅ Бэкап восстановлен! ' + words.length + ' слов загружено',
+    'success',
+  );
+
+  // Закрываем модальное окно импорта
+  const importModal = document.getElementById('import-modal');
+  if (importModal) {
+    importModal.style.display = 'none';
+  }
+}
+
 // Confirm import
 document.getElementById('io-confirm-import').addEventListener('click', () => {
   if (!pendingImport) return;
+
   if (pendingImport.type === 'json') {
-    const d = pendingImport.data;
-    words = d.words;
-    if (d.xpData) {
-      xpData = d.xpData;
-      saveXP();
-    }
-    if (d.streak) {
-      streak = d.streak;
-      saveStreak();
-    }
-    save();
-    renderWords();
-    renderStats();
-    renderXP();
-    renderBadges();
-    toast(
-      '✅ Бэкап восстановлен! ' + words.length + ' слов загружено',
-      'success',
-    );
+    // Показываем предпросмотр для JSON импорта
+    showImportPreview(pendingImport.data);
   } else if (pendingImport.type === 'csv') {
+    // Для CSV импортируем сразу (добавляем слова, не заменяем)
     let added = 0;
     pendingImport.data.forEach(w => {
       if (!words.find(x => x.en.toLowerCase() === w.en.toLowerCase())) {
@@ -1831,10 +2242,10 @@ document.getElementById('io-confirm-import').addEventListener('click', () => {
     renderWords();
     renderStats();
     toast('✅ Добавлено ' + added + ' новых слов!', 'success');
+    closeIOModal();
+    pendingImport = null;
+    fileInput.value = '';
   }
-  closeIOModal();
-  pendingImport = null;
-  fileInput.value = '';
 });
 
 // ============================================================
@@ -2468,6 +2879,13 @@ function renderStats() {
   document.getElementById('speed-val').textContent = speechCfg.rate + 'x';
   document.getElementById('pitch-range').value = speechCfg.pitch;
   document.getElementById('pitch-val').textContent = speechCfg.pitch.toFixed(1);
+
+  // Устанавливаем выбранный акцент
+  const accentSelect = document.getElementById('accent-select');
+  if (accentSelect) {
+    accentSelect.value = speechCfg.accent || 'US';
+  }
+
   setTimeout(loadVoices, 100);
 }
 
@@ -2477,13 +2895,35 @@ function renderStats() {
 // Мост для Firebase
 window._getLocalWords = () => words;
 window._setWords = newWords => {
+  console.log(
+    '_setWords called with',
+    newWords.length,
+    'words. Current user:',
+    window.authExports?.auth?.currentUser?.uid,
+  );
   words = newWords;
+  visibleLimit = 30; // <-- сброс
   renderWords();
   renderStats();
   renderXP();
   updateDueBadge();
   renderWotd();
 };
+
+// Инициализация индикатора синхронизации и мониторинга сети
+document.addEventListener('DOMContentLoaded', () => {
+  // Обработчик клика на индикатор синхронизации
+  const syncIndicator = document.getElementById('sync-indicator');
+  if (syncIndicator) {
+    syncIndicator.addEventListener('click', forceSync);
+  }
+
+  // Настройка мониторинга сети
+  setupNetworkMonitoring();
+
+  // Запуск периодической проверки бейджей
+  startBadgeAutoCheck();
+});
 
 load();
 updStreak();
@@ -2776,8 +3216,25 @@ document.addEventListener('keydown', e => {
 // === EXIT SESSION ===
 document.getElementById('ex-exit-btn').addEventListener('click', () => {
   if (!confirm('Выйти из урока?')) return;
+
+  // Останавливаем все активные процессы
   words.forEach(w => delete w._matched);
   clearInterval(window._matchTimerInterval);
+
+  // Останавливаем Speech Recognition если активно
+  if (speechRecognition && speechRecognitionSupported) {
+    try {
+      speechRecognition.stop();
+    } catch (e) {
+      console.log('Speech recognition already stopped');
+    }
+  }
+
+  // Останавливаем синтез речи если активен
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+
   document.getElementById('practice-ex').style.display = 'none';
   document.getElementById('practice-setup').style.display = 'block';
   const hkHint = document.getElementById('hotkeys-hint');
@@ -2839,6 +3296,37 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
     });
   });
 })();
+
+// Очистка данных пользователя (при выходе или перед загрузкой нового пользователя)
+window.clearUserData = function () {
+  console.log(
+    'clearUserData called. Current user:',
+    window.authExports?.auth?.currentUser?.uid,
+  );
+  // Удаляем только данные в памяти, localStorage не трогаем
+  words = [];
+  renderCache.clear();
+  visibleLimit = 30;
+
+  // Очистить DOM
+  const grid = document.getElementById('words-grid');
+  if (grid) grid.innerHTML = '';
+  const empty = document.getElementById('empty-words');
+  if (empty) empty.style.display = 'block';
+
+  // Сбросить статистику, бейджи и XP
+  xpData = { xp: 0, level: 1, badges: [] };
+  streak = { count: 0, lastDate: null };
+  speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0, accent: 'US' };
+
+  // Обновить интерфейс
+  renderStats();
+  renderXP();
+  renderBadges();
+  updateDueBadge();
+  applyDark(false); // Сбрасываем тему на светлую (по желанию)
+  switchTab('words');
+};
 
 // ============================================================
 // INITIALIZATION

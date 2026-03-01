@@ -1,6 +1,11 @@
 // Импортируем все необходимые модули
 import { auth } from './firebase.js';
-import { saveAllWordsToDb, subscribeToWords, unsubscribeWords } from './db.js';
+import {
+  saveAllWordsToDb,
+  subscribeToWords,
+  unsubscribeWords,
+  syncLocalWordsWithFirestore,
+} from './db.js';
 
 // Экспортируем функции для использования в других скриптах
 window.authExports = {
@@ -8,6 +13,7 @@ window.authExports = {
   saveAllWordsToDb,
   subscribeToWords,
   unsubscribeWords,
+  syncLocalWordsWithFirestore,
 };
 
 // Ждем полной загрузки DOM перед загрузкой остальных скриптов

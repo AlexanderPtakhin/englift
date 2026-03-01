@@ -11,19 +11,20 @@ function waitForAuthExports() {
 
 // Инициализация после загрузки всех зависимостей
 waitForAuthExports().then(({ auth }) => {
-  // Импортируем функции Firebase после полной загрузки
   import('firebase/auth').then(
     ({
       createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
       signOut,
       onAuthStateChanged,
+      sendEmailVerification,
     }) => {
       initializeAuth(auth, {
         createUserWithEmailAndPassword,
         signInWithEmailAndPassword,
         signOut,
         onAuthStateChanged,
+        sendEmailVerification,
       });
     },
   );
@@ -61,18 +62,127 @@ function initializeAuth(auth, firebaseAuth) {
   const errorEl = document.getElementById('auth-error');
   const titleEl = document.getElementById('auth-modal-title');
 
-  // Функция переключения видимости пароля
+  // Блок для неподтверждённого email
+  const emailNotVerifiedBlock = document.getElementById('email-not-verified');
+  const unverifiedEmailSpan = document.getElementById('unverified-email');
+  const resendEmailBtn = document.getElementById('resend-email-btn');
+  const logoutFromUnverifiedBtn = document.getElementById(
+    'logout-from-unverified',
+  );
+
+  // Элементы информации о пользователе
+  const userInfo = document.getElementById('user-info');
+  const userEmail = document.getElementById('user-email');
+  const userStatus = document.getElementById('user-status');
+
+  // Переменная для хранения интервала проверки email
+  let emailCheckInterval = null;
+
+  // Функция для остановки проверки email
+  function stopEmailCheck() {
+    if (emailCheckInterval) {
+      clearInterval(emailCheckInterval);
+      emailCheckInterval = null;
+    }
+  }
+
+  // Общая функция для обработки авторизации
+  async function handleAuth(
+    email,
+    password,
+    confirmPassword,
+    errorElement,
+    submitButton,
+    isGate = false,
+  ) {
+    if (!email || !password) return;
+
+    if (isRegisterMode && password !== confirmPassword) {
+      errorElement.textContent = 'Пароли не совпадают';
+      return;
+    }
+
+    errorElement.textContent = '';
+    submitButton.disabled = true;
+    submitButton.textContent = '...';
+
+    try {
+      if (isRegisterMode) {
+        const userCredential =
+          await firebaseAuth.createUserWithEmailAndPassword(
+            auth,
+            email,
+            password,
+          );
+        try {
+          await firebaseAuth.sendEmailVerification(userCredential.user);
+          window.toast?.(
+            '📧 Письмо для подтверждения отправлено на ваш email. Проверьте почту (и папку "Спам").',
+            'success',
+          );
+        } catch (emailError) {
+          console.error('Error sending verification email:', emailError);
+          window.toast?.(
+            '⚠️ Регистрация успешна, но не удалось отправить письмо подтверждения. Ошибка: ' +
+              emailError.message,
+            'warning',
+          );
+        }
+      } else {
+        await firebaseAuth.signInWithEmailAndPassword(auth, email, password);
+      }
+
+      if (isGate) {
+        clearGateForm();
+        hideAuthGate();
+      } else {
+        closeModal();
+      }
+    } catch (err) {
+      const msgs = {
+        'auth/email-already-in-use': 'Этот email уже занят',
+        'auth/invalid-email': 'Неверный формат email',
+        'auth/weak-password': 'Пароль слишком короткий (мин. 6 символов)',
+        'auth/invalid-credential': 'Неверный email или пароль',
+        'auth/user-not-found': 'Пользователь не найден',
+        'auth/wrong-password': 'Неверный пароль',
+      };
+      errorElement.textContent = msgs[err.code] || err.message;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
+    }
+  }
+
+  function toggleAuthMode(isGate = false) {
+    isRegisterMode = !isRegisterMode;
+    if (isGate) {
+      gateSubmitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
+      gateToggleBtn.textContent = isRegisterMode
+        ? 'Уже есть аккаунт? Войти'
+        : 'Нет аккаунта? Зарегистрироваться';
+      gateErrorEl.textContent = '';
+    } else {
+      titleEl.textContent = isRegisterMode ? 'Регистрация' : 'Войти';
+      submitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
+      toggleBtn.textContent = isRegisterMode
+        ? 'Уже есть аккаунт? Войти'
+        : 'Нет аккаунта? Зарегистрироваться';
+      errorEl.textContent = '';
+    }
+    toggleConfirmPassword(isRegisterMode);
+  }
+
   function togglePasswordVisibility(input, toggleBtn) {
     if (input.type === 'password') {
       input.type = 'text';
-      toggleBtn.textContent = '�';
+      toggleBtn.textContent = '🙈';
     } else {
       input.type = 'password';
       toggleBtn.textContent = '👁️';
     }
   }
 
-  // Функция показа/скрытия поля подтверждения пароля
   function toggleConfirmPassword(show) {
     if (show) {
       gateConfirmGroup.style.display = 'block';
@@ -85,25 +195,6 @@ function initializeAuth(auth, firebaseAuth) {
     }
   }
 
-  // Обработчики для показа/скрытия паролей (обязательная авторизация)
-  gatePasswordToggle.addEventListener('click', () => {
-    togglePasswordVisibility(gatePasswordInput, gatePasswordToggle);
-  });
-
-  gateConfirmToggle.addEventListener('click', () => {
-    togglePasswordVisibility(gateConfirmPasswordInput, gateConfirmToggle);
-  });
-
-  // Обработчики для показа/скрытия паролей (обычное модальное окно)
-  passwordToggle.addEventListener('click', () => {
-    togglePasswordVisibility(passwordInput, passwordToggle);
-  });
-
-  confirmToggle.addEventListener('click', () => {
-    togglePasswordVisibility(confirmPasswordInput, confirmToggle);
-  });
-
-  // Функции для обязательной авторизации
   function showAuthGate() {
     authGate.classList.remove('hidden');
     document.body.classList.remove('authenticated');
@@ -112,7 +203,6 @@ function initializeAuth(auth, firebaseAuth) {
 
   function hideAuthGate() {
     authGate.classList.add('hidden');
-    document.body.classList.add('authenticated');
   }
 
   function clearGateForm() {
@@ -122,7 +212,6 @@ function initializeAuth(auth, firebaseAuth) {
     gateErrorEl.textContent = '';
   }
 
-  // Функции для обычного модального окна
   function openModal() {
     modal.classList.add('open');
     emailInput.focus();
@@ -136,63 +225,47 @@ function initializeAuth(auth, firebaseAuth) {
     confirmPasswordInput.value = '';
   }
 
-  // Обработчики для обязательной авторизации
-  gateToggleBtn.addEventListener('click', () => {
-    isRegisterMode = !isRegisterMode;
-    gateSubmitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-    gateToggleBtn.textContent = isRegisterMode
-      ? 'Уже есть аккаунт? Войти'
-      : 'Нет аккаунта? Зарегистрироваться';
-    gateErrorEl.textContent = '';
-    toggleConfirmPassword(isRegisterMode);
-  });
-
-  gateSubmitBtn.addEventListener('click', async () => {
-    const email = gateEmailInput.value.trim();
-    const password = gatePasswordInput.value.trim();
-    const confirmPassword = gateConfirmPasswordInput.value.trim();
-
-    if (!email || !password) return;
-
-    // Проверка подтверждения пароля при регистрации
-    if (isRegisterMode && password !== confirmPassword) {
-      gateErrorEl.textContent = 'Пароли не совпадают';
-      return;
+  function showEmailNotVerified(email) {
+    if (emailNotVerifiedBlock && unverifiedEmailSpan) {
+      unverifiedEmailSpan.textContent = email;
+      emailNotVerifiedBlock.style.display = 'flex';
     }
+    if (authGate) authGate.classList.add('hidden');
+    document.body.classList.remove('authenticated');
+  }
 
-    gateErrorEl.textContent = '';
-    gateSubmitBtn.disabled = true;
-    gateSubmitBtn.textContent = '...';
+  function hideEmailNotVerified() {
+    if (emailNotVerifiedBlock) emailNotVerifiedBlock.style.display = 'none';
+  }
 
-    try {
-      if (isRegisterMode) {
-        await firebaseAuth.createUserWithEmailAndPassword(
-          auth,
-          email,
-          password,
+  async function resendVerificationEmail() {
+    const user = auth.currentUser;
+    if (user && !user.emailVerified) {
+      try {
+        await firebaseAuth.sendEmailVerification(user);
+        window.toast?.(
+          '✉️ Письмо отправлено повторно. Проверьте почту.',
+          'success',
         );
-      } else {
-        await firebaseAuth.signInWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        window.toast?.('❌ Ошибка отправки письма: ' + error.message, 'danger');
       }
-      clearGateForm();
-      hideAuthGate();
-    } catch (err) {
-      const msgs = {
-        'auth/email-already-in-use': 'Этот email уже занят',
-        'auth/invalid-email': 'Неверный формат email',
-        'auth/weak-password': 'Пароль слишком короткий (мин. 6 символов)',
-        'auth/invalid-credential': 'Неверный email или пароль',
-        'auth/user-not-found': 'Пользователь не найден',
-        'auth/wrong-password': 'Неверный пароль',
-      };
-      gateErrorEl.textContent = msgs[err.code] || err.message;
-    } finally {
-      gateSubmitBtn.disabled = false;
-      gateSubmitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
     }
+  }
+
+  // Обработчики
+  gateToggleBtn.addEventListener('click', () => toggleAuthMode(true));
+  gateSubmitBtn.addEventListener('click', () => {
+    handleAuth(
+      gateEmailInput.value.trim(),
+      gatePasswordInput.value.trim(),
+      gateConfirmPasswordInput.value.trim(),
+      gateErrorEl,
+      gateSubmitBtn,
+      true,
+    );
   });
 
-  // Поддержка клавиши Enter для формы авторизации
   gateEmailInput.addEventListener('keypress', e => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -200,27 +273,22 @@ function initializeAuth(auth, firebaseAuth) {
     }
   });
 
-  gatePasswordInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (isRegisterMode) {
-        gateConfirmPasswordInput.focus();
-      } else {
-        gateSubmitBtn.click();
-      }
-    }
-  });
+  gatePasswordToggle.addEventListener('click', () =>
+    togglePasswordVisibility(gatePasswordInput, gatePasswordToggle),
+  );
+  gateConfirmToggle.addEventListener('click', () =>
+    togglePasswordVisibility(gateConfirmPasswordInput, gateConfirmToggle),
+  );
+  passwordToggle.addEventListener('click', () =>
+    togglePasswordVisibility(passwordInput, passwordToggle),
+  );
+  confirmToggle.addEventListener('click', () =>
+    togglePasswordVisibility(confirmPasswordInput, confirmToggle),
+  );
 
-  gateConfirmPasswordInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      gateSubmitBtn.click();
-    }
-  });
-
-  // Обработчики для обычного модального окна
   authBtn.addEventListener('click', () => {
     if (auth.currentUser) {
+      stopEmailCheck();
       firebaseAuth.signOut(auth);
     } else {
       openModal();
@@ -232,120 +300,119 @@ function initializeAuth(auth, firebaseAuth) {
     if (e.target === modal) closeModal();
   });
 
-  toggleBtn.addEventListener('click', () => {
-    isRegisterMode = !isRegisterMode;
-    titleEl.textContent = isRegisterMode ? 'Регистрация' : 'Войти';
-    submitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-    toggleBtn.textContent = isRegisterMode
-      ? 'Уже есть аккаунта? Войти'
-      : 'Нет аккаунта? Зарегистрироваться';
-    errorEl.textContent = '';
-    toggleConfirmPassword(isRegisterMode);
+  toggleBtn.addEventListener('click', () => toggleAuthMode(false));
+  submitBtn.addEventListener('click', () => {
+    handleAuth(
+      emailInput.value.trim(),
+      passwordInput.value.trim(),
+      confirmPasswordInput.value.trim(),
+      errorEl,
+      submitBtn,
+      false,
+    );
   });
 
-  submitBtn.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    const confirmPassword = confirmPasswordInput.value.trim();
-
-    if (!email || !password) return;
-
-    // Проверка подтверждения пароля при регистрации
-    if (isRegisterMode && password !== confirmPassword) {
-      errorEl.textContent = 'Пароли не совпадают';
-      return;
-    }
-
-    errorEl.textContent = '';
-    submitBtn.disabled = true;
-    submitBtn.textContent = '...';
-
-    try {
-      if (isRegisterMode) {
-        await firebaseAuth.createUserWithEmailAndPassword(
-          auth,
-          email,
-          password,
-        );
-      } else {
-        await firebaseAuth.signInWithEmailAndPassword(auth, email, password);
-      }
-      closeModal();
-    } catch (err) {
-      const msgs = {
-        'auth/email-already-in-use': 'Этот email уже занят',
-        'auth/invalid-email': 'Неверный формат email',
-        'auth/weak-password': 'Пароль слишком короткий (мин. 6 символов)',
-        'auth/invalid-credential': 'Неверный email или пароль',
-        'auth/user-not-found': 'Пользователь не найден',
-        'auth/wrong-password': 'Неверный пароль',
-      };
-      errorEl.textContent = msgs[err.code] || err.message;
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-    }
-  });
-
-  // Поддержка клавиши Enter для обычного модального окна
-  emailInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      passwordInput.focus();
-    }
-  });
-
-  passwordInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (isRegisterMode) {
-        confirmPasswordInput.focus();
-      } else {
-        submitBtn.click();
-      }
-    }
-  });
-
-  confirmPasswordInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      submitBtn.click();
-    }
-  });
+  if (resendEmailBtn) {
+    resendEmailBtn.addEventListener('click', resendVerificationEmail);
+  }
+  if (logoutFromUnverifiedBtn) {
+    logoutFromUnverifiedBtn.addEventListener('click', () => {
+      stopEmailCheck();
+      firebaseAuth.signOut(auth);
+    });
+  }
 
   // Слушаем состояние авторизации
   firebaseAuth.onAuthStateChanged(auth, async user => {
     if (user) {
-      authBtn.textContent = '👤 Выйти';
-      authBtn.title = user.email;
+      if (user.emailVerified) {
+        hideEmailNotVerified();
+        hideAuthGate();
+        document.body.classList.add('authenticated');
 
-      // Если в localStorage были слова — переносим их в Firestore
-      const localWords = window._getLocalWords?.();
-      if (localWords && localWords.length > 0) {
-        try {
-          await window.authExports.saveAllWordsToDb(localWords);
-          console.log(`Перенесено ${localWords.length} слов в Firestore`);
-        } catch (e) {
-          console.error('Ошибка переноса слов:', e);
+        authBtn.textContent = '👤 Выйти';
+        authBtn.title = user.email;
+
+        if (userInfo && userEmail && userStatus) {
+          userInfo.style.display = 'block';
+          userEmail.textContent = user.email;
+          userStatus.textContent = '✅ Подтвержден';
+          userStatus.style.color = 'var(--success)';
         }
+
+        if (window.clearUserData) window.clearUserData();
+
+        const localWords = window._getLocalWords?.();
+        if (localWords && localWords.length > 0) {
+          try {
+            const syncResult =
+              await window.authExports.syncLocalWordsWithFirestore(localWords);
+            if (syncResult.success && syncResult.mergedWords) {
+              window._setWords(syncResult.mergedWords);
+            }
+          } catch (e) {
+            console.error('Ошибка синхронизации слов:', e);
+          }
+        }
+
+        window.authExports.subscribeToWords(firestoreWords => {
+          if (window._setWords) window._setWords(firestoreWords);
+        });
+
+        stopEmailCheck();
+      } else {
+        hideAuthGate();
+        document.body.classList.remove('authenticated');
+        showEmailNotVerified(user.email);
+
+        authBtn.textContent = '👤 Выйти';
+        authBtn.title = user.email;
+
+        if (userInfo && userEmail && userStatus) {
+          userInfo.style.display = 'block';
+          userEmail.textContent = user.email;
+          userStatus.textContent = '📧 Не подтвержден';
+          userStatus.style.color = 'var(--warning)';
+        }
+
+        if (window.clearUserData) window.clearUserData();
+        window.authExports.unsubscribeWords();
+
+        // Временно отключаем проверку email из-за проблем с токенами
+        // stopEmailCheck();
+        // emailCheckInterval = setInterval(async () => {
+        //   if (user) {
+        //     try {
+        //       await user.reload();
+        //       if (user.emailVerified) {
+        //         stopEmailCheck();
+        //         window.location.reload(); // Просто перезагружаем страницу
+        //       }
+        //     } catch (error) {
+        //       console.error('Error checking email verification:', error);
+        //       if (error.code === 'auth/user-token-expired') {
+        //         stopEmailCheck();
+        //         firebaseAuth.signOut(auth);
+        //       }
+        //     }
+        //   }
+        // }, 3000);
       }
-
-      // Подписываемся на Firestore — данные придут в реальном времени
-      window.authExports.subscribeToWords(firestoreWords => {
-        if (window._setWords) {
-          window._setWords(firestoreWords);
-        }
-      });
-
-      // Скрываем окно обязательной авторизации если пользователь авторизован
-      hideAuthGate();
     } else {
+      hideEmailNotVerified();
+      showAuthGate();
+      document.body.classList.remove('authenticated');
+
       authBtn.textContent = 'Войти';
       authBtn.title = '';
-      window.authExports.unsubscribeWords();
 
-      // Показываем окно обязательной авторизации
-      showAuthGate();
+      if (userInfo) {
+        userInfo.style.display = 'none';
+      }
+
+      if (window.clearUserData) window.clearUserData();
+      window.authExports.unsubscribeWords();
+      stopEmailCheck();
     }
   });
 }

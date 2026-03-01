@@ -161,10 +161,146 @@ nav {
   color: var(--text);
 }
 
+/* Контейнер для XP */
+.xp-container {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+}
+
 .header-right {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.sync-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  margin-right: 0.5rem;
+}
+
+.sync-btn:hover {
+  background: var(--bg-secondary);
+  transform: scale(1.05);
+}
+
+.sync-btn.syncing .sync-icon {
+  animation: spin 1s linear infinite;
+}
+
+.sync-btn.synced .sync-icon {
+  color: var(--success);
+}
+
+.sync-btn.error .sync-icon {
+  color: var(--danger);
+}
+
+.sync-btn.offline .sync-icon {
+  color: var(--muted);
+}
+
+.sync-icon {
+  font-size: 16px;
+  transition: color 0.3s ease;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: var(--muted);
+}
+
+#loading-more .loading-spinner {
+  width: 20px;
+  height: 20px;
+}
+
+/* Блок для неподтверждённого email */
+.email-not-verified {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.email-not-verified .auth-gate-container {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+}
+
+#unverified-email {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.sync-text {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Информация о пользователе в шапке */
+#user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  padding: 0.3rem 1rem;
+  font-size: 0.85rem;
+}
+
+#user-email {
+  font-weight: 600;
+  color: var(--text);
+}
+
+#user-status {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .sync-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sync-icon {
+    font-size: 14px;
+  }
 }
 
 .dark-btn {
