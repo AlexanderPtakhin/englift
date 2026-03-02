@@ -7,6 +7,150 @@ import {
   sendEmailVerification,
 } from 'firebase/auth';
 
+// Функция для загрузки данных пользователя из Firebase
+async function loadUserDataFromFirebase() {
+  if (!window.authExports?.auth?.currentUser) return;
+
+  try {
+    const db = window.authExports?.db;
+    if (!db) return;
+
+    const userRef = window.authExports?.userRef(
+      window.authExports.auth.currentUser.uid,
+    );
+    if (!userRef) return;
+
+    const dbModule = await import('./db.js');
+    const userDoc = await dbModule.getDoc(userRef);
+    const userData = userDoc.data();
+
+    if (userData) {
+      // Загружаем XP данные
+      if (userData.xpData && window.updateXpData) {
+        console.log('Loading XP data from Firebase:', userData.xpData);
+        window.updateXpData(userData.xpData);
+      }
+
+      // Загружаем streak данные
+      if (userData.streak && window.updateStreak) {
+        console.log('Loading streak data from Firebase:', userData.streak);
+        window.updateStreak(userData.streak);
+      }
+
+      // Загружаем настройки речи
+      if (userData.speechCfg) {
+        console.log('Loading speech config from Firebase:', userData.speechCfg);
+        window.speechCfg = userData.speechCfg;
+        // Сохраняем только локально, без вызова saveSpeech
+        localStorage.setItem(
+          'englift_speech',
+          JSON.stringify(userData.speechCfg),
+        );
+      }
+
+      // Загружаем тему
+      if (userData.darkTheme !== undefined) {
+        console.log('Loading theme from Firebase:', userData.darkTheme);
+        localStorage.setItem('engliftDark', userData.darkTheme.toString());
+
+        // Вызываем applyDark для применения темы
+        if (typeof window.applyDark === 'function') {
+          console.log(
+            'Calling applyDark from Firebase with:',
+            userData.darkTheme,
+          );
+          window.applyDark(userData.darkTheme);
+        } else {
+          console.log('applyDark function not available - applying directly');
+          // Применяем тему напрямую через DOM
+          document.body.classList.toggle('dark', userData.darkTheme);
+          console.log(
+            'Dark class applied directly. Body classes:',
+            document.body.className,
+          );
+          console.log(
+            'Has dark class:',
+            document.body.classList.contains('dark'),
+          );
+
+          // Принудительно обновляем CSS переменные для предотвращения мерцания
+          if (userData.darkTheme) {
+            document.documentElement.style.setProperty('--bg', '#13121f');
+            document.documentElement.style.setProperty('--text', '#ffffff');
+            document.documentElement.style.setProperty(
+              '--bg-secondary',
+              '#1e1e2e',
+            );
+            document.documentElement.style.setProperty('--border', '#374151');
+            document.documentElement.style.setProperty('--muted', '#9ca3af');
+            document.documentElement.style.setProperty('--primary', '#60a5fa');
+            document.documentElement.style.setProperty(
+              '--primary-light',
+              '#93c5fd',
+            );
+            console.log('Forced dark CSS variables from Firebase');
+          } else {
+            document.documentElement.style.setProperty('--bg', '');
+            document.documentElement.style.setProperty('--text', '');
+            document.documentElement.style.setProperty('--bg-secondary', '');
+            document.documentElement.style.setProperty('--border', '');
+            document.documentElement.style.setProperty('--muted', '');
+            document.documentElement.style.setProperty('--primary', '');
+            document.documentElement.style.setProperty('--primary-light', '');
+            console.log('Reset CSS variables from Firebase');
+          }
+
+          // Обновляем отладчик
+          if (window.updateThemeDebugger) {
+            window.updateThemeDebugger('Firebase Direct', userData.darkTheme);
+          }
+
+          // Обновляем UI элементы
+          setTimeout(() => {
+            const darkToggle = document.getElementById('dark-toggle');
+            if (darkToggle) {
+              const icon = userData.darkTheme ? 'sunny' : 'dark_mode';
+              darkToggle.innerHTML = `<span class="material-symbols-outlined">${icon}</span>`;
+            }
+
+            const themeCheckbox = document.getElementById('theme-checkbox');
+            if (themeCheckbox) {
+              themeCheckbox.checked = userData.darkTheme;
+            }
+
+            const themeIcon = document.querySelector(
+              '#dropdown-theme-toggle .material-symbols-outlined',
+            );
+            if (themeIcon) {
+              const icon = userData.darkTheme ? 'sunny' : 'dark_mode';
+              themeIcon.textContent = icon;
+            }
+
+            console.log('Theme applied directly via DOM');
+          }, 100);
+        }
+      }
+    } else {
+      // Документа пользователя нет – создаём с текущими данными
+      const newUserData = {
+        xpData: window.xpData || { xp: 0, level: 1, badges: [] },
+        streak: window.streak || { count: 0, lastDate: null },
+        speechCfg: window.speechCfg || {
+          voiceURI: '',
+          rate: 0.9,
+          pitch: 1.0,
+          accent: 'US',
+        },
+        darkTheme: localStorage.getItem('engliftDark') === 'true',
+      };
+      await dbModule.setDoc(userRef, newUserData);
+      console.log('Created user document with current data');
+    }
+  } catch (error) {
+    console.error('Error loading/saving user data from Firebase:', error);
+  }
+}
+
 // ============================================================
 // GRAVATAR — ВСЕГДА ДОСТУПНА
 // ============================================================
@@ -106,7 +250,7 @@ async function handleAuth(
       clearGateForm();
       hideAuthGate();
     } else {
-      closeModal();
+      // closeModal(); // Removed - function doesn't exist
     }
   } catch (err) {
     const msgs = {
@@ -285,15 +429,24 @@ onAuthStateChanged(auth, async user => {
 
   if (user) {
     if (user.emailVerified) {
+      // Сначала загружаем данные (тему, XP, streak и т.д.)
+      await loadUserDataFromFirebase();
+
+      // Теперь скрываем модалку и показываем приложение
       hideEmailNotVerified();
       hideAuthGate();
       document.body.classList.add('authenticated');
+
       // Обновляем меню
       dropdownEmail.textContent = user.email;
-      const firstLetter = user.email.charAt(0).toUpperCase();
-      userAvatar.textContent = firstLetter;
-      userAvatar.style.backgroundColor = 'var(--primary)';
-      userAvatar.style.color = '#fff';
+
+      const avatarUrl = getGravatarUrl(user.email, 40);
+      userAvatar.innerHTML = `
+        <img src="${avatarUrl}" 
+             alt="Avatar" 
+             style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
+             onerror="this.style.display='none'; this.parentElement.textContent='${user.email.charAt(0).toUpperCase()}';">
+      `;
       userAvatar.style.display = 'flex';
       userAvatar.style.alignItems = 'center';
       userAvatar.style.justifyContent = 'center';
@@ -303,17 +456,29 @@ onAuthStateChanged(auth, async user => {
           ? window._getLocalWords()
           : [];
 
-      console.log('Local words before sync:', localWords?.length);
+      console.log('Local words before sync:', localWords?.length || 0);
 
-      if (localWords && localWords.length > 0) {
+      if (localWords && Array.isArray(localWords) && localWords.length > 0) {
         try {
+          console.log('Starting sync with', localWords.length, 'words');
           const syncResult =
             await window.authExports.syncLocalWordsWithFirestore(localWords);
-          if (syncResult.success && syncResult.mergedWords) {
+          console.log('Sync result:', syncResult);
+
+          if (syncResult?.success && syncResult.mergedWords) {
+            console.log(
+              'Sync successful, merged',
+              syncResult.mergedWords.length,
+              'words',
+            );
             window._setWords(syncResult.mergedWords);
+          } else {
+            console.log('Sync failed or no merged words, using local words');
+            window._setWords(localWords);
           }
         } catch (e) {
           console.error('Ошибка синхронизации слов:', e);
+          // Не показываем toast при ошибке синхронизации при входе
         }
       } else {
         console.log('No local words to sync');
@@ -337,7 +502,7 @@ onAuthStateChanged(auth, async user => {
     }
   } else {
     hideEmailNotVerified();
-    showAuthGate();
+    showAuthGate(); // убрать setTimeout
     document.body.classList.remove('authenticated');
 
     dropdownEmail.textContent = '';

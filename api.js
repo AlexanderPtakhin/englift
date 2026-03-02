@@ -136,9 +136,8 @@ async function loadWordBank() {
         'warning',
       );
     }
-    return [];
 
-    // 3. Fallback на emergency слова
+    // Emergency fallback
     wordBank = EMERGENCY_WORDS;
     console.log(`Emergency fallback → ${wordBank.length} слов`);
     return wordBank;

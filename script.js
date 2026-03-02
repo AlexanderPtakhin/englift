@@ -1,145 +1,234 @@
-import { saveWordToDb, deleteWordFromDb, saveAllWordsToDb } from './db.js';
+import {
+  saveWordToDb,
+  deleteWordFromDb,
+  saveAllWordsToDb,
+  saveUserData,
+} from './db.js';
 import { getCompleteWordData } from './api.js';
+import { auth } from './firebase.js';
 import './auth.js';
+
+// Визуальный отладчик темы
+function createThemeDebugger() {
+  const debuggerEl = document.createElement('div');
+  debuggerEl.id = 'theme-debugger';
+  debuggerEl.style.cssText = `
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 11px;
+    z-index: 10000;
+    min-width: 180px;
+    border: 1px solid #60a5fa;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  `;
+
+  document.body.appendChild(debuggerEl);
+
+  // Функция обновления отладчика
+  window.updateThemeDebugger = function (source, theme) {
+    const time = new Date().toLocaleTimeString();
+    debuggerEl.innerHTML = `
+      <div style="color: #60a5fa; font-weight: bold; font-size: 10px;">🎨 THEME</div>
+      <div style="font-size: 9px;">${time}</div>
+      <div style="font-size: 9px;">${source}</div>
+      <div style="color: ${theme ? '#60a5fa' : '#fbbf24'}; font-weight: bold;">
+        ${theme ? '🌙' : '☀️'} ${theme ? 'DARK' : 'LIGHT'}
+      </div>
+      <div style="font-size: 9px; opacity: 0.8;">
+        Classes: ${document.body.className || 'none'}
+      </div>
+    `;
+  };
+
+  // Начальное состояние
+  updateThemeDebugger('INIT', document.body.classList.contains('dark'));
+}
+
+// Создаем отладчик при загрузке
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', createThemeDebugger);
+} else {
+  createThemeDebugger();
+}
+
+// XSS protection function
 
 // Добавь в самое начало файла (рядом с другими let)
 let saveTimeout = null;
 
 // ============================================================
-// WEEK CHART
+// WEEK STATISTICS (простая замена графика)
 // ============================================================
-let weekChart = null;
-let weekChartRendering = false;
-
 function renderWeekChart() {
   console.log('=== renderWeekChart called ===');
-  const canvas = document.getElementById('weekChart');
-  if (!canvas) return;
 
-  if (!window.words || !Array.isArray(window.words)) {
-    console.log('No words data available');
+  // Ищем контейнер, а не canvas (т.к. canvas заменен на HTML)
+  const container = document.querySelector('.week-chart-container');
+  console.log('Container found:', !!container);
+  if (!container) return;
+
+  // Ищем существующий HTML или canvas
+  const existingContent =
+    container.querySelector('[data-week-chart]') ||
+    container.querySelector('#weekChart');
+  console.log('Existing content found:', !!existingContent);
+
+  console.log(
+    'Words available:',
+    !!window.words,
+    'Count:',
+    window.words?.length,
+  );
+
+  // Показываем заглушку, если слов еще нет
+  if (
+    !window.words ||
+    !Array.isArray(window.words) ||
+    window.words.length === 0
+  ) {
+    console.log('No words data available, showing placeholder');
+    const placeholderHtml = `
+      <div data-week-chart style="padding: 2rem; text-align: center;">
+        <div style="color: var(--muted); opacity: 0.7;">
+          Загрузка статистики...
+        </div>
+      </div>
+    `;
+
+    if (existingContent) {
+      existingContent.outerHTML = placeholderHtml;
+    } else {
+      // Если нет контента, добавляем в начало контейнера
+      container.insertAdjacentHTML('afterbegin', placeholderHtml);
+    }
     return;
   }
 
-  const ctx = canvas.getContext('2d');
-
-  const labels = [];
-  const data = [];
+  // Считаем статистику за последние 7 дней
+  const stats = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  console.log('Today (local):', today.toLocaleDateString('ru-RU'));
 
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    labels.push(d.toLocaleDateString('ru-RU', { weekday: 'short' }));
-
-    const dateStr = d.toISOString().split('T')[0];
 
     const count = window.words.filter(w => {
       const dateField = w.stats?.lastPracticed || w.updatedAt || w.createdAt;
       if (!dateField) return false;
       try {
         const wordDate = new Date(dateField);
-        wordDate.setHours(0, 0, 0, 0); // Устанавливаем начало дня в местном времени
-        return wordDate.getTime() === d.getTime();
+        // Устанавливаем начало дня в местном времени для точного сравнения
+        wordDate.setHours(0, 0, 0, 0);
+        const targetDate = new Date(d);
+        targetDate.setHours(0, 0, 0, 0);
+
+        const result = wordDate.getTime() === targetDate.getTime();
+        if (result && i === 0) {
+          console.log(
+            `Found word for today ${d.toLocaleDateString('ru-RU')}:`,
+            w.en,
+            'from date:',
+            dateField,
+          );
+        }
+        return result;
       } catch {
         return false;
       }
     }).length;
 
-    console.log(`Day ${dateStr}: ${count} words`);
-    data.push(count);
+    console.log(`Day ${d.toLocaleDateString('ru-RU')}: ${count} words`);
+
+    stats.push({
+      day: d.toLocaleDateString('ru-RU', { weekday: 'short' }),
+      date: d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'numeric' }),
+      count: count,
+    });
   }
 
-  if (weekChart) weekChart.destroy();
+  const total = stats.reduce((a, b) => a + b.count, 0);
+  console.log('Total words:', total, 'Stats array:', stats);
 
-  weekChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Слов за день',
-          data: data,
-          borderColor: '#6C63FF',
-          borderWidth: 4,
-          tension: 0.38,
-          fill: true,
-          backgroundColor: 'rgba(108, 99, 255, 0.22)',
-          pointBackgroundColor: labels.map((_, i) =>
-            i === labels.length - 1 ? '#22c55e' : '#ffffff',
-          ),
-          pointBorderColor: labels.map((_, i) =>
-            i === labels.length - 1 ? '#22c55e' : '#6C63FF',
-          ),
-          pointBorderWidth: 3,
-          pointRadius: labels.map((_, i) =>
-            i === labels.length - 1 ? 9.5 : 5.5,
-          ),
-          pointHoverRadius: 12,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(45, 43, 85, 0.96)',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          bodyFont: { size: 15, weight: '700' },
-          padding: 12,
-          displayColors: false,
-          callbacks: {
-            label: ctx => `${ctx.parsed.y} слов`,
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          suggestedMax: Math.max(10, ...data) + 3,
-          ticks: {
-            stepSize: 2,
-            color: 'var(--muted)',
-            font: { size: 13, weight: '600' },
-          },
-          grid: { color: 'rgba(0,0,0,0.08)' },
-        },
-        x: {
-          grid: { display: false },
-          ticks: {
-            color: 'var(--muted)',
-            font: { size: 13, weight: '700' },
-          },
-        },
-      },
-    },
-  });
+  // Создаем красивый HTML вместо графика
+  const html = `
+    <div data-week-chart style="padding: 1rem; text-align: center;">
+      <div style="
+        display: flex; 
+        justify-content: space-around; 
+        margin-bottom: 1rem; 
+        flex-wrap: wrap; 
+        gap: 0.25rem;
+        align-items: center;
+      ">
+        ${stats
+          .map(
+            stat => `
+          <div style="
+            text-align: center; 
+            min-width: 55px; 
+            max-width: 75px;
+            flex: 1;
+          ">
+            <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.2rem;">
+              ${stat.day}
+            </div>
+            <div style="
+              font-size: 0.75rem; 
+              color: var(--muted); 
+              opacity: 0.7; 
+              margin-bottom: 0.2rem;
+            ">
+              ${stat.date}
+            </div>
+            <div style="
+              font-size: 1.3rem; 
+              font-weight: 700; 
+              color: ${stat.count > 0 ? 'var(--primary)' : 'var(--muted)'};
+              margin-top: 0.2rem;
+            ">
+              ${stat.count}
+            </div>
+          </div>
+        `,
+          )
+          .join('')}
+      </div>
+      <div style="
+        padding: 0.75rem;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        margin-top: 1rem;
+      ">
+        <div style="font-size: 0.95rem; color: var(--muted);">
+          Всего за 7 дней: 
+          <span style="color: var(--primary); font-weight: 700; font-size: 1.2rem;">
+            ${total}
+          </span>
+          слов
+        </div>
+      </div>
+    </div>
+  `;
 
-  // Подпись итога
-  const total = data.reduce((a, b) => a + b, 0);
-  let totalEl = canvas.parentElement.querySelector('.chart-total');
-  if (!totalEl) {
-    totalEl = document.createElement('div');
-    totalEl.className = 'chart-total';
-    totalEl.style.textAlign = 'center';
-    totalEl.style.marginTop = '12px';
-    totalEl.style.fontSize = '1.02rem';
-    totalEl.style.fontWeight = '700';
-    totalEl.style.color = 'var(--muted)';
-    canvas.parentElement.appendChild(totalEl);
+  console.log('Setting innerHTML...');
+
+  if (existingContent) {
+    existingContent.outerHTML = html;
+  } else {
+    // Если нет контента, добавляем в начало контейнера
+    container.insertAdjacentHTML('afterbegin', html);
   }
-  totalEl.innerHTML = `Всего за 7 дней: <span style="color:var(--primary);font-size:1.05rem">${total}</span> слов`;
 
-  // Добавляем подпись о местном времени
-  const chartNote = document.createElement('div');
-  chartNote.style.cssText =
-    'text-align: right; font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem;';
-  chartNote.textContent = '📅 Даты по местному времени';
-  canvas.parentElement.appendChild(chartNote);
+  console.log('renderWeekChart completed');
 }
 
 // ============================================================
@@ -405,7 +494,7 @@ function showLoading(message = 'Загрузка...') {
   overlay.innerHTML = `
     <div class="loading-modal">
       <div class="loading-spinner"></div>
-      <div>${message}</div>
+      <div>${esc(message)}</div>
     </div>
   `;
   document.body.appendChild(overlay);
@@ -473,12 +562,29 @@ let xpData = { xp: 0, level: 1, badges: [] };
 let isSaving = false; // Защита от параллельного сохранения
 let badgeCheckInterval = null; // Идентификатор интервала проверки бейджей
 
+// Глобальные функции для обновления XP и streak из других модулей
+window.updateXpData = function (newXpData) {
+  console.log('updateXpData called with:', newXpData);
+  // Полностью заменяем xpData данными из Firebase
+  xpData = { ...newXpData }; // Полная замена, а не слияние
+  renderXP();
+  console.log('xpData after update:', xpData);
+};
+
+window.updateStreak = function (newStreak) {
+  console.log('updateStreak called with:', newStreak);
+  // Полностью заменяем streak данными из Firebase
+  streak = { ...newStreak }; // Полная замена, а не слияние
+  renderStats(); // streak отображается в статистике
+  console.log('streak after update:', streak);
+};
+
 function load() {
   try {
     const key = getStorageKey();
-    console.log('Loading from localStorage with key:', key);
+    console.log('Loading words from localStorage with key:', key);
 
-    // Загружаем слова из localStorage
+    // Загружаем слова из localStorage (только слова, остальное из Firebase)
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
@@ -498,21 +604,11 @@ function load() {
     words = [];
     window.words = []; // ← устанавливаем window.words даже при ошибке
   }
-  try {
-    streak = JSON.parse(localStorage.getItem(getStreakKey())) || {
-      count: 0,
-      lastDate: null,
-    };
-  } catch (e) {}
-  try {
-    const s = JSON.parse(localStorage.getItem(getSpeechKey()));
-    if (s) speechCfg = s;
-  } catch (e) {}
-  try {
-    const x = JSON.parse(localStorage.getItem(getXPKey()));
-    if (x) xpData = x;
-  } catch (e) {}
+
+  // НИЧЕГО больше не загружаем из localStorage - всё из Firebase
+  console.log('load() completed - waiting for Firebase data...');
 }
+
 // НОВАЯ функция — тихое сохранение с задержкой
 function debouncedSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
@@ -552,8 +648,8 @@ function save(silent = false) {
       toast('🔄 Синхронизация...', 'info');
     }
 
-    // Сохраняем в Firebase асинхронно (всегда в тихом режиме)
-    saveAllWordsToDb(words, true) // всегда true = тихий режим
+    // Сохраняем в Firebase асинхронно (уважаем параметр silent)
+    saveAllWordsToDb(words, silent)
       .catch(e => {
         console.error('Firebase save error:', e);
         if (!silent) {
@@ -585,12 +681,27 @@ window.save = save;
 
 function saveXP() {
   localStorage.setItem(getXPKey(), JSON.stringify(xpData));
+  if (auth.currentUser) {
+    saveUserData(auth.currentUser.uid, { xpData }).catch(e =>
+      console.error('Firestore save error (xp):', e),
+    );
+  }
 }
 function saveStreak() {
   localStorage.setItem(getStreakKey(), JSON.stringify(streak));
+  if (auth.currentUser) {
+    saveUserData(auth.currentUser.uid, { streak }).catch(e =>
+      console.error('Firestore save error (streak):', e),
+    );
+  }
 }
 function saveSpeech() {
   localStorage.setItem(getSpeechKey(), JSON.stringify(speechCfg));
+  if (auth.currentUser) {
+    saveUserData(auth.currentUser.uid, { speechCfg }).catch(e =>
+      console.error('Firestore save error (speech):', e),
+    );
+  }
 }
 
 // Fallback для генерации UUID в старых браузерах
@@ -713,6 +824,9 @@ async function addWord(en, ru, ex, tags, phonetic = null) {
   gainXP(5, 'новое слово');
   visibleLimit = 30; // <-- сброс при добавлении слова
 
+  // Обновляем график активности после добавления слова
+  renderWeekChart();
+
   return true;
 }
 async function delWord(id) {
@@ -735,6 +849,9 @@ async function delWord(id) {
     debouncedSave();
 
     toast('✅ Слово удалено', 'success');
+
+    // Обновляем график активности после удаления
+    renderWeekChart();
   } catch (error) {
     toast('❌ Ошибка удаления: ' + error.message, 'danger');
   }
@@ -798,6 +915,9 @@ function updStats(id, correct) {
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
   debouncedSave();
+
+  // Обновляем график активности после практики
+  renderWeekChart();
 }
 
 // ============================================================
@@ -1023,7 +1143,7 @@ function showLevelUpBanner(lvl) {
   el.className = 'level-up-banner';
   el.innerHTML =
     '🎉 Уровень ' +
-    lvl +
+    esc(lvl.toString()) +
     '!<br><span style="font-size:.85rem;font-weight:600;opacity:.9">Так держать!</span>';
   document.body.appendChild(el);
   setTimeout(() => {
@@ -1037,12 +1157,9 @@ function showLevelUpBanner(lvl) {
 function renderXP() {
   const needed = xpNeeded(xpData.level);
   const pct = Math.min(100, Math.round((xpData.xp / needed) * 100));
-  const fill = document.getElementById('xp-bar-fill');
-  const num = document.getElementById('xp-num');
-  const lvl = document.getElementById('xp-level-lbl');
+  const fill = document.getElementById('xp-bar'); // id="xp-bar" в HTML
   if (fill) fill.style.width = pct + '%';
-  if (num) num.textContent = xpData.xp + '/' + needed;
-  if (lvl) lvl.textContent = '⚡ Ур. ' + xpData.level;
+
   const stXP = document.getElementById('st-xp');
   const stLvl = document.getElementById('st-level');
   if (stXP) stXP.textContent = xpData.xp + ' / ' + needed + ' XP';
@@ -1315,6 +1432,11 @@ function switchTab(name) {
     setTimeout(() => renderWeekChart(), 100);
   }
   if (name === 'words') renderWords();
+
+  // Скроллим наверх при переключении вкладок (особенно для мобильных)
+  if (window.innerWidth <= 768) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 // Экспортируем функции глобально
@@ -1395,14 +1517,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Проверка хедера
   const header = document.querySelector('header');
-  const headerContent = document.querySelector('.header-content');
   const installBtn = document.getElementById('install-btn');
   const userMenu = document.getElementById('user-menu');
   const headerRight = document.querySelector('.header-right');
 
   console.log('Header elements found:', {
     header: !!header,
-    headerContent: !!headerContent,
     installBtn: !!installBtn,
     userMenu: !!userMenu,
     headerRight: !!headerRight,
@@ -1419,22 +1539,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (headerContent) {
-    const contentStyles = window.getComputedStyle(headerContent);
-    console.log('Header content styles:', {
-      display: contentStyles.display,
-      maxWidth: contentStyles.maxWidth,
-      margin: contentStyles.margin,
-    });
-  }
-
   // Проверка кнопки установки
   if (installBtn) {
     console.log(
       'Install button found, current display:',
       installBtn.style.display,
     );
-    installBtn.style.display = 'flex';
+    installBtn.classList.add('visible');
     installBtn.style.background = 'red';
     installBtn.style.border = '2px solid yellow';
     console.log('Install button forced visible for debug');
@@ -1544,7 +1655,6 @@ setTimeout(() => {
   console.log('=== PWA TIMEOUT DEBUG START ===');
 
   const header = document.querySelector('header');
-  const headerContent = document.querySelector('.header-content');
   const installBtn = document.getElementById('install-btn');
   const syncBtn = document.getElementById('sync-indicator');
   const userMenu = document.getElementById('user-menu');
@@ -1552,7 +1662,6 @@ setTimeout(() => {
 
   console.log('Header elements found (timeout):', {
     header: !!header,
-    headerContent: !!headerContent,
     installBtn: !!installBtn,
     syncBtn: !!syncBtn,
     userMenu: !!userMenu,
@@ -1564,7 +1673,7 @@ setTimeout(() => {
       'Install button found in timeout, current display:',
       installBtn.style.display,
     );
-    installBtn.style.display = 'flex';
+    installBtn.classList.add('visible');
     console.log('Install button forced visible in timeout');
 
     // Добавляем обработчик клика с разной логикой для устройств
@@ -1586,7 +1695,7 @@ setTimeout(() => {
         deferredPrompt.userChoice.then(choiceResult => {
           if (choiceResult.outcome === 'accepted') {
             toast('Приложение успешно установлено!', 'success');
-            installBtn.style.display = 'none';
+            installBtn.classList.remove('visible');
           }
           deferredPrompt = null;
         });
@@ -1611,7 +1720,7 @@ function initPWAInstall() {
     deferredPrompt = e;
     // Показываем кнопку установки
     if (installBtn) {
-      installBtn.style.display = 'flex';
+      installBtn.classList.add('visible');
       console.log('PWA install prompt available, button shown');
     }
   });
@@ -1642,7 +1751,7 @@ function initPWAInstall() {
           if (outcome === 'accepted') {
             console.log('Пользователь установил PWA');
             toast('Приложение успешно установлено!', 'success');
-            installBtn.style.display = 'none';
+            installBtn.classList.remove('visible');
           } else {
             console.log('Пользователь отменил установку PWA');
           }
@@ -1663,7 +1772,7 @@ function initPWAInstall() {
   // Проверяем, установлено ли уже приложение
   if (window.matchMedia('(display-mode: standalone)').matches) {
     if (installBtn) {
-      installBtn.style.display = 'none';
+      installBtn.classList.remove('visible');
     }
   }
 }
@@ -1672,16 +1781,56 @@ function initPWAInstall() {
 // DARK MODE
 // ============================================================
 function applyDark(on) {
+  console.log('applyDark called with:', on);
+  console.log('Body classes before:', document.body.className);
+
+  // Обновляем отладчик
+  if (window.updateThemeDebugger) {
+    window.updateThemeDebugger('applyDark', on);
+  }
+
   document.body.classList.toggle('dark', on);
+  console.log('Body classes after:', document.body.className);
+  console.log('Has dark class:', document.body.classList.contains('dark'));
+
+  // Принудительно обновляем CSS переменные для предотвращения мерцания
+  if (on) {
+    document.documentElement.style.setProperty('--bg', '#13121f');
+    document.documentElement.style.setProperty('--text', '#ffffff');
+    document.documentElement.style.setProperty('--bg-secondary', '#1e1e2e');
+    document.documentElement.style.setProperty('--border', '#374151');
+    document.documentElement.style.setProperty('--muted', '#9ca3af');
+    document.documentElement.style.setProperty('--primary', '#60a5fa');
+    document.documentElement.style.setProperty('--primary-light', '#93c5fd');
+    console.log('Forced dark CSS variables');
+  } else {
+    document.documentElement.style.setProperty('--bg', '');
+    document.documentElement.style.setProperty('--text', '');
+    document.documentElement.style.setProperty('--bg-secondary', '');
+    document.documentElement.style.setProperty('--border', '');
+    document.documentElement.style.setProperty('--muted', '');
+    document.documentElement.style.setProperty('--primary', '');
+    document.documentElement.style.setProperty('--primary-light', '');
+    console.log('Reset CSS variables to default');
+  }
+
   const darkToggle = document.getElementById('dark-toggle');
   if (darkToggle) {
     const icon = on ? 'sunny' : 'dark_mode';
     darkToggle.innerHTML = `<span class="material-symbols-outlined">${icon}</span>`;
+    console.log('Dark toggle icon updated to:', icon);
+  } else {
+    console.log('Dark toggle element not found');
   }
 
   // Update dropdown menu theme toggle checkbox
   const themeCheckbox = document.getElementById('theme-checkbox');
-  if (themeCheckbox) themeCheckbox.checked = on;
+  if (themeCheckbox) {
+    themeCheckbox.checked = on;
+    console.log('Theme checkbox updated to:', on);
+  } else {
+    console.log('Theme checkbox element not found');
+  }
 
   // Update theme icon next to toggle
   const themeIcon = document.querySelector(
@@ -1690,6 +1839,9 @@ function applyDark(on) {
   if (themeIcon) {
     const icon = on ? 'sunny' : 'dark_mode';
     themeIcon.textContent = icon;
+    console.log('Theme icon updated to:', icon);
+  } else {
+    console.log('Theme icon element not found');
   }
 }
 
@@ -1698,8 +1850,26 @@ const darkToggle = document.getElementById('dark-toggle');
 if (darkToggle) {
   darkToggle.addEventListener('click', () => {
     const on = !document.body.classList.contains('dark');
+    console.log('Theme toggle clicked, new theme:', on);
     localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
     applyDark(on);
+
+    // Сохраняем тему в Firebase
+    if (auth.currentUser) {
+      console.log(
+        'Saving theme to Firebase:',
+        on,
+        'for user:',
+        auth.currentUser.uid,
+      );
+      saveUserData(auth.currentUser.uid, { darkTheme: on })
+        .then(() => {
+          console.log('Theme saved to Firebase successfully');
+        })
+        .catch(e => console.error('Firestore save error (theme):', e));
+    } else {
+      console.log('No authenticated user - theme not saved to Firebase');
+    }
   });
 }
 
@@ -1708,13 +1878,34 @@ const themeCheckbox = document.getElementById('theme-checkbox');
 if (themeCheckbox) {
   themeCheckbox.addEventListener('change', e => {
     const on = e.target.checked;
+    console.log('Theme checkbox changed, new theme:', on);
     localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
     applyDark(on);
+
+    // Сохраняем тему в Firebase
+    if (auth.currentUser) {
+      console.log(
+        'Saving theme to Firebase from checkbox:',
+        on,
+        'for user:',
+        auth.currentUser.uid,
+      );
+      saveUserData(auth.currentUser.uid, { darkTheme: on })
+        .then(() => {
+          console.log('Theme saved to Firebase successfully from checkbox');
+        })
+        .catch(e => console.error('Firestore save error (theme):', e));
+    } else {
+      console.log(
+        'No authenticated user - theme not saved to Firebase from checkbox',
+      );
+    }
   });
 }
 
-if (localStorage.getItem(CONSTANTS.STORAGE_KEYS.DARK_MODE) === 'true')
-  applyDark(true);
+// Убираем немедленное применение темы из localStorage
+// if (localStorage.getItem(CONSTANTS.STORAGE_KEYS.DARK_MODE) === 'true')
+//   applyDark(true);
 
 // ============================================================
 // RENDER WORDS
@@ -1741,32 +1932,6 @@ function updateSyncIndicator(status, message = '') {
 }
 
 // Принудительная синхронизация
-async function forceSync() {
-  if (!window.authExports?.auth?.currentUser) {
-    toast('❌ Сначала авторизуйтесь', 'danger');
-    return;
-  }
-
-  updateSyncIndicator('syncing', 'Принудительная синхронизация...');
-
-  try {
-    const localWords = window._getLocalWords?.() || [];
-    const result =
-      await window.authExports?.syncLocalWordsWithFirestore?.(localWords);
-
-    if (result?.success) {
-      if (result.mergedWords) window._setWords(result.mergedWords);
-      updateSyncIndicator('synced', 'Синхронизировано');
-      toast('✅ Синхронизация завершена', 'success');
-    } else {
-      throw new Error(result?.error || 'Ошибка синхронизации');
-    }
-  } catch (error) {
-    console.error('Force sync error:', error);
-    updateSyncIndicator('error', 'Ошибка синхронизации');
-    toast('❌ Ошибка: ' + error.message, 'danger');
-  }
-}
 
 // Объединение слов с обнаружением конфликтов
 function mergeWords(localWords, firestoreWords) {
@@ -3846,15 +4011,18 @@ window._setWords = async newWords => {
     'words. Current user:',
     window.authExports?.auth?.currentUser?.uid,
   );
-  console.log(
-    'Words added:',
-    newWords.length,
-    'Total words:',
-    window.words.length,
-  );
+
   // Обновляем обе переменные
   words = newWords;
   window.words = newWords;
+
+  console.log(
+    'Words updated:',
+    words.length,
+    'Total words in window:',
+    window.words.length,
+  );
+
   visibleLimit = 30; // <-- сброс
   renderWords();
   renderStats();
@@ -3862,7 +4030,7 @@ window._setWords = async newWords => {
   renderBadges();
   updateDueBadge();
   await renderWotd();
-  renderWeekChart(); // <-- вызываем после присвоения слов
+  renderWeekChart();
 };
 
 // Инициализация индикатора синхронизации и мониторинга сети
@@ -4355,10 +4523,7 @@ function initPWA() {
 
 // Очистка данных пользователя (при выходе или перед загрузкой нового пользователя)
 window.clearUserData = function () {
-  console.log(
-    'clearUserData called. Current user:',
-    window.authExports?.auth?.currentUser?.uid,
-  );
+  console.log('clearUserData called. Current user:', auth?.currentUser?.uid);
 
   // Очищаем интервал проверки бейджей
   if (badgeCheckInterval) {
@@ -4366,28 +4531,26 @@ window.clearUserData = function () {
     badgeCheckInterval = null;
   }
 
-  // Удаляем только данные в памяти, localStorage не трогаем
+  // Сбрасываем все пользовательские данные КРОМЕ ТЕМЫ
   words = [];
+  xpData = { xp: 0, level: 1, badges: [] };
+  streak = { count: 0, lastDate: null };
+  speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0, accent: 'US' };
   renderCache.clear();
-  visibleLimit = 30;
 
-  // Очистить DOM
+  // Очищаем DOM
   const grid = document.getElementById('words-grid');
   if (grid) grid.innerHTML = '';
   const empty = document.getElementById('empty-words');
   if (empty) empty.style.display = 'block';
 
-  // Сбросить статистику, бейджи и XP
-  xpData = { xp: 0, level: 1, badges: [] };
-  streak = { count: 0, lastDate: null };
-  speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0, accent: 'US' };
-
   // Обновить интерфейс
   renderStats();
+  renderWords();
   renderXP();
   renderBadges();
   updateDueBadge();
-  applyDark(false); // Сбрасываем тему на светлую (по желанию)
+  // НЕ сбрасываем тему - оставляем текущую
   switchTab('words');
 };
 
@@ -4403,12 +4566,38 @@ window.renderStats = renderStats;
 // INITIALIZATION
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // СРАЗУ применяем тему из localStorage
+  const savedTheme = localStorage.getItem('engliftDark') === 'true';
+  if (savedTheme) {
+    // Применяем тему немедленно через CSS переменные
+    document.documentElement.style.setProperty('--bg', '#13121f');
+    document.documentElement.style.setProperty('--text', '#ffffff');
+    document.documentElement.style.setProperty('--bg-secondary', '#1e1e2e');
+    document.documentElement.style.setProperty('--border', '#374151');
+    document.documentElement.style.setProperty('--muted', '#9ca3af');
+    document.documentElement.style.setProperty('--primary', '#60a5fa');
+    document.documentElement.style.setProperty('--primary-light', '#93c5fd');
+    document.body.classList.add('dark');
+
+    // Обновляем отладчик
+    if (window.updateThemeDebugger) {
+      window.updateThemeDebugger('INIT', true);
+    }
+  }
+
   // Инициализация
   load();
   renderWords();
   renderStats();
   renderXP();
   renderBadges();
-  applyDark(localStorage.getItem('engliftDark') === 'true');
+
+  // Если через 2 секунды Firebase не загрузил тему, оставляем localStorage
+  setTimeout(() => {
+    if (!window.authExports?.auth?.currentUser) {
+      console.log('No Firebase user - keeping localStorage theme');
+    }
+  }, 2000);
+
   switchTab('words');
-})();
+});

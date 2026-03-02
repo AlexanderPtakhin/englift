@@ -4,9 +4,9 @@ import {
   doc,
   setDoc,
   getDoc,
+  updateDoc,
   collection,
   addDoc,
-  updateDoc,
   deleteDoc,
   getDocs,
   query,
@@ -15,30 +15,71 @@ import {
   onSnapshot,
   writeBatch,
   where,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
-// Защита от отсутствия document
-if (typeof document === 'undefined' || !document.addEventListener) {
-  console.log(
-    'db.js: Document not available, running in worker/non-DOM context',
-  );
+// Функция для сохранения пользовательских данных (XP, streak, настройки)
+export async function saveUserData(uid, data) {
+  if (!uid) return;
+  const userRef = doc(db, 'users', uid);
+  await setDoc(userRef, data, { merge: true });
+}
+
+// Полная заглушка для document на случай выполнения в окружении без DOM (например, в тестах)
+if (typeof document === 'undefined') {
+  globalThis.document = {
+    addEventListener: function () {},
+    removeEventListener: function () {},
+    createElement: function () {
+      return {};
+    },
+    getElementById: function () {
+      return null;
+    },
+    querySelector: function () {
+      return null;
+    },
+    querySelectorAll: function () {
+      return [];
+    },
+    body: {},
+    documentElement: {},
+    createTextNode: function () {
+      return {};
+    },
+  };
+} else {
+  // Если document существует, но некоторые методы отсутствуют, подменяем их
+  const requiredMethods = [
+    'addEventListener',
+    'removeEventListener',
+    'createElement',
+    'getElementById',
+    'querySelector',
+    'querySelectorAll',
+  ];
+  requiredMethods.forEach(method => {
+    if (typeof document[method] !== 'function') {
+      document[method] = function () {};
+    }
+  });
+  if (!document.body) document.body = {};
+  if (!document.documentElement) document.documentElement = {};
 }
 
 let unsubscribe = null;
 let reconnectAttempts = 0;
 let maxReconnectAttempts = 5;
-let reconnectDelay = 1000; // Начальная задержка 1 секунда
+let reconnectDelay = 1000;
 let reconnectTimer = null;
 
 // Централизованное ожидание авторизации
 let authPromise = null;
-let authResolve = null;
 
 function getAuthPromise() {
   if (!authPromise) {
     authPromise = new Promise(resolve => {
-      authResolve = resolve;
       if (auth.currentUser) {
         resolve(auth.currentUser);
       } else {
@@ -54,48 +95,52 @@ function getAuthPromise() {
   return authPromise;
 }
 
-function whenAuthed(callback) {
-  return getAuthPromise().then(callback);
-}
-
 function wordsRef(uid) {
   return collection(db, 'users', uid, 'words');
 }
 
+export function userRef(uid) {
+  return doc(db, 'users', uid);
+}
+
+// Экспортируем Firestore функции для использования в других модулях
+export { getDoc, updateDoc, setDoc };
+
+// ============================================================
+// ЭКСПОРТИРУЕМЫЕ ФУНКЦИИ
+// ============================================================
+
 export function saveWordToDb(word) {
-  // Проверяем наличие интернета
   if (!navigator.onLine) {
-    if (window.toast) {
-      window.toast('⚠️ Нет подключения к интернету', 'warning');
-    }
-    return;
+    if (window.toast) window.toast('⚠️ Нет подключения к интернету', 'warning');
+    return Promise.reject('offline');
   }
 
-  whenAuthed(user => {
-    setDoc(doc(wordsRef(user.uid), word.id), word)
+  return getAuthPromise().then(user => {
+    return setDoc(doc(wordsRef(user.uid), word.id), word)
       .then(() => {
         if (window.toast) window.toast('✅ Слово сохранено', 'success');
+        return true;
       })
       .catch(e => {
-        if (window.toast) window.toast('❌ Ошибка сохранения', 'danger');
         console.error('Save word error:', e);
+        if (window.toast) window.toast('❌ Ошибка сохранения', 'danger');
+        throw e;
       });
   });
 }
 
 export function deleteWordFromDb(wordId) {
-  return new Promise((resolve, reject) => {
-    whenAuthed(user => {
-      deleteDoc(doc(wordsRef(user.uid), wordId))
-        .then(() => {
-          if (window.toast) window.toast('🗑️ Слово удалено', 'success');
-          resolve();
-        })
-        .catch(e => {
-          if (window.toast) window.toast('❌ Ошибка удаления', 'danger');
-          reject(e);
-        });
-    });
+  return getAuthPromise().then(user => {
+    return deleteDoc(doc(wordsRef(user.uid), wordId))
+      .then(() => {
+        if (window.toast) window.toast('🗑️ Слово удалено', 'success');
+        return true;
+      })
+      .catch(e => {
+        if (window.toast) window.toast('❌ Ошибка удаления', 'danger');
+        throw e;
+      });
   });
 }
 
@@ -108,36 +153,44 @@ export async function saveAllWordsToDb(wordsArr, silent = false) {
       batch.set(doc(wordsRef(auth.currentUser.uid), word.id), word);
     });
     await batch.commit();
-    // Убираем тост при успешном сохранении
-    // if (!silent && window.toast) {
-    //   window.toast('✅ Все слова сохранены', 'success');
-    // }
+    if (!silent && window.toast) {
+      window.toast('✅ Все слова сохранены', 'success');
+    }
+    return true;
   } catch (e) {
     console.error('Batch save error:', e);
-    // Показываем ошибку только если это не тихий режим
     if (!silent && window.toast) {
       window.toast('❌ Ошибка сохранения', 'danger');
     }
+    return false;
   }
 }
 
 export async function syncLocalWordsWithFirestore(localWords) {
-  if (
-    !auth.currentUser ||
-    !localWords ||
-    !Array.isArray(localWords) ||
-    localWords.length === 0
-  )
-    return { success: false, reason: 'no_auth_or_no_words' };
+  // Проверяем входные данные
+  if (!auth.currentUser) {
+    console.log('No authenticated user');
+    return { success: false, reason: 'no_auth' };
+  }
+
+  // Проверяем, что localWords - это массив
+  if (!Array.isArray(localWords)) {
+    console.warn(
+      'syncLocalWordsWithFirestore: localWords is not an array',
+      localWords,
+    );
+    return { success: false, reason: 'invalid_words' };
+  }
 
   try {
-    const firestoreWords = await getDocs(wordsRef(auth.currentUser.uid));
+    const firestoreSnapshot = await getDocs(wordsRef(auth.currentUser.uid));
     const firestoreMap = new Map();
     const merged = [];
     const batch = writeBatch(db);
+    let hasOperations = false;
 
     // Собираем слова из Firestore
-    firestoreWords.forEach(doc => {
+    firestoreSnapshot.forEach(doc => {
       const word = { id: doc.id, ...doc.data() };
       firestoreMap.set(word.id, word);
       merged.push(word);
@@ -147,19 +200,18 @@ export async function syncLocalWordsWithFirestore(localWords) {
     localWords.forEach(local => {
       const remote = firestoreMap.get(local.id);
       if (!remote) {
-        // Новое слово – сохраняем в Firestore и добавляем в merged
         batch.set(doc(wordsRef(auth.currentUser.uid), local.id), local);
         merged.push(local);
+        hasOperations = true;
       } else if (new Date(local.updatedAt) > new Date(remote.updatedAt)) {
-        // Локальная версия новее – обновляем в Firestore
         batch.set(doc(wordsRef(auth.currentUser.uid), local.id), local);
         const index = merged.findIndex(w => w.id === local.id);
         merged[index] = local;
+        hasOperations = true;
       }
-      // если remote новее – ничего не делаем, merged уже содержит remote
     });
 
-    if (batch._ops.length > 0) {
+    if (hasOperations) {
       await batch.commit();
     }
 
@@ -172,47 +224,37 @@ export async function syncLocalWordsWithFirestore(localWords) {
 
 export function subscribeToWords(callback) {
   if (unsubscribe) unsubscribe();
-  if (!auth.currentUser) return;
-
-  const q = query(wordsRef(auth.currentUser.uid), orderBy('updatedAt', 'desc'));
-
-  unsubscribe = onSnapshot(
-    q,
-    snapshot => {
-      const words = [];
-      snapshot.forEach(doc => {
-        words.push({ id: doc.id, ...doc.data() });
-      });
-      callback(words);
-    },
-    error => {
-      console.error('Firestore subscription error:', error);
-      // Попытка переподключения
-      handleReconnect();
-    },
-  );
-}
-
-function handleReconnect() {
-  if (reconnectAttempts >= maxReconnectAttempts) {
-    console.error('Max reconnect attempts reached');
-    if (window.toast) {
-      window.toast('❌ Потеряно соединение с базой данных', 'danger');
-    }
+  if (!auth.currentUser) {
+    console.log('No user for subscription');
     return;
   }
 
-  reconnectAttempts++;
-  console.log(
-    `Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...`,
-  );
+  try {
+    const q = query(
+      wordsRef(auth.currentUser.uid),
+      orderBy('updatedAt', 'desc'),
+    );
 
-  reconnectTimer = setTimeout(() => {
-    subscribeToWords(window.wordsCallback);
-  }, reconnectDelay);
-
-  // Увеличиваем задержку для следующей попытки
-  reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+    unsubscribe = onSnapshot(
+      q,
+      snapshot => {
+        const words = [];
+        snapshot.forEach(doc => {
+          words.push({ id: doc.id, ...doc.data() });
+        });
+        callback(words);
+      },
+      error => {
+        console.error('Firestore subscription error:', error);
+        // Пытаемся переподключиться
+        if (window.toast) {
+          window.toast('⚠️ Потеря соединения, переподключаюсь...', 'warning');
+        }
+      },
+    );
+  } catch (e) {
+    console.error('Subscription setup error:', e);
+  }
 }
 
 export function unsubscribeWords() {
@@ -228,19 +270,11 @@ export async function loadAllWordsFromDb() {
   }
 
   try {
-    const wordsCollection = collection(
-      db,
-      'users',
-      auth.currentUser.uid,
-      'words',
-    );
-    const querySnapshot = await getDocs(wordsCollection);
+    const snapshot = await getDocs(wordsRef(auth.currentUser.uid));
     const words = [];
-
-    querySnapshot.forEach(doc => {
+    snapshot.forEach(doc => {
       words.push({ id: doc.id, ...doc.data() });
     });
-
     return words;
   } catch (error) {
     console.error('Error loading words from Firestore:', error);
@@ -271,4 +305,26 @@ function getErrorMessage(error) {
   };
 
   return errorMessages[error.code] || error.message || 'Неизвестная ошибка';
+}
+
+function handleReconnect() {
+  if (reconnectAttempts >= maxReconnectAttempts) {
+    console.error('Max reconnect attempts reached');
+    if (window.toast) {
+      window.toast('❌ Потеряно соединение с базой данных', 'danger');
+    }
+    return;
+  }
+
+  reconnectAttempts++;
+  console.log(
+    `Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...`,
+  );
+
+  reconnectTimer = setTimeout(() => {
+    subscribeToWords(window.wordsCallback);
+  }, reconnectDelay);
+
+  // Увеличиваем задержку для следующей попытки
+  reconnectDelay = Math.min(reconnectDelay * 2, 30000);
 }
