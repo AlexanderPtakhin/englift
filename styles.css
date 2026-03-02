@@ -592,20 +592,17 @@ input[type='submit']:active {
 }
 
 .repeat-indicator {
-  background: var(--bg);
-  border: 2px solid var(--warning);
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--warning);
   flex-shrink: 0;
-  padding: 0.4rem;
 }
 
-.repeat-indicator .material-symbols-outlined {
-  color: var(--warning);
-  font-size: 1.2rem;
+.repeat-indicator .new-label {
+  color: var(--success);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-left: 0.2rem;
 }
 
 .transcription-btn:hover {
@@ -681,6 +678,28 @@ textarea {
   font-weight: 600;
 }
 
+/* SEARCH CONTAINER */
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.8rem;
+  font-size: 18px;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-container .form-control {
+  padding-left: 2.5rem;
+  flex: 1;
+}
+
 /* WORDS */
 .words-toolbar {
   display: flex;
@@ -716,6 +735,15 @@ textarea {
 .pill.active {
   border-color: var(--primary);
   background: var(--primary);
+  color: #fff;
+}
+
+.pill:hover .list-icon,
+.pill:hover .learning-icon,
+.pill.active .list-icon,
+.pill.active .learning-icon,
+.pill:hover .done-icon,
+.pill.active .done-icon {
   color: #fff;
 }
 
@@ -758,6 +786,24 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.pill .list-icon {
+  font-size: 14px;
+  color: var(--muted);
+  margin-right: 0;
+}
+
+.pill .done-icon {
+  font-size: 14px;
+  color: var(--success);
+  margin-right: 0;
+}
+
+.pill .learning-icon {
+  font-size: 14px;
+  color: var(--muted);
+  margin-right: 0;
 }
 
 .wc-top .done-icon {
@@ -2199,6 +2245,104 @@ body.dark .due-soon {
   background: rgba(108, 99, 255, 0.05);
 }
 
+/* CUSTOM SELECT */
+.custom-select {
+  position: relative;
+  min-width: 140px;
+}
+
+.custom-select-trigger {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  outline: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  flex: none;
+  min-width: auto;
+  text-align: left;
+}
+
+.custom-select-trigger:hover,
+.custom-select-trigger:focus {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.custom-select-trigger .material-symbols-outlined:first-child {
+  font-size: 0.9rem;
+  display: block;
+}
+
+.custom-select-trigger .material-symbols-outlined:last-child {
+  font-size: 0.9rem;
+  margin-left: auto;
+  color: #8884aa;
+}
+
+.custom-select-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-hover);
+  z-index: 1000;
+  margin-top: 0.5rem;
+  display: none;
+  overflow: hidden;
+}
+
+.custom-select-options.open {
+  display: block;
+}
+
+.custom-select-option {
+  padding: 0.4rem 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: 'Nunito', sans-serif;
+}
+
+.custom-select-option:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  opacity: 0.7;
+  transform: scale(1.08);
+}
+
+.custom-select-option.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.custom-select-option .material-symbols-outlined {
+  font-size: 0.9rem;
+  display: block;
+  color: #8884aa;
+}
+
+.custom-select-option:hover .material-symbols-outlined,
+.custom-select-option.active .material-symbols-outlined {
+  color: var(--primary);
+}
+
 /* SORT */
 .sort-select {
   padding: 0.4rem 0.8rem;
@@ -2412,9 +2556,16 @@ body.dark .due-soon {
   justify-content: center;
   padding: 0;
 }
+
 .wotd-audio:hover {
   background: rgba(255, 255, 255, 0.35);
 }
+
+.wotd-audio .material-symbols-outlined {
+  font-size: 18px;
+  color: #fff;
+}
+
 .wotd-add-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -2428,8 +2579,14 @@ body.dark .due-soon {
   padding: 0;
   font-size: 0.9rem;
 }
+
 .wotd-add-btn:hover {
   background: rgba(255, 255, 255, 0.35);
+}
+
+.wotd-add-btn .material-symbols-outlined {
+  font-size: 18px;
+  color: #fff;
 }
 
 /* TAG FILTER */

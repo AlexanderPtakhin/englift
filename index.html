@@ -191,30 +191,67 @@
         </div>
         <div id="wotd-wrap"></div>
         <div class="words-toolbar">
-          <input
-            class="form-control"
-            id="search-input"
-            type="text"
-            placeholder="🔍 Поиск..."
-            autocomplete="off"
-            autocorrect="off"
-            spellcheck="false"
-            name="q"
-            data-form-type="search"
-            aria-label="Поиск слов"
-          />
+          <div class="search-container">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input
+              class="form-control"
+              id="search-input"
+              type="text"
+              placeholder="Поиск..."
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              name="q"
+              data-form-type="search"
+              aria-label="Поиск слов"
+            />
+          </div>
           <div class="filter-pills">
-            <button class="pill active" data-filter="all">Все</button>
-            <button class="pill" data-filter="learning">Учу</button>
-            <button class="pill" data-filter="learned">Знаю ✅</button>
-            <select id="sort-select" class="sort-select" title="Сортировка">
-              <option value="date-desc">🕐 Новые</option>
-              <option value="date-asc">🕐 Старые</option>
-              <option value="alpha-asc">🔤 A → Z</option>
-              <option value="alpha-desc">🔤 Z → A</option>
-              <option value="progress-asc">💪 Сложные</option>
-              <option value="progress-desc">✅ Лёгкие</option>
-            </select>
+            <button class="pill active" data-filter="all">
+              <span class="material-symbols-outlined list-icon">list</span> Все
+            </button>
+            <button class="pill" data-filter="learning">
+              <span class="material-symbols-outlined learning-icon"
+                >cognition_2</span
+              >
+              Учу
+            </button>
+            <button class="pill" data-filter="learned">
+              <span class="material-symbols-outlined done-icon">done</span> Знаю
+            </button>
+            <div class="custom-select" id="sort-select-container">
+              <button class="custom-select-trigger" id="sort-select-trigger">
+                <span class="material-symbols-outlined">clock_loader_10</span>
+                <span>Новые</span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="custom-select-options" id="sort-select-options">
+                <div class="custom-select-option active" data-value="date-desc">
+                  <span class="material-symbols-outlined">clock_loader_10</span>
+                  <span>Новые</span>
+                </div>
+                <div class="custom-select-option" data-value="date-asc">
+                  <span class="material-symbols-outlined">clock_loader_80</span>
+                  <span>Старые</span>
+                </div>
+                <div class="custom-select-option" data-value="alpha-asc">
+                  <span class="material-symbols-outlined">sort_by_alpha</span>
+                  <span>A → Z</span>
+                </div>
+                <div class="custom-select-option" data-value="alpha-desc">
+                  <span class="material-symbols-outlined">sort_by_alpha</span>
+                  <span>Z → A</span>
+                </div>
+                <div class="custom-select-option" data-value="progress-asc">
+                  <span class="material-symbols-outlined">fitness_center</span>
+                  <span>Сложные</span>
+                </div>
+                <div class="custom-select-option" data-value="progress-desc">
+                  <span class="material-symbols-outlined">check_circle</span>
+                  <span>Лёгкие</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div id="words-grid" class="words-grid"></div>

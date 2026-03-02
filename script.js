@@ -1540,14 +1540,14 @@ function makeCard(w) {
             return (
               '<span class="repeat-indicator" data-id="' +
               w.id +
-              '" title="Повторить слово"><span class="material-symbols-outlined">repeat</span></span>'
+              '" title="Начать изучение слова"><span class="new-label">new</span></span>'
             );
           } else if (diff === 1) {
-            return '<span class="due-soon"><span class="material-symbols-outlined">repeat</span> Завтра</span>';
+            return '<span class="due-soon"><span class="material-symbols-outlined">refresh</span> Завтра</span>';
           } else if (diff > 1 && diff <= 7) {
-            return `<span class="due-soon"><span class="material-symbols-outlined">repeat</span> ${diff}д</span>`;
+            return `<span class="due-soon"><span class="material-symbols-outlined">refresh</span> ${diff}д</span>`;
           } else if (diff > 7) {
-            return `<span class="due-later"><span class="material-symbols-outlined">repeat</span> ${diff}д</span>`;
+            return `<span class="due-later"><span class="material-symbols-outlined">refresh</span> ${diff}д</span>`;
           }
           return '';
         })()}
@@ -1734,11 +1734,52 @@ document.querySelectorAll('.pill').forEach(p =>
     renderWords();
   }),
 );
-document.getElementById('sort-select').addEventListener('change', e => {
-  sortBy = e.target.value;
-  visibleLimit = 30; // <-- сброс
-  renderWords();
+// Custom select functionality
+const customSelect = document.getElementById('sort-select-container');
+const customTrigger = document.getElementById('sort-select-trigger');
+const customOptions = document.getElementById('sort-select-options');
+const customOptionElements = customOptions.querySelectorAll(
+  '.custom-select-option',
+);
+
+customTrigger.addEventListener('click', () => {
+  customOptions.classList.toggle('open');
 });
+
+customOptionElements.forEach(option => {
+  option.addEventListener('click', () => {
+    const value = option.dataset.value;
+    const icon = option.querySelector('.material-symbols-outlined').textContent;
+    const text = option.querySelector('span:last-child').textContent;
+
+    // Update trigger
+    customTrigger.innerHTML = `
+      <span class="material-symbols-outlined">${icon}</span>
+      <span>${text}</span>
+      <span class="material-symbols-outlined">expand_more</span>
+    `;
+
+    // Update active state
+    customOptionElements.forEach(opt => opt.classList.remove('active'));
+    option.classList.add('active');
+
+    // Close dropdown
+    customOptions.classList.remove('open');
+
+    // Trigger change event
+    sortBy = value;
+    visibleLimit = 30; // <-- сброс
+    renderWords();
+  });
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!customSelect.contains(e.target)) {
+    customOptions.classList.remove('open');
+  }
+});
+
 document.getElementById('words-grid').addEventListener('click', e => {
   const tb = e.target.closest('.tag-filter-btn');
   if (!tb) return;
@@ -1971,9 +2012,26 @@ document.getElementById('single-form').addEventListener('submit', e => {
     switchTab('words');
     setTimeout(() => {
       // Сортировка — новое слово первым
-      const sel = document.getElementById('sort-select');
-      if (sel && sel.value !== 'date-desc') {
-        sel.value = 'date-desc';
+      const activeOption = document.querySelector(
+        '.custom-select-option[data-value="date-desc"]',
+      );
+      if (activeOption && !activeOption.classList.contains('active')) {
+        // Сбрасываем все опции
+        document
+          .querySelectorAll('.custom-select-option')
+          .forEach(opt => opt.classList.remove('active'));
+        // Активируем нужную
+        activeOption.classList.add('active');
+        // Обновляем триггер
+        const icon = activeOption.querySelector(
+          '.material-symbols-outlined',
+        ).textContent;
+        const text = activeOption.querySelector('span:last-child').textContent;
+        document.getElementById('sort-select-trigger').innerHTML = `
+          <span class="material-symbols-outlined">${icon}</span>
+          <span>${text}</span>
+          <span class="material-symbols-outlined">expand_more</span>
+        `;
         sortBy = 'date-desc';
         renderWords(); // вызываем renderWords только если изменили сортировку
       }
@@ -3385,8 +3443,8 @@ async function renderWotd() {
       }
     </div>
     <div style="display: flex; gap: 0.5rem;">
-      ${speechSupported ? `<button class="wotd-audio" id="wotd-audio-btn">🔊</button>` : ''}
-      <button class="wotd-add-btn" id="wotd-add-btn">➕</button>
+      ${speechSupported ? `<button class="wotd-audio" id="wotd-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+      <button class="wotd-add-btn" id="wotd-add-btn"><span class="material-symbols-outlined">add</span></button>
     </div>
   </div>`;
 
