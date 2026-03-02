@@ -12,10 +12,14 @@ let weekChart = null;
 let weekChartRendering = false;
 
 function renderWeekChart() {
+  console.log('=== renderWeekChart called ===');
   const canvas = document.getElementById('weekChart');
   if (!canvas) return;
 
-  if (!window.words || !Array.isArray(window.words)) return;
+  if (!window.words || !Array.isArray(window.words)) {
+    console.log('No words data available');
+    return;
+  }
 
   const ctx = canvas.getContext('2d');
 
@@ -32,15 +36,18 @@ function renderWeekChart() {
     const dateStr = d.toISOString().split('T')[0];
 
     const count = window.words.filter(w => {
-      const dateField = w.lastReview || w.updatedAt || w.createdAt;
+      const dateField = w.stats?.lastPracticed || w.updatedAt || w.createdAt;
       if (!dateField) return false;
       try {
-        return new Date(dateField).toISOString().split('T')[0] === dateStr;
+        const wordDate = new Date(dateField);
+        wordDate.setHours(0, 0, 0, 0); // Устанавливаем начало дня в местном времени
+        return wordDate.getTime() === d.getTime();
       } catch {
         return false;
       }
     }).length;
 
+    console.log(`Day ${dateStr}: ${count} words`);
     data.push(count);
   }
 
@@ -126,6 +133,13 @@ function renderWeekChart() {
     canvas.parentElement.appendChild(totalEl);
   }
   totalEl.innerHTML = `Всего за 7 дней: <span style="color:var(--primary);font-size:1.05rem">${total}</span> слов`;
+
+  // Добавляем подпись о местном времени
+  const chartNote = document.createElement('div');
+  chartNote.style.cssText =
+    'text-align: right; font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem;';
+  chartNote.textContent = '📅 Даты по местному времени';
+  canvas.parentElement.appendChild(chartNote);
 }
 
 // ============================================================
@@ -141,6 +155,15 @@ window.showApiLoading = function (show) {
 // ============================================================
 // CONSTANTS
 // ============================================================
+// Разбирает строку с несколькими вариантами перевода (разделители / , ;)
+function parseAnswerVariants(str) {
+  if (!str) return [];
+  return str
+    .split(/[\/,;]/)
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s);
+}
+
 const CONSTANTS = {
   XP_PER_LEVEL: 200,
   STORAGE_KEYS: {
@@ -244,14 +267,19 @@ function levenshteinDistance(str1, str2) {
   return matrix[str2.length][str1.length];
 }
 
+// Обработчики для карточек упражнений
+document.querySelectorAll('.exercise-card').forEach(card => {
+  card.addEventListener('click', () => {
+    card.classList.toggle('selected');
+  });
+});
+
 // Показываем предупреждение если Speech Recognition не поддерживается
 if (!speechRecognitionSupported) {
-  const speechCheckbox = document.querySelector('input[data-ex="speech"]');
-  if (speechCheckbox) {
-    speechCheckbox.disabled = true;
-    speechCheckbox.parentElement.style.opacity = '0.5';
-    speechCheckbox.parentElement.title =
-      'Ваш браузер не поддерживает распознавание речи (используйте Chrome/Edge)';
+  const speechCard = document.querySelector('.exercise-card[data-ex="speech"]');
+  if (speechCard) {
+    speechCard.style.opacity = '0.5';
+    speechCard.style.pointerEvents = 'none';
   }
 }
 
@@ -450,13 +478,22 @@ function load() {
     const key = getStorageKey();
     console.log('Loading from localStorage with key:', key);
 
-    // Принудительный сброс для применения новой логики интервалов
-    console.log(
-      '🔄 Сбрасываем все слова для применения новой логики интервалов...',
-    );
-    words = [];
+    // Загружаем слова из localStorage
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        words = JSON.parse(saved);
+        console.log('Loaded words from localStorage:', words.length);
+      } catch (e) {
+        console.error('Error parsing saved words:', e);
+        words = [];
+      }
+    } else {
+      console.log('No saved words found, starting with empty array');
+      words = [];
+    }
 
-    window.words = words; // ← устанавливаем window.words после сброса
+    window.words = words; // ← устанавливаем window.words
   } catch (e) {
     words = [];
     window.words = []; // ← устанавливаем window.words даже при ошибке
@@ -512,21 +549,15 @@ function save(silent = false) {
 
     // === ТИХИЙ РЕЖИМ ===
     if (!silent) {
-      updateSyncIndicator('syncing');
       toast('🔄 Синхронизация...', 'info');
     }
 
-    // Сохраняем в Firebase асинхронно (не блокируем UI)
-    saveAllWordsToDb(words, silent)
-      .then(() => {
-        if (!silent && window.updateSyncIndicator) {
-          updateSyncIndicator('synced');
-        }
-      })
+    // Сохраняем в Firebase асинхронно (всегда в тихом режиме)
+    saveAllWordsToDb(words, true) // всегда true = тихий режим
       .catch(e => {
         console.error('Firebase save error:', e);
-        if (!silent && window.updateSyncIndicator) {
-          updateSyncIndicator('error');
+        if (!silent) {
+          toast('❌ Ошибка сохранения', 'danger');
         }
       })
       .finally(() => {
@@ -673,11 +704,9 @@ async function addWord(en, ru, ex, tags, phonetic = null) {
   // Асинхронная синхронизация с обработкой ошибок
   try {
     await saveWordToDb(newWord);
-    updateSyncIndicator('synced');
     toast('✅ Синхронизировано', 'success');
   } catch (error) {
     console.error('Error saving word to DB:', error);
-    updateSyncIndicator('error');
     toast('❌ Ошибка синхронизации', 'danger');
   }
 
@@ -689,7 +718,6 @@ async function addWord(en, ru, ex, tags, phonetic = null) {
 async function delWord(id) {
   try {
     // Показываем индикатор синхронизации
-    updateSyncIndicator('syncing');
     toast('🔄 Удаление...', 'info');
 
     // Сначала удаляем из Firestore
@@ -706,10 +734,8 @@ async function delWord(id) {
 
     debouncedSave();
 
-    updateSyncIndicator('synced');
     toast('✅ Слово удалено', 'success');
   } catch (error) {
-    updateSyncIndicator('error');
     toast('❌ Ошибка удаления: ' + error.message, 'danger');
   }
 }
@@ -1371,7 +1397,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const header = document.querySelector('header');
   const headerContent = document.querySelector('.header-content');
   const installBtn = document.getElementById('install-btn');
-  const syncBtn = document.getElementById('sync-indicator');
   const userMenu = document.getElementById('user-menu');
   const headerRight = document.querySelector('.header-right');
 
@@ -1379,7 +1404,6 @@ document.addEventListener('DOMContentLoaded', () => {
     header: !!header,
     headerContent: !!headerContent,
     installBtn: !!installBtn,
-    syncBtn: !!syncBtn,
     userMenu: !!userMenu,
     headerRight: !!headerRight,
   });
@@ -1712,40 +1736,8 @@ let searchDebounceTimer = null;
 
 // Управление индикатором синхронизации
 function updateSyncIndicator(status, message = '') {
-  const indicator = document.getElementById('sync-indicator');
-  const icon = indicator?.querySelector('.material-symbols-outlined');
-
-  if (!indicator) return;
-
-  // Удаляем все классы статуса
-  indicator.classList.remove('syncing', 'synced', 'error', 'offline');
-
-  // Добавляем класс статуса и устанавливаем иконку
-  switch (status) {
-    case 'syncing':
-      indicator.classList.add('syncing');
-      icon.textContent = 'sync';
-      indicator.title = 'Синхронизация...';
-      break;
-    case 'synced':
-      indicator.classList.add('synced');
-      icon.textContent = 'check_circle';
-      indicator.title = 'Синхронизировано';
-      break;
-    case 'error':
-      indicator.classList.add('error');
-      icon.textContent = 'error';
-      indicator.title = message || 'Ошибка синхронизации';
-      break;
-    case 'offline':
-      indicator.classList.add('offline');
-      icon.textContent = 'wifi_off';
-      indicator.title = 'Офлайн';
-      break;
-    default:
-      icon.textContent = 'sync';
-      indicator.title = message || 'Синхронизация...';
-  }
+  // Индикатор синхронизации отключен
+  return;
 }
 
 // Принудительная синхронизация
@@ -2752,7 +2744,6 @@ document.getElementById('import-file-btn').addEventListener('click', () => {
   switchTab('words');
 });
 
-// ============================================================
 // IMPORT / EXPORT
 // ============================================================
 let pendingImport = null;
@@ -2764,6 +2755,7 @@ function openIOModal(mode = 'export') {
     mode === 'import' ? 'block' : 'none';
   document.getElementById('io-modal').classList.add('open');
 }
+
 function closeIOModal() {
   document.getElementById('io-modal').classList.remove('open');
   pendingImport = null;
@@ -2896,6 +2888,13 @@ document.getElementById('io-export-anki').addEventListener('click', () => {
   toast('🃏 Anki файл скачан!', 'success');
 });
 
+// Функция экранирования HTML
+function esc(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 function handleImportFile(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -2941,9 +2940,9 @@ function handleImportFile(file) {
           .map(line => {
             const cols = parseCSVLine(line);
             return {
-              en: cols[0] || '',
-              ru: cols[1] || '',
-              ex: cols[2] || '',
+              en: esc(cols[0] || ''),
+              ru: esc(cols[1] || ''),
+              ex: esc(cols[2] || ''),
               tags: normalizeTags(cols[3] || ''),
             };
           })
@@ -3255,7 +3254,7 @@ function startSession(cfg) {
     countVal = document.querySelector('.chip[data-count].on').dataset.count;
     filterVal = document.querySelector('.chip[data-filter-w].on').dataset
       .filterW;
-    exTypes = [...document.querySelectorAll('[data-ex]:checked')].map(
+    exTypes = [...document.querySelectorAll('.exercise-card.selected')].map(
       c => c.dataset.ex,
     );
     if (!exTypes.length) {
@@ -3335,6 +3334,8 @@ function nextExercise() {
 
   if (t === 'flash') {
     document.getElementById('ex-type-lbl').textContent = '🃏 Флеш-карточка';
+    document.getElementById('ex-counter').textContent =
+      `${sIdx + 1} / ${session.words.length}`;
     const dir = session.dir || 'both';
     const showRU = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
     const frontWord = showRU ? w.ru : w.en;
@@ -3368,7 +3369,7 @@ function nextExercise() {
     }
     if (autoPron && !showRU && speechSupported)
       setTimeout(() => speak(w.en), 300);
-    btns.innerHTML = `<button class="btn btn-success" id="knew-btn">💚 Знал</button><button class="btn btn-danger" id="didnt-btn">❤️ Не знал</button>`;
+    btns.innerHTML = `<button class="btn-icon btn-success" id="knew-btn"><span class="material-symbols-outlined">check</span></button><button class="btn-icon btn-danger" id="didnt-btn"><span class="material-symbols-outlined">close</span></button>`;
     document.getElementById('knew-btn').onclick = () => recordAnswer(true);
     document.getElementById('didnt-btn').onclick = () => recordAnswer(false);
   } else if (t === 'speech') {
@@ -3377,60 +3378,62 @@ function nextExercise() {
       session.exTypes = session.exTypes.filter(x => x !== 'speech');
       if (!session.exTypes.length) session.exTypes = ['flash'];
       nextExercise();
-      return;
-    }
-
-    document.getElementById('ex-type-lbl').textContent = '🎤 Произнеси вслух';
-    content.innerHTML = `
-      <div class="speech-exercise">
-        <div class="speech-prompt">
-          <div class="speech-word">${esc(w.en)}</div>
-          <div class="speech-hint">Произнеси это слово вслух на английском</div>
-          ${w.ru ? `<div class="speech-translation">Перевод: ${esc(w.ru)}</div>` : ''}
-        </div>
-        <div class="speech-controls">
-          <button class="btn btn-primary btn-lg" id="speech-start-btn">
-            <span class="speech-icon">🎤</span>
-            <span class="speech-text">Начать запись</span>
-          </button>
-          <div class="speech-status" id="speech-status"></div>
-          <div class="speech-result" id="speech-result"></div>
-        </div>
+    } else {
+      document.getElementById('ex-type-lbl').textContent = '🎤 Произнеси вслух';
+      document.getElementById('ex-counter').textContent =
+        `${sIdx + 1} / ${session.words.length}`;
+      content.innerHTML = `
+        <div class="speech-exercise">
+          <div class="speech-prompt">
+            <div class="speech-word">${esc(w.en)}</div>
+            <div class="speech-hint">Произнеси это слово вслух на английском</div>
+            ${w.ru ? `<div class="speech-translation">${esc(w.ru)}</div>` : ''}
+          </div>
+          <div class="speech-controls">
+            <button id="speech-start-btn">
+              <span class="material-symbols-outlined">mic</span>
+            </button>
+            <div class="speech-status" id="speech-status"></div>
+            <div class="speech-result" id="speech-result"></div>
+          </div>
       </div>
     `;
 
-    let isRecording = false;
-    let recognitionTimeout = null;
+      let isRecording = false;
+      let recognitionTimeout = null;
 
-    const startBtn = document.getElementById('speech-start-btn');
-    const statusEl = document.getElementById('speech-status');
-    const resultEl = document.getElementById('speech-result');
+      const startBtn = document.getElementById('speech-start-btn');
+      const statusEl = document.getElementById('speech-status');
+      const resultEl = document.getElementById('speech-result');
 
-    function startRecording() {
-      if (isRecording) return;
+      function startRecording() {
+        if (isRecording) return;
 
-      isRecording = true;
-      startBtn.classList.add('recording');
-      startBtn.querySelector('.speech-icon').textContent = '⏹️';
-      startBtn.querySelector('.speech-text').textContent = 'Остановить запись';
-      statusEl.innerHTML =
-        '<div class="recording-indicator">🔴 Слушаю...</div>';
-      resultEl.innerHTML = '';
+        isRecording = true;
+        startBtn.classList.add('recording');
+        startBtn.querySelector('.speech-icon').textContent = '⏹️';
+        startBtn.querySelector('.speech-text').textContent =
+          'Остановить запись';
+        statusEl.innerHTML =
+          '<div class="recording-indicator">🔴 Слушаю...</div>';
+        resultEl.innerHTML = '';
 
-      // Останавливаем запись через 5 секунд автоматически
-      recognitionTimeout = setTimeout(() => {
-        stopRecording();
-      }, CONSTANTS.SPEECH.RECOGNITION_TIMEOUT);
+        // Останавливаем запись через 5 секунд автоматически
+        recognitionTimeout = setTimeout(() => {
+          stopRecording();
+        }, CONSTANTS.SPEECH.RECOGNITION_TIMEOUT);
 
-      speechRecognition.onresult = event => {
-        const transcript = event.results[0][0].transcript.toLowerCase().trim();
-        const confidence = event.results[0][0].confidence;
-        const correctWord = w.en.toLowerCase().trim();
+        speechRecognition.onresult = event => {
+          const transcript = event.results[0][0].transcript
+            .toLowerCase()
+            .trim();
+          const confidence = event.results[0][0].confidence;
+          const correctWord = w.en.toLowerCase().trim();
 
-        // Проверяем схожесть слов
-        const isCorrect = checkSpeechSimilarity(transcript, correctWord);
+          // Проверяем схожесть слов
+          const isCorrect = checkSpeechSimilarity(transcript, correctWord);
 
-        resultEl.innerHTML = `
+          resultEl.innerHTML = `
           <div class="speech-feedback">
             <div class="speech-heard">Ты сказал: "<strong>${esc(transcript)}</strong>"</div>
             <div class="speech-confidence">Уверенность: ${Math.round(confidence * 100)}%</div>
@@ -3440,61 +3443,64 @@ function nextExercise() {
           </div>
         `;
 
-        setTimeout(() => {
-          recordAnswer(isCorrect);
-          if (isCorrect) {
-            gainXP(15, 'произношение 🎤'); // Бонус за произношение
-          }
-          sIdx++;
-          nextExercise();
-        }, 2000);
-      };
+          setTimeout(() => {
+            recordAnswer(isCorrect);
+            if (isCorrect) {
+              gainXP(15, 'произношение 🎤'); // Бонус за произношение
+            }
+            sIdx++;
+            nextExercise();
+          }, 2000);
+        };
 
-      speechRecognition.onerror = event => {
-        console.error('Speech recognition error:', event.error);
-        statusEl.innerHTML =
-          '<div class="speech-error">❌ Ошибка распознавания. Попробуй еще раз.</div>';
-        stopRecording();
-      };
+        speechRecognition.onerror = event => {
+          console.error('Speech recognition error:', event.error);
+          statusEl.innerHTML =
+            '<div class="speech-error">❌ Ошибка распознавания. Попробуй еще раз.</div>';
+          stopRecording();
+        };
 
-      speechRecognition.onend = () => {
-        stopRecording();
-      };
+        speechRecognition.onend = () => {
+          stopRecording();
+        };
 
-      speechRecognition.start();
-    }
-
-    function stopRecording() {
-      if (!isRecording) return;
-
-      isRecording = false;
-      startBtn.classList.remove('recording');
-      startBtn.querySelector('.speech-icon').textContent = '🎤';
-      startBtn.querySelector('.speech-text').textContent = 'Начать запись';
-      statusEl.innerHTML = '';
-
-      if (recognitionTimeout) {
-        clearTimeout(recognitionTimeout);
-        recognitionTimeout = null;
+        speechRecognition.start();
       }
 
-      speechRecognition.stop();
-    }
+      function stopRecording() {
+        if (!isRecording) return;
 
-    startBtn.addEventListener('click', () => {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        startRecording();
+        isRecording = false;
+        startBtn.classList.remove('recording');
+        startBtn.querySelector('.speech-icon').textContent = '🎤';
+        startBtn.querySelector('.speech-text').textContent = 'Начать запись';
+        statusEl.innerHTML = '';
+
+        if (recognitionTimeout) {
+          clearTimeout(recognitionTimeout);
+          recognitionTimeout = null;
+        }
+
+        speechRecognition.stop();
       }
-    });
 
-    // Автовоспроизведение слова
-    if (autoPron && speechSupported) {
-      setTimeout(() => speak(w.en), 500);
+      startBtn.addEventListener('click', () => {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      });
+
+      // Автовоспроизведение слова
+      if (autoPron && speechSupported) {
+        setTimeout(() => speak(w.en), 500);
+      }
     }
   } else if (t === 'multi') {
     document.getElementById('ex-type-lbl').textContent = '🎯 Выбор ответа';
+    document.getElementById('ex-counter').textContent =
+      `${sIdx + 1} / ${session.words.length}`;
     const dir = session.dir || 'both';
     const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
     const question = isRUEN ? w.ru : w.en;
@@ -3536,6 +3542,8 @@ function nextExercise() {
     );
   } else if (t === 'type') {
     document.getElementById('ex-type-lbl').textContent = '⌨️ Напиши перевод';
+    document.getElementById('ex-counter').textContent =
+      `${sIdx + 1} / ${session.words.length}`;
     const dir = session.dir || 'both';
     const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
     const question = isRUEN ? w.ru : w.en;
@@ -3545,11 +3553,11 @@ function nextExercise() {
     content.innerHTML = `
       <div class="ta-word">
         ${esc(question)}
-        ${!isRUEN && speechSupported ? `<button class="btn-audio" id="ta-audio-btn">🔊</button>` : ''}
+        ${!isRUEN && speechSupported ? `<button class="btn-icon btn-audio" id="ta-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
       </div>
       <div class="ta-row">
         <input type="text" class="form-control" id="ta-input" placeholder="${isRUEN ? 'Напиши по-английски...' : 'Введи перевод...'}" autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn btn-primary" id="ta-submit">Проверить</button>
+        <button class="btn-icon btn-primary" id="ta-submit"><span class="material-symbols-outlined">send</span></button>
       </div>
       <div class="ta-feedback" id="ta-fb"></div>
     `;
@@ -3562,7 +3570,8 @@ function nextExercise() {
     inp.focus();
     const check = () => {
       const val = inp.value.trim().toLowerCase();
-      const ok = val === answer.toLowerCase();
+      const answerVariants = parseAnswerVariants(answer);
+      const ok = answerVariants.some(v => v === val);
       const fb = document.getElementById('ta-fb');
       fb.className = 'ta-feedback ' + (ok ? 'ok' : 'err');
       fb.textContent = ok ? '✅ Верно!' : '❌ Правильно: ' + answer;
@@ -3577,6 +3586,8 @@ function nextExercise() {
     });
   } else if (t === 'dictation') {
     document.getElementById('ex-type-lbl').textContent = '🔊 Диктант';
+    document.getElementById('ex-counter').textContent =
+      `${sIdx + 1} / ${session.words.length}`;
     content.innerHTML = `
       <div class="dictation-card">
         <div class="dictation-big">🔊</div>
@@ -3585,19 +3596,20 @@ function nextExercise() {
       </div>
       <div class="ta-row" style="margin-top:1rem">
         <input type="text" id="dict-input" placeholder="Напиши слово по-английски..." autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn btn-primary" id="dict-submit">Проверить</button>
+        <button class="btn-icon btn-primary" id="dict-submit"><span class="material-symbols-outlined">send</span></button>
       </div>
       <div class="ta-feedback" id="dict-fb"></div>
     `;
     // Play immediately
     setTimeout(() => speak(w.en), 200);
-    btns.innerHTML = `<button class="btn btn-secondary" id="dict-replay">🔁 Повтор</button>`;
+    btns.innerHTML = `<button class="btn-icon btn-secondary" id="dict-replay"><span class="material-symbols-outlined">replay</span></button>`;
     document.getElementById('dict-replay').onclick = () => speak(w.en);
     const inp = document.getElementById('dict-input');
     inp.focus();
     const check = () => {
       const val = inp.value.trim().toLowerCase();
-      const ok = val === w.en.toLowerCase();
+      const answerVariants = parseAnswerVariants(w.en);
+      const ok = answerVariants.some(v => v === val);
       const fb = document.getElementById('dict-fb');
       fb.className = 'ta-feedback ' + (ok ? 'ok' : 'err');
       fb.textContent = ok ? '✅ Верно!' : '❌ Правильно: ' + w.en;
@@ -3664,7 +3676,7 @@ function showResults() {
   checkBadges(isPerfect);
 }
 
-document.getElementById('again-btn').addEventListener('click', () => {
+document.getElementById('repeat-btn').addEventListener('click', () => {
   document.getElementById('practice-results').style.display = 'none';
   startSession(lastSessionConfig);
 });
@@ -3700,6 +3712,9 @@ function spawnConfetti() {
 // STATS
 // ============================================================
 function renderStats() {
+  console.log('=== renderStats called ===');
+  console.log('words.length:', words.length);
+
   const total = words.length;
   // SRS: due count
   const now = new Date();
@@ -3713,6 +3728,9 @@ function renderStats() {
   const pct = total ? Math.round((learned / total) * 100) : 0;
   const weekAgo = new Date(Date.now() - 7 * 86400000);
   const thisWeek = words.filter(w => new Date(w.createdAt) > weekAgo).length;
+
+  console.log('Stats calculated:', { total, learned, pct, dueCount, thisWeek });
+
   document.getElementById('st-total').textContent = total;
   document.getElementById('st-learned').textContent = learned;
   document.getElementById('st-learned-bar').style.width = pct + '%';
@@ -3828,15 +3846,23 @@ window._setWords = async newWords => {
     'words. Current user:',
     window.authExports?.auth?.currentUser?.uid,
   );
+  console.log(
+    'Words added:',
+    newWords.length,
+    'Total words:',
+    window.words.length,
+  );
+  // Обновляем обе переменные
   words = newWords;
-  window.words = newWords; // ← явно устанавливаем window.words
+  window.words = newWords;
   visibleLimit = 30; // <-- сброс
   renderWords();
   renderStats();
   renderXP();
+  renderBadges();
   updateDueBadge();
   await renderWotd();
-  renderWeekChart(); // ← вызываем после присвоения слов
+  renderWeekChart(); // <-- вызываем после присвоения слов
 };
 
 // Инициализация индикатора синхронизации и мониторинга сети
@@ -3915,16 +3941,26 @@ function playSound(type) {
 
 // === DUE BADGE ===
 function updateDueBadge() {
-  const badge = document.getElementById('due-badge');
-  if (!badge) return;
+  const desktopBadge = document.getElementById('due-count');
+  const mobileBadge = document.getElementById('mobile-due-count');
+  if (!desktopBadge || !mobileBadge) return;
+
   const now = new Date();
   const due = words.filter(
     w => new Date(w.stats.nextReview || now) <= now,
   ).length;
-  if (due > 0) {
-    badge.textContent = due > 99 ? '99+' : due;
-    badge.style.display = 'inline-block';
-  } else badge.style.display = 'none';
+
+  const count = due > 99 ? '99+' : due;
+
+  if (desktopBadge) {
+    desktopBadge.textContent = count;
+    desktopBadge.style.display = due > 0 ? 'inline-block' : 'none';
+  }
+
+  if (mobileBadge) {
+    mobileBadge.textContent = count;
+    mobileBadge.style.display = due > 0 ? 'inline-block' : 'none';
+  }
 }
 
 // === WORD OF THE DAY ===
@@ -4023,6 +4059,8 @@ async function renderWotd() {
         words.unshift(newWord);
         debouncedSave();
         renderWords();
+        renderStats();
+        renderWeekChart(); // Обновляем график после добавления слова
         toast(`Слово "${randomWord.en}" добавлено в словарь!`, 'success');
 
         // Обновляем слово дня
@@ -4049,7 +4087,7 @@ function runMatchExercise(words6, onComplete) {
   const enWords = [...words6];
   const ruWords = [...words6].sort(() => Math.random() - 0.5);
 
-  let selectedWord = null; // { el, word, side }
+  let selectedWord = null; // { el, id, side }
   let matched = 0;
   const total = words6.length;
   let startTime = Date.now();
@@ -4060,7 +4098,6 @@ function runMatchExercise(words6, onComplete) {
     <div class="match-progress" id="match-progress">0 / ${total} пар</div>
   `;
 
-  // Тикаем таймер
   const timerEl = document.getElementById('match-timer');
   window._matchTimerInterval = setInterval(() => {
     if (timerEl)
@@ -4075,7 +4112,6 @@ function runMatchExercise(words6, onComplete) {
       const enW = enWords[i];
       const ruW = ruWords[i];
 
-      // EN кнопка
       const enBtn = document.createElement('button');
       enBtn.className = 'match-btn';
       enBtn.dataset.id = enW.id;
@@ -4086,7 +4122,6 @@ function runMatchExercise(words6, onComplete) {
         enBtn.disabled = true;
       }
 
-      // RU кнопка
       const ruBtn = document.createElement('button');
       ruBtn.className = 'match-btn';
       ruBtn.dataset.id = ruW.id;
@@ -4103,52 +4138,48 @@ function runMatchExercise(words6, onComplete) {
   }
   renderGrid();
 
-  // Делегируем клики
   grid.addEventListener('click', e => {
     const btn = e.target.closest('.match-btn');
     if (!btn || btn.disabled || btn.classList.contains('correct')) return;
     const side = btn.dataset.side;
     const id = btn.dataset.id;
 
+    // Если кликнули на ту же выбранную кнопку – снимаем выбор
+    if (selectedWord && selectedWord.el === btn) {
+      selectedWord.el.classList.remove('selected');
+      selectedWord = null;
+      return;
+    }
+
     if (!selectedWord) {
-      // Первое нажатие - выбираем слово
+      // Первое нажатие – выбираем слово
       btn.classList.add('selected');
       selectedWord = { el: btn, id, side };
       return;
     }
 
-    // Второе нажатие - проверяем совпадение
-    const firstWord = words6.find(w => w.id === selectedWord.id);
-    const secondWord = words6.find(w => w.id === id);
-
-    // Проверяем что это правильная пара (EN↔RU)
-    const isCorrectPair =
-      (firstWord.en === secondWord.en && firstWord.ru === secondWord.ru) || // Та же самая пара
-      (firstWord.en === secondWord.ru && firstWord.ru === secondWord.en); // Обратный перевод
-
-    if (isCorrectPair && firstWord.id !== secondWord.id) {
-      // Совпадение!
+    // Второе нажатие – проверяем пару
+    if (selectedWord.id === id && selectedWord.side !== side) {
+      // Правильная пара!
       playSound('correct');
       btn.classList.add('correct');
       selectedWord.el.classList.remove('selected');
       selectedWord.el.classList.add('correct');
-      // Помечаем оба слова как matched
-      words6.find(w => w.id === selectedWord.id)._matched = true;
+
+      // Помечаем слово как matched
       words6.find(w => w.id === id)._matched = true;
-      selectedWord = null;
       matched++;
       document.getElementById('match-progress').textContent =
         `${matched} / ${total} пар`;
-      // Обновляем статистику
       updStats(id, true);
       updStreak();
       sResults.correct.push(words6.find(w => w.id === id));
+      selectedWord = null;
 
       if (matched === total) {
         clearInterval(window._matchTimerInterval);
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         setTimeout(() => {
-          // Очищаем _matched
           words6.forEach(w => delete w._matched);
           onComplete(elapsed);
         }, 600);
@@ -4158,12 +4189,16 @@ function runMatchExercise(words6, onComplete) {
       playSound('wrong');
       btn.classList.add('wrong');
       selectedWord.el.classList.add('wrong');
+
       updStats(selectedWord.id, false);
       sResults.wrong.push(words6.find(w => w.id === selectedWord.id));
+
       setTimeout(() => {
         btn.classList.remove('wrong');
-        if (selectedWord) selectedWord.el.classList.remove('wrong', 'selected');
-        selectedWord = null;
+        if (selectedWord) {
+          selectedWord.el.classList.remove('wrong', 'selected');
+          selectedWord = null;
+        }
       }, 400);
     }
   });
@@ -4222,33 +4257,63 @@ document.addEventListener('keydown', e => {
 
 // === EXIT SESSION ===
 document.getElementById('ex-exit-btn').addEventListener('click', () => {
-  if (!confirm('Выйти из урока?')) return;
+  // Показываем модалку подтверждения
+  const modal = document.createElement('div');
+  modal.className = 'modal-backdrop';
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <h3>Выйти из урока?</h3>
+      <p>Весь прогресс будет сохранён</p>
+      <div class="modal-actions">
+        <button class="cancel-edit-btn" id="exit-cancel">
+          <span class="material-symbols-outlined">undo</span>
+        </button>
+        <button class="save-edit-btn" id="exit-confirm">
+          <span class="material-symbols-outlined">logout</span>
+        </button>
+      </div>
+    </div>
+  `;
 
-  // Останавливаем все активные процессы
-  words.forEach(w => delete w._matched);
-  clearInterval(window._matchTimerInterval);
+  document.body.appendChild(modal);
 
-  // Останавливаем Speech Recognition если активно
-  if (speechRecognition && speechRecognitionSupported) {
-    try {
-      speechRecognition.stop();
-    } catch (e) {
-      console.log('Speech recognition already stopped');
+  // Обработчики
+  document.getElementById('exit-cancel').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  document.getElementById('exit-confirm').addEventListener('click', () => {
+    document.body.removeChild(modal);
+
+    // Останавливаем все активные процессы
+    words.forEach(w => delete w._matched);
+    clearInterval(window._matchTimerInterval);
+    window._matchTimerInterval = null; // Очищаем ссылку
+
+    // Останавливаем Speech Recognition если активно
+    if (speechRecognition && speechRecognitionSupported) {
+      try {
+        speechRecognition.stop();
+      } catch (e) {
+        console.log('Speech recognition already stopped');
+      }
     }
-  }
 
-  // Останавливаем синтез речи если активен
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
+    // Останавливаем синтез речи если активен
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
 
-  document.getElementById('practice-ex').style.display = 'none';
-  document.getElementById('practice-setup').style.display = 'block';
-  const hkHint = document.getElementById('hotkeys-hint');
-  if (hkHint) hkHint.style.display = 'none';
+    document.getElementById('practice-ex').style.display = 'none';
+    document.getElementById('practice-setup').style.display = 'block';
+    const hkHint = document.getElementById('hotkeys-hint');
+    if (hkHint) hkHint.style.display = 'none';
+  });
 });
+
 // === PWA ===
-(function initPWA() {
+function initPWA() {
   const manifest = {
     name: 'EngLift',
     short_name: 'EngLift',
@@ -4273,7 +4338,6 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(manifest)], {
     type: 'application/json',
   });
-  // Убираем установку manifest href, так как теперь используем отдельный файл
 
   if ('serviceWorker' in navigator) {
     const swCode = `
@@ -4287,7 +4351,7 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
       .register(URL.createObjectURL(swBlob))
       .catch(() => {});
   }
-})();
+}
 
 // Очистка данных пользователя (при выходе или перед загрузкой нового пользователя)
 window.clearUserData = function () {
@@ -4347,4 +4411,4 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBadges();
   applyDark(localStorage.getItem('engliftDark') === 'true');
   switchTab('words');
-});
+})();

@@ -302,7 +302,10 @@ onAuthStateChanged(auth, async user => {
         typeof window._getLocalWords === 'function'
           ? window._getLocalWords()
           : [];
-      if (localWords.length > 0) {
+
+      console.log('Local words before sync:', localWords?.length);
+
+      if (localWords && localWords.length > 0) {
         try {
           const syncResult =
             await window.authExports.syncLocalWordsWithFirestore(localWords);
@@ -312,6 +315,8 @@ onAuthStateChanged(auth, async user => {
         } catch (e) {
           console.error('Ошибка синхронизации слов:', e);
         }
+      } else {
+        console.log('No local words to sync');
       }
 
       window.authExports.subscribeToWords(firestoreWords => {

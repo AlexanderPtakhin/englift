@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="EngLift" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="style.css" />
     <link rel="manifest" href="manifest.json" />
     <link
       rel="stylesheet"
@@ -162,7 +162,7 @@
             <div class="user-email" id="dropdown-email">Загрузка...</div>
             <div class="dropdown-item" id="dropdown-speech-settings">
               <span class="material-symbols-outlined">settings</span>
-              Настройки
+              <span>Настройки речи</span>
             </div>
             <div class="dropdown-item" id="dropdown-theme-toggle">
               <span class="material-symbols-outlined">sunny</span>
@@ -172,11 +172,12 @@
               </label>
             </div>
             <div class="dropdown-item" id="dropdown-export">
-              <span class="material-symbols-outlined"> export_notes </span>
-              Экспорт
+              <span class="material-symbols-outlined">export_notes</span>
+              <span>Экспорт</span>
             </div>
             <div class="dropdown-item" id="dropdown-logout">
-              <span class="material-symbols-outlined"> logout </span> Выйти
+              <span class="material-symbols-outlined">logout</span>
+              <span>Выйти</span>
             </div>
           </div>
         </div>
@@ -503,30 +504,46 @@
             </div>
             <div class="setup-row">
               <label>Тип упражнений</label>
-              <label class="check-row"
-                ><input type="checkbox" data-ex="flash" checked /> 🃏
-                Флеш-карточки</label
-              >
-              <label class="check-row"
-                ><input type="checkbox" data-ex="multi" checked /> 🎯
-                Множественный выбор</label
-              >
-              <label class="check-row"
-                ><input type="checkbox" data-ex="type" checked /> ⌨️ Напиши
-                перевод</label
-              >
-              <label class="check-row"
-                ><input type="checkbox" data-ex="dictation" /> 🔊 Диктант
-                (слушай и пиши)</label
-              >
-              <label class="check-row"
-                ><input type="checkbox" data-ex="speech" /> 🎤 Произнеси вслух
-                (Speech Recognition)</label
-              >
-              <label class="check-row"
-                ><input type="checkbox" data-ex="match" /> 🧩 Найди пары
-                (Match)</label
-              >
+              <div class="exercise-grid">
+                <div class="exercise-card" data-ex="flash">
+                  <div class="exercise-icon">
+                    <span class="material-symbols-outlined">style</span>
+                  </div>
+                  <div class="exercise-name">Флеш-карточки</div>
+                </div>
+                <div class="exercise-card" data-ex="multi">
+                  <div class="exercise-icon">
+                    <span class="material-symbols-outlined">quiz</span>
+                  </div>
+                  <div class="exercise-name">Множественный выбор</div>
+                </div>
+                <div class="exercise-card" data-ex="type">
+                  <div class="exercise-icon">
+                    <span class="material-symbols-outlined">keyboard</span>
+                  </div>
+                  <div class="exercise-name">Напиши перевод</div>
+                </div>
+                <div class="exercise-card" data-ex="dictation">
+                  <div class="exercise-icon">
+                    <span class="material-symbols-outlined">headphones</span>
+                  </div>
+                  <div class="exercise-name">Диктант</div>
+                </div>
+                <div class="exercise-card" data-ex="speech">
+                  <div class="exercise-icon">
+                    <span class="material-symbols-outlined"
+                      >record_voice_over</span
+                    >
+                  </div>
+                  <div class="exercise-name">Произнеси вслух</div>
+                </div>
+                <div class="exercise-card" data-ex="match">
+                  <div class="exercise-icon">
+                    <span class="material-symbols-outlined">extension</span>
+                  </div>
+                  <div class="exercise-name">Найди пары</div>
+                </div>
+              </div>
             </div>
             <div class="setup-row">
               <label>Слова для практики</label>
@@ -568,17 +585,7 @@
           <div id="practice-ex" style="display: none">
             <div class="ex-wrap">
               <button class="ex-exit-btn" id="ex-exit-btn">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="16px"
-                  viewBox="0 -960 960 960"
-                  width="16px"
-                  fill="#e3e3e3"
-                >
-                  <path
-                    d="M479.62-140v-60h268.07q4.62 0 8.46-3.85 3.85-3.84 3.85-8.46v-535.38q0-4.62-3.85-8.46-3.84-3.85-8.46-3.85H479.62v-60h268.07Q778-820 799-799q21 21 21 51.31v535.38Q820-182 799-161q-21 21-51.31 21H479.62Zm-54.23-169.23-41.54-43.39L481.23-450H140v-60h341.23l-97.38-97.38 41.54-43.39L596.15-480 425.39-309.23Z"
-                  />
-                </svg>
+                <span class="material-symbols-outlined">logout</span>
               </button>
               <div class="ex-progress">
                 <div class="ex-progress-info">
@@ -632,12 +639,14 @@
                   flex-wrap: wrap;
                 "
               >
-                <button class="btn btn-primary btn-lg" id="again-btn">
-                  🔄 Ещё раз
-                </button>
-                <button class="btn btn-secondary btn-lg" id="setup-btn">
-                  ⚙️ Настройки
-                </button>
+                <div class="ex-actions">
+                  <button class="btn-icon" id="repeat-btn">
+                    <span class="material-symbols-outlined">refresh</span>
+                  </button>
+                  <button class="btn-icon" id="setup-btn">
+                    <span class="material-symbols-outlined">settings</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -96,12 +96,21 @@ async function loadWordBank() {
     console.log('URL запроса:', './dictionary.json');
 
     const response = await fetch('./dictionary.json', { cache: 'no-cache' });
-    console.log('Response status:', response.status);
-    console.log('Response ok:', response.ok);
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      console.error('Failed to load dictionary:', response.status);
+      if (typeof window !== 'undefined' && window.toast) {
+        window.toast(
+          '⚠️ Не удалось загрузить словарь. Используются базовые слова.',
+          'warning',
+        );
+      }
+      return [];
+    }
 
-    wordBank = await response.json();
+    const data = await response.json();
+    console.log('Dictionary loaded successfully');
+    wordBank = data;
     console.log(`Успешно загружено ${wordBank.length} слов из dictionary.json`);
     console.log(
       'Проверяем слово "stand" в загруженных данных:',
@@ -119,8 +128,15 @@ async function loadWordBank() {
     localStorage.setItem(BANK_VERSION_KEY, CURRENT_BANK_VERSION);
 
     return wordBank;
-  } catch (err) {
-    console.warn('dictionary.json не загрузился:', err);
+  } catch (error) {
+    console.error('Error loading dictionary:', error);
+    if (typeof window !== 'undefined' && window.toast) {
+      window.toast(
+        '⚠️ Ошибка загрузки словаря. Используются базовые слова.',
+        'warning',
+      );
+    }
+    return [];
 
     // 3. Fallback на emergency слова
     wordBank = EMERGENCY_WORDS;
