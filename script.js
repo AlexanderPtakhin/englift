@@ -3,6 +3,14 @@ import { getCompleteWordData } from './api.js';
 import './auth.js';
 
 // ============================================================
+// GRAVATAR FUNCTION
+// ============================================================
+function getGravatarUrl(email, size = 80) {
+  const hash = md5(email.trim().toLowerCase());
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=mp`;
+}
+
+// ============================================================
 // API LOADING INDICATOR
 // ============================================================
 window.showApiLoading = function (show) {
@@ -1886,7 +1894,7 @@ function makeCard(w) {
             return (
               '<span class="repeat-indicator" data-id="' +
               w.id +
-              '" title="Начать изучение слова"><span class="new-label">new</span></span>'
+              '" title="Начать изучение слова"><span class="material-symbols-outlined">brightness_alert</span></span>'
             );
           } else if (diff === 1) {
             return '<span class="due-soon"><span class="material-symbols-outlined">refresh</span> Завтра</span>';
@@ -2874,8 +2882,8 @@ function showImportPreview(importData) {
       </button>
     </div>
     
-    <button id="cancel-import-btn" class="btn btn-secondary" style="width: 100%; margin-top: 1rem;">
-      ❌ Отмена
+    <button id="cancel-import-btn" class="cancel-edit-btn" style="width: 100%; margin-top: 1rem;">
+      <span class="material-symbols-outlined">close</span>
     </button>
   `;
 

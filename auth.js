@@ -292,7 +292,9 @@ function initializeAuth(auth, firebaseAuth) {
 
         // Обновляем меню
         dropdownEmail.textContent = user.email;
-        userAvatar.textContent = user.email.charAt(0).toUpperCase(); // первая буква email
+        // Используем Gravatar аватар
+        const avatarUrl = getGravatarUrl(user.email, 40);
+        userAvatar.innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
 
         if (window.clearUserData) window.clearUserData();
 

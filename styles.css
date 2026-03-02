@@ -759,6 +759,16 @@ input[type='submit']:active {
   color: #fff;
 }
 
+#del-confirm.save-edit-btn:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+#speech-modal-save.save-edit-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 .cancel-edit-btn {
   background: var(--bg);
   border: 2px solid var(--border);
@@ -781,6 +791,13 @@ input[type='submit']:active {
   transform: scale(1.1);
 }
 
+#del-cancel.cancel-edit-btn:hover {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+  transform: scale(1.1);
+}
+
 .cancel-edit-btn .material-symbols-outlined {
   color: var(--muted);
   font-size: 18px;
@@ -795,6 +812,8 @@ input[type='submit']:active {
   justify-content: center;
   gap: 1rem;
   margin-top: 1.5rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .repeat-indicator {
@@ -802,6 +821,11 @@ input[type='submit']:active {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.repeat-indicator .material-symbols-outlined {
+  color: var(--warning);
+  font-size: 18px;
 }
 
 .repeat-indicator .new-label {
@@ -1581,6 +1605,14 @@ body.dark .badge-learned {
   flex-wrap: wrap;
 }
 
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
 /* RESULTS */
 .results-card {
   background: var(--card);
@@ -1991,8 +2023,9 @@ body:not(.authenticated) > main {
 
 .modal-actions {
   display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 
 /* CONFETTI */
@@ -3287,6 +3320,13 @@ input:checked + .theme-slider:before {
     'wght' 400,
     'GRAD' 0,
     'opsz' 24 !important;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 /* ====================== MOBILE BOTTOM NAV ====================== */

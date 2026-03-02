@@ -19,6 +19,7 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="api.js"></script>
     <script type="module" src="main.js"></script>
@@ -743,8 +744,12 @@
         <h3>Удалить слово?</h3>
         <p>Это действие нельзя отменить.</p>
         <div class="modal-actions">
-          <button class="btn btn-secondary" id="del-cancel">Отмена</button>
-          <button class="btn btn-danger" id="del-confirm">🗑 Удалить</button>
+          <button class="cancel-edit-btn" id="del-cancel">
+            <span class="material-symbols-outlined">undo</span>
+          </button>
+          <button class="save-edit-btn" id="del-confirm">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
         </div>
       </div>
     </div>
@@ -828,11 +833,11 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-primary" id="speech-modal-save">
-            Сохранить
+          <button class="save-edit-btn" id="speech-modal-save">
+            <span class="material-symbols-outlined">save</span>
           </button>
-          <button class="btn btn-secondary" id="speech-modal-cancel">
-            Отмена
+          <button class="cancel-edit-btn" id="speech-modal-cancel">
+            <span class="material-symbols-outlined">close</span>
           </button>
         </div>
       </div>
