@@ -2,16 +2,134 @@ import { saveWordToDb, deleteWordFromDb, saveAllWordsToDb } from './db.js';
 import { getCompleteWordData } from './api.js';
 import './auth.js';
 
+// Добавь в самое начало файла (рядом с другими let)
+let saveTimeout = null;
+
 // ============================================================
-// GRAVATAR FUNCTION
+// WEEK CHART
 // ============================================================
-function getGravatarUrl(email, size = 80) {
-  const hash = md5(email.trim().toLowerCase());
-  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=mp`;
+let weekChart = null;
+let weekChartRendering = false;
+
+function renderWeekChart() {
+  const canvas = document.getElementById('weekChart');
+  if (!canvas) return;
+
+  if (!window.words || !Array.isArray(window.words)) return;
+
+  const ctx = canvas.getContext('2d');
+
+  const labels = [];
+  const data = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    labels.push(d.toLocaleDateString('ru-RU', { weekday: 'short' }));
+
+    const dateStr = d.toISOString().split('T')[0];
+
+    const count = window.words.filter(w => {
+      const dateField = w.lastReview || w.updatedAt || w.createdAt;
+      if (!dateField) return false;
+      try {
+        return new Date(dateField).toISOString().split('T')[0] === dateStr;
+      } catch {
+        return false;
+      }
+    }).length;
+
+    data.push(count);
+  }
+
+  if (weekChart) weekChart.destroy();
+
+  weekChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Слов за день',
+          data: data,
+          borderColor: '#6C63FF',
+          borderWidth: 4,
+          tension: 0.38,
+          fill: true,
+          backgroundColor: 'rgba(108, 99, 255, 0.22)',
+          pointBackgroundColor: labels.map((_, i) =>
+            i === labels.length - 1 ? '#22c55e' : '#ffffff',
+          ),
+          pointBorderColor: labels.map((_, i) =>
+            i === labels.length - 1 ? '#22c55e' : '#6C63FF',
+          ),
+          pointBorderWidth: 3,
+          pointRadius: labels.map((_, i) =>
+            i === labels.length - 1 ? 9.5 : 5.5,
+          ),
+          pointHoverRadius: 12,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(45, 43, 85, 0.96)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          bodyFont: { size: 15, weight: '700' },
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: ctx => `${ctx.parsed.y} слов`,
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          suggestedMax: Math.max(10, ...data) + 3,
+          ticks: {
+            stepSize: 2,
+            color: 'var(--muted)',
+            font: { size: 13, weight: '600' },
+          },
+          grid: { color: 'rgba(0,0,0,0.08)' },
+        },
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: 'var(--muted)',
+            font: { size: 13, weight: '700' },
+          },
+        },
+      },
+    },
+  });
+
+  // Подпись итога
+  const total = data.reduce((a, b) => a + b, 0);
+  let totalEl = canvas.parentElement.querySelector('.chart-total');
+  if (!totalEl) {
+    totalEl = document.createElement('div');
+    totalEl.className = 'chart-total';
+    totalEl.style.textAlign = 'center';
+    totalEl.style.marginTop = '12px';
+    totalEl.style.fontSize = '1.02rem';
+    totalEl.style.fontWeight = '700';
+    totalEl.style.color = 'var(--muted)';
+    canvas.parentElement.appendChild(totalEl);
+  }
+  totalEl.innerHTML = `Всего за 7 дней: <span style="color:var(--primary);font-size:1.05rem">${total}</span> слов`;
 }
 
 // ============================================================
-// API LOADING INDICATOR
+// GLOBAL FUNCTIONS FOR AUTH.JS
 // ============================================================
 window.showApiLoading = function (show) {
   const loadingEl = document.getElementById('api-loading');
@@ -294,49 +412,83 @@ const SPEECH_K = CONSTANTS.STORAGE_KEYS.SPEECH;
 
 // Функция для получения ключа с учётом текущего пользователя
 function getStorageKey() {
-  // Если пользователь авторизован – добавляем его uid
   const userId = window.authExports?.auth?.currentUser?.uid;
-  const key = userId ? `${SK}_${userId}` : SK;
-  console.log('getStorageKey():', key, 'userId:', userId);
-  return key;
+  return userId
+    ? `${CONSTANTS.STORAGE_KEYS.WORDS}_${userId}`
+    : CONSTANTS.STORAGE_KEYS.WORDS;
+}
+
+// Функции для получения ключей
+function getXPKey() {
+  const userId = window.authExports?.auth?.currentUser?.uid;
+  return userId
+    ? `${CONSTANTS.STORAGE_KEYS.XP}_${userId}`
+    : CONSTANTS.STORAGE_KEYS.XP;
+}
+function getStreakKey() {
+  const userId = window.authExports?.auth?.currentUser?.uid;
+  return userId
+    ? `${CONSTANTS.STORAGE_KEYS.STREAK}_${userId}`
+    : CONSTANTS.STORAGE_KEYS.STREAK;
+}
+function getSpeechKey() {
+  const userId = window.authExports?.auth?.currentUser?.uid;
+  return userId
+    ? `${CONSTANTS.STORAGE_KEYS.SPEECH}_${userId}`
+    : CONSTANTS.STORAGE_KEYS.SPEECH;
 }
 
 let words = [];
 let streak = { count: 0, lastDate: null };
 let speechCfg = { voiceURI: '', rate: 0.9, pitch: 1.0, accent: 'US' };
 let xpData = { xp: 0, level: 1, badges: [] };
+let isSaving = false; // Защита от параллельного сохранения
+let badgeCheckInterval = null; // Идентификатор интервала проверки бейджей
 
 function load() {
   try {
     const key = getStorageKey();
     console.log('Loading from localStorage with key:', key);
-    words = JSON.parse(localStorage.getItem(key)) || [];
-    words.forEach(w => {
-      if (!w.stats.nextReview) {
-        w.stats.nextReview = new Date().toISOString();
-        w.stats.interval = 1;
-        w.stats.easeFactor = 2.5;
-      }
-    });
+
+    // Принудительный сброс для применения новой логики интервалов
+    console.log(
+      '🔄 Сбрасываем все слова для применения новой логики интервалов...',
+    );
+    words = [];
+
+    window.words = words; // ← устанавливаем window.words после сброса
   } catch (e) {
     words = [];
+    window.words = []; // ← устанавливаем window.words даже при ошибке
   }
   try {
-    streak = JSON.parse(localStorage.getItem(STREAK_K)) || {
+    streak = JSON.parse(localStorage.getItem(getStreakKey())) || {
       count: 0,
       lastDate: null,
     };
   } catch (e) {}
   try {
-    const s = JSON.parse(localStorage.getItem(SPEECH_K));
+    const s = JSON.parse(localStorage.getItem(getSpeechKey()));
     if (s) speechCfg = s;
   } catch (e) {}
   try {
-    const x = JSON.parse(localStorage.getItem(XP_K));
+    const x = JSON.parse(localStorage.getItem(getXPKey()));
     if (x) xpData = x;
   } catch (e) {}
 }
-function save() {
+// НОВАЯ функция — тихое сохранение с задержкой
+function debouncedSave() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+
+  saveTimeout = setTimeout(() => {
+    save(true); // true = тихий режим
+  }, 800); // 800 мс — оптимально
+}
+
+function save(silent = false) {
+  if (isSaving) return Promise.resolve();
+  isSaving = true;
+
   try {
     if (!window.authExports?.auth?.currentUser) {
       console.warn('No user, skipping localStorage save');
@@ -358,20 +510,42 @@ function save() {
     }
     localStorage.setItem(key, data);
 
+    // === ТИХИЙ РЕЖИМ ===
+    if (!silent) {
+      updateSyncIndicator('syncing');
+      toast('🔄 Синхронизация...', 'info');
+    }
+
     // Сохраняем в Firebase асинхронно (не блокируем UI)
-    saveAllWordsToDb(words).catch(e => {
-      console.error('Firebase save error:', e);
-    });
+    saveAllWordsToDb(words, silent)
+      .then(() => {
+        if (!silent && window.updateSyncIndicator) {
+          updateSyncIndicator('synced');
+        }
+      })
+      .catch(e => {
+        console.error('Firebase save error:', e);
+        if (!silent && window.updateSyncIndicator) {
+          updateSyncIndicator('error');
+        }
+      })
+      .finally(() => {
+        isSaving = false;
+      });
 
     return true;
   } catch (e) {
     console.error('Save error:', e);
-    if (e.name === 'QuotaExceededError') {
-      toast('❌ Хранилище переполнено. Удалите старые слова.', 'danger');
-    } else {
-      toast('❌ Ошибка сохранения', 'danger');
+    if (!silent) {
+      if (e.name === 'QuotaExceededError') {
+        toast('❌ Хранилище переполнено. Удалите старые слова.', 'danger');
+      } else {
+        toast('❌ Ошибка сохранения', 'danger');
+      }
     }
     return false;
+  } finally {
+    isSaving = false;
   }
 }
 
@@ -379,13 +553,13 @@ function save() {
 window.save = save;
 
 function saveXP() {
-  localStorage.setItem(XP_K, JSON.stringify(xpData));
+  localStorage.setItem(getXPKey(), JSON.stringify(xpData));
 }
 function saveStreak() {
-  localStorage.setItem(STREAK_K, JSON.stringify(streak));
+  localStorage.setItem(getStreakKey(), JSON.stringify(streak));
 }
 function saveSpeech() {
-  localStorage.setItem(SPEECH_K, JSON.stringify(speechCfg));
+  localStorage.setItem(getSpeechKey(), JSON.stringify(speechCfg));
 }
 
 // Fallback для генерации UUID в старых браузерах
@@ -530,7 +704,7 @@ async function delWord(id) {
     // Сбрасываем лимит видимых слов
     visibleLimit = 30;
 
-    save();
+    debouncedSave();
 
     updateSyncIndicator('synced');
     toast('✅ Слово удалено', 'success');
@@ -543,7 +717,7 @@ async function updWord(id, data) {
   const w = words.find(w => w.id === id);
   if (w) {
     Object.assign(w, data, { updatedAt: new Date().toISOString() }); // добавляем updatedAt
-    save();
+    debouncedSave();
     renderCache.clear(); // <-- добавляем очистку кеша рендеринга
 
     // Устанавливаем флаг локальных изменений
@@ -565,13 +739,23 @@ function updStats(id, correct) {
   if (correct) {
     w.stats.correct++;
     w.stats.streak++;
-    w.stats.easeFactor = Math.max(1.3, w.stats.easeFactor + 0.1);
+    w.stats.easeFactor = Math.max(
+      1.3,
+      Math.min(2.5, w.stats.easeFactor + 0.05),
+    );
     if (w.stats.interval <= 1) {
       w.stats.interval = 3;
     } else if (w.stats.interval <= 3) {
       w.stats.interval = 7;
+    } else if (w.stats.interval <= 7) {
+      w.stats.interval = 14;
+    } else if (w.stats.interval <= 14) {
+      w.stats.interval = 30;
+    } else if (w.stats.interval <= 30) {
+      w.stats.interval = 60;
     } else {
-      w.stats.interval = Math.round(w.stats.interval * w.stats.easeFactor);
+      // Максимальный интервал - 180 дней (6 месяцев)
+      w.stats.interval = Math.min(180, Math.round(w.stats.interval * 1.2));
     }
   } else {
     w.stats.streak = 0;
@@ -587,7 +771,7 @@ function updStats(id, correct) {
     gainXP(20, 'слово выучено 🌟');
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
-  save();
+  debouncedSave();
 }
 
 // ============================================================
@@ -794,7 +978,8 @@ function autoCheckBadges() {
 
 // Периодическая проверка бейджей (каждые 30 секунд)
 function startBadgeAutoCheck() {
-  setInterval(() => {
+  if (badgeCheckInterval) clearInterval(badgeCheckInterval);
+  badgeCheckInterval = setInterval(() => {
     autoCheckBadges();
   }, 30000); // 30 секунд
 }
@@ -868,6 +1053,7 @@ function updStreak() {
   else streak.count = 1;
   streak.lastDate = today;
   saveStreak();
+  debouncedSave();
 }
 
 // ============================================================
@@ -1098,12 +1284,16 @@ function switchTab(name) {
   document
     .querySelectorAll('.tab-pane')
     .forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-  if (name === 'stats') renderStats();
+  if (name === 'stats') {
+    renderStats();
+    setTimeout(() => renderWeekChart(), 100);
+  }
   if (name === 'words') renderWords();
 }
 
 // Экспортируем функции глобально
 window.switchTab = switchTab;
+window.renderWeekChart = renderWeekChart;
 document
   .querySelectorAll('.nav-btn[data-tab]')
   .forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
@@ -1637,14 +1827,14 @@ function showConflictNotification(conflicts) {
 function setupNetworkMonitoring() {
   const updateNetworkStatus = () => {
     if (navigator.onLine) {
-      updateSyncIndicator('synced', 'Онлайн');
+      // updateSyncIndicator('synced', 'Онлайн');
       // Если есть несохранённые изменения, запускаем forceSync
       if (window.hasLocalChanges) {
-        forceSync();
+        // forceSync();
         window.hasLocalChanges = false;
       }
     } else {
-      updateSyncIndicator('offline', 'Офлайн');
+      // updateSyncIndicator('offline', 'Офлайн');
     }
   };
 
@@ -1652,7 +1842,7 @@ function setupNetworkMonitoring() {
   window.addEventListener('offline', updateNetworkStatus);
 
   // Начальный статус
-  updateNetworkStatus();
+  // updateNetworkStatus();
 }
 
 function renderWords() {
@@ -2176,7 +2366,7 @@ document.getElementById('del-confirm').addEventListener('click', () => {
       undone = true;
       if (wSnap) {
         words.push(wSnap);
-        save();
+        debouncedSave();
         visibleLimit = 30; // <-- сброс
         renderWords();
       }
@@ -2937,7 +3127,7 @@ function performImport(importData) {
     saveSpeech();
   }
 
-  save();
+  debouncedSave();
   visibleLimit = 30; // <-- сброс
   renderWords();
   renderStats();
@@ -2972,7 +3162,7 @@ document.getElementById('io-confirm-import').addEventListener('click', () => {
         added++;
       }
     });
-    save();
+    debouncedSave();
     renderWords();
     renderStats();
     toast('✅ Добавлено ' + added + ' новых слов!', 'success');
@@ -3541,23 +3731,8 @@ function renderStats() {
     );
     labels.push(['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()]);
   }
-  const maxV = Math.max(...days, 1);
-  const pts = days
-    .map((v, i) => `${i * (400 / 6)},${80 - (v / maxV) * 65}`)
-    .join(' ');
-  document.getElementById('spark-svg').innerHTML = `
-    <polyline points="${pts}" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    ${days
-      .map((v, i) => {
-        const x = i * (400 / 6),
-          y = 80 - (v / maxV) * 65;
-        return `<circle cx="${x}" cy="${y}" r="5" fill="var(--primary)"/>${v ? `<text x="${x}" y="${y - 10}" text-anchor="middle" font-size="13" fill="var(--text)" font-weight="700">${v}</text>` : ''}`;
-      })
-      .join('')}
-  `;
-  document.getElementById('spark-labels').innerHTML = labels
-    .map(l => `<span>${l}</span>`)
-    .join('');
+  // Старый sparkline код удалён - теперь используем Chart.js
+  // График отрисовывается через renderWeekChart()
 
   const practiced = words.filter(w => w.stats.shown > 0);
   const hard = [...practiced]
@@ -3608,6 +3783,9 @@ function renderStats() {
     btn.addEventListener('click', () => speakBtn(btn.dataset.word, btn));
   });
 
+  // Обновляем график
+  renderWeekChart();
+
   // Update speech settings UI
   const speedRange =
     document.getElementById('modal-speed-range') ||
@@ -3651,21 +3829,23 @@ window._setWords = async newWords => {
     window.authExports?.auth?.currentUser?.uid,
   );
   words = newWords;
+  window.words = newWords; // ← явно устанавливаем window.words
   visibleLimit = 30; // <-- сброс
   renderWords();
   renderStats();
   renderXP();
   updateDueBadge();
   await renderWotd();
+  renderWeekChart(); // ← вызываем после присвоения слов
 };
 
 // Инициализация индикатора синхронизации и мониторинга сети
 document.addEventListener('DOMContentLoaded', () => {
   // Обработчик клика на индикатор синхронизации
-  const syncIndicator = document.getElementById('sync-indicator');
-  if (syncIndicator) {
-    syncIndicator.addEventListener('click', forceSync);
-  }
+  // const syncIndicator = document.getElementById('sync-indicator');
+  // if (syncIndicator) {
+  //   syncIndicator.addEventListener('click', forceSync);
+  // }
 
   // Настройка мониторинга сети
   setupNetworkMonitoring();
@@ -3841,7 +4021,7 @@ async function renderWotd() {
         );
 
         words.unshift(newWord);
-        save();
+        debouncedSave();
         renderWords();
         toast(`Слово "${randomWord.en}" добавлено в словарь!`, 'success');
 
@@ -3859,7 +4039,6 @@ async function renderWotd() {
   }
 }
 
-// === MATCH MADNESS ===
 function runMatchExercise(words6, onComplete) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
@@ -3870,7 +4049,7 @@ function runMatchExercise(words6, onComplete) {
   const enWords = [...words6];
   const ruWords = [...words6].sort(() => Math.random() - 0.5);
 
-  let selectedEN = null; // { el, word }
+  let selectedWord = null; // { el, word, side }
   let matched = 0;
   const total = words6.length;
   let startTime = Date.now();
@@ -3931,30 +4110,32 @@ function runMatchExercise(words6, onComplete) {
     const side = btn.dataset.side;
     const id = btn.dataset.id;
 
-    if (side === 'en') {
-      // Снять предыдущий selected EN
-      grid
-        .querySelectorAll('.match-btn[data-side="en"].selected')
-        .forEach(b => b.classList.remove('selected'));
+    if (!selectedWord) {
+      // Первое нажатие - выбираем слово
       btn.classList.add('selected');
-      selectedEN = { el: btn, id };
+      selectedWord = { el: btn, id, side };
       return;
     }
 
-    // Клик по RU — проверяем
-    if (!selectedEN) return;
+    // Второе нажатие - проверяем совпадение
+    const firstWord = words6.find(w => w.id === selectedWord.id);
+    const secondWord = words6.find(w => w.id === id);
 
-    if (selectedEN.id === id) {
+    // Проверяем что это правильная пара (EN↔RU)
+    const isCorrectPair =
+      (firstWord.en === secondWord.en && firstWord.ru === secondWord.ru) || // Та же самая пара
+      (firstWord.en === secondWord.ru && firstWord.ru === secondWord.en); // Обратный перевод
+
+    if (isCorrectPair && firstWord.id !== secondWord.id) {
       // Совпадение!
       playSound('correct');
       btn.classList.add('correct');
-      selectedEN.el.classList.remove('selected');
-      selectedEN.el.classList.add('correct');
-      // Помечаем слово как matched
+      selectedWord.el.classList.remove('selected');
+      selectedWord.el.classList.add('correct');
+      // Помечаем оба слова как matched
+      words6.find(w => w.id === selectedWord.id)._matched = true;
       words6.find(w => w.id === id)._matched = true;
-      enWords.find(w => w.id === id)._matched = true;
-      ruWords.find(w => w.id === id)._matched = true;
-      selectedEN = null;
+      selectedWord = null;
       matched++;
       document.getElementById('match-progress').textContent =
         `${matched} / ${total} пар`;
@@ -3969,8 +4150,6 @@ function runMatchExercise(words6, onComplete) {
         setTimeout(() => {
           // Очищаем _matched
           words6.forEach(w => delete w._matched);
-          enWords.forEach(w => delete w._matched);
-          ruWords.forEach(w => delete w._matched);
           onComplete(elapsed);
         }, 600);
       }
@@ -3978,13 +4157,13 @@ function runMatchExercise(words6, onComplete) {
       // Ошибка
       playSound('wrong');
       btn.classList.add('wrong');
-      selectedEN.el.classList.add('wrong');
-      updStats(selectedEN.id, false);
-      sResults.wrong.push(words6.find(w => w.id === selectedEN.id));
+      selectedWord.el.classList.add('wrong');
+      updStats(selectedWord.id, false);
+      sResults.wrong.push(words6.find(w => w.id === selectedWord.id));
       setTimeout(() => {
         btn.classList.remove('wrong');
-        if (selectedEN) selectedEN.el.classList.remove('wrong', 'selected');
-        selectedEN = null;
+        if (selectedWord) selectedWord.el.classList.remove('wrong', 'selected');
+        selectedWord = null;
       }, 400);
     }
   });
@@ -4116,6 +4295,13 @@ window.clearUserData = function () {
     'clearUserData called. Current user:',
     window.authExports?.auth?.currentUser?.uid,
   );
+
+  // Очищаем интервал проверки бейджей
+  if (badgeCheckInterval) {
+    clearInterval(badgeCheckInterval);
+    badgeCheckInterval = null;
+  }
+
   // Удаляем только данные в памяти, localStorage не трогаем
   words = [];
   renderCache.clear();
@@ -4140,6 +4326,14 @@ window.clearUserData = function () {
   applyDark(false); // Сбрасываем тему на светлую (по желанию)
   switchTab('words');
 };
+
+// ============================================================
+// GLOBAL FUNCTIONS FOR AUTH.JS
+// ============================================================
+window.loadData = load; // перезагрузка всех данных из localStorage
+window.renderXP = renderXP; // обновление XP
+window.renderBadges = renderBadges;
+window.renderStats = renderStats;
 
 // ============================================================
 // INITIALIZATION

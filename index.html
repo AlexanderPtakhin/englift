@@ -20,6 +20,7 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="api.js"></script>
     <script type="module" src="main.js"></script>
@@ -140,13 +141,6 @@
         </button>
       </nav>
       <div class="header-right">
-        <button
-          class="sync-btn"
-          id="sync-indicator"
-          title="Статус синхронизации"
-        >
-          <span class="material-symbols-outlined">sync</span>
-        </button>
         <button
           class="install-btn"
           id="install-btn"
@@ -710,15 +704,9 @@
             <div class="stat-lbl">⏰ К повторению</div>
           </div>
         </div>
-        <div class="sparkline-wrap">
+        <div class="week-chart-container">
           <h3>📅 Слова по дням (последние 7 дней)</h3>
-          <svg
-            class="spark-svg"
-            id="spark-svg"
-            viewBox="0 0 400 80"
-            preserveAspectRatio="none"
-          ></svg>
-          <div class="spark-labels" id="spark-labels"></div>
+          <canvas id="weekChart" height="140"></canvas>
         </div>
 
         <div class="badges-section">

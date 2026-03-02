@@ -55,8 +55,9 @@ const EMERGENCY_WORDS = [
 async function loadWordBank() {
   // Принудительная очистка кеша для отладки
   if (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1') &&
+    window.DEBUG
   ) {
     console.log('Отладочный режим: принудительно очищаем кеш word bank');
     localStorage.removeItem(BANK_CACHE_KEY);

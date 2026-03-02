@@ -102,11 +102,13 @@ export function deleteWordFromDb(wordId) {
   });
 }
 
-export async function saveAllWordsToDb(wordsArr) {
+export async function saveAllWordsToDb(wordsArr, silent = false) {
   if (!auth.currentUser || !wordsArr.length) return;
 
   try {
-    window.showLoading?.('Сохранение слов в облаке...');
+    if (!silent) {
+      window.showLoading?.('Сохранение слов в облако...');
+    }
     const batch = writeBatch(db);
     wordsArr.forEach(w => {
       batch.set(doc(wordsRef(auth.currentUser.uid), w.id), w);
@@ -121,12 +123,14 @@ export async function saveAllWordsToDb(wordsArr) {
     }
     return false;
   } finally {
-    window.hideLoading?.();
+    if (!silent) {
+      window.hideLoading?.();
+    }
   }
 }
 
 export async function syncLocalWordsWithFirestore(localWords) {
-  if (!auth.currentUser || !localWords.length)
+  if (!auth.currentUser || !localWords || !localWords.length)
     return { success: false, reason: 'no_auth_or_no_words' };
 
   try {
@@ -250,13 +254,13 @@ export function subscribeToWords(callback) {
 
           // Сохраняем данные в localStorage для офлайн-доступа
           if (window.save) {
-            window.save();
+            window.save(true); // true = тихий режим, без тоста и индикатора
           }
 
           // Обновляем индикатор синхронизации
-          if (window.updateSyncIndicator) {
-            window.updateSyncIndicator('synced', 'Синхронизировано');
-          }
+          // if (window.updateSyncIndicator) {
+          //   window.updateSyncIndicator('synced', 'Синхронизировано');
+          // }
 
           // Сбрасываем счетчик переподключений при успешном подключении
           resetReconnectAttempts();
@@ -314,12 +318,12 @@ export function subscribeToWords(callback) {
                   callback(firestoreWords);
 
                   if (window.save) {
-                    window.save();
+                    window.save(true); // true = тихий режим, без тоста и индикатора
                   }
 
-                  if (window.updateSyncIndicator) {
-                    window.updateSyncIndicator('synced', 'Синхронизировано');
-                  }
+                  // if (window.updateSyncIndicator) {
+                  //   window.updateSyncIndicator('synced', 'Синхронизировано');
+                  // }
 
                   resetReconnectAttempts();
                 },
