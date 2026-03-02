@@ -156,12 +156,12 @@
             id="user-avatar"
             title="Меню пользователя"
           >
-            👤
+            <span class="material-symbols-outlined">person</span>
           </button>
           <div class="user-dropdown" id="user-dropdown" style="display: none">
             <div class="user-email" id="dropdown-email">Загрузка...</div>
             <div class="dropdown-item" id="dropdown-speech-settings">
-              <span class="material-symbols-outlined">settings</span>
+              <span class="material-symbols-outlined">tune</span>
               <span>Настройки речи</span>
             </div>
             <div class="dropdown-item" id="dropdown-theme-toggle">
@@ -492,7 +492,13 @@
       <div class="tab-pane" id="tab-practice">
         <div class="practice-wrap">
           <div class="setup-card" id="practice-setup">
-            <h2>🎯 Настройка тренировки</h2>
+            <h2>
+              <span
+                class="material-symbols-outlined"
+                style="vertical-align: middle; margin-right: 8px"
+                >tune</span
+              >Настройка тренировки
+            </h2>
             <div class="setup-row">
               <label>Количество слов</label>
               <div class="chip-group">
@@ -554,19 +560,39 @@
                 </button>
                 <button class="chip" data-filter-w="random">Случайные</button>
                 <button class="chip" data-filter-w="due">
-                  ⏰ К повторению <span class="due-pill" id="due-pill">0</span>
+                  <span
+                    class="material-symbols-outlined"
+                    style="
+                      font-size: 16px;
+                      vertical-align: middle;
+                      margin-right: 4px;
+                    "
+                    >schedule</span
+                  >К повторению <span class="due-pill" id="due-pill">0</span>
                 </button>
               </div>
             </div>
             <div class="setup-row">
-              <label>🔊 Автопроизношение</label>
+              <label
+                ><span
+                  class="material-symbols-outlined"
+                  style="vertical-align: middle; margin-right: 8px"
+                  >volume_up</span
+                >Автопроизношение</label
+              >
               <div class="chip-group">
                 <button class="chip on" data-autopron="on">Включено</button>
                 <button class="chip" data-autopron="off">Выключено</button>
               </div>
             </div>
             <div class="setup-row">
-              <label>🔄 Направление</label>
+              <label
+                ><span
+                  class="material-symbols-outlined"
+                  style="vertical-align: middle; margin-right: 8px"
+                  >swap_horiz</span
+                >Направление</label
+              >
               <div class="chip-group">
                 <button class="chip on" data-dir="both">EN + RU</button>
                 <button class="chip" data-dir="en-ru">EN → RU</button>
@@ -576,9 +602,19 @@
             <button
               class="btn btn-primary btn-lg"
               id="start-btn"
-              style="width: 100%; margin-top: 0.5rem"
+              style="
+                width: 100%;
+                margin-top: 0.5rem;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+              "
             >
-              🚀 Начать!
+              <span
+                class="material-symbols-outlined"
+                style="vertical-align: middle; margin-right: 8px"
+                >rocket_launch</span
+              >Начать!
             </button>
           </div>
 
@@ -700,7 +736,17 @@
           </div>
           <div class="stat-card">
             <div class="stat-num" id="st-streak">0</div>
-            <div class="stat-lbl">🔥 Дней подряд</div>
+            <div class="stat-lbl">
+              <span
+                class="material-symbols-outlined"
+                style="
+                  vertical-align: middle;
+                  margin-right: 4px;
+                  font-size: 18px;
+                "
+                >local_fire_department</span
+              >Дней подряд
+            </div>
           </div>
           <div class="stat-card">
             <div class="stat-num" id="st-week">0</div>
@@ -710,7 +756,17 @@
             <div class="stat-num" id="st-due" style="color: var(--danger)">
               0
             </div>
-            <div class="stat-lbl">⏰ К повторению</div>
+            <div class="stat-lbl">
+              <span
+                class="material-symbols-outlined"
+                style="
+                  vertical-align: middle;
+                  margin-right: 4px;
+                  font-size: 18px;
+                "
+                >schedule</span
+              >К повторению
+            </div>
           </div>
         </div>
         <h3>Активность</h3>
@@ -719,17 +775,35 @@
         </div>
 
         <div class="badges-section">
-          <h3>🏅 Бейджи</h3>
+          <h3>
+            <span
+              class="material-symbols-outlined"
+              style="vertical-align: middle; margin-right: 8px"
+              >emoji_events</span
+            >Бейджи
+          </h3>
           <div class="badges-grid" id="badges-grid"></div>
         </div>
 
         <div class="word-lists">
           <div class="word-list-card">
-            <h3>💪 Топ-5 сложных</h3>
+            <h3>
+              <span
+                class="material-symbols-outlined"
+                style="vertical-align: middle; margin-right: 8px"
+                >fitness_center</span
+              >Топ-5 сложных
+            </h3>
             <ul class="wlist" id="st-hard"></ul>
           </div>
           <div class="word-list-card">
-            <h3>🌟 Топ-5 лёгких</h3>
+            <h3>
+              <span
+                class="material-symbols-outlined"
+                style="vertical-align: middle; margin-right: 8px"
+                >star</span
+              >Топ-5 лёгких
+            </h3>
             <ul class="wlist" id="st-easy"></ul>
           </div>
         </div>
@@ -741,10 +815,10 @@
         <h3>Удалить слово?</h3>
         <p>Это действие нельзя отменить.</p>
         <div class="modal-actions">
-          <button class="cancel-edit-btn" id="del-cancel">
+          <button class="cancel-edit-btn btn-icon" id="del-cancel">
             <span class="material-symbols-outlined">undo</span>
           </button>
-          <button class="save-edit-btn" id="del-confirm">
+          <button class="save-edit-btn btn-icon" id="del-confirm">
             <span class="material-symbols-outlined">delete</span>
           </button>
         </div>
@@ -754,7 +828,13 @@
     <!-- Speech Settings Modal -->
     <div class="modal-backdrop" id="speech-modal">
       <div class="modal-box">
-        <h3>🔊 Настройки произношения</h3>
+        <h3>
+          <span
+            class="material-symbols-outlined"
+            style="vertical-align: middle; margin-right: 8px"
+            >tune</span
+          >Настройки произношения
+        </h3>
         <div id="no-speech-modal" class="no-speech" style="display: none">
           Синтез речи не поддерживается браузером
         </div>
@@ -830,10 +910,10 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="save-edit-btn" id="speech-modal-save">
+          <button class="save-edit-btn btn-icon" id="speech-modal-save">
             <span class="material-symbols-outlined">save</span>
           </button>
-          <button class="cancel-edit-btn" id="speech-modal-cancel">
+          <button class="cancel-edit-btn btn-icon" id="speech-modal-cancel">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -917,7 +997,13 @@
       style="display: none"
     >
       <div class="auth-gate-container">
-        <h2 style="margin-bottom: 1rem">📧 Подтвердите email</h2>
+        <h2 style="margin-bottom: 1rem">
+          <span
+            class="material-symbols-outlined"
+            style="vertical-align: middle; margin-right: 8px"
+            >tune</span
+          >Настройка тренировки
+        </h2>
         <p style="margin-bottom: 1rem">
           На адрес <strong id="unverified-email"></strong> отправлено письмо с
           ссылкой для подтверждения.

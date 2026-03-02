@@ -100,11 +100,6 @@ async function loadUserDataFromFirebase() {
             console.log('Reset CSS variables from Firebase');
           }
 
-          // Обновляем отладчик
-          if (window.updateThemeDebugger) {
-            window.updateThemeDebugger('Firebase Direct', userData.darkTheme);
-          }
-
           // Обновляем UI элементы
           setTimeout(() => {
             const darkToggle = document.getElementById('dark-toggle');

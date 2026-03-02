@@ -8,55 +8,6 @@ import { getCompleteWordData } from './api.js';
 import { auth } from './firebase.js';
 import './auth.js';
 
-// Визуальный отладчик темы
-function createThemeDebugger() {
-  const debuggerEl = document.createElement('div');
-  debuggerEl.id = 'theme-debugger';
-  debuggerEl.style.cssText = `
-    position: fixed;
-    top: 60px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 8px;
-    border-radius: 6px;
-    font-family: monospace;
-    font-size: 11px;
-    z-index: 10000;
-    min-width: 180px;
-    border: 1px solid #60a5fa;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  `;
-
-  document.body.appendChild(debuggerEl);
-
-  // Функция обновления отладчика
-  window.updateThemeDebugger = function (source, theme) {
-    const time = new Date().toLocaleTimeString();
-    debuggerEl.innerHTML = `
-      <div style="color: #60a5fa; font-weight: bold; font-size: 10px;">🎨 THEME</div>
-      <div style="font-size: 9px;">${time}</div>
-      <div style="font-size: 9px;">${source}</div>
-      <div style="color: ${theme ? '#60a5fa' : '#fbbf24'}; font-weight: bold;">
-        ${theme ? '🌙' : '☀️'} ${theme ? 'DARK' : 'LIGHT'}
-      </div>
-      <div style="font-size: 9px; opacity: 0.8;">
-        Classes: ${document.body.className || 'none'}
-      </div>
-    `;
-  };
-
-  // Начальное состояние
-  updateThemeDebugger('INIT', document.body.classList.contains('dark'));
-}
-
-// Создаем отладчик при загрузке
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', createThemeDebugger);
-} else {
-  createThemeDebugger();
-}
-
 // XSS protection function
 
 // Добавь в самое начало файла (рядом с другими let)
@@ -984,63 +935,63 @@ const BADGES_DEF = [
   },
   {
     id: 'streak_7',
-    icon: '🚀',
+    icon: 'rocket_launch',
     name: 'Неделя практики',
     desc: '7 дней подряд',
     check: () => streak.count >= 7,
   },
   {
     id: 'streak_30',
-    icon: '👑',
+    icon: 'workspace_premium',
     name: 'Легенда',
     desc: '30 дней подряд',
     check: () => streak.count >= 30,
   },
   {
     id: 'xp_500',
-    icon: '💎',
+    icon: 'diamond',
     name: 'Алмазный',
     desc: 'Набери 500 XP',
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 500,
   },
   {
     id: 'xp_1000',
-    icon: '🎖️',
+    icon: 'military_tech',
     name: 'Ветеран',
     desc: 'Набери 1000 XP',
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 1000,
   },
   {
     id: 'xp_2500',
-    icon: '👑',
+    icon: 'workspace_premium',
     name: 'Легенда',
     desc: 'Набери 2500 XP',
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 2500,
   },
   {
     id: 'xp_5000',
-    icon: '🌟',
+    icon: 'star',
     name: 'Мастер',
     desc: 'Набери 5000 XP',
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 5000,
   },
   {
     id: 'perfect',
-    icon: '🎯',
+    icon: 'target',
     name: 'Снайпер',
     desc: 'Сессия без ошибок (5+ слов)',
     check: () => false,
   },
   {
     id: 'level_5',
-    icon: '⚡',
+    icon: 'bolt',
     name: 'Прокачан',
     desc: 'Достигни 5 уровня',
     check: () => xpData.level >= 5,
   },
   {
     id: 'level_10',
-    icon: '🦅',
+    icon: 'flight_takeoff',
     name: 'Орёл',
     desc: 'Достигни 10 уровня',
     check: () => xpData.level >= 10,
@@ -1142,7 +1093,7 @@ function showLevelUpBanner(lvl) {
   const el = document.createElement('div');
   el.className = 'level-up-banner';
   el.innerHTML =
-    '🎉 Уровень ' +
+    '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">celebration</span>Уровень ' +
     esc(lvl.toString()) +
     '!<br><span style="font-size:.85rem;font-weight:600;opacity:.9">Так держать!</span>';
   document.body.appendChild(el);
@@ -1176,7 +1127,9 @@ function renderBadges() {
       (ok ? 'unlocked' : 'locked') +
       '">' +
       '<div class="badge-icon">' +
-      def.icon +
+      (def.icon.includes('🔥')
+        ? def.icon
+        : `<span class="material-symbols-outlined">${def.icon}</span>`) +
       '</div>' +
       '<div class="badge-name">' +
       def.name +
@@ -1784,11 +1737,6 @@ function applyDark(on) {
   console.log('applyDark called with:', on);
   console.log('Body classes before:', document.body.className);
 
-  // Обновляем отладчик
-  if (window.updateThemeDebugger) {
-    window.updateThemeDebugger('applyDark', on);
-  }
-
   document.body.classList.toggle('dark', on);
   console.log('Body classes after:', document.body.className);
   console.log('Has dark class:', document.body.classList.contains('dark'));
@@ -2221,7 +2169,7 @@ function makeCard(w) {
     ${w.phonetic ? `<div class="wc-phonetic">${esc(w.phonetic)}</div>` : ''}
     ${w.ex ? `<div class="wc-example">${esc(w.ex)}</div>` : ''}
     <div class="wc-footer">
-      <div class="wc-streak">${w.stats.streak >= 3 ? '<span class="streak-fire">🔥</span>' : Array.from({ length: 3 }, (_, i) => `<span class="streak-emoji${w.stats.streak > i ? ' active' : ''}">🔥</span>`).join('')}</div>
+      <div class="wc-streak">${w.stats.streak >= 3 ? '<span class="streak-fire"><span class="material-symbols-outlined" style="font-size: 1.5rem;">local_fire_department</span></span>' : Array.from({ length: 3 }, (_, i) => `<span class="streak-emoji${w.stats.streak > i ? ' active' : ''}"><span class="material-symbols-outlined" style="font-size: 1rem;">local_fire_department</span></span>`).join('')}</div>
       <div class="wc-badges">
         ${w.tags.map(t => `<span class="badge-tag tag-filter-btn" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}
       </div>
@@ -2341,8 +2289,8 @@ document.getElementById('words-grid').addEventListener('click', e => {
           <div class="form-group"><label>Пример</label><input type="text" class="e-ex form-control" value="${safeAttr(w.ex)}"></div>
           <div class="form-group"><label>Теги</label><input type="text" class="e-tags form-control" value="${safeAttr(w.tags.join(', '))}"></div>
           <div class="form-actions">
-            <button class="btn btn-primary btn-sm save-edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">save</span></button>
-            <button class="btn btn-secondary btn-sm cancel-edit-btn"><span class="material-symbols-outlined">close</span></button>
+            <button class="btn btn-primary save-edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">save</span></button>
+            <button class="btn btn-secondary cancel-edit-btn"><span class="material-symbols-outlined">close</span></button>
           </div>
         `;
 
@@ -3663,7 +3611,8 @@ function nextExercise() {
       }
     }
   } else if (t === 'multi') {
-    document.getElementById('ex-type-lbl').textContent = '🎯 Выбор ответа';
+    document.getElementById('ex-type-lbl').textContent =
+      '<span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">target</span> Выбор ответа';
     document.getElementById('ex-counter').textContent =
       `${sIdx + 1} / ${session.words.length}`;
     const dir = session.dir || 'both';
@@ -3836,7 +3785,11 @@ function showResults() {
   const xpTotal = resTotal;
   if (xpCorrect > 0) gainXP(xpCorrect * 3, xpCorrect + ' правильных');
   const isPerfect = xpTotal >= 5 && xpCorrect === xpTotal;
-  if (isPerfect) gainXP(10, 'идеальная сессия 🎯');
+  if (isPerfect)
+    gainXP(
+      10,
+      'идеальная сессия <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">target</span>',
+    );
   updStreak();
   checkBadges(isPerfect);
 }
@@ -4578,11 +4531,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.style.setProperty('--primary', '#60a5fa');
     document.documentElement.style.setProperty('--primary-light', '#93c5fd');
     document.body.classList.add('dark');
-
-    // Обновляем отладчик
-    if (window.updateThemeDebugger) {
-      window.updateThemeDebugger('INIT', true);
-    }
   }
 
   // Инициализация

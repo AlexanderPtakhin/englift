@@ -703,18 +703,25 @@ input[type='submit']:active {
   font-size: 18px;
 }
 
-.save-edit-btn:hover .material-symbols-outlined {
-  color: #fff;
+.save-edit-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+  color: var(--muted);
+  transform: scale(1.1);
 }
 
 #del-confirm.save-edit-btn:hover {
   background: var(--danger);
   border-color: var(--danger);
+  color: #fff;
+  transform: scale(1.1);
 }
 
 #speech-modal-save.save-edit-btn:hover {
-  background: var(--primary);
+  background: var(--bg-secondary);
   border-color: var(--primary);
+  color: var(--muted);
+  transform: scale(1.1);
 }
 
 .cancel-edit-btn {
@@ -733,8 +740,10 @@ input[type='submit']:active {
 }
 
 .cancel-edit-btn:hover {
-  background: var(--success);
-  color: #fff;
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+  color: var(--muted);
+  transform: scale(1.1);
 }
 
 #del-cancel.cancel-edit-btn:hover {
@@ -750,7 +759,27 @@ input[type='submit']:active {
 }
 
 .cancel-edit-btn:hover .material-symbols-outlined {
+  color: var(--muted);
+}
+
+#del-cancel.cancel-edit-btn:hover .material-symbols-outlined {
   color: #fff;
+}
+
+.form-actions .save-edit-btn,
+.form-actions .cancel-edit-btn {
+  width: 47px;
+  height: 47px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.form-actions .save-edit-btn .material-symbols-outlined,
+.form-actions .cancel-edit-btn .material-symbols-outlined {
+  font-size: 18px;
 }
 
 .form-actions {
@@ -1036,29 +1065,45 @@ textarea {
 }
 
 .streak-emoji {
-  font-size: 0.9rem;
+  font-size: 1rem; /* Установили ровно 1rem */
   opacity: 0.3;
   transition: opacity 0.3s ease;
+  color: #ff4500; /* Оранжево-красный цвет огня */
 }
 
 .streak-emoji.active {
   opacity: 1;
 }
 
+.streak-emoji .material-symbols-outlined {
+  color: #ff4500; /* Такой же цвет для Material иконки */
+  font-size: 1rem; /* Исправили с 0.8rem на 1rem */
+}
+
 .streak-fire {
-  font-size: 1.1rem;
+  font-size: 1.5rem; /* Установили 1.5rem */
   line-height: 1;
-  animation: fire-pulse 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 6px rgba(255, 87, 34, 0.5));
+  animation: fire-pulse 4s ease-in-out infinite; /* Замедлили до 4с */
+  filter: drop-shadow(0 0 6px rgba(255, 87, 34, 0.4)); /* Уменьшили тень */
+  color: #ff4500; /* Оранжево-красный цвет огня */
+}
+
+.streak-fire .material-symbols-outlined {
+  color: #ff4500; /* Такой же цвет для Material иконки */
+  font-size: 1.4rem; /* Увеличили с 1.3rem */
 }
 
 @keyframes fire-pulse {
   0%,
   100% {
     transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(255, 87, 34, 0.4));
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.05); /* Уменьшили пульсацию до 5% */
+    filter: drop-shadow(
+      0 0 8px rgba(255, 87, 34, 0.5)
+    ); /* Небольшое усиление тени */
   }
 }
 
@@ -1247,15 +1292,15 @@ body.dark .badge-learned {
 }
 
 .chip {
-  padding: 0.4rem 0.9rem;
-  border: 2px solid var(--border);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
   background: var(--card);
   border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 700;
+  transition: all 0.2s;
   color: var(--text);
-  transition: all 0.18s;
 }
 
 .chip:hover,
@@ -1300,6 +1345,17 @@ body.dark .badge-learned {
   font-weight: 700;
   color: var(--muted);
   margin-bottom: 0.4rem;
+}
+
+.stat-lbl {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 0.5rem;
 }
 
 .prog-bar {
@@ -1431,7 +1487,7 @@ body.dark .badge-learned {
 
 .exercise-card {
   background: var(--card);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1rem;
   cursor: pointer;
@@ -1445,13 +1501,12 @@ body.dark .badge-learned {
 
 .exercise-card:hover {
   border-color: var(--primary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
+  background: rgba(108, 99, 255, 0.05);
 }
 
 .exercise-card.selected {
   border-color: var(--primary);
-  background: rgba(108, 99, 255, 0.08);
+  background: rgba(108, 99, 255, 0.1);
 }
 
 .exercise-icon {
@@ -1725,6 +1780,11 @@ body.dark .badge-learned {
   flex-wrap: wrap;
 }
 
+.modal-actions .btn-icon {
+  width: 47px;
+  height: 47px;
+}
+
 .modal-actions {
   display: flex;
   justify-content: center;
@@ -1817,6 +1877,24 @@ body.dark .badge-learned {
   padding: 1.5rem;
   box-shadow: var(--shadow);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card .material-symbols-outlined {
+  color: #ff4500; /* Оранжево-красный цвет огня */
+}
+
+.stat-card .due-pill {
+  background: #ff4500; /* Оранжево-красный цвет огня */
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 4px;
 }
 
 .stat-num {
@@ -2243,6 +2321,7 @@ body:not(.authenticated) > main {
   justify-content: center;
   gap: 1rem;
   margin-top: 1.5rem;
+  flex-wrap: wrap;
 }
 
 /* CONFETTI */
@@ -2680,6 +2759,8 @@ body.dark .due-soon {
   font-weight: 600;
 }
 .io-close:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border);
   color: var(--text);
 }
 .io-drop-zone {
