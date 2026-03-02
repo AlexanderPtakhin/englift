@@ -1,4 +1,4 @@
-import { saveWordToDb, deleteWordFromDb } from './db.js';
+import { saveWordToDb, deleteWordFromDb, saveAllWordsToDb } from './db.js';
 import { getCompleteWordData } from './api.js';
 import './auth.js';
 
@@ -173,7 +173,7 @@ function validateRussian(translation) {
   )
     return false;
   // Проверяем на допустимые символы (буквы, знаки препинания)
-  return /^[а-яА-ЯёЁ\s\-\.\,\!\?\(\)\[\]\"\'\;]+$/.test(trimmed);
+  return /^[а-яА-ЯёЁ\s\-\.\,\!\?\(\)\[\]\"\'\;\/]+$/.test(trimmed);
 }
 
 // Валидация примера (усиленная защита от HTML инъекций)
@@ -349,6 +349,12 @@ function save() {
       words = words.slice(0, 1000); // Оставляем только первые 1000 слов
     }
     localStorage.setItem(key, data);
+
+    // Сохраняем в Firebase асинхронно (не блокируем UI)
+    saveAllWordsToDb(words).catch(e => {
+      console.error('Firebase save error:', e);
+    });
+
     return true;
   } catch (e) {
     console.error('Save error:', e);
@@ -387,12 +393,13 @@ function generateId() {
   });
 }
 
-function mkWord(en, ru, ex, tags) {
+function mkWord(en, ru, ex, tags, phonetic = null) {
   return {
     id: generateId(),
     en: en.trim(),
     ru: ru.trim(),
     ex: (ex || '').trim(),
+    phonetic: phonetic || null,
     tags: tags || [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(), // добавляем updatedAt
@@ -408,7 +415,7 @@ function mkWord(en, ru, ex, tags) {
     },
   };
 }
-async function addWord(en, ru, ex, tags) {
+async function addWord(en, ru, ex, tags, phonetic = null) {
   // Валидация входных данных
   if (!validateEnglish(en)) {
     toast(
@@ -445,6 +452,7 @@ async function addWord(en, ru, ex, tags) {
   // Нормализация данных
   const normalizedEn = en.trim();
   const normalizedRu = ru.trim();
+  const normalizedPhonetic = phonetic ? phonetic.trim() : '';
   const normalizedEx = ex ? ex.trim() : '';
   const normalizedTags = tags;
 
@@ -459,6 +467,7 @@ async function addWord(en, ru, ex, tags) {
     normalizedRu,
     normalizedEx,
     normalizedTags,
+    normalizedPhonetic,
   );
   words.push(newWord);
 
@@ -952,7 +961,8 @@ function speakBtn(text, btn) {
   if (wasActive) {
     synth.cancel();
     btn.classList.remove('speaking');
-    btn.textContent = '🔊';
+    btn.innerHTML =
+      '<span class="material-symbols-outlined">sound_detection_loud_sound</span>';
     return;
   }
   btn.classList.add('speaking');
@@ -960,7 +970,8 @@ function speakBtn(text, btn) {
     '<div class="audio-wave"><span></span><span></span><span></span><span></span><span></span></div>';
   speak(text, () => {
     btn.classList.remove('speaking');
-    btn.textContent = '🔊';
+    btn.innerHTML =
+      '<span class="material-symbols-outlined">sound_detection_loud_sound</span>';
   });
 }
 
@@ -1067,7 +1078,7 @@ function toast(msg, type = '') {
 function switchTab(name) {
   if (name === 'words') {
     visibleLimit = 30; // <-- сброс при переключении на слова
-    setTimeout(renderWotd, 0);
+    renderWotd(); // Вызываем без await, т.к. в синхронной функции
     updateDueBadge();
   }
   if (name === 'practice') {
@@ -1095,12 +1106,23 @@ document
 function applyDark(on) {
   document.body.classList.toggle('dark', on);
   const darkToggle = document.getElementById('dark-toggle');
-  if (darkToggle) darkToggle.textContent = on ? '☀️' : '🌙';
+  if (darkToggle) {
+    const icon = on ? 'sunny' : 'dark_mode';
+    darkToggle.innerHTML = `<span class="material-symbols-outlined">${icon}</span>`;
+  }
 
-  // Update dropdown menu item text and icon to show opposite theme
-  const themeToggle = document.getElementById('dropdown-theme-toggle');
-  if (themeToggle)
-    themeToggle.textContent = on ? '☀️ Светлая тема' : '🌙 Тёмная тема';
+  // Update dropdown menu theme toggle checkbox
+  const themeCheckbox = document.getElementById('theme-checkbox');
+  if (themeCheckbox) themeCheckbox.checked = on;
+
+  // Update theme icon next to toggle
+  const themeIcon = document.querySelector(
+    '#dropdown-theme-toggle .material-symbols-outlined',
+  );
+  if (themeIcon) {
+    const icon = on ? 'sunny' : 'dark_mode';
+    themeIcon.textContent = icon;
+  }
 }
 
 // Theme toggle handlers
@@ -1113,13 +1135,15 @@ if (darkToggle) {
   });
 }
 
-document
-  .getElementById('dropdown-theme-toggle')
-  .addEventListener('click', () => {
-    const on = !document.body.classList.contains('dark');
+// New theme toggle checkbox handler
+const themeCheckbox = document.getElementById('theme-checkbox');
+if (themeCheckbox) {
+  themeCheckbox.addEventListener('change', e => {
+    const on = e.target.checked;
     localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
     applyDark(on);
   });
+}
 
 if (localStorage.getItem(CONSTANTS.STORAGE_KEYS.DARK_MODE) === 'true')
   applyDark(true);
@@ -1395,9 +1419,17 @@ function sortWords(list, sortBy) {
 
   switch (sortBy) {
     case 'date-asc':
-      return sortedList.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      return sortedList.sort((a, b) =>
+        (a.added || a.createdAt || 0)
+          .toString()
+          .localeCompare((b.added || b.createdAt || 0).toString()),
+      );
     case 'date-desc':
-      return sortedList.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return sortedList.sort((a, b) =>
+        (b.added || b.createdAt || 0)
+          .toString()
+          .localeCompare((a.added || a.createdAt || 0).toString()),
+      );
     case 'alpha-asc':
       return sortedList.sort((a, b) => a.en.localeCompare(b.en));
     case 'alpha-desc':
@@ -1476,35 +1508,50 @@ function makeCard(w) {
   card.dataset.id = w.id;
   card.innerHTML = `
     <div class="wc-top">
-      <div class="wc-english">${esc(w.en)}</div>
-      ${speechSupported ? `<button class="btn-audio audio-card-btn" data-word="${safeAttr(w.en)}" title="Произнести">🔊</button>` : ''}
+      <div class="word-icon-container">
+        <div class="wc-english">${esc(w.en.charAt(0).toUpperCase() + w.en.slice(1))}</div>
+        ${w.stats.learned ? '<span class="material-symbols-outlined done-icon">done_outline</span>' : ''}
+      </div>
+      <div class="wc-audio-group">
+        ${speechSupported ? `<button class="btn-audio audio-card-btn" data-word="${safeAttr(w.en)}" title="Произнести"><span class="material-symbols-outlined">sound_detection_loud_sound</span></button>` : ''}
+      </div>
     </div>
-    <div class="wc-russian">${esc(w.ru)}</div>
+    <div class="wc-russian">${esc(w.ru.toLowerCase())}</div>
+    ${w.phonetic ? `<div class="wc-phonetic">${esc(w.phonetic)}</div>` : ''}
     ${w.ex ? `<div class="wc-example">${esc(w.ex)}</div>` : ''}
     <div class="wc-footer">
-      <div class="wc-streak">${[0, 1, 2].map(i => `<div class="dot${w.stats.streak > i ? ' on' : ''}"></div>`).join('')}</div>
+      <div class="wc-streak">${w.stats.streak >= 3 ? '<span class="streak-fire">🔥</span>' : Array.from({ length: 3 }, (_, i) => `<span class="streak-emoji${w.stats.streak > i ? ' active' : ''}">🔥</span>`).join('')}</div>
       <div class="wc-badges">
-        ${
-          w.stats.learned
-            ? '<span class="badge-learned">✅ Выучено</span>'
-            : (() => {
-                const now = new Date();
-                const next = new Date(w.stats.nextReview || now);
-                const diff = Math.round((next - now) / 86400000);
-                if (diff <= 0)
-                  return '<span class="due-now">⏰ Повторить!</span>';
-                if (diff === 1)
-                  return '<span class="due-soon">📅 Завтра</span>';
-                return `<span class="due-later">📅 через ${diff}д</span>`;
-              })()
-        }
         ${w.tags.map(t => `<span class="badge-tag tag-filter-btn" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}
       </div>
     </div>
-    <div class="srs-meta">Интервал: ${w.stats.interval || 1}д &middot; Лёгкость: ${(w.stats.easeFactor || 2.5).toFixed(1)}</div>
     <div class="wc-actions">
-      <button class="btn btn-secondary btn-sm edit-btn" data-id="${w.id}">✏️ Ред.</button>
-      <button class="btn btn-danger btn-sm del-btn" data-id="${w.id}">🗑</button>
+      <div class="wc-actions-left">
+        <button class="btn btn-secondary btn-sm edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">edit</span></button>
+        <button class="btn btn-danger btn-sm del-btn" data-id="${w.id}"><span class="material-symbols-outlined">delete</span></button>
+      </div>
+      <div class="wc-actions-right">
+        ${(() => {
+          const now = new Date();
+          const next = new Date(w.stats.nextReview || now);
+          const diff = Math.round((next - now) / 86400000);
+
+          if (diff <= 0 && !w.stats.learned) {
+            return (
+              '<span class="repeat-indicator" data-id="' +
+              w.id +
+              '" title="Повторить слово"><span class="material-symbols-outlined">repeat</span></span>'
+            );
+          } else if (diff === 1) {
+            return '<span class="due-soon"><span class="material-symbols-outlined">repeat</span> Завтра</span>';
+          } else if (diff > 1 && diff <= 7) {
+            return `<span class="due-soon"><span class="material-symbols-outlined">repeat</span> ${diff}д</span>`;
+          } else if (diff > 7) {
+            return `<span class="due-later"><span class="material-symbols-outlined">repeat</span> ${diff}д</span>`;
+          }
+          return '';
+        })()}
+      </div>
     </div>
   `;
   return card;
@@ -1522,8 +1569,111 @@ document.getElementById('words-grid').addEventListener('click', e => {
     speakBtn(btn.dataset.word, btn);
     return;
   }
+
+  // Transcription button handler
+  if (
+    e.target.classList.contains('transcription-btn') ||
+    e.target.closest('.transcription-btn')
+  ) {
+    const btn = e.target.classList.contains('transcription-btn')
+      ? e.target
+      : e.target.closest('.transcription-btn');
+
+    // Create tooltip to show transcription
+    const existingTooltip = document.querySelector('.transcription-tooltip');
+    if (existingTooltip) existingTooltip.remove();
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'transcription-tooltip';
+    tooltip.textContent = btn.dataset.phonetic;
+    tooltip.style.cssText = `
+      position: absolute;
+      background: var(--card);
+      border: 2px solid var(--primary);
+      color: var(--text);
+      padding: 0.5rem 0.8rem;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+      pointer-events: none;
+      white-space: nowrap;
+    `;
+
+    document.body.appendChild(tooltip);
+
+    const rect = btn.getBoundingClientRect();
+    tooltip.style.top = rect.bottom + 5 + 'px';
+    tooltip.style.left =
+      rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+
+    // Remove tooltip after 3 seconds
+    setTimeout(() => {
+      if (tooltip.parentNode) tooltip.remove();
+    }, 3000);
+
+    return;
+  }
   const id = e.target.dataset.id;
-  if (!id) return;
+  if (!id) {
+    // Проверяем если кликнули на иконку внутри кнопки
+    const btn = e.target.closest('.del-btn, .edit-btn');
+    if (btn) {
+      const btnId = btn.dataset.id;
+      if (!btnId) return;
+
+      if (btn.classList.contains('del-btn')) {
+        pendingDelId = btnId;
+        document.getElementById('del-modal').classList.add('open');
+      }
+      if (btn.classList.contains('edit-btn')) {
+        const w = words.find(x => x.id === btnId);
+        if (!w) return;
+        const card = btn.closest('.word-card');
+        card.classList.add('editing');
+        card.innerHTML = `
+          <div class="form-group"><label>English</label><input type="text" class="e-en form-control" value="${safeAttr(w.en)}"></div>
+          <div class="form-group"><label>Русский</label><input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}"></div>
+          <div class="form-group"><label>Транскрипция</label><input type="text" class="e-phonetic form-control" value="${safeAttr(w.phonetic || '')}"></div>
+          <div class="form-group"><label>Пример</label><input type="text" class="e-ex form-control" value="${safeAttr(w.ex)}"></div>
+          <div class="form-group"><label>Теги</label><input type="text" class="e-tags form-control" value="${safeAttr(w.tags.join(', '))}"></div>
+          <div class="form-actions">
+            <button class="btn btn-primary btn-sm save-edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">save</span></button>
+            <button class="btn btn-secondary btn-sm cancel-edit-btn"><span class="material-symbols-outlined">close</span></button>
+          </div>
+        `;
+
+        // Добавляем обработчики для кнопок
+        card
+          .querySelector('.save-edit-btn')
+          .addEventListener('click', function (e) {
+            e.stopPropagation();
+            const id = this.dataset.id;
+            const card = this.closest('.word-card');
+            updWord(id, {
+              en: card.querySelector('.e-en').value.trim(),
+              ru: card.querySelector('.e-ru').value.trim(),
+              phonetic: card.querySelector('.e-phonetic').value.trim(),
+              ex: card.querySelector('.e-ex').value.trim(),
+              tags: normalizeTags(card.querySelector('.e-tags').value),
+            });
+            toast('✅ Слово обновлено!');
+            renderWords();
+          });
+
+        card
+          .querySelector('.cancel-edit-btn')
+          .addEventListener('click', function (e) {
+            e.stopPropagation();
+            renderWords();
+          });
+      }
+    }
+    return;
+  }
+
   if (e.target.classList.contains('del-btn')) {
     pendingDelId = id;
     document.getElementById('del-modal').classList.add('open');
@@ -1536,26 +1686,39 @@ document.getElementById('words-grid').addEventListener('click', e => {
     card.innerHTML = `
       <div class="form-group"><label>English</label><input type="text" class="e-en form-control" value="${safeAttr(w.en)}"></div>
       <div class="form-group"><label>Русский</label><input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}"></div>
+      <div class="form-group"><label>Транскрипция</label><input type="text" class="e-phonetic form-control" value="${safeAttr(w.phonetic || '')}"></div>
       <div class="form-group"><label>Пример</label><input type="text" class="e-ex form-control" value="${safeAttr(w.ex)}"></div>
       <div class="form-group"><label>Теги</label><input type="text" class="e-tags form-control" value="${safeAttr(w.tags.join(', '))}"></div>
-      <div style="display:flex;gap:.5rem">
-        <button class="btn btn-primary save-edit" data-id="${id}">💾 Сохранить</button>
-        <button class="btn btn-secondary cancel-edit">Отмена</button>
+      <div class="form-actions">
+        <button class="btn btn-primary btn-sm save-edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">save</span></button>
+        <button class="btn btn-secondary btn-sm cancel-edit-btn"><span class="material-symbols-outlined">close</span></button>
       </div>
     `;
-    card.querySelector('.save-edit').addEventListener('click', () => {
-      updWord(id, {
-        en: card.querySelector('.e-en').value.trim(),
-        ru: card.querySelector('.e-ru').value.trim(),
-        ex: card.querySelector('.e-ex').value.trim(),
-        tags: normalizeTags(card.querySelector('.e-tags').value),
-      });
-      toast('✅ Слово обновлено!');
-      renderWords();
-    });
+
+    // Добавляем обработчики для кнопок
     card
-      .querySelector('.cancel-edit')
-      .addEventListener('click', () => renderWords());
+      .querySelector('.save-edit-btn')
+      .addEventListener('click', function (e) {
+        e.stopPropagation();
+        const id = this.dataset.id;
+        const card = this.closest('.word-card');
+        updWord(id, {
+          en: card.querySelector('.e-en').value.trim(),
+          ru: card.querySelector('.e-ru').value.trim(),
+          phonetic: card.querySelector('.e-phonetic').value.trim(),
+          ex: card.querySelector('.e-ex').value.trim(),
+          tags: normalizeTags(card.querySelector('.e-tags').value),
+        });
+        toast('✅ Слово обновлено!');
+        renderWords();
+      });
+
+    card
+      .querySelector('.cancel-edit-btn')
+      .addEventListener('click', function (e) {
+        e.stopPropagation();
+        renderWords();
+      });
   }
 });
 
@@ -1645,6 +1808,33 @@ document
 // ADD WORDS
 // ============================================================
 
+// Функция поиска слова в dictionary.json
+async function findWordInDictionary(word) {
+  try {
+    const response = await fetch('dictionary.json');
+    if (!response.ok) return null;
+
+    const dictionary = await response.json();
+    const foundWord = dictionary.find(
+      w => w.en.toLowerCase() === word.toLowerCase(),
+    );
+
+    if (foundWord) {
+      return {
+        en: foundWord.en,
+        ru: foundWord.ru,
+        phonetic: foundWord.phonetic,
+        examples: foundWord.examples || [],
+        tags: foundWord.tags || [],
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error loading dictionary.json:', error);
+    return null;
+  }
+}
+
 // Обработчик кнопки автозаполнения
 document.getElementById('auto-fill-btn').addEventListener('click', async () => {
   const enInput = document.getElementById('f-en');
@@ -1663,24 +1853,45 @@ document.getElementById('auto-fill-btn').addEventListener('click', async () => {
   }
 
   try {
-    console.log('Starting API request for word:', englishWord);
-    const data = await window.WordAPI.getCompleteWordData(englishWord);
-    console.log('Received API data:', data);
+    console.log('Searching for word:', englishWord);
+
+    // Сначала ищем в dictionary.json
+    let data = await findWordInDictionary(englishWord);
+    let source = 'dictionary.json';
+
+    // Если не нашли в dictionary.json, используем API
+    if (!data) {
+      console.log('Word not found in dictionary.json, trying API...');
+      data = await window.WordAPI.getCompleteWordData(englishWord);
+      source = 'API';
+    }
+
+    console.log(`Received data from ${source}:`, data);
 
     // Заполняем поля полученными данными
     const ruInput = document.getElementById('f-ru');
+    const phoneticInput = document.getElementById('f-phonetic');
     const exInput = document.getElementById('f-ex');
     const tagsInput = document.getElementById('f-tags');
 
     let filledFields = 0;
 
-    if (data.translation) {
-      ruInput.value = data.translation;
+    if (data.ru && data.ru.trim()) {
+      ruInput.value = data.ru;
       ruInput.classList.add('auto-filled');
       filledFields++;
-      console.log('Translation filled:', data.translation);
+      console.log('Translation filled:', data.ru);
     } else {
       console.log('No translation received');
+    }
+
+    if (data.phonetic) {
+      phoneticInput.value = data.phonetic;
+      phoneticInput.classList.add('auto-filled');
+      filledFields++;
+      console.log('Phonetic filled:', data.phonetic);
+    } else {
+      console.log('No phonetic received');
     }
 
     if (data.examples && data.examples.length > 0) {
@@ -1714,7 +1925,7 @@ document.getElementById('auto-fill-btn').addEventListener('click', async () => {
     }
 
     // Перемещаем фокус на следующее поле если перевод уже заполнен
-    if (data.translation) {
+    if (data.ru && data.ru.trim()) {
       exInput.focus();
     } else {
       ruInput.focus();
@@ -1730,6 +1941,7 @@ document.getElementById('single-form').addEventListener('submit', e => {
 
   const en = document.getElementById('f-en').value.trim();
   const ru = document.getElementById('f-ru').value.trim();
+  const phonetic = document.getElementById('f-phonetic').value.trim();
   const ex = document.getElementById('f-ex').value.trim();
   const tagsString = document.getElementById('f-tags').value;
 
@@ -1737,14 +1949,14 @@ document.getElementById('single-form').addEventListener('submit', e => {
   const tags = normalizeTags(tagsString);
 
   // Добавляем слово с валидацией
-  const success = addWord(en, ru, ex, tags);
+  const success = addWord(en, ru, ex, tags, phonetic);
 
   if (success) {
     // Сбрасываем значения полей
     e.target.reset();
 
     // Сбрасываем стили auto-filled
-    const fields = ['f-en', 'f-ru', 'f-ex', 'f-tags'];
+    const fields = ['f-en', 'f-ru', 'f-phonetic', 'f-ex', 'f-tags'];
     fields.forEach(fieldId => {
       const field = document.getElementById(fieldId);
       if (field) {
@@ -1808,7 +2020,9 @@ document.getElementById('import-bulk-btn').addEventListener('click', () => {
   const checked = [...document.querySelectorAll('.bchk:checked')].map(
     c => +c.dataset.i,
   );
-  checked.forEach(i => addWord(bulkParsed[i].en, bulkParsed[i].ru, '', []));
+  checked.forEach(i =>
+    addWord(bulkParsed[i].en, bulkParsed[i].ru, '', [], null),
+  );
   document.getElementById('bulk-preview-wrap').style.display = 'none';
   document.getElementById('import-bulk-btn').style.display = 'none';
   document.getElementById('bulk-text').value = '';
@@ -1923,7 +2137,7 @@ document.getElementById('import-file-btn').addEventListener('click', () => {
   checked.forEach(i => {
     const w = fileParsed[i];
     if (!words.find(x => x.en.toLowerCase() === w.en.toLowerCase())) {
-      addWord(w.en, w.ru, w.ex, []);
+      words.push(mkWord(w.en, w.ru, w.ex, w.tags || [], null));
       added++;
     }
   });
@@ -2342,7 +2556,7 @@ document.getElementById('io-confirm-import').addEventListener('click', () => {
     let added = 0;
     pendingImport.data.forEach(w => {
       if (!words.find(x => x.en.toLowerCase() === w.en.toLowerCase())) {
-        words.push(mkWord(w.en, w.ru, w.ex, w.tags));
+        words.push(mkWord(w.en, w.ru, w.ex, w.tags || [], null));
         added++;
       }
     });
@@ -2732,7 +2946,7 @@ function nextExercise() {
         ${!isRUEN && speechSupported ? `<button class="btn-audio" id="ta-audio-btn">🔊</button>` : ''}
       </div>
       <div class="ta-row">
-        <input type="text" id="ta-input" placeholder="${isRUEN ? 'Напиши по-английски...' : 'Введи перевод...'}" autocomplete="off" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="ta-input" placeholder="${isRUEN ? 'Напиши по-английски...' : 'Введи перевод...'}" autocomplete="off" autocorrect="off" spellcheck="false">
         <button class="btn btn-primary" id="ta-submit">Проверить</button>
       </div>
       <div class="ta-feedback" id="ta-fb"></div>
@@ -3017,7 +3231,7 @@ function renderStats() {
 // ============================================================
 // Мост для Firebase
 window._getLocalWords = () => words;
-window._setWords = newWords => {
+window._setWords = async newWords => {
   console.log(
     '_setWords called with',
     newWords.length,
@@ -3030,7 +3244,7 @@ window._setWords = newWords => {
   renderStats();
   renderXP();
   updateDueBadge();
-  renderWotd();
+  await renderWotd();
 };
 
 // Инициализация индикатора синхронизации и мониторинга сети
@@ -3051,7 +3265,7 @@ document.addEventListener('DOMContentLoaded', () => {
 load();
 updStreak();
 updateDueBadge();
-renderWotd();
+renderWotd(); // Это вызов в синхронном контексте, оставляем без await
 renderWords();
 renderXP();
 renderBadges();
@@ -3122,35 +3336,114 @@ function updateDueBadge() {
 }
 
 // === WORD OF THE DAY ===
-function renderWotd() {
+async function renderWotd() {
   const wrap = document.getElementById('wotd-wrap');
-  if (!wrap || !words.length) {
-    if (wrap) wrap.innerHTML = '';
-    return;
-  }
-  const today = new Date().toDateString();
-  let seed = 0;
-  for (let i = 0; i < today.length; i++)
-    seed = (seed * 31 + today.charCodeAt(i)) & 0xffff;
-  const w = words[seed % words.length];
+  if (!wrap) return;
+
+  console.log('renderWotd called, words.length:', words.length);
+
+  // Показываем загрузку
   wrap.innerHTML = `<div class="wotd-card">
+    <div style="text-align: center; padding: 1rem;">
+      <div class="loading-spinner" style="margin: 0 auto 0.5rem;"></div>
+      <div style="color: var(--muted); font-size: 0.9rem;">Загружаем слово дня...</div>
+    </div>
+  </div>`;
+
+  try {
+    // Получаем случайное слово из банка
+    const randomWord = await window.WordAPI.getRandomNewWord();
+
+    if (!randomWord) {
+      wrap.innerHTML = `<div class="wotd-card">
+        <div style="text-align: center; padding: 1rem; color: var(--muted);">
+          Не удалось загрузить слово дня. Попробуйте позже.
+        </div>
+      </div>`;
+      return;
+    }
+
+    console.log('Random word from bank:', randomWord);
+
+    // Формируем пример (берём первый из массива)
+    const example =
+      randomWord.examples && randomWord.examples.length > 0
+        ? randomWord.examples[0]
+        : '';
+
+    wrap.innerHTML = `<div class="wotd-card">
     <div>
       <div class="wotd-label">☀️ Слово дня</div>
-      <div class="wotd-en">${esc(w.en)}</div>
-      <div class="wotd-ru">${esc(w.ru)}</div>
-      ${w.ex ? `<div class="wotd-ex">${esc(w.ex)}</div>` : ''}
+      <div class="wotd-en">${esc(randomWord.en.charAt(0).toUpperCase() + randomWord.en.slice(1))}</div>
+      <div class="wotd-ru">${esc(randomWord.ru)}</div>
+      ${randomWord.phonetic ? `<div class="wotd-phonetic">${esc(randomWord.phonetic)}</div>` : ''}
+      ${example ? `<div class="wotd-ex">${esc(example)}</div>` : ''}
+      ${
+        randomWord.tags && randomWord.tags.length > 0
+          ? `<div class="wotd-tags">${randomWord.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join(' ')}</div>`
+          : ''
+      }
     </div>
-    ${speechSupported ? `<button class="wotd-audio" id="wotd-audio-btn">🔊</button>` : ''}
+    <div style="display: flex; gap: 0.5rem;">
+      ${speechSupported ? `<button class="wotd-audio" id="wotd-audio-btn">🔊</button>` : ''}
+      <button class="wotd-add-btn" id="wotd-add-btn">➕</button>
+    </div>
   </div>`;
-  if (speechSupported) {
-    const audioBtn = document.getElementById('wotd-audio-btn');
-    // Удаляем старый обработчик перед добавлением нового
-    const newAudioBtn = audioBtn.cloneNode(true);
-    audioBtn.parentNode.replaceChild(newAudioBtn, audioBtn);
 
-    newAudioBtn.addEventListener('click', function () {
-      speakBtn(w.en, this);
-    });
+    // Обработчик аудио
+    if (speechSupported) {
+      const audioBtn = document.getElementById('wotd-audio-btn');
+      if (audioBtn) {
+        audioBtn.addEventListener('click', function () {
+          speakBtn(randomWord.en, this);
+        });
+      }
+    }
+
+    // Обработчик добавления слова
+    const addBtn = document.getElementById('wotd-add-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', function () {
+        console.log('Trying to add word:', randomWord.en);
+        console.log('Current words array:', words);
+        console.log('Words length:', words.length);
+
+        // Проверяем, нет ли уже такого слова
+        const existingWord = words.find(
+          w => w.en.toLowerCase() === randomWord.en.toLowerCase(),
+        );
+        console.log('Existing word found:', existingWord);
+
+        if (existingWord) {
+          toast('Это слово уже есть в словаре!', 'warning');
+          return;
+        }
+
+        // Добавляем слово
+        const newWord = mkWord(
+          randomWord.en,
+          randomWord.ru,
+          example,
+          randomWord.tags || [],
+          randomWord.phonetic || null,
+        );
+
+        words.unshift(newWord);
+        save();
+        renderWords();
+        toast(`Слово "${randomWord.en}" добавлено в словарь!`, 'success');
+
+        // Обновляем слово дня
+        setTimeout(renderWotd, 500);
+      });
+    }
+  } catch (error) {
+    console.error('Error rendering word of the day:', error);
+    wrap.innerHTML = `<div class="wotd-card">
+      <div style="text-align: center; padding: 1rem; color: var(--danger);">
+        Не удалось загрузить слово дня
+      </div>
+    </div>`;
   }
 }
 

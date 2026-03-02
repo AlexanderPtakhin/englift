@@ -8,8 +8,12 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="EngLift" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="styles.css" />
     <link rel="manifest" href="manifest.json" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
@@ -116,21 +120,21 @@
       <div class="logo">Eng<span>Lift</span></div>
       <nav>
         <button class="nav-btn active" data-tab="words">
-          <span>📚</span>
+          <span class="material-symbols-outlined"> book_4 </span>
           <span class="nav-text">Словарь</span>
           <span class="badge" id="words-count">0</span>
         </button>
         <button class="nav-btn" data-tab="add">
-          <span>➕</span>
+          <span class="material-symbols-outlined"> add </span>
           <span class="nav-text">Добавить</span>
         </button>
         <button class="nav-btn" data-tab="practice">
-          <span>🎯</span>
+          <span class="material-symbols-outlined"> exercise </span>
           <span class="nav-text">Практика</span>
           <span class="badge" id="due-count">0</span>
         </button>
         <button class="nav-btn" data-tab="stats">
-          <span>📊</span>
+          <span class="material-symbols-outlined"> monitoring </span>
           <span class="nav-text">Статистика</span>
         </button>
       </nav>
@@ -154,13 +158,23 @@
           <div class="user-dropdown" id="user-dropdown" style="display: none">
             <div class="user-email" id="dropdown-email">Загрузка...</div>
             <div class="dropdown-item" id="dropdown-speech-settings">
-              🔊 Настройки
+              <span class="material-symbols-outlined">settings</span>
+              Настройки
             </div>
             <div class="dropdown-item" id="dropdown-theme-toggle">
-              🌙 Тёмная тема
+              <span class="material-symbols-outlined">sunny</span>
+              <label class="theme-toggle">
+                <input type="checkbox" id="theme-checkbox" />
+                <span class="theme-slider"></span>
+              </label>
             </div>
-            <div class="dropdown-item" id="dropdown-export">⬇️ Экспорт</div>
-            <div class="dropdown-item" id="dropdown-logout">🚪 Выйти</div>
+            <div class="dropdown-item" id="dropdown-export">
+              <span class="material-symbols-outlined"> export_notes </span>
+              Экспорт
+            </div>
+            <div class="dropdown-item" id="dropdown-logout">
+              <span class="material-symbols-outlined"> logout </span> Выйти
+            </div>
           </div>
         </div>
       </div>
@@ -284,6 +298,16 @@
                   id="f-ru"
                   required
                   placeholder="e.g. достигать"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="form-group">
+                <label>Транскрипция (необязательно)</label
+                ><input
+                  class="form-control"
+                  type="text"
+                  id="f-phonetic"
+                  placeholder="e.g. /əˈtʃiːv/"
                   autocomplete="off"
                 />
               </div>
@@ -481,7 +505,19 @@
 
           <div id="practice-ex" style="display: none">
             <div class="ex-wrap">
-              <button class="ex-exit-btn" id="ex-exit-btn">✕ выйти</button>
+              <button class="ex-exit-btn" id="ex-exit-btn">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="16px"
+                  viewBox="0 -960 960 960"
+                  width="16px"
+                  fill="#e3e3e3"
+                >
+                  <path
+                    d="M479.62-140v-60h268.07q4.62 0 8.46-3.85 3.85-3.84 3.85-8.46v-535.38q0-4.62-3.85-8.46-3.84-3.85-8.46-3.85H479.62v-60h268.07Q778-820 799-799q21 21 21 51.31v535.38Q820-182 799-161q-21 21-51.31 21H479.62Zm-54.23-169.23-41.54-43.39L481.23-450H140v-60h341.23l-97.38-97.38 41.54-43.39L596.15-480 425.39-309.23Z"
+                  />
+                </svg>
+              </button>
               <div class="ex-progress">
                 <div class="ex-progress-info">
                   <span id="ex-counter">1 / 10</span>

@@ -2,6 +2,132 @@
 // API MODULE - Внешние сервисы для перевода и примеров
 // ============================================================
 
+// Локальный банк слов
+let wordBank = null;
+
+const BANK_CACHE_KEY = 'englift_wordbank_cache';
+const BANK_VERSION_KEY = 'englift_wordbank_version';
+const CURRENT_BANK_VERSION = '2026-03-01-v2';
+
+// Emergency fallback если JSON не загрузится
+const EMERGENCY_WORDS = [
+  {
+    en: 'go',
+    ru: 'идти / ехать',
+    phonetic: '/ɡoʊ/',
+    examples: ['I go to the market every Sunday.'],
+    tags: ['A1', 'verb', 'everyday'],
+  },
+  {
+    en: 'come',
+    ru: 'приходить / приезжать',
+    phonetic: '/kʌm/',
+    examples: ['She came home late yesterday.'],
+    tags: ['A1', 'verb', 'everyday'],
+  },
+  {
+    en: 'eat',
+    ru: 'есть / кушать',
+    phonetic: '/iːt/',
+    examples: ['We eat dinner together as a family.'],
+    tags: ['A1', 'verb', 'everyday'],
+  },
+  {
+    en: 'drink',
+    ru: 'пить / напиток',
+    phonetic: '/drɪŋk/',
+    examples: ['He drinks a glass of water every morning.'],
+    tags: ['A1', 'verb', 'everyday'],
+  },
+  {
+    en: 'sleep',
+    ru: 'спать',
+    phonetic: '/sliːp/',
+    examples: ['I usually sleep for eight hours.'],
+    tags: ['A1', 'verb', 'everyday'],
+  },
+];
+
+/**
+ * Загружает банк слов — сначала пытается из dictionary.json,
+ * если не получилось — fallback на встроенный WORD_BANK
+ */
+async function loadWordBank() {
+  // Принудительная очистка кеша для отладки
+  if (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  ) {
+    console.log('Отладочный режим: принудительно очищаем кеш word bank');
+    localStorage.removeItem(BANK_CACHE_KEY);
+    localStorage.removeItem(BANK_VERSION_KEY);
+    wordBank = null;
+  }
+
+  if (wordBank) return wordBank;
+
+  // 1. Проверяем кэш
+  const cachedVersion = localStorage.getItem(BANK_VERSION_KEY);
+  const cachedData = localStorage.getItem(BANK_CACHE_KEY);
+
+  // Принудительно очищаем кеш если версия изменилась
+  if (cachedVersion !== CURRENT_BANK_VERSION) {
+    console.log(
+      `Версия изменилась с ${cachedVersion} на ${CURRENT_BANK_VERSION}, очищаем кеш`,
+    );
+    localStorage.removeItem(BANK_CACHE_KEY);
+    localStorage.removeItem(BANK_VERSION_KEY);
+  }
+
+  if (cachedVersion === CURRENT_BANK_VERSION && cachedData) {
+    try {
+      wordBank = JSON.parse(cachedData);
+      console.log(`Кэш: ${wordBank.length} слов (v${CURRENT_BANK_VERSION})`);
+      return wordBank;
+    } catch (e) {
+      console.warn('Кэш повреждён, загружаем заново');
+    }
+  }
+
+  // 2. Пробуем загрузить JSON
+  try {
+    console.log('Пытаемся загрузить dictionary.json...');
+    console.log('URL запроса:', './dictionary.json');
+
+    const response = await fetch('./dictionary.json', { cache: 'no-cache' });
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    wordBank = await response.json();
+    console.log(`Успешно загружено ${wordBank.length} слов из dictionary.json`);
+    console.log(
+      'Проверяем слово "stand" в загруженных данных:',
+      wordBank.find(w => w.en === 'stand') ? 'НАЙДЕНО' : 'НЕ НАЙДЕНО',
+    );
+    console.log(
+      'Первые 3 слова:',
+      wordBank
+        .slice(0, 3)
+        .map(w => `${w.en}: ${w.phonetic || 'нет транскрипции'}`),
+    );
+
+    // Сохраняем в кэш
+    localStorage.setItem(BANK_CACHE_KEY, JSON.stringify(wordBank));
+    localStorage.setItem(BANK_VERSION_KEY, CURRENT_BANK_VERSION);
+
+    return wordBank;
+  } catch (err) {
+    console.warn('dictionary.json не загрузился:', err);
+
+    // 3. Fallback на emergency слова
+    wordBank = EMERGENCY_WORDS;
+    console.log(`Emergency fallback → ${wordBank.length} слов`);
+    return wordBank;
+  }
+}
+
 // Глобальный словарь популярных слов для использования в разных функциях
 const SPECIAL_WORDS = {
   apple: ['noun', 'food', 'fruit', 'common'],
@@ -642,11 +768,44 @@ function generateExamples(word) {
  * @returns {Promise<{translation: string, examples: string[], tags: string[]}>}
  */
 async function getCompleteWordData(englishWord) {
+  const lowerWord = englishWord.toLowerCase().trim();
+
   try {
     // Показываем индикатор загрузки
     if (window.showApiLoading) {
       window.showApiLoading(true);
     }
+
+    // Сначала проверяем локальный банк
+    const bank = await loadWordBank();
+    console.log(`Ищем слово "${lowerWord}" в банке из ${bank.length} слов`);
+    console.log(
+      'Первые 3 слова в банке:',
+      bank.slice(0, 3).map(w => w.en),
+    );
+
+    const localEntry = bank.find(w => w.en.toLowerCase() === lowerWord);
+    console.log(
+      `Результат поиска "${lowerWord}":`,
+      localEntry ? 'НАЙДЕНО' : 'НЕ НАЙДЕНО',
+    );
+    if (localEntry) {
+      console.log('Найденная запись:', localEntry);
+    }
+
+    if (localEntry) {
+      console.log(`Found "${englishWord}" in local bank`);
+      return {
+        translation: localEntry.ru,
+        examples: localEntry.examples || [],
+        tags: localEntry.tags || [],
+        phonetic: localEntry.phonetic || '',
+        confidence: 1.0, // 100% уверенность для локальных данных
+      };
+    }
+
+    // Если не нашли в банке, идём в API
+    console.log(`"${englishWord}" not found in local bank, using API`);
 
     // Параллельно запрашиваем перевод и данные слова
     const [translationResult, wordData] = await Promise.all([
@@ -671,6 +830,43 @@ async function getCompleteWordData(englishWord) {
   }
 }
 
+/**
+ * Получает случайное слово из банка, которого нет у пользователя
+ * @returns {Promise<Object>} - Случайное слово из банка
+ */
+async function getRandomNewWord() {
+  const bank = await loadWordBank();
+
+  if (!bank || bank.length === 0) {
+    console.error('Word bank is empty or failed to load');
+    return null;
+  }
+
+  console.log('Word bank loaded, length:', bank.length);
+
+  // Получаем слова пользователя из глобального массива (если доступен)
+  const userWords = window.words || [];
+  console.log('User words length:', userWords.length);
+
+  // Фильтруем слова, которых нет в словаре пользователя
+  const available = bank.filter(
+    item => !userWords.some(w => w.en.toLowerCase() === item.en.toLowerCase()),
+  );
+
+  console.log('Available new words:', available.length);
+
+  if (available.length === 0) {
+    // Если все слова уже есть, возвращаем случайное из всего банка
+    const randomWord = bank[Math.floor(Math.random() * bank.length)];
+    console.log('All words exist, returning random:', randomWord.en);
+    return randomWord;
+  }
+
+  const randomWord = available[Math.floor(Math.random() * available.length)];
+  console.log('Returning new word:', randomWord.en);
+  return randomWord;
+}
+
 // ============================================================
 // ОЧИСТКА КЕША
 // ============================================================
@@ -689,4 +885,6 @@ window.WordAPI = {
   getWordData,
   getCompleteWordData,
   clearApiCache,
+  loadWordBank,
+  getRandomNewWord,
 };

@@ -1,0 +1,3772 @@
+[
+  {
+    "en": "go",
+    "ru": "идти / ехать",
+    "phonetic": "/ɡoʊ/",
+    "examples": [
+      "I go to the market every Sunday."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "come",
+    "ru": "приходить / приезжать",
+    "phonetic": "/kʌm/",
+    "examples": [
+      "She came home late yesterday."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "eat",
+    "ru": "есть / кушать",
+    "phonetic": "/iːt/",
+    "examples": [
+      "We eat dinner together as a family."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "drink",
+    "ru": "пить / напиток",
+    "phonetic": "/drɪŋk/",
+    "examples": [
+      "He drinks a glass of water every morning."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "sleep",
+    "ru": "спать / сон",
+    "phonetic": "/sliːp/",
+    "examples": [
+      "I usually sleep for eight hours."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "wake",
+    "ru": "просыпаться / будить",
+    "phonetic": "/weɪk/",
+    "examples": [
+      "She wakes up early every weekday."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "walk",
+    "ru": "идти пешком / прогулка",
+    "phonetic": "/wɔːk/",
+    "examples": [
+      "We walk to the park after dinner."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "run",
+    "ru": "бежать / бег",
+    "phonetic": "/rʌn/",
+    "examples": [
+      "He runs every morning to stay in shape."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "health"
+    ]
+  },
+  {
+    "en": "sit",
+    "ru": "сидеть / садиться",
+    "phonetic": "/sɪt/",
+    "examples": [
+      "She sat by the window and looked outside."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "stand",
+    "ru": "стоять / вставать",
+    "phonetic": "/stænd/",
+    "examples": [
+      "We stood in line for half an hour."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "look",
+    "ru": "смотреть / выглядеть",
+    "phonetic": "/lʊk/",
+    "examples": [
+      "Look at those clouds — it's going to rain."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "see",
+    "ru": "видеть",
+    "phonetic": "/siː/",
+    "examples": [
+      "I can see the mountains from my window."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "hear",
+    "ru": "слышать",
+    "phonetic": "/hɪər/",
+    "examples": [
+      "Did you hear that strange noise last night?"
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "speak",
+    "ru": "говорить / разговаривать",
+    "phonetic": "/spiːk/",
+    "examples": [
+      "She speaks three languages fluently."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "say",
+    "ru": "сказать / говорить",
+    "phonetic": "/seɪ/",
+    "examples": [
+      "He said he would be back by noon."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "tell",
+    "ru": "рассказывать / сообщать",
+    "phonetic": "/tel/",
+    "examples": [
+      "She told me the whole story."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "ask",
+    "ru": "спрашивать / просить",
+    "phonetic": "/æsk/",
+    "examples": [
+      "He asked for help with his bag."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "know",
+    "ru": "знать",
+    "phonetic": "/noʊ/",
+    "examples": [
+      "I know her from school — we grew up together."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "think",
+    "ru": "думать / считать",
+    "phonetic": "/θɪŋk/",
+    "examples": [
+      "I think it's going to be a great day."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "want",
+    "ru": "хотеть / желать",
+    "phonetic": "/wɒnt/",
+    "examples": [
+      "She wants to travel to Japan next year."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "need",
+    "ru": "нуждаться / нужно",
+    "phonetic": "/niːd/",
+    "examples": [
+      "I need a cup of tea before I can function."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "like",
+    "ru": "нравиться / любить",
+    "phonetic": "/laɪk/",
+    "examples": [
+      "He likes hiking in the mountains on weekends."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "love",
+    "ru": "любить / обожать",
+    "phonetic": "/lʌv/",
+    "examples": [
+      "She loves cooking for her family."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "hate",
+    "ru": "ненавидеть",
+    "phonetic": "/heɪt/",
+    "examples": [
+      "I hate getting stuck in traffic."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "feel",
+    "ru": "чувствовать / ощущать",
+    "phonetic": "/fiːl/",
+    "examples": [
+      "I feel much better after a good night's sleep."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "give",
+    "ru": "давать / дарить",
+    "phonetic": "/ɡɪv/",
+    "examples": [
+      "He gave her flowers on her birthday."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "take",
+    "ru": "брать / занимать (время)",
+    "phonetic": "/teɪk/",
+    "examples": [
+      "It takes about twenty minutes to get there on foot."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "bring",
+    "ru": "приносить / привозить",
+    "phonetic": "/brɪŋ/",
+    "examples": [
+      "She brought homemade cookies to the office."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "buy",
+    "ru": "покупать",
+    "phonetic": "/baɪ/",
+    "examples": [
+      "We buy groceries every Saturday morning."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "pay",
+    "ru": "платить / оплачивать",
+    "phonetic": "/peɪ/",
+    "examples": [
+      "He paid for dinner without saying a word."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "help",
+    "ru": "помогать / помощь",
+    "phonetic": "/help/",
+    "examples": [
+      "She always helps her neighbours when they need it."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "try",
+    "ru": "пробовать / стараться",
+    "phonetic": "/traɪ/",
+    "examples": [
+      "Try this dish — it's incredible."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "start",
+    "ru": "начинать",
+    "phonetic": "/stɑːrt/",
+    "examples": [
+      "He started learning Spanish at the age of thirty."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "stop",
+    "ru": "останавливаться / прекращать",
+    "phonetic": "/stɒp/",
+    "examples": [
+      "She stopped eating sugar and felt much better."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "wait",
+    "ru": "ждать",
+    "phonetic": "/weɪt/",
+    "examples": [
+      "We waited for the bus in the rain."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "find",
+    "ru": "находить",
+    "phonetic": "/faɪnd/",
+    "examples": [
+      "I found an old photo of my grandparents."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "lose",
+    "ru": "терять / проигрывать",
+    "phonetic": "/luːz/",
+    "examples": [
+      "He lost his keys somewhere in the park."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "open",
+    "ru": "открывать / открытый",
+    "phonetic": "/ˈoʊpən/",
+    "examples": [
+      "She opened the window to let in some fresh air."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "close",
+    "ru": "закрывать / закрытый",
+    "phonetic": "/kloʊz/",
+    "examples": [
+      "Please close the door behind you."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "read",
+    "ru": "читать",
+    "phonetic": "/riːd/",
+    "examples": [
+      "I read for at least thirty minutes before bed."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "write",
+    "ru": "писать",
+    "phonetic": "/raɪt/",
+    "examples": [
+      "She writes in her journal every evening."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "play",
+    "ru": "играть",
+    "phonetic": "/pleɪ/",
+    "examples": [
+      "The kids play outside until it gets dark."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "work",
+    "ru": "работать / работа",
+    "phonetic": "/wɜːrk/",
+    "examples": [
+      "He works long hours but loves what he does."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "live",
+    "ru": "жить / проживать",
+    "phonetic": "/lɪv/",
+    "examples": [
+      "They live in a small town near the coast."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "stay",
+    "ru": "оставаться / останавливаться",
+    "phonetic": "/steɪ/",
+    "examples": [
+      "We stayed at a cosy little hotel by the beach."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "leave",
+    "ru": "уходить / уезжать / оставлять",
+    "phonetic": "/liːv/",
+    "examples": [
+      "She left the house before sunrise."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "travel",
+    "ru": "путешествовать",
+    "phonetic": "/ˈtrævəl/",
+    "examples": [
+      "They travel to a new country every summer."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "travel"
+    ]
+  },
+  {
+    "en": "meet",
+    "ru": "встречать / знакомиться",
+    "phonetic": "/miːt/",
+    "examples": [
+      "I met my best friend on the first day of school."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "visit",
+    "ru": "навещать / посещать",
+    "phonetic": "/ˈvɪzɪt/",
+    "examples": [
+      "We visit my grandparents every holiday."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "call",
+    "ru": "звонить / называть",
+    "phonetic": "/kɔːl/",
+    "examples": [
+      "She calls her mother every Sunday evening."
+    ],
+    "tags": [
+      "A1",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "happy",
+    "ru": "счастливый / радостный",
+    "phonetic": "/ˈhæpi/",
+    "examples": [
+      "She looked genuinely happy for the first time in months."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "sad",
+    "ru": "грустный / печальный",
+    "phonetic": "/sæd/",
+    "examples": [
+      "He was sad when his best friend moved away."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "tired",
+    "ru": "усталый",
+    "phonetic": "/ˈtaɪərd/",
+    "examples": [
+      "I'm so tired I can barely keep my eyes open."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "health"
+    ]
+  },
+  {
+    "en": "hungry",
+    "ru": "голодный",
+    "phonetic": "/ˈhʌŋɡri/",
+    "examples": [
+      "I'm always hungry after a long walk."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "thirsty",
+    "ru": "жаждущий / хочу пить",
+    "phonetic": "/ˈθɜːrsti/",
+    "examples": [
+      "I was so thirsty after the hike."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "hot",
+    "ru": "горячий / жаркий",
+    "phonetic": "/hɒt/",
+    "examples": [
+      "It was so hot that nobody wanted to go outside."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "weather"
+    ]
+  },
+  {
+    "en": "cold",
+    "ru": "холодный / простуда",
+    "phonetic": "/koʊld/",
+    "examples": [
+      "The water was too cold for swimming."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "weather"
+    ]
+  },
+  {
+    "en": "warm",
+    "ru": "тёплый",
+    "phonetic": "/wɔːrm/",
+    "examples": [
+      "We sat by the fire to stay warm."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "weather"
+    ]
+  },
+  {
+    "en": "big",
+    "ru": "большой",
+    "phonetic": "/bɪɡ/",
+    "examples": [
+      "They moved into a big house in the suburbs."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "small",
+    "ru": "маленький",
+    "phonetic": "/smɔːl/",
+    "examples": [
+      "She grew up in a small village."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "fast",
+    "ru": "быстрый",
+    "phonetic": "/fæst/",
+    "examples": [
+      "The train was so fast we arrived an hour early."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "slow",
+    "ru": "медленный",
+    "phonetic": "/sloʊ/",
+    "examples": [
+      "The traffic was slow because of the rain."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "easy",
+    "ru": "лёгкий / простой",
+    "phonetic": "/ˈiːzi/",
+    "examples": [
+      "The recipe looks easy but tastes amazing."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "hard",
+    "ru": "трудный / твёрдый",
+    "phonetic": "/hɑːrd/",
+    "examples": [
+      "It was hard to say goodbye after such a good holiday."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "good",
+    "ru": "хороший",
+    "phonetic": "/ɡʊd/",
+    "examples": [
+      "She's in a good mood today — must be the sunshine."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "bad",
+    "ru": "плохой",
+    "phonetic": "/bæd/",
+    "examples": [
+      "I had a really bad day and just needed to rest."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "new",
+    "ru": "новый",
+    "phonetic": "/njuː/",
+    "examples": [
+      "She bought a new coat for the winter."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "old",
+    "ru": "старый",
+    "phonetic": "/oʊld/",
+    "examples": [
+      "This is an old photo of my parents on their first date."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "young",
+    "ru": "молодой",
+    "phonetic": "/jʌŋ/",
+    "examples": [
+      "He looks very young for his age."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "tall",
+    "ru": "высокий",
+    "phonetic": "/tɔːl/",
+    "examples": [
+      "She's the tallest person in her family."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "appearance"
+    ]
+  },
+  {
+    "en": "short",
+    "ru": "низкий / короткий",
+    "phonetic": "/ʃɔːrt/",
+    "examples": [
+      "The days are short in winter."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "clean",
+    "ru": "чистый",
+    "phonetic": "/kliːn/",
+    "examples": [
+      "The kitchen is clean and smells fresh."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "dirty",
+    "ru": "грязный",
+    "phonetic": "/ˈdɜːrti/",
+    "examples": [
+      "My shoes got dirty walking through the mud."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "full",
+    "ru": "полный / сытый",
+    "phonetic": "/fʊl/",
+    "examples": [
+      "I'm completely full — that was delicious."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "empty",
+    "ru": "пустой",
+    "phonetic": "/ˈempti/",
+    "examples": [
+      "The streets were empty at six in the morning."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "right",
+    "ru": "правильный / правый",
+    "phonetic": "/raɪt/",
+    "examples": [
+      "You were right — the restaurant was fantastic."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "wrong",
+    "ru": "неправильный / ошибочный",
+    "phonetic": "/rɒŋ/",
+    "examples": [
+      "I took the wrong bus and ended up on the other side of the city."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "free",
+    "ru": "свободный / бесплатный",
+    "phonetic": "/friː/",
+    "examples": [
+      "The museum is free on the first Sunday of every month."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "ready",
+    "ru": "готовый",
+    "phonetic": "/ˈredi/",
+    "examples": [
+      "Dinner is ready — come to the table!"
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "sure",
+    "ru": "уверенный / конечно",
+    "phonetic": "/ʃʊr/",
+    "examples": [
+      "I'm not sure which way to go."
+    ],
+    "tags": [
+      "A1",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "friend",
+    "ru": "друг / подруга",
+    "phonetic": "/frend/",
+    "examples": [
+      "She's been my best friend since we were five."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "social"
+    ]
+  },
+  {
+    "en": "family",
+    "ru": "семья",
+    "phonetic": "/ˈfæməli/",
+    "examples": [
+      "We get together as a family every Christmas."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "social"
+    ]
+  },
+  {
+    "en": "home",
+    "ru": "дом / домой",
+    "phonetic": "/hoʊm/",
+    "examples": [
+      "There's no place like home after a long trip."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "food",
+    "ru": "еда",
+    "phonetic": "/fuːd/",
+    "examples": [
+      "The food at that market was absolutely amazing."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "food"
+    ]
+  },
+  {
+    "en": "water",
+    "ru": "вода",
+    "phonetic": "/ˈwɔːtər/",
+    "examples": [
+      "I always carry a bottle of water with me."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "time",
+    "ru": "время",
+    "phonetic": "/taɪm/",
+    "examples": [
+      "We had a great time on the trip."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "day",
+    "ru": "день",
+    "phonetic": "/deɪ/",
+    "examples": [
+      "It was the best day of my entire holiday."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "night",
+    "ru": "ночь",
+    "phonetic": "/naɪt/",
+    "examples": [
+      "We sat outside talking all night."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "morning",
+    "ru": "утро",
+    "phonetic": "/ˈmɔːrnɪŋ/",
+    "examples": [
+      "I feel most productive in the morning."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "evening",
+    "ru": "вечер",
+    "phonetic": "/ˈiːvnɪŋ/",
+    "examples": [
+      "We went for a walk in the evening when it got cooler."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "year",
+    "ru": "год",
+    "phonetic": "/jɪər/",
+    "examples": [
+      "This year went by faster than any other."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "week",
+    "ru": "неделя",
+    "phonetic": "/wiːk/",
+    "examples": [
+      "I haven't seen her in over a week."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "money",
+    "ru": "деньги",
+    "phonetic": "/ˈmʌni/",
+    "examples": [
+      "He spent all his money on the trip and had no regrets."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "city",
+    "ru": "город",
+    "phonetic": "/ˈsɪti/",
+    "examples": [
+      "She always dreamed of living in a big city."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "country",
+    "ru": "страна / деревня",
+    "phonetic": "/ˈkʌntri/",
+    "examples": [
+      "He prefers life in the country to the noise of the city."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "travel"
+    ]
+  },
+  {
+    "en": "place",
+    "ru": "место",
+    "phonetic": "/pleɪs/",
+    "examples": [
+      "This is my favourite place to sit and think."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "way",
+    "ru": "путь / способ / дорога",
+    "phonetic": "/weɪ/",
+    "examples": [
+      "Is there a faster way to get to the station?"
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "job",
+    "ru": "работа / должность",
+    "phonetic": "/dʒɒb/",
+    "examples": [
+      "She got a new job at a small local restaurant."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "work"
+    ]
+  },
+  {
+    "en": "school",
+    "ru": "школа",
+    "phonetic": "/skuːl/",
+    "examples": [
+      "I made my closest friends at school."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "education"
+    ]
+  },
+  {
+    "en": "word",
+    "ru": "слово",
+    "phonetic": "/wɜːrd/",
+    "examples": [
+      "I try to learn five new words every day."
+    ],
+    "tags": [
+      "A1",
+      "noun",
+      "language"
+    ]
+  },
+  {
+    "en": "often",
+    "ru": "часто",
+    "phonetic": "/ˈɒfən/",
+    "examples": [
+      "How often do you visit your parents?"
+    ],
+    "tags": [
+      "A1",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "always",
+    "ru": "всегда",
+    "phonetic": "/ˈɔːlweɪz/",
+    "examples": [
+      "She always makes time for the people she cares about."
+    ],
+    "tags": [
+      "A1",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "never",
+    "ru": "никогда",
+    "phonetic": "/ˈnevər/",
+    "examples": [
+      "I've never eaten anything so spicy in my life."
+    ],
+    "tags": [
+      "A1",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "now",
+    "ru": "сейчас / теперь",
+    "phonetic": "/naʊ/",
+    "examples": [
+      "Let's go now before it starts raining."
+    ],
+    "tags": [
+      "A1",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "soon",
+    "ru": "скоро / вскоре",
+    "phonetic": "/suːn/",
+    "examples": [
+      "Dinner will be ready soon."
+    ],
+    "tags": [
+      "A1",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "already",
+    "ru": "уже",
+    "phonetic": "/ɔːlˈredi/",
+    "examples": [
+      "I already told him three times."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "still",
+    "ru": "всё ещё",
+    "phonetic": "/stɪl/",
+    "examples": [
+      "She still writes letters by hand."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "yet",
+    "ru": "ещё / уже (в вопросах)",
+    "phonetic": "/jet/",
+    "examples": [
+      "Have you had breakfast yet?"
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "again",
+    "ru": "снова / опять",
+    "phonetic": "/əˈɡen/",
+    "examples": [
+      "Let's do this again sometime."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "together",
+    "ru": "вместе",
+    "phonetic": "/təˈɡeðər/",
+    "examples": [
+      "We cooked the whole meal together."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "social"
+    ]
+  },
+  {
+    "en": "enough",
+    "ru": "достаточно",
+    "phonetic": "/ɪˈnʌf/",
+    "examples": [
+      "I didn't sleep enough last night."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "instead",
+    "ru": "вместо / взамен",
+    "phonetic": "/ɪnˈsted/",
+    "examples": [
+      "She ordered tea instead of coffee."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "probably",
+    "ru": "вероятно / скорее всего",
+    "phonetic": "/ˈprɒbəbli/",
+    "examples": [
+      "She's probably stuck in traffic."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "actually",
+    "ru": "на самом деле / вообще-то",
+    "phonetic": "/ˈæktʃuəli/",
+    "examples": [
+      "It was actually a lot more fun than I expected."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "really",
+    "ru": "действительно / очень",
+    "phonetic": "/ˈrɪəli/",
+    "examples": [
+      "I'm really glad you came."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "quite",
+    "ru": "довольно / весьма",
+    "phonetic": "/kwaɪt/",
+    "examples": [
+      "The hike was quite challenging but worth every step."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "suddenly",
+    "ru": "внезапно / вдруг",
+    "phonetic": "/ˈsʌdənli/",
+    "examples": [
+      "It suddenly started pouring with rain."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "finally",
+    "ru": "наконец / в итоге",
+    "phonetic": "/ˈfaɪnəli/",
+    "examples": [
+      "We finally found a table at the restaurant."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "however",
+    "ru": "однако / тем не менее",
+    "phonetic": "/haʊˈevər/",
+    "examples": [
+      "The hotel was expensive. However, it was worth it."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "language"
+    ]
+  },
+  {
+    "en": "especially",
+    "ru": "особенно",
+    "phonetic": "/ɪˈspeʃəli/",
+    "examples": [
+      "I love autumn, especially when the leaves turn orange."
+    ],
+    "tags": [
+      "A2",
+      "adverb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "friendly",
+    "ru": "дружелюбный / приветливый",
+    "phonetic": "/ˈfrendli/",
+    "examples": [
+      "Everyone in the village was incredibly friendly."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "kind",
+    "ru": "добрый / любезный",
+    "phonetic": "/kaɪnd/",
+    "examples": [
+      "It was so kind of you to help me with the bags."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "funny",
+    "ru": "смешной / забавный",
+    "phonetic": "/ˈfʌni/",
+    "examples": [
+      "He told the funniest story at dinner."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "serious",
+    "ru": "серьёзный",
+    "phonetic": "/ˈsɪəriəs/",
+    "examples": [
+      "She has a serious look but laughs easily."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "quiet",
+    "ru": "тихий / спокойный",
+    "phonetic": "/ˈkwaɪət/",
+    "examples": [
+      "He's quiet but very thoughtful."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "loud",
+    "ru": "громкий",
+    "phonetic": "/laʊd/",
+    "examples": [
+      "The music was so loud we couldn't have a conversation."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "polite",
+    "ru": "вежливый",
+    "phonetic": "/pəˈlaɪt/",
+    "examples": [
+      "He was polite and patient with everyone."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "rude",
+    "ru": "грубый / невежливый",
+    "phonetic": "/ruːd/",
+    "examples": [
+      "It's rude to interrupt someone while they're talking."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "brave",
+    "ru": "смелый / храбрый",
+    "phonetic": "/breɪv/",
+    "examples": [
+      "She was brave enough to speak her mind in front of everyone."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "shy",
+    "ru": "застенчивый / робкий",
+    "phonetic": "/ʃaɪ/",
+    "examples": [
+      "He was shy at first but opened up after an hour."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "honest",
+    "ru": "честный",
+    "phonetic": "/ˈɒnɪst/",
+    "examples": [
+      "I appreciate people who are honest even when it's uncomfortable."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "clever",
+    "ru": "умный / сообразительный",
+    "phonetic": "/ˈklevər/",
+    "examples": [
+      "She came up with a very clever solution to the problem."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "lazy",
+    "ru": "ленивый",
+    "phonetic": "/ˈleɪzi/",
+    "examples": [
+      "I had a wonderfully lazy Sunday morning."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "patient",
+    "ru": "терпеливый",
+    "phonetic": "/ˈpeɪʃənt/",
+    "examples": [
+      "You need to be patient — good things take time."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "careful",
+    "ru": "осторожный / аккуратный",
+    "phonetic": "/ˈkerfl/",
+    "examples": [
+      "Be careful on that path — it gets slippery when wet."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "awful",
+    "ru": "ужасный / отвратительный",
+    "phonetic": "/ˈɔːfl/",
+    "examples": [
+      "The weather was awful the whole week."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "wonderful",
+    "ru": "чудесный / замечательный",
+    "phonetic": "/ˈwʌndərfl/",
+    "examples": [
+      "We had a wonderful evening by the sea."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "strange",
+    "ru": "странный / незнакомый",
+    "phonetic": "/streɪndʒ/",
+    "examples": [
+      "There was a strange smell coming from the kitchen."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "familiar",
+    "ru": "знакомый / привычный",
+    "phonetic": "/fəˈmɪliər/",
+    "examples": [
+      "Her face looked familiar but I couldn't remember her name."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "everyday"
+    ]
+  },
+  {
+    "en": "local",
+    "ru": "местный / локальный",
+    "phonetic": "/ˈloʊkəl/",
+    "examples": [
+      "We always eat at local restaurants when we travel."
+    ],
+    "tags": [
+      "A2",
+      "adjective",
+      "travel"
+    ]
+  },
+  {
+    "en": "trip",
+    "ru": "поездка / путешествие",
+    "phonetic": "/trɪp/",
+    "examples": [
+      "The road trip along the coast was unforgettable."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "travel"
+    ]
+  },
+  {
+    "en": "weather",
+    "ru": "погода",
+    "phonetic": "/ˈweðər/",
+    "examples": [
+      "The weather was perfect for a picnic."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "weather"
+    ]
+  },
+  {
+    "en": "health",
+    "ru": "здоровье",
+    "phonetic": "/helθ/",
+    "examples": [
+      "Taking care of your health is the best investment."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "health"
+    ]
+  },
+  {
+    "en": "habit",
+    "ru": "привычка",
+    "phonetic": "/ˈhæbɪt/",
+    "examples": [
+      "Reading before bed has become my favourite habit."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "behavior"
+    ]
+  },
+  {
+    "en": "problem",
+    "ru": "проблема",
+    "phonetic": "/ˈprɒbləm/",
+    "examples": [
+      "We sat down and talked through the problem calmly."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "reason",
+    "ru": "причина / повод",
+    "phonetic": "/ˈriːzən/",
+    "examples": [
+      "She had a good reason to feel proud of herself."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "idea",
+    "ru": "идея / мысль",
+    "phonetic": "/aɪˈdɪə/",
+    "examples": [
+      "It was her idea to go camping and it was brilliant."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "plan",
+    "ru": "план",
+    "phonetic": "/plæn/",
+    "examples": [
+      "The plan was simple — wake up early and drive to the coast."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "dream",
+    "ru": "мечта / сон / мечтать",
+    "phonetic": "/driːm/",
+    "examples": [
+      "Her dream was to open her own bakery."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "memory",
+    "ru": "воспоминание / память",
+    "phonetic": "/ˈmeməri/",
+    "examples": [
+      "That summer left me with memories I'll never forget."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "feeling",
+    "ru": "чувство / ощущение",
+    "phonetic": "/ˈfiːlɪŋ/",
+    "examples": [
+      "I had a strange feeling that something was about to change."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "mistake",
+    "ru": "ошибка",
+    "phonetic": "/mɪˈsteɪk/",
+    "examples": [
+      "Everyone makes mistakes — what matters is what you learn."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "choice",
+    "ru": "выбор",
+    "phonetic": "/tʃɔɪs/",
+    "examples": [
+      "It was a difficult choice but she made the right one."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "chance",
+    "ru": "шанс / возможность",
+    "phonetic": "/tʃɑːns/",
+    "examples": [
+      "Don't miss your chance to see this view — it's worth it."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "everyday"
+    ]
+  },
+  {
+    "en": "moment",
+    "ru": "момент / мгновение",
+    "phonetic": "/ˈmoʊmənt/",
+    "examples": [
+      "I want to remember this moment forever."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "story",
+    "ru": "история / рассказ",
+    "phonetic": "/ˈstɔːri/",
+    "examples": [
+      "She told us a story about her grandmother that made everyone cry."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "language"
+    ]
+  },
+  {
+    "en": "opinion",
+    "ru": "мнение / точка зрения",
+    "phonetic": "/əˈpɪnjən/",
+    "examples": [
+      "In my opinion, slow travel is the best kind."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "communication"
+    ]
+  },
+  {
+    "en": "advice",
+    "ru": "совет",
+    "phonetic": "/ədˈvaɪs/",
+    "examples": [
+      "The best advice she ever got was to trust herself."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "communication"
+    ]
+  },
+  {
+    "en": "fun",
+    "ru": "веселье / весело",
+    "phonetic": "/fʌn/",
+    "examples": [
+      "We had so much fun at the festival."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "rest",
+    "ru": "отдых / отдыхать",
+    "phonetic": "/rest/",
+    "examples": [
+      "After a week of hiking, we needed a proper rest."
+    ],
+    "tags": [
+      "A2",
+      "noun",
+      "health"
+    ]
+  },
+  {
+    "en": "improve",
+    "ru": "улучшать / совершенствоваться",
+    "phonetic": "/ɪmˈpruːv/",
+    "examples": [
+      "Her mood improved the moment she stepped outside."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "change",
+    "ru": "менять / изменение",
+    "phonetic": "/tʃeɪndʒ/",
+    "examples": [
+      "Moving abroad changed her perspective on life."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "decide",
+    "ru": "решать / принимать решение",
+    "phonetic": "/dɪˈsaɪd/",
+    "examples": [
+      "We decided to skip dessert and go for a walk instead."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "enjoy",
+    "ru": "наслаждаться / получать удовольствие",
+    "phonetic": "/ɪnˈdʒɔɪ/",
+    "examples": [
+      "I really enjoyed the quiet evenings there."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "remember",
+    "ru": "помнить / вспоминать",
+    "phonetic": "/rɪˈmembər/",
+    "examples": [
+      "I'll always remember the first time I saw the ocean."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "forget",
+    "ru": "забывать",
+    "phonetic": "/fərˈɡet/",
+    "examples": [
+      "I forgot to call him back and felt terrible about it."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "understand",
+    "ru": "понимать",
+    "phonetic": "/ˌʌndərˈstænd/",
+    "examples": [
+      "It took me a while to understand what she meant."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "believe",
+    "ru": "верить / считать",
+    "phonetic": "/bɪˈliːv/",
+    "examples": [
+      "I believe that kindness costs nothing."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "prefer",
+    "ru": "предпочитать",
+    "phonetic": "/prɪˈfɜːr/",
+    "examples": [
+      "She prefers coffee with no sugar."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "agree",
+    "ru": "соглашаться",
+    "phonetic": "/əˈɡriː/",
+    "examples": [
+      "We don't always agree, but we always respect each other."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "disagree",
+    "ru": "не соглашаться",
+    "phonetic": "/ˌdɪsəˈɡriː/",
+    "examples": [
+      "It's healthy to disagree sometimes."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "promise",
+    "ru": "обещать / обещание",
+    "phonetic": "/ˈprɒmɪs/",
+    "examples": [
+      "He promised to be there and he kept his word."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "explain",
+    "ru": "объяснять",
+    "phonetic": "/ɪkˈspleɪn/",
+    "examples": [
+      "She explained everything so clearly that it instantly made sense."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "suggest",
+    "ru": "предлагать / советовать",
+    "phonetic": "/səˈdʒest/",
+    "examples": [
+      "He suggested we try the seafood restaurant near the harbour."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "accept",
+    "ru": "принимать / соглашаться",
+    "phonetic": "/əkˈsept/",
+    "examples": [
+      "She accepted the invitation with a big smile."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "refuse",
+    "ru": "отказывать / отказываться",
+    "phonetic": "/rɪˈfjuːz/",
+    "examples": [
+      "He politely refused and suggested another time."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "manage",
+    "ru": "справляться / управлять",
+    "phonetic": "/ˈmænɪdʒ/",
+    "examples": [
+      "She managed to stay calm despite the chaos."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "allow",
+    "ru": "позволять / разрешать",
+    "phonetic": "/əˈlaʊ/",
+    "examples": [
+      "They don't allow pets in that building."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "avoid",
+    "ru": "избегать",
+    "phonetic": "/əˈvɔɪd/",
+    "examples": [
+      "She avoids crowded places on weekends."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "follow",
+    "ru": "следовать / идти за",
+    "phonetic": "/ˈfɒloʊ/",
+    "examples": [
+      "We followed the path along the river for an hour."
+    ],
+    "tags": [
+      "A2",
+      "verb",
+      "everyday"
+    ]
+  },
+  {
+    "en": "anxious",
+    "ru": "тревожный / беспокойный",
+    "phonetic": "/ˈæŋkʃəs/",
+    "examples": [
+      "She felt anxious before the important conversation."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "exhausted",
+    "ru": "измотанный / полностью уставший",
+    "phonetic": "/ɪɡˈzɔːstɪd/",
+    "examples": [
+      "After three days of hiking I was completely exhausted."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "health"
+    ]
+  },
+  {
+    "en": "relieved",
+    "ru": "облегчённый / с чувством облегчения",
+    "phonetic": "/rɪˈliːvd/",
+    "examples": [
+      "I was so relieved when I heard the good news."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "grateful",
+    "ru": "благодарный",
+    "phonetic": "/ˈɡreɪtfəl/",
+    "examples": [
+      "I'm grateful for the people who stuck by me."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "disappointed",
+    "ru": "разочарованный",
+    "phonetic": "/ˌdɪsəˈpɔɪntɪd/",
+    "examples": [
+      "He was disappointed when the trip got cancelled."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "confident",
+    "ru": "уверенный в себе",
+    "phonetic": "/ˈkɒnfɪdənt/",
+    "examples": [
+      "She walked into the room looking calm and confident."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "jealous",
+    "ru": "ревнивый / завистливый",
+    "phonetic": "/ˈdʒeləs/",
+    "examples": [
+      "He was jealous of her ability to make friends so easily."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "embarrassed",
+    "ru": "смущённый / в неловком положении",
+    "phonetic": "/ɪmˈbærəst/",
+    "examples": [
+      "She was embarrassed when she called the teacher 'mum'."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "curious",
+    "ru": "любопытный",
+    "phonetic": "/ˈkjʊəriəs/",
+    "examples": [
+      "Children are naturally curious about the world around them."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "generous",
+    "ru": "щедрый",
+    "phonetic": "/ˈdʒenərəs/",
+    "examples": [
+      "She was generous with her time and always made you feel welcome."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "stubborn",
+    "ru": "упрямый",
+    "phonetic": "/ˈstʌbərn/",
+    "examples": [
+      "He's stubborn, but usually ends up being right."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "optimistic",
+    "ru": "оптимистичный",
+    "phonetic": "/ˌɒptɪˈmɪstɪk/",
+    "examples": [
+      "Despite everything, she remained optimistic."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "pessimistic",
+    "ru": "пессимистичный",
+    "phonetic": "/ˌpesɪˈmɪstɪk/",
+    "examples": [
+      "He was pessimistic about the weather but it turned out to be beautiful."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "sensitive",
+    "ru": "чувствительный / ранимый",
+    "phonetic": "/ˈsensɪtɪv/",
+    "examples": [
+      "She's sensitive to criticism but handles it gracefully."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "reliable",
+    "ru": "надёжный",
+    "phonetic": "/rɪˈlaɪəbl/",
+    "examples": [
+      "He's the most reliable person I've ever worked with."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "reasonable",
+    "ru": "разумный / адекватный",
+    "phonetic": "/ˈriːzənəbl/",
+    "examples": [
+      "She made a very reasonable point that changed my mind."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "flexible",
+    "ru": "гибкий / приспосабливающийся",
+    "phonetic": "/ˈfleksɪbl/",
+    "examples": [
+      "Being flexible made the whole trip much more enjoyable."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "mature",
+    "ru": "зрелый / взрослый",
+    "phonetic": "/məˈtʃʊər/",
+    "examples": [
+      "She handles difficult situations in a very mature way."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "independent",
+    "ru": "независимый / самостоятельный",
+    "phonetic": "/ˌɪndɪˈpendənt/",
+    "examples": [
+      "She's always been fiercely independent."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "ambitious",
+    "ru": "амбициозный / целеустремлённый",
+    "phonetic": "/æmˈbɪʃəs/",
+    "examples": [
+      "He's ambitious but never steps on others to get ahead."
+    ],
+    "tags": [
+      "B1",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "suffer",
+    "ru": "страдать",
+    "phonetic": "/ˈsʌfər/",
+    "examples": [
+      "She suffered in silence for too long before asking for help."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "recover",
+    "ru": "восстанавливаться / выздоравливать",
+    "phonetic": "/rɪˈkʌvər/",
+    "examples": [
+      "He recovered quickly after a week of rest."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "health"
+    ]
+  },
+  {
+    "en": "struggle",
+    "ru": "бороться / с трудом преодолевать",
+    "phonetic": "/ˈstrʌɡəl/",
+    "examples": [
+      "She struggled for years before things finally fell into place."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "overcome",
+    "ru": "преодолевать / справляться с",
+    "phonetic": "/ˌoʊvərˈkʌm/",
+    "examples": [
+      "He overcame his fear of flying and now travels constantly."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "achieve",
+    "ru": "достигать / добиваться",
+    "phonetic": "/əˈtʃiːv/",
+    "examples": [
+      "She achieved everything she set her mind to."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "influence",
+    "ru": "влиять / оказывать влияние",
+    "phonetic": "/ˈɪnfluəns/",
+    "examples": [
+      "Travelling widely influenced the way she sees people."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "respect",
+    "ru": "уважать / уважение",
+    "phonetic": "/rɪˈspekt/",
+    "examples": [
+      "I deeply respect people who keep their word."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "express",
+    "ru": "выражать",
+    "phonetic": "/ɪkˈspres/",
+    "examples": [
+      "He finds it hard to express his feelings out loud."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "complain",
+    "ru": "жаловаться",
+    "phonetic": "/kəmˈpleɪn/",
+    "examples": [
+      "She never complains no matter how hard things get."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "communication"
+    ]
+  },
+  {
+    "en": "appreciate",
+    "ru": "ценить / быть благодарным",
+    "phonetic": "/əˈpriːʃieɪt/",
+    "examples": [
+      "I really appreciate everything you've done for me."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "regret",
+    "ru": "сожалеть / сожаление",
+    "phonetic": "/rɪˈɡret/",
+    "examples": [
+      "She regrets not spending more time with her father."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "admit",
+    "ru": "признавать / допускать",
+    "phonetic": "/ədˈmɪt/",
+    "examples": [
+      "It takes courage to admit when you're wrong."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "character"
+    ]
+  },
+  {
+    "en": "pretend",
+    "ru": "притворяться / делать вид",
+    "phonetic": "/prɪˈtend/",
+    "examples": [
+      "She pretended to be fine but anyone could see she wasn't."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "behavior"
+    ]
+  },
+  {
+    "en": "encourage",
+    "ru": "поощрять / поддерживать / воодушевлять",
+    "phonetic": "/ɪnˈkɜːrɪdʒ/",
+    "examples": [
+      "Her teacher always encouraged her to keep writing."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "support",
+    "ru": "поддерживать / поддержка",
+    "phonetic": "/səˈpɔːrt/",
+    "examples": [
+      "She supported him through the hardest year of his life."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "trust",
+    "ru": "доверять / доверие",
+    "phonetic": "/trʌst/",
+    "examples": [
+      "Trust takes years to build and seconds to lose."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "forgive",
+    "ru": "прощать",
+    "phonetic": "/fərˈɡɪv/",
+    "examples": [
+      "She forgave him not for his sake, but for her own peace."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "judge",
+    "ru": "судить / осуждать",
+    "phonetic": "/dʒʌdʒ/",
+    "examples": [
+      "People are quick to judge without knowing the full story."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "social"
+    ]
+  },
+  {
+    "en": "inspire",
+    "ru": "вдохновлять",
+    "phonetic": "/ɪnˈspaɪər/",
+    "examples": [
+      "Her resilience inspired everyone around her."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "cope",
+    "ru": "справляться / совладать",
+    "phonetic": "/koʊp/",
+    "examples": [
+      "He learned to cope with loneliness by keeping a journal."
+    ],
+    "tags": [
+      "B1",
+      "verb",
+      "health"
+    ]
+  },
+  {
+    "en": "loneliness",
+    "ru": "одиночество",
+    "phonetic": "/ˈloʊnlinəs/",
+    "examples": [
+      "Loneliness can hit even in a room full of people."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "grief",
+    "ru": "горе / скорбь",
+    "phonetic": "/ɡriːf/",
+    "examples": [
+      "Grief doesn't follow a schedule — it comes in waves."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "joy",
+    "ru": "радость / восторг",
+    "phonetic": "/dʒɔɪ/",
+    "examples": [
+      "The joy on his face when he saw her was impossible to miss."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "fear",
+    "ru": "страх / бояться",
+    "phonetic": "/fɪər/",
+    "examples": [
+      "Fear of failure stops many people before they even begin."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "guilt",
+    "ru": "вина / чувство вины",
+    "phonetic": "/ɡɪlt/",
+    "examples": [
+      "He carried the guilt for years before finally letting it go."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "shame",
+    "ru": "стыд",
+    "phonetic": "/ʃeɪm/",
+    "examples": [
+      "Shame keeps people from asking for help when they need it most."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "pride",
+    "ru": "гордость",
+    "phonetic": "/praɪd/",
+    "examples": [
+      "She looked at her daughter with quiet pride."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "patience",
+    "ru": "терпение",
+    "phonetic": "/ˈpeɪʃəns/",
+    "examples": [
+      "Learning a new language requires a lot of patience."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "courage",
+    "ru": "смелость / отвага",
+    "phonetic": "/ˈkɜːrɪdʒ/",
+    "examples": [
+      "It takes courage to start over when things go wrong."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "curiosity",
+    "ru": "любопытство",
+    "phonetic": "/ˌkjʊəriˈɒsɪti/",
+    "examples": [
+      "Curiosity is one of the best traits a person can have."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "habit",
+    "ru": "привычка",
+    "phonetic": "/ˈhæbɪt/",
+    "examples": [
+      "Good habits are built slowly, one small action at a time."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "behavior"
+    ]
+  },
+  {
+    "en": "routine",
+    "ru": "распорядок / рутина",
+    "phonetic": "/ruːˈtiːn/",
+    "examples": [
+      "Her morning routine sets the tone for the whole day."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "behavior"
+    ]
+  },
+  {
+    "en": "attitude",
+    "ru": "отношение / позиция / настрой",
+    "phonetic": "/ˈætɪtjuːd/",
+    "examples": [
+      "Your attitude towards failure determines how fast you grow."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "behaviour",
+    "ru": "поведение",
+    "phonetic": "/bɪˈheɪvjər/",
+    "examples": [
+      "Her behaviour changed completely after the trip."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "relationship",
+    "ru": "отношения",
+    "phonetic": "/rɪˈleɪʃənʃɪp/",
+    "examples": [
+      "A healthy relationship is built on trust and honesty."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "social"
+    ]
+  },
+  {
+    "en": "conflict",
+    "ru": "конфликт / противоречие",
+    "phonetic": "/ˈkɒnflɪkt/",
+    "examples": [
+      "They resolved the conflict by talking it through calmly."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "social"
+    ]
+  },
+  {
+    "en": "boundary",
+    "ru": "граница / личное пространство",
+    "phonetic": "/ˈbaʊndəri/",
+    "examples": [
+      "Setting boundaries is an act of self-respect."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "social"
+    ]
+  },
+  {
+    "en": "pressure",
+    "ru": "давление / стресс",
+    "phonetic": "/ˈpreʃər/",
+    "examples": [
+      "She performed brilliantly under pressure."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "stress",
+    "ru": "стресс / давление",
+    "phonetic": "/stres/",
+    "examples": [
+      "Exercise is one of the best ways to deal with stress."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "health"
+    ]
+  },
+  {
+    "en": "balance",
+    "ru": "баланс / равновесие",
+    "phonetic": "/ˈbæləns/",
+    "examples": [
+      "She finally found a balance between work and rest."
+    ],
+    "tags": [
+      "B1",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "resilience",
+    "ru": "жизнестойкость / устойчивость",
+    "phonetic": "/rɪˈzɪliəns/",
+    "examples": [
+      "Her resilience through loss was humbling to witness."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "empathy",
+    "ru": "эмпатия / сочувствие",
+    "phonetic": "/ˈempəθi/",
+    "examples": [
+      "True empathy means listening without trying to fix."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "vulnerability",
+    "ru": "уязвимость / открытость",
+    "phonetic": "/ˌvʌlnərəˈbɪlɪti/",
+    "examples": [
+      "Showing vulnerability takes real strength."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "authenticity",
+    "ru": "аутентичность / подлинность",
+    "phonetic": "/ˌɔːθenˈtɪsɪti/",
+    "examples": [
+      "People are drawn to those who lead with authenticity."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "integrity",
+    "ru": "честность / цельность характера",
+    "phonetic": "/ɪnˈteɡrɪti/",
+    "examples": [
+      "She acted with integrity even when no one was watching."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "perseverance",
+    "ru": "упорство / настойчивость",
+    "phonetic": "/ˌpɜːrsɪˈvɪərəns/",
+    "examples": [
+      "His perseverance paid off after years of quiet effort."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "compassion",
+    "ru": "сострадание",
+    "phonetic": "/kəmˈpæʃən/",
+    "examples": [
+      "She approached every difficult conversation with compassion."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "resentment",
+    "ru": "обида / горечь",
+    "phonetic": "/rɪˈzentmənt/",
+    "examples": [
+      "Holding onto resentment only hurts the person holding it."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "nostalgia",
+    "ru": "ностальгия",
+    "phonetic": "/nɒˈstældʒiə/",
+    "examples": [
+      "Old photos fill her with a gentle nostalgia."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "ambivalence",
+    "ru": "двойственность чувств / неопределённость",
+    "phonetic": "/æmˈbɪvələns/",
+    "examples": [
+      "She felt a deep ambivalence about leaving the city she'd grown up in."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "self-awareness",
+    "ru": "самосознание / осознанность",
+    "phonetic": "/self əˈweənəs/",
+    "examples": [
+      "Self-awareness is the foundation of personal growth."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "psychology"
+    ]
+  },
+  {
+    "en": "wellbeing",
+    "ru": "благополучие / самочувствие",
+    "phonetic": "/ˈwelbiːɪŋ/",
+    "examples": [
+      "Sleep has a massive impact on overall wellbeing."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "health"
+    ]
+  },
+  {
+    "en": "mindfulness",
+    "ru": "осознанность / внимательность к настоящему",
+    "phonetic": "/ˈmaɪndfʊlnəs/",
+    "examples": [
+      "Mindfulness helped her stop worrying about tomorrow."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "health"
+    ]
+  },
+  {
+    "en": "solitude",
+    "ru": "одиночество (добровольное) / уединение",
+    "phonetic": "/ˈsɒlɪtjuːd/",
+    "examples": [
+      "She started to embrace solitude instead of fearing it."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "humility",
+    "ru": "скромность / смирение",
+    "phonetic": "/hjuːˈmɪlɪti/",
+    "examples": [
+      "Real confidence comes with humility, not arrogance."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "dignity",
+    "ru": "достоинство",
+    "phonetic": "/ˈdɪɡnɪti/",
+    "examples": [
+      "She faced the criticism with quiet dignity."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "nuance",
+    "ru": "нюанс / тонкость",
+    "phonetic": "/ˈnjuːɑːns/",
+    "examples": [
+      "Life rarely fits into boxes — it's full of nuance."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "perspective",
+    "ru": "перспектива / точка зрения",
+    "phonetic": "/pərˈspektɪv/",
+    "examples": [
+      "Travelling gave her an entirely new perspective on her own life."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "momentum",
+    "ru": "импульс / движущая сила",
+    "phonetic": "/məˈmentəm/",
+    "examples": [
+      "Once you build momentum in a new habit, it gets much easier."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "abstract"
+    ]
+  },
+  {
+    "en": "bias",
+    "ru": "предвзятость / уклон",
+    "phonetic": "/ˈbaɪəs/",
+    "examples": [
+      "We all have biases — the key is learning to recognise them."
+    ],
+    "tags": [
+      "B2",
+      "noun",
+      "psychology"
+    ]
+  },
+  {
+    "en": "ambiguous",
+    "ru": "неоднозначный / двусмысленный",
+    "phonetic": "/æmˈbɪɡjuəs/",
+    "examples": [
+      "His answer was deliberately ambiguous, which frustrated her."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "abstract"
+    ]
+  },
+  {
+    "en": "inevitable",
+    "ru": "неизбежный",
+    "phonetic": "/ɪnˈevɪtəbl/",
+    "examples": [
+      "Change is inevitable — the question is how you respond to it."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "abstract"
+    ]
+  },
+  {
+    "en": "profound",
+    "ru": "глубокий / значительный",
+    "phonetic": "/prəˈfaʊnd/",
+    "examples": [
+      "The conversation had a profound effect on how she saw herself."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "abstract"
+    ]
+  },
+  {
+    "en": "subtle",
+    "ru": "тонкий / едва заметный",
+    "phonetic": "/ˈsʌtl/",
+    "examples": [
+      "There was a subtle shift in the atmosphere after he walked in."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "abstract"
+    ]
+  },
+  {
+    "en": "overwhelming",
+    "ru": "подавляющий / захлёстывающий",
+    "phonetic": "/ˌoʊvərˈwelmɪŋ/",
+    "examples": [
+      "The support she received was overwhelming and brought her to tears."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "genuine",
+    "ru": "искренний / подлинный",
+    "phonetic": "/ˈdʒenjuɪn/",
+    "examples": [
+      "His concern for others was completely genuine."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "cynical",
+    "ru": "циничный",
+    "phonetic": "/ˈsɪnɪkəl/",
+    "examples": [
+      "She used to be cynical, but travel slowly softened her."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "impulsive",
+    "ru": "импульсивный",
+    "phonetic": "/ɪmˈpʌlsɪv/",
+    "examples": [
+      "He made an impulsive decision and quit his job without a plan."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "deliberate",
+    "ru": "намеренный / осознанный",
+    "phonetic": "/dɪˈlɪbərət/",
+    "examples": [
+      "She made a deliberate choice to slow down and enjoy life more."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "abstract"
+    ]
+  },
+  {
+    "en": "resilient",
+    "ru": "устойчивый / гибкий",
+    "phonetic": "/rɪˈzɪliənt/",
+    "examples": [
+      "Children are more resilient than adults often give them credit for."
+    ],
+    "tags": [
+      "B2",
+      "adjective",
+      "character"
+    ]
+  },
+  {
+    "en": "contemplate",
+    "ru": "обдумывать / созерцать",
+    "phonetic": "/ˈkɒntəmpleɪt/",
+    "examples": [
+      "She sat by the sea and contemplated her next step."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "perceive",
+    "ru": "воспринимать / осознавать",
+    "phonetic": "/pəˈsiːv/",
+    "examples": [
+      "How we perceive failure shapes whether we try again."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "psychology"
+    ]
+  },
+  {
+    "en": "acknowledge",
+    "ru": "признавать / замечать",
+    "phonetic": "/əkˈnɒlɪdʒ/",
+    "examples": [
+      "She acknowledged her mistake and moved on without drama."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "character"
+    ]
+  },
+  {
+    "en": "challenge",
+    "ru": "оспаривать / бросать вызов",
+    "phonetic": "/ˈtʃælɪndʒ/",
+    "examples": [
+      "He challenged himself to do something scary every single week."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "confront",
+    "ru": "сталкиваться / противостоять",
+    "phonetic": "/kənˈfrʌnt/",
+    "examples": [
+      "She finally confronted the feelings she had been avoiding."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "emotions"
+    ]
+  },
+  {
+    "en": "reflect",
+    "ru": "размышлять / отражать",
+    "phonetic": "/rɪˈflekt/",
+    "examples": [
+      "He took a long walk to reflect on what had happened."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "hesitate",
+    "ru": "колебаться / медлить",
+    "phonetic": "/ˈhezɪteɪt/",
+    "examples": [
+      "She hesitated for a moment before saying yes."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "behavior"
+    ]
+  },
+  {
+    "en": "assume",
+    "ru": "предполагать / брать на себя",
+    "phonetic": "/əˈsjuːm/",
+    "examples": [
+      "Don't assume you know how someone else is feeling."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "suppress",
+    "ru": "подавлять / сдерживать",
+    "phonetic": "/səˈpres/",
+    "examples": [
+      "Suppressing emotions rarely makes them go away."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "psychology"
+    ]
+  },
+  {
+    "en": "adapt",
+    "ru": "адаптироваться / приспосабливаться",
+    "phonetic": "/əˈdæpt/",
+    "examples": [
+      "She adapted quickly to life in a new country."
+    ],
+    "tags": [
+      "B2",
+      "verb",
+      "abstract"
+    ]
+  },
+  {
+    "en": "introspection",
+    "ru": "самоанализ / рефлексия",
+    "phonetic": "/ˌɪntrəˈspekʃən/",
+    "examples": [
+      "A period of introspection helped him understand his own patterns."
+    ],
+    "tags": [
+      "C1",
+      "noun",
+      "psychology"
+    ]
+  },
+  {
+    "en": "disillusionment",
+    "ru": "разочарование / утрата иллюзий",
+    "phonetic": "/ˌdɪsɪˈluːʒənmənt/",
+    "examples": [
+      "His disillusionment with city life led him to move to the countryside."
+    ],
+    "tags": [
+      "C1",
+      "noun",
+      "emotions"
+    ]
+  },
+  {
+    "en": "reconciliation",
+    "ru": "примирение / урегулирование",
+    "phonetic": "/ˌrekənsɪliˈeɪʃən/",
+    "examples": [
+      "Their reconciliation came after years of silence and hurt."
+    ],
+    "tags": [
+      "C1",
+      "noun",
+      "social"
+    ]
+  },
+  {
+    "en": "stoicism",
+    "ru": "стоицизм / невозмутимость",
+    "phonetic": "/ˈstoʊɪsɪzəm/",
+    "examples": [
+      "He faced every setback with a stoicism that others admired."
+    ],
+    "tags": [
+      "C1",
+      "noun",
+      "character"
+    ]
+  },
+  {
+    "en": "catharsis",
+    "ru": "катарсис / освобождение от эмоций",
+    "phonetic": "/kəˈθɑːrsɪs/",
+    "examples": [
+      "Crying at the end of the film was a kind of catharsis."
+    ],
+    "tags": [
+      "C1",
+      "noun",
+      "psychology"
+    ]
+  },
+  {
+    "en": "ephemeral",
+    "ru": "мимолётный / преходящий",
+    "phonetic": "/ɪˈfemərəl/",
+    "examples": [
+      "The beauty of that moment was all the more precious for being ephemeral."
+    ],
+    "tags": [
+      "C1",
+      "adjective",
+      "abstract"
+    ]
+  },
+  {
+    "en": "ambivalent",
+    "ru": "испытывающий двойственные чувства",
+    "phonetic": "/æmˈbɪvələnt/",
+    "examples": [
+      "She felt ambivalent about leaving — excited and heartbroken at the same time."
+    ],
+    "tags": [
+      "C1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "pervasive",
+    "ru": "всепроникающий / повсеместный",
+    "phonetic": "/pərˈveɪsɪv/",
+    "examples": [
+      "A pervasive sense of unease settled over the house."
+    ],
+    "tags": [
+      "C1",
+      "adjective",
+      "abstract"
+    ]
+  },
+  {
+    "en": "poignant",
+    "ru": "щемящий / трогательный",
+    "phonetic": "/ˈpɔɪnjənt/",
+    "examples": [
+      "The final letter was poignant and left everyone in tears."
+    ],
+    "tags": [
+      "C1",
+      "adjective",
+      "emotions"
+    ]
+  },
+  {
+    "en": "tenacity",
+    "ru": "упорство / цепкость",
+    "phonetic": "/tɪˈnæsɪti/",
+    "examples": [
+      "Her tenacity in the face of repeated failure was extraordinary."
+    ],
+    "tags": [
+      "C1",
+      "noun",
+      "character"
+    ]
+  }
+]
