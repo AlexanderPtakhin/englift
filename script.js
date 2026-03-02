@@ -1100,6 +1100,352 @@ document
   .querySelectorAll('.nav-btn[data-tab]')
   .forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
+// Обработчики для мобильного меню
+document
+  .querySelectorAll('.mobile-nav-btn[data-tab]')
+  .forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+// Синхронизация активных состояний между десктопным и мобильным меню
+function syncMobileNav(activeTab) {
+  // Убираем active у всех десктопных кнопок
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  // Добавляем active к нужной десктопной кнопке
+  const desktopBtn = document.querySelector(
+    `.nav-btn[data-tab="${activeTab}"]`,
+  );
+  if (desktopBtn) {
+    desktopBtn.classList.add('active');
+  }
+
+  // Убираем active у всех мобильных кнопок
+  document.querySelectorAll('.mobile-nav-btn[data-tab]').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  // Добавляем active к нужной мобильной кнопке
+  const mobileBtn = document.querySelector(
+    `.mobile-nav-btn[data-tab="${activeTab}"]`,
+  );
+  if (mobileBtn) {
+    mobileBtn.classList.add('active');
+  }
+}
+
+// Обновляем switchTab для синхронизации меню
+const originalSwitchTab = switchTab;
+switchTab = function (name) {
+  originalSwitchTab(name);
+  syncMobileNav(name);
+};
+
+// Синхронизация бейджей между десктопной и мобильной версиями
+function syncBadges() {
+  // Синхронизация счетчика слов
+  const wordsCount = document.getElementById('words-count');
+  const mobileWordsCount = document.getElementById('mobile-words-count');
+  if (wordsCount && mobileWordsCount) {
+    mobileWordsCount.textContent = wordsCount.textContent;
+  }
+
+  // Синхронизация счетчика повторений
+  const dueCount = document.getElementById('due-count');
+  const mobileDueCount = document.getElementById('mobile-due-count');
+  if (dueCount && mobileDueCount) {
+    mobileDueCount.textContent = dueCount.textContent;
+  }
+}
+
+// Добавляем вызов syncBadges в существующую функцию updateDueBadge
+const originalUpdateDueBadge = updateDueBadge;
+updateDueBadge = function () {
+  originalUpdateDueBadge();
+  syncBadges();
+};
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('=== PWA DEBUG START ===');
+
+  // Проверка хедера
+  const header = document.querySelector('header');
+  const headerContent = document.querySelector('.header-content');
+  const installBtn = document.getElementById('install-btn');
+  const syncBtn = document.getElementById('sync-indicator');
+  const userMenu = document.getElementById('user-menu');
+  const headerRight = document.querySelector('.header-right');
+
+  console.log('Header elements found:', {
+    header: !!header,
+    headerContent: !!headerContent,
+    installBtn: !!installBtn,
+    syncBtn: !!syncBtn,
+    userMenu: !!userMenu,
+    headerRight: !!headerRight,
+  });
+
+  // Проверка стилей
+  if (header) {
+    const headerStyles = window.getComputedStyle(header);
+    console.log('Header styles:', {
+      display: headerStyles.display,
+      padding: headerStyles.padding,
+      zIndex: headerStyles.zIndex,
+      position: headerStyles.position,
+    });
+  }
+
+  if (headerContent) {
+    const contentStyles = window.getComputedStyle(headerContent);
+    console.log('Header content styles:', {
+      display: contentStyles.display,
+      maxWidth: contentStyles.maxWidth,
+      margin: contentStyles.margin,
+    });
+  }
+
+  // Проверка кнопки установки
+  if (installBtn) {
+    console.log(
+      'Install button found, current display:',
+      installBtn.style.display,
+    );
+    installBtn.style.display = 'flex';
+    installBtn.style.background = 'red';
+    installBtn.style.border = '2px solid yellow';
+    console.log('Install button forced visible for debug');
+  }
+
+  console.log('=== PWA DEBUG END ===');
+
+  syncMobileNav('words'); // Активная вкладка по умолчанию
+  syncBadges(); // Синхронизируем бейджи
+  initPWAInstall(); // Инициализация PWA установки
+});
+
+// ===== PWA INSTALLATION =====
+let deferredPrompt;
+
+// Детектор устройства
+function detectDevice() {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+  // iOS
+  if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+    return 'ios';
+  }
+
+  // Android
+  if (/android/i.test(userAgent)) {
+    return 'android';
+  }
+
+  // Desktop
+  return 'desktop';
+}
+
+// Показываем инструкцию для iOS
+function showiOSInstallInstructions() {
+  const instructions = `
+    <div style="text-align: center; line-height: 1.6;">
+      <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>📱 Установка на iPhone</strong></p>
+      <p style="margin-bottom: 1rem;">Чтобы добавить приложение на главный экран:</p>
+      <ol style="text-align: left; margin: 0 auto 1rem; padding-left: 1.5rem; max-width: 300px;">
+        <li>Нажмите кнопку <strong>"Поделиться" 📤</strong> (внизу)</li>
+        <li>Прокрутите вниз и выберите <strong>"На главный экран"</strong></li>
+        <li>Нажмите <strong>"Добавить"</strong> в правом верхнем углу</li>
+      </ol>
+      <p style="color: var(--muted); font-size: 0.9rem;">Приложение будет доступно на главном экране как нативное приложение!</p>
+    </div>
+  `;
+
+  // Показываем модальное окно с инструкциями
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h3>📱 Установка на iPhone</h3>
+      ${instructions}
+      <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Понятно</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Стили для модального окна
+  if (!document.querySelector('#install-modal-styles')) {
+    const style = document.createElement('style');
+    style.id = 'install-modal-styles';
+    style.textContent = `
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 1rem;
+      }
+      .modal-content {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 2rem;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: var(--shadow-hover);
+      }
+      .modal-content h3 {
+        margin-bottom: 1rem;
+        color: var(--text);
+        text-align: center;
+      }
+      .modal-content button {
+        margin-top: 1.5rem;
+        width: 100%;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+console.log('=== PWA SCRIPT LOADED ===');
+console.log('Device detected:', detectDevice());
+
+// Проверяем элементы сразу
+setTimeout(() => {
+  console.log('=== PWA TIMEOUT DEBUG START ===');
+
+  const header = document.querySelector('header');
+  const headerContent = document.querySelector('.header-content');
+  const installBtn = document.getElementById('install-btn');
+  const syncBtn = document.getElementById('sync-indicator');
+  const userMenu = document.getElementById('user-menu');
+  const headerRight = document.querySelector('.header-right');
+
+  console.log('Header elements found (timeout):', {
+    header: !!header,
+    headerContent: !!headerContent,
+    installBtn: !!installBtn,
+    syncBtn: !!syncBtn,
+    userMenu: !!userMenu,
+    headerRight: !!headerRight,
+  });
+
+  if (installBtn) {
+    console.log(
+      'Install button found in timeout, current display:',
+      installBtn.style.display,
+    );
+    installBtn.style.display = 'flex';
+    console.log('Install button forced visible in timeout');
+
+    // Добавляем обработчик клика с разной логикой для устройств
+    installBtn.addEventListener('click', () => {
+      console.log('Install button clicked!');
+      const device = detectDevice();
+
+      if (device === 'ios') {
+        // Показываем инструкцию для iPhone
+        showiOSInstallInstructions();
+      } else if (device === 'android') {
+        // Пытаемся установить через PWA промпт
+        if (!deferredPrompt) {
+          toast('PWA установка доступна только в Chrome', 'warning');
+          return;
+        }
+
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(choiceResult => {
+          if (choiceResult.outcome === 'accepted') {
+            toast('Приложение успешно установлено!', 'success');
+            installBtn.style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        // Desktop - показываем общую инструкцию
+        toast('Установка доступна на мобильных устройствах', 'info');
+      }
+    });
+  }
+
+  console.log('=== PWA TIMEOUT DEBUG END ===');
+}, 1000);
+
+function initPWAInstall() {
+  const installBtn = document.getElementById('install-btn');
+
+  // Слушаем событие beforeinstallprompt
+  window.addEventListener('beforeinstallprompt', e => {
+    // Предотвращаем автоматическое появление промпта
+    e.preventDefault();
+    // Сохраняем событие для последующего использования
+    deferredPrompt = e;
+    // Показываем кнопку установки
+    if (installBtn) {
+      installBtn.style.display = 'flex';
+      console.log('PWA install prompt available, button shown');
+    }
+  });
+
+  // Обработчик клика по кнопке установки
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      console.log('Install button clicked in initPWAInstall!');
+      const device = detectDevice();
+
+      if (device === 'ios') {
+        // Показываем инструкцию для iPhone
+        showiOSInstallInstructions();
+      } else if (device === 'android') {
+        // Пытаемся установить через PWA промпт
+        if (!deferredPrompt) {
+          toast('PWA установка доступна только в Chrome', 'warning');
+          return;
+        }
+
+        try {
+          // Показываем промпт установки
+          deferredPrompt.prompt();
+
+          // Ждём ответа пользователя
+          const { outcome } = await deferredPrompt.userChoice;
+
+          if (outcome === 'accepted') {
+            console.log('Пользователь установил PWA');
+            toast('Приложение успешно установлено!', 'success');
+            installBtn.style.display = 'none';
+          } else {
+            console.log('Пользователь отменил установку PWA');
+          }
+
+          // Очищаем deferredPrompt
+          deferredPrompt = null;
+        } catch (error) {
+          console.error('Ошибка при установке PWA:', error);
+          toast('Ошибка установки приложения', 'error');
+        }
+      } else {
+        // Desktop - показываем общую инструкцию
+        toast('Установка доступна на мобильных устройствах', 'info');
+      }
+    });
+  }
+
+  // Проверяем, установлено ли уже приложение
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
+  }
+}
+
 // ============================================================
 // DARK MODE
 // ============================================================
@@ -1169,7 +1515,7 @@ let searchDebounceTimer = null;
 // Управление индикатором синхронизации
 function updateSyncIndicator(status, message = '') {
   const indicator = document.getElementById('sync-indicator');
-  const icon = document.getElementById('sync-icon');
+  const icon = indicator?.querySelector('.material-symbols-outlined');
 
   if (!indicator) return;
 
@@ -1180,26 +1526,26 @@ function updateSyncIndicator(status, message = '') {
   switch (status) {
     case 'syncing':
       indicator.classList.add('syncing');
-      icon.textContent = '🔄';
+      icon.textContent = 'sync';
       indicator.title = 'Синхронизация...';
       break;
     case 'synced':
       indicator.classList.add('synced');
-      icon.textContent = '✅';
+      icon.textContent = 'check_circle';
       indicator.title = 'Синхронизировано';
       break;
     case 'error':
       indicator.classList.add('error');
-      icon.textContent = '❌';
+      icon.textContent = 'error';
       indicator.title = message || 'Ошибка синхронизации';
       break;
     case 'offline':
       indicator.classList.add('offline');
-      icon.textContent = '📴';
+      icon.textContent = 'wifi_off';
       indicator.title = 'Офлайн';
       break;
     default:
-      icon.textContent = '🔄';
+      icon.textContent = 'sync';
       indicator.title = message || 'Синхронизация...';
   }
 }
@@ -3754,21 +4100,6 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
       .register(URL.createObjectURL(swBlob))
       .catch(() => {});
   }
-
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    let deferredPrompt = e;
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-primary btn-sm';
-    btn.innerHTML = '📱 Установить приложение';
-    btn.style.cssText =
-      'position:fixed;bottom:1.5rem;left:1.5rem;z-index:9999;box-shadow:0 4px 20px rgba(108,99,255,0.4)';
-    document.body.appendChild(btn);
-    btn.addEventListener('click', () => {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => btn.remove());
-    });
-  });
 })();
 
 // Очистка данных пользователя (при выходе или перед загрузкой нового пользователя)

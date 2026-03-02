@@ -144,7 +144,15 @@
           id="sync-indicator"
           title="Статус синхронизации"
         >
-          <span class="sync-icon" id="sync-icon">🔄</span>
+          <span class="material-symbols-outlined">sync</span>
+        </button>
+        <button
+          class="install-btn"
+          id="install-btn"
+          title="Установить приложение"
+          style="display: none"
+        >
+          <span class="material-symbols-outlined">tablet_mac</span>
         </button>
         <!-- Личный кабинет (будет виден только после авторизации) -->
         <div class="user-menu" id="user-menu">
@@ -179,6 +187,28 @@
         </div>
       </div>
     </header>
+
+    <!-- MOBILE BOTTOM NAVIGATION -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+      <button class="mobile-nav-btn active" data-tab="words">
+        <span class="material-symbols-outlined">book_4</span>
+        <span>Словарь</span>
+        <span class="badge" id="mobile-words-count">0</span>
+      </button>
+      <button class="mobile-nav-btn" data-tab="add">
+        <span class="material-symbols-outlined">add</span>
+        <span>Добавить</span>
+      </button>
+      <button class="mobile-nav-btn" data-tab="practice">
+        <span class="material-symbols-outlined">exercise</span>
+        <span>Практика</span>
+        <span class="badge" id="mobile-due-count">0</span>
+      </button>
+      <button class="mobile-nav-btn" data-tab="stats">
+        <span class="material-symbols-outlined">monitoring</span>
+        <span>Статистика</span>
+      </button>
+    </nav>
 
     <main>
       <!-- TAB: WORDS -->
