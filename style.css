@@ -329,6 +329,7 @@ main {
   max-width: 1100px;
   margin: 0 auto;
   padding: 2rem;
+
 }
 
 .tab-pane {
@@ -576,6 +577,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.2rem;
+
 }
 
 .word-card {

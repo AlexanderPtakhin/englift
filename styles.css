@@ -38,15 +38,17 @@ body.dark {
 /* ===== MOBILE BOTTOM NAVIGATION ===== */
 .mobile-bottom-nav {
   display: none;
+  justify-content: space-around;
+  align-items: center;
   position: fixed;
   bottom: 0;
   left: 0;
-  right: 0;
+  width: 100%;
+  height: 60px;
   background: var(--card);
-  border-top: 1px solid var(--border);
-  padding: 0.5rem 0;
-  z-index: 1000;
-  box-shadow: 0 -4px 20px rgba(108, 99, 255, 0.1);
+  border-top: 2px solid var(--border);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
 header {
@@ -112,8 +114,8 @@ header nav {
 
 .mobile-nav-btn .badge {
   position: absolute;
-  top: 0.25rem;
-  right: 50%;
+  top: -0.25rem;
+  right: 45%;
   transform: translateX(0.5rem);
   background: var(--primary);
   color: white;
@@ -123,6 +125,11 @@ header nav {
   border-radius: 10px;
   min-width: 16px;
   text-align: center;
+}
+
+.mobile-nav-btn:not(.active) .badge {
+  background: var(--border);
+  color: var(--text);
 }
 
 .mobile-nav-btn.active .material-symbols-outlined,
@@ -136,12 +143,7 @@ header nav {
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 1024px) {
-  /* Скрываем основную навигацию на планшетах и мобильных */
-  header nav {
-    display: none;
-  }
-
+@media (max-width: 830px) {
   /* Показываем мобильное меню */
   .mobile-bottom-nav {
     display: flex;
@@ -149,7 +151,12 @@ header nav {
 
   /* Добавляем отступ снизу для контента */
   main {
-    padding-bottom: 4rem;
+    padding-bottom: 70px;
+  }
+
+  /* Скрываем основную навигацию */
+  header nav {
+    display: none;
   }
 
   /* Уменьшаем заголовок */
@@ -159,64 +166,6 @@ header nav {
 
   .logo {
     font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  /* Дополнительные стили для телефонов */
-  .header-content {
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
-  }
-
-  .header-right {
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* Увеличиваем отступ снизу для контента */
-  main {
-    padding-bottom: 5rem;
-  }
-
-  /* Улучшаем мобильное меню */
-  .mobile-nav-btn {
-    padding: 0.75rem 0.25rem;
-  }
-
-  .mobile-nav-btn .material-symbols-outlined {
-    font-size: 22px;
-  }
-
-  .mobile-nav-btn span:not(.material-symbols-outlined):not(.badge) {
-    font-size: 0.65rem;
-  }
-}
-
-@media (max-width: 480px) {
-  /* Стили для маленьких телефонов */
-  .logo {
-    font-size: 1.3rem;
-  }
-
-  .user-avatar {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-  }
-
-  .sync-btn {
-    width: 40px;
-    height: 40px;
-  }
-
-  .mobile-nav-btn .material-symbols-outlined {
-    font-size: 20px;
-  }
-
-  .mobile-nav-btn span:not(.material-symbols-outlined):not(.badge) {
-    font-size: 0.6rem;
   }
 }
 
@@ -311,13 +260,14 @@ nav {
   padding: 0.5rem 1rem;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--muted);
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 2px;
+  position: relative;
 }
 
 .nav-btn:hover {
@@ -326,13 +276,13 @@ nav {
 }
 
 .nav-btn.active {
-  background: var(--primary);
-  color: #fff;
+  background: transparent;
+  color: var(--primary);
 }
 
-.nav-btn .material-symbols-outlined {
-  font-size: 18px;
-  color: inherit;
+.nav-btn.active .material-symbols-outlined,
+.nav-btn.active .nav-text {
+  color: var(--primary);
 }
 
 .nav-btn:not(.active) .badge {
@@ -340,11 +290,25 @@ nav {
   color: var(--text);
 }
 
+.nav-btn .material-symbols-outlined {
+  font-size: 18px;
+  color: inherit;
+}
+
 .nav-btn .badge {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  padding: 1px 7px;
-  font-size: 0.75rem;
+  background: var(--primary);
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-width: 20px;
+  text-align: center;
+  font-size: 0.65rem;
+  margin-left: 0.1rem;
 }
 .xp-container {
   display: flex;
@@ -3323,4 +3287,84 @@ input:checked + .theme-slider:before {
     'wght' 400,
     'GRAD' 0,
     'opsz' 24 !important;
+}
+
+/* ====================== MOBILE BOTTOM NAV ====================== */
+
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 66px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08);
+  display: none;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 999;
+  padding-bottom: env(safe-area-inset-bottom); /* для iPhone с чёлкой */
+}
+
+.mobile-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.mobile-nav-btn.active,
+.mobile-nav-btn:active {
+  color: var(--primary);
+}
+
+.mobile-nav-btn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.mobile-nav-btn .badge {
+  position: absolute;
+  top: 0.4rem;
+  right: 38%;
+  font-size: 0.65rem;
+  background: var(--primary);
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Показываем навбар только на мобильных */
+@media (max-width: 830px) {
+  .mobile-bottom-nav {
+    display: flex;
+  }
+
+  /* Главное — даём отступ снизу, чтобы контент не уходил под навбар */
+  main {
+    padding-bottom: 78px !important;
+  }
+}
+
+/* Для iPhone с динамической островкой (очень важно!) */
+@media (max-width: 830px) and (display-mode: standalone) {
+  .mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(66px + env(safe-area-inset-bottom));
+  }
 }
