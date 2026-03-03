@@ -395,6 +395,16 @@
                 />
               </div>
               <div class="form-group">
+                <label>Перевод примера</label>
+                <input
+                  class="form-control"
+                  type="text"
+                  id="f-ex-translation"
+                  placeholder="Попробуй это блюдо — оно невероятное"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="form-group">
                 <label>Теги через запятую</label>
                 ><input
                   class="form-control"
@@ -699,11 +709,16 @@
               ></svg>
               <div class="breakdown" id="r-breakdown">
                 <div class="breakdown-col">
-                  <h4>✅ Правильно</h4>
+                  <h4>
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Правильно
+                  </h4>
                   <ul class="breakdown-list" id="r-correct"></ul>
                 </div>
                 <div class="breakdown-col">
-                  <h4>❌ Ошибки</h4>
+                  <h4>
+                    <span class="material-symbols-outlined">cancel</span> Ошибки
+                  </h4>
                   <ul class="breakdown-list" id="r-wrong"></ul>
                 </div>
               </div>

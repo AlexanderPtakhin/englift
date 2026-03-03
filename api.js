@@ -7,7 +7,7 @@ let wordBank = null;
 
 const BANK_CACHE_KEY = 'englift_wordbank_cache';
 const BANK_VERSION_KEY = 'englift_wordbank_version';
-const CURRENT_BANK_VERSION = '2026-03-01-v2';
+const CURRENT_BANK_VERSION = '2026-03-01-v5';
 
 // Emergency fallback если JSON не загрузится
 const EMERGENCY_WORDS = [
@@ -15,35 +15,39 @@ const EMERGENCY_WORDS = [
     en: 'go',
     ru: 'идти / ехать',
     phonetic: '/ɡoʊ/',
-    examples: ['I go to the market every Sunday.'],
+    examples: [{ text: 'I go to the market every Sunday.', translation: '' }],
     tags: ['A1', 'verb', 'everyday'],
   },
   {
     en: 'come',
     ru: 'приходить / приезжать',
     phonetic: '/kʌm/',
-    examples: ['She came home late yesterday.'],
+    examples: [{ text: 'She came home late yesterday.', translation: '' }],
     tags: ['A1', 'verb', 'everyday'],
   },
   {
     en: 'eat',
     ru: 'есть / кушать',
     phonetic: '/iːt/',
-    examples: ['We eat dinner together as a family.'],
+    examples: [
+      { text: 'We eat dinner together as a family.', translation: '' },
+    ],
     tags: ['A1', 'verb', 'everyday'],
   },
   {
     en: 'drink',
     ru: 'пить / напиток',
     phonetic: '/drɪŋk/',
-    examples: ['He drinks a glass of water every morning.'],
+    examples: [
+      { text: 'He drinks a glass of water every morning.', translation: '' },
+    ],
     tags: ['A1', 'verb', 'everyday'],
   },
   {
     en: 'sleep',
     ru: 'спать',
     phonetic: '/sliːp/',
-    examples: ['I usually sleep for eight hours.'],
+    examples: [{ text: 'I usually sleep for eight hours.', translation: '' }],
     tags: ['A1', 'verb', 'everyday'],
   },
 ];
@@ -53,6 +57,8 @@ const EMERGENCY_WORDS = [
  * если не получилось — fallback на встроенный WORD_BANK
  */
 async function loadWordBank() {
+  console.log('🔍 loadWordBank started');
+
   // Принудительная очистка кеша для отладки
   if (
     (window.location.hostname === 'localhost' ||
@@ -83,7 +89,51 @@ async function loadWordBank() {
   if (cachedVersion === CURRENT_BANK_VERSION && cachedData) {
     try {
       wordBank = JSON.parse(cachedData);
+
+      // Конвертируем примеры в новый формат если нужно
+      wordBank = wordBank.map(word => {
+        // Если examples уже в правильном формате (массив объектов)
+        if (
+          word.examples &&
+          Array.isArray(word.examples) &&
+          word.examples.length > 0 &&
+          typeof word.examples[0] === 'object' &&
+          word.examples[0].text
+        ) {
+          return word;
+        }
+
+        // Если examples - это массив строк или смешанный формат, конвертируем все в объекты
+        if (word.examples && Array.isArray(word.examples)) {
+          return {
+            ...word,
+            examples: word.examples.map(ex => {
+              if (typeof ex === 'string') {
+                // Это строка - создаем объект
+                return { text: ex, translation: '' };
+              } else if (typeof ex === 'object' && ex.text) {
+                // Это объект - проверяем наличие translation
+                return {
+                  text: ex.text || '',
+                  translation: ex.translation || '',
+                };
+              } else {
+                // Неизвестный формат
+                return { text: '', translation: '' };
+              }
+            }),
+          };
+        }
+
+        // Если examples нет или неправильный формат
+        return {
+          ...word,
+          examples: [],
+        };
+      });
+
       console.log(`Кэш: ${wordBank.length} слов (v${CURRENT_BANK_VERSION})`);
+      console.log('Пример конвертированного слова из кэша:', wordBank[0]);
       return wordBank;
     } catch (e) {
       console.warn('Кэш повреждён, загружаем заново');
@@ -110,8 +160,51 @@ async function loadWordBank() {
 
     const data = await response.json();
     console.log('Dictionary loaded successfully');
-    wordBank = data;
+
+    // Конвертируем примеры в новый формат если нужно
+    wordBank = data.map(word => {
+      // Если examples уже в правильном формате (массив объектов)
+      if (
+        word.examples &&
+        Array.isArray(word.examples) &&
+        word.examples.length > 0 &&
+        typeof word.examples[0] === 'object' &&
+        word.examples[0].text
+      ) {
+        return word;
+      }
+
+      // Если examples - это массив строк или смешанный формат, конвертируем все в объекты
+      if (word.examples && Array.isArray(word.examples)) {
+        return {
+          ...word,
+          examples: word.examples.map(ex => {
+            if (typeof ex === 'string') {
+              // Это строка - создаем объект
+              return { text: ex, translation: '' };
+            } else if (typeof ex === 'object' && ex.text) {
+              // Это объект - проверяем наличие translation
+              return {
+                text: ex.text || '',
+                translation: ex.translation || '',
+              };
+            } else {
+              // Неизвестный формат
+              return { text: '', translation: '' };
+            }
+          }),
+        };
+      }
+
+      // Если examples нет или неправильный формат
+      return {
+        ...word,
+        examples: [],
+      };
+    });
+
     console.log(`Успешно загружено ${wordBank.length} слов из dictionary.json`);
+    console.log('Пример конвертированного слова:', wordBank[0]);
     console.log(
       'Проверяем слово "stand" в загруженных данных:',
       wordBank.find(w => w.en === 'stand') ? 'НАЙДЕНО' : 'НЕ НАЙДЕНО',
@@ -811,9 +904,16 @@ async function getCompleteWordData(englishWord) {
 
     if (localEntry) {
       console.log(`Found "${englishWord}" in local bank`);
+      // Преобразуем примеры в новый формат
+      const examples = localEntry.examples
+        ? localEntry.examples.map(e =>
+            typeof e === 'string' ? { text: e, translation: '' } : e,
+          )
+        : [];
+
       return {
         ru: localEntry.ru,
-        examples: localEntry.examples || [],
+        examples: examples,
         tags: localEntry.tags || [],
         phonetic: localEntry.phonetic || '',
         confidence: 1.0, // 100% уверенность для локальных данных

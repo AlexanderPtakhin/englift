@@ -1050,6 +1050,88 @@ textarea {
   margin-bottom: 0.75rem;
 }
 
+.wc-example-container {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.example-text {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.example-text-content {
+  flex: 1;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.example-prev,
+.example-next,
+.example-translate {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.example-prev:hover,
+.example-next:hover,
+.example-translate:hover {
+  background: var(--border);
+  color: var(--primary);
+}
+
+.example-prev .material-symbols-outlined,
+.example-next .material-symbols-outlined,
+.example-translate .material-symbols-outlined {
+  font-size: 18px;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating {
+  animation: rotating 1s linear infinite;
+}
+
+.example-tooltip {
+  position: absolute;
+  background: var(--card);
+  border: 2px solid var(--primary);
+  color: var(--text);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 300px;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
 .wc-footer {
   display: flex;
   align-items: center;
@@ -1866,6 +1948,9 @@ body.dark .badge-learned {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .breakdown-list {
