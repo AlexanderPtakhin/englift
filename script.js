@@ -8,6 +8,9 @@ import { getCompleteWordData } from './api.js';
 import { auth } from './firebase.js';
 import './auth.js';
 
+// Инициализация глобальных переменных
+window.words = [];
+
 // XSS protection function
 
 // Добавь в самое начало файла (рядом с другими let)
@@ -191,6 +194,9 @@ window.showApiLoading = function (show) {
     loadingEl.style.display = show ? 'flex' : 'none';
   }
 };
+
+// Hide loading on page load
+window.showApiLoading(false);
 
 // ============================================================
 // CONSTANTS
@@ -596,7 +602,7 @@ function save(silent = false) {
 
     // === ТИХИЙ РЕЖИМ ===
     if (!silent) {
-      toast('🔄 Синхронизация...', 'info');
+      toast('Синхронизация...', 'info', 'sync');
     }
 
     // Сохраняем в Firebase асинхронно (уважаем параметр silent)
@@ -604,7 +610,7 @@ function save(silent = false) {
       .catch(e => {
         console.error('Firebase save error:', e);
         if (!silent) {
-          toast('❌ Ошибка сохранения', 'danger');
+          toast('Ошибка сохранения', 'danger', 'error');
         }
       })
       .finally(() => {
@@ -616,9 +622,13 @@ function save(silent = false) {
     console.error('Save error:', e);
     if (!silent) {
       if (e.name === 'QuotaExceededError') {
-        toast('❌ Хранилище переполнено. Удалите старые слова.', 'danger');
+        toast(
+          'Хранилище переполнено. Удалите старые слова.',
+          'danger',
+          'storage',
+        );
       } else {
-        toast('❌ Ошибка сохранения', 'danger');
+        toast('Ошибка сохранения', 'danger', 'error');
       }
     }
     return false;
@@ -733,7 +743,11 @@ async function addWord(en, ru, ex, tags, phonetic = null) {
 
   // Проверка на дубликаты
   if (words.some(w => w.en.toLowerCase() === normalizedEn.toLowerCase())) {
-    toast('⚠️ Слово «' + esc(normalizedEn) + '» уже есть в словаре', 'warning');
+    toast(
+      'Слово «' + esc(normalizedEn) + '» уже есть в словаре',
+      'warning',
+      'warning',
+    );
     return false;
   }
 
@@ -758,7 +772,7 @@ async function addWord(en, ru, ex, tags, phonetic = null) {
 
   // Показываем индикатор синхронизации
   updateSyncIndicator('syncing');
-  toast('🔄 Синхронизация...', 'info');
+  toast('Синхронизация...', 'info', 'sync');
 
   // Устанавливаем флаг локальных изменений
   window.hasLocalChanges = true;
@@ -766,10 +780,10 @@ async function addWord(en, ru, ex, tags, phonetic = null) {
   // Асинхронная синхронизация с обработкой ошибок
   try {
     await saveWordToDb(newWord);
-    toast('✅ Синхронизировано', 'success');
+    toast('Синхронизировано', 'success', 'sync');
   } catch (error) {
     console.error('Error saving word to DB:', error);
-    toast('❌ Ошибка синхронизации', 'danger');
+    toast('Ошибка синхронизации', 'danger', 'sync_problem');
   }
 
   gainXP(5, 'новое слово');
@@ -799,12 +813,12 @@ async function delWord(id) {
 
     debouncedSave();
 
-    toast('✅ Слово удалено', 'success');
+    toast('Слово удалено', 'success', 'delete');
 
     // Обновляем график активности после удаления
     renderWeekChart();
   } catch (error) {
-    toast('❌ Ошибка удаления: ' + error.message, 'danger');
+    toast('Ошибка удаления: ' + error.message, 'danger', 'delete');
   }
 }
 async function updWord(id, data) {
@@ -821,7 +835,7 @@ async function updWord(id, data) {
       await saveWordToDb(w);
     } catch (error) {
       console.error('Error updating word in DB:', error);
-      toast('⚠️ Ошибка синхронизации изменений', 'warning');
+      toast('Ошибка синхронизации изменений', 'warning', 'sync_problem');
     }
   }
 }
@@ -1341,19 +1355,21 @@ function setupSpeechListeners() {
 }
 
 // Initialize listeners when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupSpeechListeners);
-} else {
-  setupSpeechListeners();
-}
+setupSpeechListeners();
 
 // ============================================================
 // TOAST
 // ============================================================
-function toast(msg, type = '') {
+function toast(msg, type = '', icon = '') {
   const el = document.createElement('div');
   el.className = 'toast' + (type ? ' ' + type : '');
-  el.textContent = msg;
+
+  if (icon) {
+    el.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: middle; margin-right: 8px;">${icon}</span>${msg}`;
+  } else {
+    el.textContent = msg;
+  }
+
   document.getElementById('toast-box').appendChild(el);
   setTimeout(() => {
     el.style.opacity = '0';
@@ -1365,6 +1381,82 @@ function toast(msg, type = '') {
 // ============================================================
 // TABS
 // ============================================================
+
+// Update due badge function
+function updateDueBadge() {
+  const desktopBadge = document.getElementById('due-count');
+  const mobileBadge = document.getElementById('mobile-due-count');
+  if (!desktopBadge || !mobileBadge) return;
+  const now = new Date();
+  const due = words.filter(
+    w => new Date(w.stats.nextReview || now) <= now,
+  ).length;
+  const count = due > 99 ? '99+' : due;
+  if (desktopBadge) {
+    desktopBadge.textContent = count;
+    desktopBadge.style.display = due > 0 ? 'inline-block' : 'none';
+  }
+  if (mobileBadge) {
+    mobileBadge.textContent = count;
+    mobileBadge.style.display = due > 0 ? 'inline-block' : 'none';
+  }
+}
+
+// Render stats function
+function renderStats() {
+  console.log('=== renderStats called ===');
+  console.log('words.length:', words.length);
+
+  const total = words.length;
+  // SRS: due count
+  const now = new Date();
+  const dueCount = words.filter(
+    w => new Date(w.stats.nextReview || now) <= now,
+  ).length;
+  const stDueEl = document.getElementById('st-due');
+  if (stDueEl) stDueEl.textContent = dueCount;
+  const pillEl = document.getElementById('due-pill');
+  if (pillEl) pillEl.textContent = dueCount;
+  const learned = words.filter(w => w.stats.learned).length;
+  const pct = total ? Math.round((learned / total) * 100) : 0;
+  const weekAgo = new Date(Date.now() - 7 * 86400000);
+  const thisWeek = words.filter(w => new Date(w.createdAt) > weekAgo).length;
+
+  console.log('Stats calculated:', {
+    total,
+    learned,
+    pct,
+    dueCount,
+    thisWeek,
+  });
+
+  const stTotalEl = document.getElementById('st-total');
+  if (stTotalEl) stTotalEl.textContent = total;
+  const stLearnedEl = document.getElementById('st-learned');
+  if (stLearnedEl) stLearnedEl.textContent = learned;
+  const stLearnedBarEl = document.getElementById('st-learned-bar');
+  if (stLearnedBarEl) stLearnedBarEl.style.width = pct + '%';
+  const stStreakEl = document.getElementById('st-streak');
+  if (stStreakEl) stStreakEl.textContent = streak.count;
+  const stWeekEl = document.getElementById('st-week');
+  if (stWeekEl) stWeekEl.textContent = thisWeek;
+
+  // Sparkline
+  const days = [],
+    labels = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = d.toDateString();
+    days.push(
+      words.filter(w => new Date(w.createdAt).toDateString() === ds).length,
+    );
+    labels.push(['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()]);
+  }
+  // Старый sparkline код удалён - теперь используем Chart.js
+  // График отрисовывается через renderWeekChart()
+}
+
 function switchTab(name) {
   if (name === 'words') {
     visibleLimit = 30; // <-- сброс при переключении на слова
@@ -1463,53 +1555,6 @@ updateDueBadge = function () {
   originalUpdateDueBadge();
   syncBadges();
 };
-
-// Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('=== PWA DEBUG START ===');
-
-  // Проверка хедера
-  const header = document.querySelector('header');
-  const installBtn = document.getElementById('install-btn');
-  const userMenu = document.getElementById('user-menu');
-  const headerRight = document.querySelector('.header-right');
-
-  console.log('Header elements found:', {
-    header: !!header,
-    installBtn: !!installBtn,
-    userMenu: !!userMenu,
-    headerRight: !!headerRight,
-  });
-
-  // Проверка стилей
-  if (header) {
-    const headerStyles = window.getComputedStyle(header);
-    console.log('Header styles:', {
-      display: headerStyles.display,
-      padding: headerStyles.padding,
-      zIndex: headerStyles.zIndex,
-      position: headerStyles.position,
-    });
-  }
-
-  // Проверка кнопки установки
-  if (installBtn) {
-    console.log(
-      'Install button found, current display:',
-      installBtn.style.display,
-    );
-    installBtn.classList.add('visible');
-    installBtn.style.background = 'red';
-    installBtn.style.border = '2px solid yellow';
-    console.log('Install button forced visible for debug');
-  }
-
-  console.log('=== PWA DEBUG END ===');
-
-  syncMobileNav('words'); // Активная вкладка по умолчанию
-  syncBadges(); // Синхронизируем бейджи
-  initPWAInstall(); // Инициализация PWA установки
-});
 
 // ===== PWA INSTALLATION =====
 let deferredPrompt;
@@ -1730,6 +1775,9 @@ function initPWAInstall() {
   }
 }
 
+// Инициализируем PWA установку
+initPWAInstall();
+
 // ============================================================
 // DARK MODE
 // ============================================================
@@ -1922,7 +1970,7 @@ function mergeWords(localWords, firestoreWords) {
 // Показ уведомления о конфликтах
 function showConflictNotification(conflicts) {
   const message = `Обнаружено ${conflicts.length} конфликт(ов) при синхронизации. Использована версия из облака.`;
-  toast('⚠️ ' + message, 'warning', 5000);
+  toast('' + message, 'warning', 'warning', 5000);
 
   // Логируем конфликты для отладки
   console.log('Sync conflicts:', conflicts);
@@ -2308,7 +2356,7 @@ document.getElementById('words-grid').addEventListener('click', e => {
               ex: card.querySelector('.e-ex').value.trim(),
               tags: normalizeTags(card.querySelector('.e-tags').value),
             });
-            toast('✅ Слово обновлено!');
+            toast('Слово обновлено!', 'success', 'edit');
             renderWords();
           });
 
@@ -2358,7 +2406,7 @@ document.getElementById('words-grid').addEventListener('click', e => {
           ex: card.querySelector('.e-ex').value.trim(),
           tags: normalizeTags(card.querySelector('.e-tags').value),
         });
-        toast('✅ Слово обновлено!');
+        toast('Слово обновлено!', 'success', 'edit');
         renderWords();
       });
 
@@ -2531,14 +2579,14 @@ document.getElementById('auto-fill-btn').addEventListener('click', async () => {
   const englishWord = enInput.value.trim();
 
   if (!englishWord) {
-    toast('⚠️ Сначала введите английское слово', 'warning');
+    toast('Сначала введите английское слово', 'warning', 'warning');
     enInput.focus();
     return;
   }
 
   // Проверяем, что это действительно английское слово
   if (!validateEnglish(englishWord)) {
-    toast('❌ Неверный формат английского слова', 'danger');
+    toast('Неверный формат английского слова', 'danger', 'error');
     return;
   }
 
@@ -2622,7 +2670,11 @@ document.getElementById('auto-fill-btn').addEventListener('click', async () => {
     }
   } catch (error) {
     console.error('API Error:', error);
-    toast(`❌ Ошибка: ${error.message}. Попробуйте ввести вручную`, 'danger');
+    toast(
+      `Ошибка: ${error.message}. Попробуйте ввести вручную`,
+      'danger',
+      'api_error',
+    );
   }
 });
 
@@ -2655,7 +2707,7 @@ document.getElementById('single-form').addEventListener('submit', e => {
     });
 
     document.getElementById('f-en').focus();
-    toast(`✅ «${esc(en)}» добавлено!`, 'success');
+    toast(`«${esc(en)}» добавлено!`, 'success', 'add_circle');
 
     // Переключаемся на словарь чтобы показать анимацию
     switchTab('words');
@@ -2694,189 +2746,177 @@ document.getElementById('single-form').addEventListener('submit', e => {
     }, 100);
   }
 });
-
-let bulkParsed = [];
-document.getElementById('parse-bulk-btn').addEventListener('click', () => {
-  const lines = document
-    .getElementById('bulk-text')
-    .value.split('\n')
-    .filter(l => l.trim());
-  bulkParsed = lines
-    .map(l => {
-      const parts = l.split('-').map(p => p.trim());
-      return { en: parts[0] || '', ru: parts[1] || '' };
-    })
-    .filter(w => w.en && w.ru);
-  const tbody = document.getElementById('bulk-tbody');
-  tbody.innerHTML = bulkParsed
-    .map(
-      (w, i) =>
-        `<tr><td><input type="checkbox" class="bchk" data-i="${i}" checked></td><td>${esc(w.en)}</td><td>${esc(w.ru)}</td></tr>`,
-    )
-    .join('');
-  document.getElementById('bulk-preview-wrap').style.display = bulkParsed.length
-    ? 'block'
-    : 'none';
-  document.getElementById('import-bulk-btn').style.display = bulkParsed.length
-    ? 'inline-flex'
-    : 'none';
-  document.getElementById('import-bulk-btn').textContent =
-    `✅ Импортировать ${bulkParsed.length} слов`;
-});
-document.getElementById('import-bulk-btn').addEventListener('click', () => {
-  const checked = [...document.querySelectorAll('.bchk:checked')].map(
-    c => +c.dataset.i,
-  );
-  checked.forEach(i =>
-    addWord(bulkParsed[i].en, bulkParsed[i].ru, '', [], null),
-  );
-  document.getElementById('bulk-preview-wrap').style.display = 'none';
-  document.getElementById('import-bulk-btn').style.display = 'none';
-  document.getElementById('bulk-text').value = '';
-  bulkParsed = [];
-  toast(`✅ Импортировано ${checked.length} слов!`);
-  visibleLimit = 30; // <-- сброс
-  renderWords();
-  switchTab('words');
-});
-
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  dropZone.classList.add('over');
-});
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('over');
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) handleFile(e.target.files[0]);
-});
-
+// File import variables
 let fileParsed = [];
-function handleFile(file) {
-  const showPreview = () => {
-    const tbody = document.getElementById('file-tbody');
-    tbody.innerHTML = fileParsed
-      .map(
-        (w, i) =>
-          `<tr><td><input type="checkbox" class="fchk" data-i="${i}" ${words.find(x => x.en.toLowerCase() === w.en.toLowerCase()) ? '' : 'checked'}></td>` +
-          `<td>${esc(w.en)}${words.find(x => x.en.toLowerCase() === w.en.toLowerCase()) ? ` <span style="color:var(--warning);font-size:.75rem">⚠️ уже есть</span>` : ''}</td>` +
-          `<td>${esc(w.ru)}</td><td>${esc(w.ex)}</td></tr>`,
-      )
-      .join('');
-    document.getElementById('file-preview-wrap').style.display =
-      fileParsed.length ? 'block' : 'none';
-    const btn = document.getElementById('import-file-btn');
+
+function showPreview() {
+  console.log('🎬 showPreview called');
+  console.log('📊 fileParsed:', fileParsed);
+  console.log('📚 Current words count:', words.length);
+  console.log('🔍 First 5 current words:', words.slice(0, 5));
+
+  const previewWrap = document.getElementById('file-preview-wrap');
+  const tbody = document.getElementById('file-tbody');
+  if (!previewWrap || !tbody) {
+    console.error('❌ Preview elements not found');
+    return;
+  }
+
+  // Очищаем существующую таблицу перед генерацией
+  tbody.innerHTML = '';
+
+  // Генерируем таблицу заново с правильными состояниями чекбоксов
+  const tableRows = fileParsed
+    .map((w, i) => {
+      const isDuplicate = words.find(
+        x => x.en.toLowerCase() === w.en.toLowerCase(),
+      );
+      const isChecked = !isDuplicate ? 'checked' : '';
+      console.log(
+        `📝 Word ${i}: "${w.en}" - ${isDuplicate ? 'DUPLICATE (unchecked)' : 'NEW (checked)'}`,
+      );
+
+      return `
+    <tr>
+      <td><input type="checkbox" class="fchk" data-i="${i}" ${isChecked}></td>
+      <td>${esc(w.en)}${isDuplicate ? '<br><span style="color: var(--warning); font-size: 0.8em;">(уже есть)</span>' : ''}</td>
+      <td>${esc(w.ru)}</td>
+      <td>${esc(w.ex || '-')}</td>
+    </tr>
+  `;
+    })
+    .join('');
+
+  tbody.innerHTML = tableRows;
+
+  previewWrap.style.display = 'block';
+
+  // Показываем кнопку импорта
+  const importBtn = document.getElementById('import-file-btn');
+  if (importBtn) {
+    importBtn.style.display = 'block';
+    console.log('✅ Import button shown');
+  } else {
+    console.error('❌ Import button not found!');
+  }
+
+  // Добавляем сообщение о дубликатах если есть
+  const duplicateCount = fileParsed.filter(w =>
+    words.find(x => x.en.toLowerCase() === w.en.toLowerCase()),
+  ).length;
+
+  let warningDiv = null;
+  if (duplicateCount > 0) {
+    warningDiv = document.createElement('div');
+    warningDiv.style.cssText = `
+      background: var(--warning);
+      color: white;
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    `;
+    warningDiv.innerHTML = `⚠️ Найдено ${duplicateCount} слов, которые уже есть в словаре. Они автоматически сняты с выбора.`;
+    previewWrap.parentNode.insertBefore(warningDiv, previewWrap);
+  }
+
+  const btn = document.getElementById('import-file-btn');
+  console.log('🔘 Import button element:', btn);
+
+  if (btn) {
     const newCount = fileParsed.filter(
       w => !words.find(x => x.en.toLowerCase() === w.en.toLowerCase()),
     ).length;
+
+    console.log('🆕 New words count:', newCount);
+    console.log('🔄 Duplicate count:', fileParsed.length - newCount);
+
+    // Показываем детальную информацию о первых словах
+    fileParsed.slice(0, 3).forEach((w, i) => {
+      const isDuplicate = words.find(
+        x => x.en.toLowerCase() === w.en.toLowerCase(),
+      );
+      console.log(
+        `📝 Word ${i}: "${w.en}" - ${isDuplicate ? 'DUPLICATE' : 'NEW'}`,
+      );
+    });
+
     btn.style.display = fileParsed.length ? 'block' : 'none';
     btn.textContent = `✅ Импортировать ${newCount} новых слов${fileParsed.length - newCount > 0 ? ' (' + (fileParsed.length - newCount) + ' дублей пропустим)' : ''}`;
-  };
-  if (file.name.endsWith('.csv')) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      let raw = e.target.result;
-      if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
-      const lines = raw.split('\n').filter(l => l.trim());
-      const hasHdr =
-        lines[0].toLowerCase().includes('english') ||
-        lines[0].toLowerCase().includes('russian');
-      const dataL = hasHdr ? lines.slice(1) : lines;
-      const parseL = line => {
-        const cols = [];
-        let cur = '',
-          inQ = false;
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i];
-          if (ch === '"') {
-            inQ = !inQ;
-          } else if ((ch === ',' || ch === '\t') && !inQ) {
-            cols.push(cur.trim());
-            cur = '';
-          } else cur += ch;
+
+    console.log('👆 Button configured, display:', btn.style.display);
+    console.log('📝 Button text:', btn.textContent);
+
+    // Назначаем обработчик прямо здесь
+    btn.onclick = function () {
+      console.log('🔥 Import button clicked!');
+      console.log('📊 fileParsed length:', fileParsed.length);
+
+      const checkboxes = document.querySelectorAll('.fchk:checked');
+      console.log('☑️ Checked checkboxes:', checkboxes.length);
+
+      const indices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.i));
+      console.log('📍 Selected indices:', indices);
+
+      let added = 0;
+      indices.forEach(i => {
+        const w = fileParsed[i];
+        console.log(`📝 Processing word ${i}:`, w);
+        if (
+          !words.some(
+            existing => existing.en.toLowerCase() === w.en.toLowerCase(),
+          )
+        ) {
+          words.push(
+            mkWord(w.en, w.ru, w.ex, w.tags || [], w.phonetic || null),
+          );
+          added++;
+          console.log(`✅ Added word: ${w.en}`);
+        } else {
+          console.log(`⚠️ Duplicate skipped: ${w.en}`);
         }
-        cols.push(cur.trim());
-        return cols.map(s => s.replace(/^"|"$/g, '').replace(/""/g, '"'));
-      };
-      fileParsed = dataL
-        .map(l => {
-          const cols = parseL(l);
-          return {
-            en: cols[0] || '',
-            ru: cols[1] || '',
-            ex: cols[2] || '',
-          };
-        })
-        .filter(w => w.en && w.ru);
-      showPreview();
+      });
+
+      console.log(`🎯 Total added: ${added}`);
+      console.log('💾 Saving changes...');
+
+      // Сохраняем изменения
+      debouncedSave();
+
+      // Скрываем предпросмотр и кнопку
+      document.getElementById('file-preview-wrap').style.display = 'none';
+      btn.style.display = 'none';
+      fileParsed = [];
+
+      // Очищаем предупреждения о дубликатах
+      const warningDivs = document.querySelectorAll(
+        'div[style*="background: var(--warning)"]',
+      );
+      warningDivs.forEach(div => div.remove());
+
+      toast(`Импортировано ${added} слов!`, 'success', 'upload_file');
+      visibleLimit = 30;
+      renderWords();
+      renderStats();
+      switchTab('words');
+
+      // Прокручиваем в начало словаря
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+
+      console.log('🏁 Import process completed');
     };
-    reader.readAsText(file, 'UTF-8');
+
+    console.log('✅ Click handler assigned to button');
   } else {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const wb = XLSX.read(e.target.result, { type: 'binary' });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-      fileParsed = data
-        .slice(1)
-        .map(r => ({
-          en: (r[0] || '').toString().trim(),
-          ru: (r[1] || '').toString().trim(),
-          ex: (r[2] || '').toString().trim(),
-        }))
-        .filter(w => w.en && w.ru);
-      showPreview();
-    };
-    reader.readAsBinaryString(file);
+    console.error('❌ Import button not found!');
   }
 }
-document.getElementById('import-file-btn').addEventListener('click', () => {
-  const checked = [...document.querySelectorAll('.fchk:checked')].map(
-    c => +c.dataset.i,
-  );
-  let added = 0;
-  checked.forEach(i => {
-    const w = fileParsed[i];
-    if (!words.find(x => x.en.toLowerCase() === w.en.toLowerCase())) {
-      words.push(mkWord(w.en, w.ru, w.ex, w.tags || [], null));
-      added++;
-    }
-  });
-  document.getElementById('file-preview-wrap').style.display = 'none';
-  document.getElementById('import-file-btn').style.display = 'none';
-  fileParsed = [];
-  toast(`✅ Импортировано ${added} слов из файла!`);
-  visibleLimit = 30; // <-- сброс
-  renderWords();
-  switchTab('words');
-});
 
 // IMPORT / EXPORT
 // ============================================================
-let pendingImport = null;
 
-function openIOModal(mode = 'export') {
-  document.getElementById('io-export-view').style.display =
-    mode === 'export' ? 'block' : 'none';
-  document.getElementById('io-import-view').style.display =
-    mode === 'import' ? 'block' : 'none';
-  document.getElementById('io-modal').classList.add('open');
-}
-
-function closeIOModal() {
-  document.getElementById('io-modal').classList.remove('open');
-  pendingImport = null;
-}
-
-document
-  .getElementById('dropdown-export')
-  .addEventListener('click', () => openIOModal('export'));
 document
   .getElementById('dropdown-speech-settings')
   .addEventListener('click', () => {
@@ -2898,12 +2938,6 @@ document
     // Reload voices for modal
     loadVoices();
   });
-document
-  .getElementById('io-close-export')
-  .addEventListener('click', closeIOModal);
-document.getElementById('io-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeIOModal();
-});
 
 // Speech modal handlers
 document.getElementById('speech-modal-cancel').addEventListener('click', () => {
@@ -2921,20 +2955,164 @@ document.getElementById('speech-modal').addEventListener('click', e => {
   }
 });
 
-// Back to export view
-document.getElementById('io-back-btn').addEventListener('click', () => {
-  document.getElementById('io-export-view').style.display = 'block';
-  document.getElementById('io-import-view').style.display = 'none';
-  pendingImport = null;
-});
+// Import drop zone elements
+const importDropZone = document.getElementById('io-drop-zone');
+const importFileInput = document.getElementById('io-file-input');
 
-// Switch to import view
-document.getElementById('io-to-import').addEventListener('click', () => {
-  document.getElementById('io-export-view').style.display = 'none';
-  document.getElementById('io-import-view').style.display = 'block';
-});
+// Import drop zone handlers
+if (importDropZone) {
+  importDropZone.addEventListener('click', () => {
+    console.log('🖱️ Drop zone clicked!');
+    importFileInput.click();
+  });
 
-// Export JSON (full backup)
+  importDropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    importDropZone.classList.add('drag-over');
+  });
+
+  importDropZone.addEventListener('dragleave', () =>
+    importDropZone.classList.remove('drag-over'),
+  );
+
+  importDropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    importDropZone.classList.remove('drag-over');
+    handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+if (importFileInput) {
+  importFileInput.addEventListener('change', e => {
+    console.log('📂 File input changed!');
+    handleFile(e.target.files[0]);
+  });
+}
+
+// Функция обработки файла импорта
+function handleFile(file) {
+  if (!file) return;
+
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+    // Excel импорт
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        // Пропускаем заголовок если есть
+        const hasHeader =
+          jsonData.length > 0 &&
+          (jsonData[0][0]?.toString().toLowerCase().includes('english') ||
+            jsonData[0][1]?.toString().toLowerCase().includes('russian'));
+        const startIndex = hasHeader ? 1 : 0;
+
+        fileParsed = jsonData
+          .slice(startIndex)
+          .map(row => ({
+            en: row[0]?.toString().trim() || '',
+            ru: row[1]?.toString().trim() || '',
+            phonetic: row[2]?.toString().trim() || '',
+            ex: row[3]?.toString().trim() || '',
+            tags: row[4]
+              ? row[4]
+                  .toString()
+                  .split(';')
+                  .map(t => t.trim())
+                  .filter(t => t)
+              : [],
+          }))
+          .filter(w => w.en && w.ru);
+
+        console.log(
+          '📁 Excel file parsed successfully:',
+          fileParsed.length,
+          'words',
+        );
+        showPreview();
+      } catch (error) {
+        console.error('❌ Error parsing Excel file:', error);
+        toast(
+          'Ошибка чтения Excel файла: ' + error.message,
+          'error',
+          'table_chart',
+        );
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    // JSON/CSV импорт
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const content = e.target.result;
+
+      try {
+        if (fileName.endsWith('.json')) {
+          // JSON импорт
+          const data = JSON.parse(content);
+          if (data.words && Array.isArray(data.words)) {
+            fileParsed = data.words;
+          } else if (Array.isArray(data)) {
+            fileParsed = data;
+          } else {
+            throw new Error('Invalid JSON format');
+          }
+        } else if (fileName.endsWith('.csv')) {
+          // CSV импорт
+          const lines = content.split('\n').filter(line => line.trim());
+          const hasHeader =
+            lines[0] && lines[0].toLowerCase().includes('english');
+          const startIndex = hasHeader ? 1 : 0;
+
+          fileParsed = lines
+            .slice(startIndex)
+            .map(line => {
+              const values = parseCSVLine(line);
+              return {
+                en: values[0]?.trim() || '',
+                ru: values[1]?.trim() || '',
+                ex: values[2]?.trim() || '',
+                tags: values[3]
+                  ? values[3]
+                      .split(';')
+                      .map(t => t.trim())
+                      .filter(t => t)
+                  : [],
+              };
+            })
+            .filter(w => w.en && w.ru);
+        } else {
+          throw new Error('Unsupported file format');
+        }
+
+        console.log('📁 File parsed successfully:', fileParsed.length, 'words');
+        showPreview();
+      } catch (error) {
+        console.error('❌ Error parsing file:', error);
+        toast('Ошибка чтения файла: ' + error.message, 'error', 'description');
+      }
+    };
+
+    reader.onerror = function () {
+      console.error('❌ Error reading file');
+      toast('Ошибка чтения файла', 'error', 'description');
+    };
+
+    reader.readAsText(file);
+  }
+}
+
+// ============================================================
+// Обработчики экспорта
+// ============================================================
+
+// Экспорт полного бэкапа в JSON
 document.getElementById('io-export-json').addEventListener('click', () => {
   const backup = {
     version: 2,
@@ -2951,11 +3129,11 @@ document.getElementById('io-export-json').addEventListener('click', () => {
   a.download =
     'englift-backup-' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
-  toast('💾 Бэкап сохранён!', 'success');
-  closeIOModal();
+  URL.revokeObjectURL(a.href); // очищаем память
+  toast('Бэкап сохранён!', 'success', 'save');
 });
 
-// Export CSV
+// Экспорт слов в CSV
 document.getElementById('io-export-csv').addEventListener('click', () => {
   if (!words.length) {
     toast('Нет слов', 'warning');
@@ -2968,16 +3146,17 @@ document.getElementById('io-export-csv').addEventListener('click', () => {
         `"${(w.en || '').replace(/"/g, '""')}","${(w.ru || '').replace(/"/g, '""')}","${(w.ex || '').replace(/"/g, '""')}","${(w.tags || []).join(';')}"`,
     ),
   ];
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(
-    new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }),
-  );
+  a.href = URL.createObjectURL(blob);
   a.download =
     'englift-words-' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
-  toast('📄 CSV скачан!', 'success');
-  closeIOModal();
+  URL.revokeObjectURL(a.href);
+  toast('CSV скачан!', 'success', 'description');
 });
+
+// Экспорт в формат Anki (TSV)
 document.getElementById('io-export-anki').addEventListener('click', () => {
   if (!words.length) {
     toast('Нет слов', 'warning');
@@ -2988,9 +3167,8 @@ document.getElementById('io-export-anki').addEventListener('click', () => {
       ? `${w.en}<br><i style="font-size:.85em;opacity:.7">${w.ex}</i>`
       : w.en;
     const tags = w.tags.join(' ');
-    return [front, w.ru, tags].join('	');
+    return [front, w.ru, tags].join('\t');
   });
-
   const blob = new Blob([rows.join('\n')], {
     type: 'text/tab-separated-values',
   });
@@ -2998,298 +3176,40 @@ document.getElementById('io-export-anki').addEventListener('click', () => {
   a.href = URL.createObjectURL(blob);
   a.download = `englift_anki_${new Date().toISOString().slice(0, 10)}.txt`;
   a.click();
-  toast('🃏 Anki файл скачан!', 'success');
+  URL.revokeObjectURL(a.href);
+  toast('Anki файл скачан!', 'success', 'style');
 });
 
-// Функция экранирования HTML
-function esc(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
+// Вспомогательная функция для парсинга CSV с кавычками
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
 
-function handleImportFile(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    let content = e.target.result;
-    // Убираем BOM (utf-8-sig)
-    if (content.charCodeAt(0) === 0xfeff) content = content.slice(1);
-    const infoEl = document.getElementById('io-import-info');
-    const actionsEl = document.getElementById('io-import-actions');
-    try {
-      if (file.name.endsWith('.json')) {
-        const data = JSON.parse(content);
-        if (!data.words || !Array.isArray(data.words))
-          throw new Error('Неверный формат JSON');
-        pendingImport = { type: 'json', data };
-        infoEl.innerHTML = `✅ Найдено слов: <b>${esc(data.words.length.toString())}</b>${data.xpData ? ' · XP и бейджи будут восстановлены' : ''}<br><span style="color:var(--danger);font-size:.75rem">⚠️ Текущие слова будут заменены!</span>`;
-      } else if (file.name.endsWith('.csv')) {
-        const lines = content
-          .trim()
-          .split('\n')
-          .filter(l => l.trim());
-        const hasHeader =
-          lines[0].toLowerCase().includes('english') ||
-          lines[0].toLowerCase().includes('russian');
-        const dataLines = hasHeader ? lines.slice(1) : lines;
-        const parseCSVLine = line => {
-          const cols = [];
-          let cur = '',
-            inQ = false;
-          for (let i = 0; i < line.length; i++) {
-            const ch = line[i];
-            if (ch === '"') {
-              inQ = !inQ;
-            } else if ((ch === ',' || ch === '\t') && !inQ) {
-              cols.push(cur.trim());
-              cur = '';
-            } else cur += ch;
-          }
-          cols.push(cur.trim());
-          return cols.map(s => s.replace(/^"|"$/g, '').replace(/""/g, '"'));
-        };
-        const parsed = dataLines
-          .map(line => {
-            const cols = parseCSVLine(line);
-            return {
-              en: esc(cols[0] || ''),
-              ru: esc(cols[1] || ''),
-              ex: esc(cols[2] || ''),
-              tags: normalizeTags(cols[3] || ''),
-            };
-          })
-          .filter(w => w.en && w.ru);
-        if (!parsed.length) throw new Error('Не найдено слов в CSV');
-        pendingImport = { type: 'csv', data: parsed };
-        infoEl.innerHTML = `✅ Найдено слов: <b>${esc(parsed.length.toString())}</b><br><span style="color:var(--warning);font-size:.75rem">ℹ️ Слова будут добавлены к существующим</span>`;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++; // пропустить следующую кавычку
       } else {
-        throw new Error('Неверный формат файла');
+        inQuotes = !inQuotes;
       }
-      infoEl.style.display = 'block';
-      actionsEl.style.display = 'flex';
-    } catch (err) {
-      infoEl.innerHTML = '❌ Ошибка: ' + err.message;
-      infoEl.style.display = 'block';
-      actionsEl.style.display = 'none';
-      pendingImport = null;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
     }
-  };
-  reader.readAsText(file, 'utf-8');
+  }
+
+  result.push(current);
+  return result;
 }
 
-const importDropZone = document.getElementById('io-drop-zone');
-const importFileInput = document.getElementById('io-file-input');
-
-importDropZone.addEventListener('click', () => importFileInput.click());
-importFileInput.addEventListener('change', e =>
-  handleImportFile(e.target.files[0]),
-);
-
-importDropZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  importDropZone.classList.add('drag-over');
-});
-importDropZone.addEventListener('dragleave', () =>
-  importDropZone.classList.remove('drag-over'),
-);
-importDropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  importDropZone.classList.remove('drag-over');
-  handleImportFile(e.dataTransfer.files[0]);
-});
-
-// Создание резервной копии перед импортом
-function createBackup() {
-  const backup = {
-    words: words,
-    xpData: xpData,
-    streak: streak,
-    speechCfg: speechCfg,
-    timestamp: new Date().toISOString(),
-    version: '1.0',
-  };
-
-  const backupData = JSON.stringify(backup, null, 2);
-  const blob = new Blob([backupData], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `englift-backup-${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  return backup;
-}
-
-// Показ предпросмотра импорта с опцией резервного копирования
-function showImportPreview(importData) {
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-  `;
-
-  const content = document.createElement('div');
-  content.className = 'modal-content';
-  content.style.cssText = `
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 2rem;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-  `;
-
-  const wordsCount = importData.words ? importData.words.length : 0;
-  const currentWordsCount = words.length;
-
-  content.innerHTML = `
-    <h2 style="margin-bottom: 1rem; color: var(--text);">📦 Предпросмотр импорта</h2>
-    
-    <div style="background: var(--bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-      <h3 style="margin-bottom: 0.5rem; color: var(--text);">📊 Статистика импорта:</h3>
-      <ul style="margin: 0; padding-left: 1.5rem; color: var(--muted);">
-        <li>Слов в файле: <strong>${esc(wordsCount.toString())}</strong></li>
-        <li>Текущих слов: <strong>${esc(currentWordsCount.toString())}</strong></li>
-        ${importData.xpData ? '<li>Содержит данные XP и бейджи</li>' : ''}
-        ${importData.streak ? '<li>Содержит данные streak</li>' : ''}
-      </ul>
-    </div>
-    
-    <div style="background: var(--warning); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-      <strong>⚠️ Внимание!</strong><br>
-      Текущие слова (${esc(currentWordsCount.toString())}) будут заменены на слова из файла (${esc(wordsCount.toString())}).
-    </div>
-    
-    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-      <button id="create-backup-btn" class="btn btn-secondary" style="flex: 1;">
-        💾 Создать резервную копию
-      </button>
-      <button id="import-without-backup-btn" class="btn btn-danger" style="flex: 1;">
-        🔄 Импортировать без копии
-      </button>
-    </div>
-    
-    <button id="cancel-import-btn" class="cancel-edit-btn" style="width: 100%; margin-top: 1rem;">
-      <span class="material-symbols-outlined">close</span>
-    </button>
-  `;
-
-  modal.appendChild(content);
-  document.body.appendChild(modal);
-
-  // Обработчики
-  document.getElementById('create-backup-btn').addEventListener('click', () => {
-    createBackup();
-    modal.remove();
-    performImport(importData);
-  });
-
-  document
-    .getElementById('import-without-backup-btn')
-    .addEventListener('click', () => {
-      if (
-        confirm(
-          'Вы уверены, что хотите импортировать без создания резервной копии?',
-        )
-      ) {
-        modal.remove();
-        performImport(importData);
-      }
-    });
-
-  document.getElementById('cancel-import-btn').addEventListener('click', () => {
-    modal.remove();
-  });
-
-  modal.addEventListener('click', e => {
-    if (e.target === modal) {
-      modal.remove();
-    }
-  });
-}
-
-// Выполнение импорта
-function performImport(importData) {
-  words = importData.words || [];
-  if (importData.xpData) {
-    xpData = importData.xpData;
-    saveXP();
-  }
-  if (importData.streak) {
-    streak = importData.streak;
-    saveStreak();
-  }
-  if (importData.speechCfg) {
-    speechCfg = importData.speechCfg;
-    saveSpeech();
-  }
-
-  debouncedSave();
-  visibleLimit = 30; // <-- сброс
-  renderWords();
-  renderStats();
-  renderXP();
-  renderBadges();
-
-  toast(
-    '✅ Бэкап восстановлен! ' + words.length + ' слов загружено',
-    'success',
-  );
-
-  // Закрываем модальное окно импорта
-  const importModal = document.getElementById('import-modal');
-  if (importModal) {
-    importModal.style.display = 'none';
-  }
-}
-
-// Confirm import
-document.getElementById('io-confirm-import').addEventListener('click', () => {
-  if (!pendingImport) return;
-
-  if (pendingImport.type === 'json') {
-    // Показываем предпросмотр для JSON импорта
-    showImportPreview(pendingImport.data);
-  } else if (pendingImport.type === 'csv') {
-    // Для CSV импортируем сразу (добавляем слова, не заменяем)
-    let added = 0;
-    pendingImport.data.forEach(w => {
-      if (!words.find(x => x.en.toLowerCase() === w.en.toLowerCase())) {
-        words.push(mkWord(w.en, w.ru, w.ex, w.tags || [], null));
-        added++;
-      }
-    });
-    debouncedSave();
-    renderWords();
-    renderStats();
-    toast('✅ Добавлено ' + added + ' новых слов!', 'success');
-    closeIOModal();
-    pendingImport = null;
-    fileInput.value = '';
-  }
-});
-
-// ============================================================
-// PRACTICE
-// ============================================================
-let session = null,
-  sIdx = 0,
-  sResults = { correct: [], wrong: [] };
+// Practice session variables
+let sResults = { correct: [], wrong: [] };
 let autoPron = true,
   lastSessionConfig = null;
 
@@ -3827,132 +3747,6 @@ function spawnConfetti() {
 }
 
 // ============================================================
-// STATS
-// ============================================================
-function renderStats() {
-  console.log('=== renderStats called ===');
-  console.log('words.length:', words.length);
-
-  const total = words.length;
-  // SRS: due count
-  const now = new Date();
-  const dueCount = words.filter(
-    w => new Date(w.stats.nextReview || now) <= now,
-  ).length;
-  document.getElementById('st-due').textContent = dueCount;
-  const pillEl = document.getElementById('due-pill');
-  if (pillEl) pillEl.textContent = dueCount;
-  const learned = words.filter(w => w.stats.learned).length;
-  const pct = total ? Math.round((learned / total) * 100) : 0;
-  const weekAgo = new Date(Date.now() - 7 * 86400000);
-  const thisWeek = words.filter(w => new Date(w.createdAt) > weekAgo).length;
-
-  console.log('Stats calculated:', { total, learned, pct, dueCount, thisWeek });
-
-  document.getElementById('st-total').textContent = total;
-  document.getElementById('st-learned').textContent = learned;
-  document.getElementById('st-learned-bar').style.width = pct + '%';
-  document.getElementById('st-streak').textContent = streak.count;
-  document.getElementById('st-week').textContent = thisWeek;
-
-  // Sparkline
-  const days = [],
-    labels = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const ds = d.toDateString();
-    days.push(
-      words.filter(w => new Date(w.createdAt).toDateString() === ds).length,
-    );
-    labels.push(['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()]);
-  }
-  // Старый sparkline код удалён - теперь используем Chart.js
-  // График отрисовывается через renderWeekChart()
-
-  const practiced = words.filter(w => w.stats.shown > 0);
-  const hard = [...practiced]
-    .sort(
-      (a, b) =>
-        a.stats.correct / a.stats.shown - b.stats.correct / b.stats.shown,
-    )
-    .slice(0, 5);
-  const easy = [...practiced]
-    .sort(
-      (a, b) =>
-        b.stats.correct / b.stats.shown - a.stats.correct / a.stats.shown,
-    )
-    .slice(0, 5);
-
-  document.getElementById('st-hard').innerHTML =
-    hard
-      .map(
-        w => `
-    <li>
-      <span>${esc(w.en)}</span>
-      <div style="display:flex;align-items:center;gap:.5rem">
-        ${speechSupported ? `<button class="btn-audio wlist-audio" data-word="${esc(w.en)}" style="width:28px;height:28px;font-size:.8rem">🔊</button>` : ''}
-        <span class="cnt">${w.stats.correct}/${w.stats.shown}</span>
-      </div>
-    </li>
-  `,
-      )
-      .join('') || '<li style="color:var(--muted)">Нет данных</li>';
-
-  document.getElementById('st-easy').innerHTML =
-    easy
-      .map(
-        w => `
-    <li>
-      <span>${esc(w.en)}</span>
-      <div style="display:flex;align-items:center;gap:.5rem">
-        ${speechSupported ? `<button class="btn-audio wlist-audio" data-word="${esc(w.en)}" style="width:28px;height:28px;font-size:.8rem">🔊</button>` : ''}
-        <span class="cnt">${Math.round((w.stats.correct / w.stats.shown) * 100)}%</span>
-      </div>
-    </li>
-  `,
-      )
-      .join('') || '<li style="color:var(--muted)">Нет данных</li>';
-
-  // Audio in stats lists
-  document.querySelectorAll('.wlist-audio').forEach(btn => {
-    btn.addEventListener('click', () => speakBtn(btn.dataset.word, btn));
-  });
-
-  // Обновляем график
-  renderWeekChart();
-
-  // Update speech settings UI
-  const speedRange =
-    document.getElementById('modal-speed-range') ||
-    document.getElementById('speed-range');
-  const speedVal =
-    document.getElementById('modal-speed-val') ||
-    document.getElementById('speed-val');
-  const pitchRange =
-    document.getElementById('modal-pitch-range') ||
-    document.getElementById('pitch-range');
-  const pitchVal =
-    document.getElementById('modal-pitch-val') ||
-    document.getElementById('pitch-val');
-
-  if (speedRange) speedRange.value = speechCfg.rate;
-  if (speedVal) speedVal.textContent = speechCfg.rate + 'x';
-  if (pitchRange) pitchRange.value = speechCfg.pitch;
-  if (pitchVal) pitchVal.textContent = speechCfg.pitch.toFixed(1);
-
-  // Устанавливаем выбранный акцент
-  const accentSelect =
-    document.getElementById('modal-accent-select') ||
-    document.getElementById('accent-select');
-  if (accentSelect) {
-    accentSelect.value = speechCfg.accent || 'US';
-  }
-
-  setTimeout(loadVoices, 100);
-}
-
-// ============================================================
 // INIT
 // ============================================================
 // Мост для Firebase
@@ -3987,19 +3781,17 @@ window._setWords = async newWords => {
 };
 
 // Инициализация индикатора синхронизации и мониторинга сети
-document.addEventListener('DOMContentLoaded', () => {
-  // Обработчик клика на индикатор синхронизации
-  // const syncIndicator = document.getElementById('sync-indicator');
-  // if (syncIndicator) {
-  //   syncIndicator.addEventListener('click', forceSync);
-  // }
+// Обработчик клика на индикатор синхронизации
+// const syncIndicator = document.getElementById('sync-indicator');
+// if (syncIndicator) {
+//   syncIndicator.addEventListener('click', forceSync);
+// }
 
-  // Настройка мониторинга сети
-  setupNetworkMonitoring();
+// Настройка мониторинга сети
+setupNetworkMonitoring();
 
-  // Запуск периодической проверки бейджей
-  startBadgeAutoCheck();
-});
+// Запуск периодической проверки бейджей
+startBadgeAutoCheck();
 
 load();
 updStreak();
@@ -4057,30 +3849,6 @@ function playSound(type) {
     }
   } catch (e) {
     console.error('Error playing sound:', e);
-  }
-}
-
-// === DUE BADGE ===
-function updateDueBadge() {
-  const desktopBadge = document.getElementById('due-count');
-  const mobileBadge = document.getElementById('mobile-due-count');
-  if (!desktopBadge || !mobileBadge) return;
-
-  const now = new Date();
-  const due = words.filter(
-    w => new Date(w.stats.nextReview || now) <= now,
-  ).length;
-
-  const count = due > 99 ? '99+' : due;
-
-  if (desktopBadge) {
-    desktopBadge.textContent = count;
-    desktopBadge.style.display = due > 0 ? 'inline-block' : 'none';
-  }
-
-  if (mobileBadge) {
-    mobileBadge.textContent = count;
-    mobileBadge.style.display = due > 0 ? 'inline-block' : 'none';
   }
 }
 
@@ -4518,34 +4286,31 @@ window.renderStats = renderStats;
 // ============================================================
 // INITIALIZATION
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  // СРАЗУ применяем тему из localStorage
-  const savedTheme = localStorage.getItem('engliftDark') === 'true';
-  if (savedTheme) {
-    // Применяем тему немедленно через CSS переменные
-    document.documentElement.style.setProperty('--bg', '#13121f');
-    document.documentElement.style.setProperty('--text', '#ffffff');
-    document.documentElement.style.setProperty('--bg-secondary', '#1e1e2e');
-    document.documentElement.style.setProperty('--border', '#374151');
-    document.documentElement.style.setProperty('--muted', '#9ca3af');
-    document.documentElement.style.setProperty('--primary', '#60a5fa');
-    document.documentElement.style.setProperty('--primary-light', '#93c5fd');
-    document.body.classList.add('dark');
+// СРАЗУ применяем тему из localStorage
+const savedTheme = localStorage.getItem('engliftDark') === 'true';
+if (savedTheme) {
+  // Применяем тему немедленно через CSS переменные
+  document.documentElement.style.setProperty('--bg', '#13121f');
+  document.documentElement.style.setProperty('--text', '#ffffff');
+  document.documentElement.style.setProperty('--bg-secondary', '#1e1e2e');
+  document.documentElement.style.setProperty('--border', '#374151');
+  document.documentElement.style.setProperty('--muted', '#9ca3af');
+  document.documentElement.style.setProperty('--primary', '#60a5fa');
+  document.documentElement.style.setProperty('--primary-light', '#93c5fd');
+  document.body.classList.add('dark');
+}
+
+// Инициализация
+load();
+renderWords();
+renderStats();
+renderXP();
+renderBadges();
+
+// Если через 2 секунды Firebase не загрузил тему, оставляем localStorage
+setTimeout(() => {
+  if (!window.authExports?.auth?.currentUser) {
+    console.log('No Firebase user - keeping localStorage theme');
   }
-
-  // Инициализация
-  load();
-  renderWords();
-  renderStats();
-  renderXP();
-  renderBadges();
-
-  // Если через 2 секунды Firebase не загрузил тему, оставляем localStorage
-  setTimeout(() => {
-    if (!window.authExports?.auth?.currentUser) {
-      console.log('No Firebase user - keeping localStorage theme');
-    }
-  }, 2000);
-
-  switchTab('words');
-});
+}, 2000);
+switchTab('words');

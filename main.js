@@ -22,10 +22,10 @@ window.authExports = {
 // Ждем полной загрузки DOM перед загрузкой остальных скриптов
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    import('./auth.js');
     import('./script.js');
+    import('./auth.js');
   });
 } else {
-  import('./auth.js');
   import('./script.js');
+  import('./auth.js');
 }

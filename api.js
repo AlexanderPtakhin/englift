@@ -812,7 +812,7 @@ async function getCompleteWordData(englishWord) {
     if (localEntry) {
       console.log(`Found "${englishWord}" in local bank`);
       return {
-        translation: localEntry.ru,
+        ru: localEntry.ru,
         examples: localEntry.examples || [],
         tags: localEntry.tags || [],
         phonetic: localEntry.phonetic || '',
@@ -830,7 +830,7 @@ async function getCompleteWordData(englishWord) {
     ]);
 
     return {
-      translation: translationResult.translation,
+      ru: translationResult.translation,
       examples: wordData.examples,
       tags: wordData.tags,
       confidence: translationResult.confidence,

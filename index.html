@@ -20,7 +20,6 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="api.js"></script>
     <script type="module" src="main.js"></script>
@@ -312,10 +311,21 @@
 
       <!-- TAB: ADD -->
       <div class="tab-pane" id="tab-add">
-        <div class="section-title">Добавить слова</div>
         <div class="add-layout">
           <div class="add-card">
-            <h3>✏️ Одно слово</h3>
+            <h3
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              "
+            >
+              <span class="material-symbols-outlined" style="font-size: 1.2rem"
+                >add_circle</span
+              >
+              Добавить слово
+            </h3>
             <form id="single-form">
               <div class="form-group">
                 <label>Английское слово *</label>
@@ -334,28 +344,28 @@
                     id="auto-fill-btn"
                     title="Автозаполнение перевода и примера"
                   >
-                    🪄
+                    <span class="material-symbols-outlined">auto_fix_high</span>
                   </button>
                 </div>
                 <div
                   id="api-loading"
                   style="
                     display: none;
-                    margin-top: 0.5rem;
-                    font-size: 0.85rem;
-                    color: var(--primary);
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem;
+                    background: rgba(108, 99, 255, 0.1);
+                    border-radius: 8px;
+                    border: 1px solid var(--primary);
                   "
                 >
-                  <div
-                    class="loading-spinner"
-                    style="width: 16px; height: 16px; margin-right: 0.5rem"
-                  ></div>
-                  Получаю данные...
+                  <div class="loading-spinner"></div>
+                  <span>Загрузка...</span>
                 </div>
               </div>
               <div class="form-group">
-                <label>Перевод *</label
-                ><input
+                <label>Русский перевод *</label>
+                <input
                   class="form-control"
                   type="text"
                   id="f-ru"
@@ -365,8 +375,8 @@
                 />
               </div>
               <div class="form-group">
-                <label>Транскрипция (необязательно)</label
-                ><input
+                <label>Транскрипция</label>
+                <input
                   class="form-control"
                   type="text"
                   id="f-phonetic"
@@ -375,8 +385,8 @@
                 />
               </div>
               <div class="form-group">
-                <label>Пример (необязательно)</label
-                ><input
+                <label>Пример</label>
+                <input
                   class="form-control"
                   type="text"
                   id="f-ex"
@@ -385,7 +395,7 @@
                 />
               </div>
               <div class="form-group">
-                <label>Теги через запятую</label
+                <label>Теги через запятую</label>
                 ><input
                   class="form-control"
                   type="text"
@@ -397,93 +407,123 @@
               <button
                 type="submit"
                 class="btn btn-primary btn-lg"
-                style="width: 100%"
+                style="
+                  width: 100%;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                "
               >
-                ➕ Добавить слово
+                <span
+                  class="material-symbols-outlined"
+                  style="vertical-align: middle; margin-right: 8px"
+                  >add_circle</span
+                >Добавить слово
               </button>
             </form>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 1.5rem">
-            <div class="add-card">
-              <h3>📋 Список текстом</h3>
-              <div class="form-group">
-                <label>Формат: <code>слово - перевод</code></label>
-                <textarea
-                  id="bulk-text"
-                  class="form-control"
-                  placeholder="achieve - достигать&#10;boundary - граница&#10;challenge - вызов"
-                ></textarea>
-              </div>
-              <div
-                id="bulk-preview-wrap"
-                style="display: none"
-                class="preview-wrap"
+
+          <!-- Импорт/Экспорт -->
+          <div class="add-card">
+            <h3
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              "
+            >
+              <span class="material-symbols-outlined" style="font-size: 1.2rem"
+                >import_export</span
               >
-                <table class="preview-table">
-                  <thead>
-                    <tr>
-                      <th>✓</th>
-                      <th>English</th>
-                      <th>Русский</th>
-                    </tr>
-                  </thead>
-                  <tbody id="bulk-tbody"></tbody>
-                </table>
-              </div>
-              <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem">
-                <button class="btn btn-secondary" id="parse-bulk-btn">
-                  👁 Превью
-                </button>
-                <button
-                  class="btn btn-primary"
-                  id="import-bulk-btn"
-                  style="display: none"
-                >
-                  ✅ Импортировать
-                </button>
-              </div>
-            </div>
-            <div class="add-card">
-              <h3>📂 Файл (.csv / .xlsx)</h3>
-              <div class="drop-zone" id="drop-zone">
-                <div class="dz-icon">📁</div>
-                <p>Перетащи файл сюда или нажми для выбора</p>
-                <p style="font-size: 0.8rem; margin-top: 0.3rem">
-                  Колонки: A=English, B=Русский, C=Пример
-                </p>
-              </div>
-              <input
-                class="form-control"
-                type="file"
-                id="file-input"
-                accept=".csv,.xlsx"
-                style="display: none"
-              />
-              <div
-                id="file-preview-wrap"
-                style="display: none; margin-top: 1rem"
-                class="preview-wrap"
-              >
-                <table class="preview-table">
-                  <thead>
-                    <tr>
-                      <th>✓</th>
-                      <th>English</th>
-                      <th>Русский</th>
-                      <th>Пример</th>
-                    </tr>
-                  </thead>
-                  <tbody id="file-tbody"></tbody>
-                </table>
-              </div>
-              <button
-                class="btn btn-primary"
-                id="import-file-btn"
-                style="display: none; margin-top: 0.75rem; width: 100%"
-              >
-                ✅ Импортировать выбранные
+              Импорт / Экспорт
+            </h3>
+            <div class="io-btn-group">
+              <button class="io-btn" id="io-export-json">
+                <div class="io-btn-main">
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 1.2rem"
+                    >save</span
+                  >
+                  <span>Сохранить бэкап (JSON)</span>
+                </div>
+                <span class="io-btn-sub">Полный бэкап с прогрессом</span>
+              </button>
+              <button class="io-btn" id="io-export-csv">
+                <div class="io-btn-main">
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 1.2rem"
+                    >description</span
+                  >
+                  <span>Экспорт в CSV</span>
+                </div>
+                <span class="io-btn-sub">Только слова и переводы</span>
+              </button>
+              <button class="io-btn" id="io-export-anki">
+                <div class="io-btn-main">
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 1.2rem"
+                    >style</span
+                  >
+                  <span>Экспорт в Anki (TSV)</span>
+                </div>
+                <span class="io-btn-sub">Формат для Anki</span>
               </button>
             </div>
+
+            <!-- Зона для перетаскивания файла -->
+            <div
+              class="io-drop-zone"
+              id="io-drop-zone"
+              style="margin-top: 1rem"
+            >
+              <span class="material-symbols-outlined">upload_file</span>
+              <p>Перетащи файл сюда или нажми для выбора</p>
+              <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 0.5rem">
+                Поддерживаемые форматы: JSON, CSV, Excel (.xlsx)<br />
+                Структура Excel: A - English, B - Русский, C - Транскрипция, D -
+                Пример, E - Теги
+              </p>
+            </div>
+
+            <!-- Скрытый input для выбора файла -->
+            <input
+              type="file"
+              id="io-file-input"
+              accept=".json,.csv,.xlsx"
+              style="display: none"
+            />
+
+            <!-- Блок предпросмотра (изначально скрыт) -->
+            <div
+              id="file-preview-wrap"
+              class="preview-wrap"
+              style="display: none; margin-top: 1rem"
+            >
+              <table class="preview-table">
+                <thead>
+                  <tr>
+                    <th>✓</th>
+                    <th>English</th>
+                    <th>Русский</th>
+                    <th>Пример</th>
+                  </tr>
+                </thead>
+                <tbody id="file-tbody"></tbody>
+              </table>
+            </div>
+
+            <!-- Кнопка подтверждения импорта (изначально скрыта) -->
+            <button
+              class="io-btn"
+              id="import-file-btn"
+              style="display: none; margin-top: 1rem"
+            >
+              Импортировать
+            </button>
           </div>
         </div>
       </div>
@@ -922,74 +962,6 @@
 
     <div id="toast-box"></div>
 
-    <!-- Import/Export Modal -->
-    <div class="io-modal-overlay" id="io-modal">
-      <div class="io-modal">
-        <h3 id="io-modal-title">📦 Импорт / Экспорт</h3>
-        <div id="io-export-view">
-          <div class="io-btn-group">
-            <button class="io-btn" id="io-export-json">
-              💾 Сохранить полный бэкап (JSON)
-              <span class="io-btn-sub"
-                >Все слова + SRS прогресс + XP + бейджи</span
-              >
-            </button>
-            <button class="io-btn" id="io-export-csv">
-              📄 Экспорт слов в CSV
-              <span class="io-btn-sub"
-                >Только слова: английский, русский, пример, теги</span
-              >
-            </button>
-            <button class="io-btn" id="io-export-anki">
-              🃏 Экспорт в Anki (TSV)
-              <span class="io-btn-sub"
-                >Совместимо с Anki: Import → Fields separated by Tab</span
-              >
-            </button>
-            <button class="io-btn" id="io-to-import">
-              ⬆️ Импортировать слова...
-              <span class="io-btn-sub">Загрузить JSON-бэкап или CSV-файл</span>
-            </button>
-          </div>
-          <button class="io-close" id="io-close-export">Закрыть</button>
-        </div>
-        <div id="io-import-view" style="display: none">
-          <div class="io-drop-zone" id="io-drop-zone">
-            🗂️ Перетащи файл сюда<br />или нажми для выбора<br />
-            <span style="font-size: 0.75rem; margin-top: 0.3rem; display: block"
-              >Поддерживается: .json (бэкап) · .csv (слова)</span
-            >
-          </div>
-          <input
-            class="form-control"
-            type="file"
-            id="io-file-input"
-            accept=".json,.csv"
-            style="display: none"
-          />
-          <div
-            id="io-import-info"
-            style="
-              font-size: 0.8rem;
-              color: var(--muted);
-              margin-bottom: 0.75rem;
-              display: none;
-            "
-          ></div>
-          <div
-            class="io-btn-group"
-            id="io-import-actions"
-            style="display: none"
-          >
-            <button class="io-btn" id="io-confirm-import">
-              ✅ Подтвердить импорт
-            </button>
-          </div>
-          <button class="io-close" id="io-back-btn">← Назад</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Блок для неподтверждённого email -->
     <div
       class="email-not-verified"
@@ -1001,8 +973,8 @@
           <span
             class="material-symbols-outlined"
             style="vertical-align: middle; margin-right: 8px"
-            >tune</span
-          >Настройка тренировки
+            >mail</span
+          >Подтверждение email
         </h2>
         <p style="margin-bottom: 1rem">
           На адрес <strong id="unverified-email"></strong> отправлено письмо с
