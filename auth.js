@@ -63,7 +63,11 @@ async function loadUserDataFromFirebase() {
         } else {
           console.log('applyDark function not available - applying directly');
           // Применяем тему напрямую через DOM
-          document.body.classList.toggle('dark', userData.darkTheme);
+          if (window.applyDark) {
+            window.applyDark(userData.darkTheme);
+          } else {
+            document.body.classList.toggle('dark', userData.darkTheme);
+          }
           console.log(
             'Dark class applied directly. Body classes:',
             document.body.className,
@@ -72,33 +76,6 @@ async function loadUserDataFromFirebase() {
             'Has dark class:',
             document.body.classList.contains('dark'),
           );
-
-          // Принудительно обновляем CSS переменные для предотвращения мерцания
-          if (userData.darkTheme) {
-            document.documentElement.style.setProperty('--bg', '#13121f');
-            document.documentElement.style.setProperty('--text', '#ffffff');
-            document.documentElement.style.setProperty(
-              '--bg-secondary',
-              '#1e1e2e',
-            );
-            document.documentElement.style.setProperty('--border', '#374151');
-            document.documentElement.style.setProperty('--muted', '#9ca3af');
-            document.documentElement.style.setProperty('--primary', '#60a5fa');
-            document.documentElement.style.setProperty(
-              '--primary-light',
-              '#93c5fd',
-            );
-            console.log('Forced dark CSS variables from Firebase');
-          } else {
-            document.documentElement.style.setProperty('--bg', '');
-            document.documentElement.style.setProperty('--text', '');
-            document.documentElement.style.setProperty('--bg-secondary', '');
-            document.documentElement.style.setProperty('--border', '');
-            document.documentElement.style.setProperty('--muted', '');
-            document.documentElement.style.setProperty('--primary', '');
-            document.documentElement.style.setProperty('--primary-light', '');
-            console.log('Reset CSS variables from Firebase');
-          }
 
           // Обновляем UI элементы
           setTimeout(() => {
@@ -145,15 +122,6 @@ async function loadUserDataFromFirebase() {
     console.error('Error loading/saving user data from Firebase:', error);
   }
 }
-
-// ============================================================
-// GRAVATAR — ВСЕГДА ДОСТУПНА
-// ============================================================
-window.getGravatarUrl = function (email, size = 80) {
-  if (!email || typeof md5 !== 'function') return '';
-  const hash = md5(email.trim().toLowerCase());
-  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=mp`;
-};
 
 // ============================================================
 // DOM ЭЛЕМЕНТЫ И ПЕРЕМЕННЫЕ (глобальные для модуля)
@@ -278,10 +246,12 @@ function toggleAuthMode(isGate = false) {
 function togglePasswordVisibility(input, toggleBtn) {
   if (input.type === 'password') {
     input.type = 'text';
-    toggleBtn.textContent = '🙈';
+    toggleBtn.innerHTML =
+      '<span class="material-symbols-outlined">visibility_off</span>';
   } else {
     input.type = 'password';
-    toggleBtn.textContent = '👁️';
+    toggleBtn.innerHTML =
+      '<span class="material-symbols-outlined">visibility</span>';
   }
 }
 
@@ -435,13 +405,9 @@ onAuthStateChanged(auth, async user => {
       // Обновляем меню
       dropdownEmail.textContent = user.email;
 
-      const avatarUrl = getGravatarUrl(user.email, 40);
-      userAvatar.innerHTML = `
-        <img src="${avatarUrl}" 
-             alt="Avatar" 
-             style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
-             onerror="this.style.display='none'; this.parentElement.textContent='${user.email.charAt(0).toUpperCase()}';">
-      `;
+      // Простая и надёжная иконка
+      userAvatar.innerHTML =
+        '<span class="material-symbols-outlined">person</span>';
       userAvatar.style.display = 'flex';
       userAvatar.style.alignItems = 'center';
       userAvatar.style.justifyContent = 'center';
@@ -490,7 +456,8 @@ onAuthStateChanged(auth, async user => {
       showEmailNotVerified(user.email);
 
       dropdownEmail.textContent = user.email;
-      userAvatar.textContent = user.email.charAt(0).toUpperCase();
+      userAvatar.innerHTML =
+        '<span class="material-symbols-outlined">person</span>';
 
       if (window.clearUserData) window.clearUserData();
       window.authExports.unsubscribeWords();
@@ -501,7 +468,8 @@ onAuthStateChanged(auth, async user => {
     document.body.classList.remove('authenticated');
 
     dropdownEmail.textContent = '';
-    userAvatar.textContent = '👤';
+    userAvatar.innerHTML =
+      '<span class="material-symbols-outlined">person</span>';
 
     if (window.clearUserData) window.clearUserData();
     window.authExports.unsubscribeWords();

@@ -4,7 +4,7 @@
   --primary-dark: #1e40af;
   --bg: #f0f2ff;
   --card: #ffffff;
-  --text: #2d2b55;
+  --text: #4a4a4a;
   --muted: #8884aa;
   --border: #e0deff;
   --success: #22c55e;
@@ -23,6 +23,7 @@ body.dark {
   --text: #e8e6ff;
   --muted: #7a78a0;
   --border: #2e2c48;
+  --danger: #ef4444;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
@@ -305,6 +306,10 @@ nav {
   color: var(--primary);
 }
 
+.nav-btn:hover .material-symbols-outlined {
+  color: var(--primary);
+}
+
 .nav-btn.active {
   background: transparent;
   color: var(--primary);
@@ -339,6 +344,14 @@ nav {
   text-align: center;
   font-size: 0.65rem;
   margin-left: 0.1rem;
+}
+
+/* Specific centering for due-count badge */
+#due-count {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 .xp-container {
   display: flex;
@@ -479,6 +492,7 @@ input[type='button'],
 input[type='submit'] {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 0.55rem 1.1rem;
   border: none;
@@ -501,6 +515,31 @@ input[type='submit']:hover {
   filter: brightness(1.07);
 }
 
+/* Better contrast for light theme */
+body:not(.dark) .btn:hover,
+body:not(.dark) button:hover,
+body:not(.dark) input[type='button']:hover,
+body:not(.dark) input[type='submit']:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.2);
+}
+
+/* Fix icon visibility in light theme hover */
+body:not(.dark)
+  .btn:hover:not(.btn-danger):not(.btn-primary)
+  .material-symbols-outlined,
+body:not(.dark)
+  button:hover:not(.btn-danger):not(.btn-primary)
+  .material-symbols-outlined,
+body:not(.dark)
+  input[type='button']:hover:not(.btn-danger):not(.btn-primary)
+  .material-symbols-outlined,
+body:not(.dark)
+  input[type='submit']:hover:not(.btn-danger):not(.btn-primary)
+  .material-symbols-outlined {
+  color: var(--primary) !important;
+}
+
 .btn:active,
 button:active,
 input[type='button']:active,
@@ -520,6 +559,15 @@ input[type='submit']:active {
   color: #fff;
 }
 
+.btn-primary:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover .material-symbols-outlined {
+  color: #fff !important;
+}
+
 .btn-secondary {
   background: var(--border);
   color: var(--text);
@@ -533,6 +581,16 @@ input[type='submit']:active {
 .btn-danger {
   background: var(--danger);
   color: #fff;
+}
+
+.btn-danger:hover {
+  background: var(--bg) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+
+.btn-danger:hover .material-symbols-outlined {
+  color: var(--danger) !important;
 }
 
 .btn-warning {
@@ -569,7 +627,7 @@ input[type='submit']:active {
 }
 
 .btn-audio:hover {
-  background: var(--bg-secondary);
+  background: var(--bg);
   border-color: var(--primary);
   color: var(--primary);
   transform: scale(1.1);
@@ -600,9 +658,9 @@ input[type='submit']:active {
 }
 
 .edit-btn:hover {
-  background: var(--primary);
+  background: var(--bg);
   border-color: var(--primary);
-  color: #fff;
+  color: var(--primary);
   transform: scale(1.1);
 }
 
@@ -612,7 +670,7 @@ input[type='submit']:active {
 }
 
 .edit-btn:hover .material-symbols-outlined {
-  color: #fff;
+  color: var(--primary);
 }
 
 .install-btn {
@@ -667,13 +725,13 @@ input[type='submit']:active {
 }
 
 .del-btn:hover {
-  background: var(--danger);
+  background: var(--bg);
   border-color: var(--danger);
-  color: #fff;
+  color: var(--danger);
 }
 
 .del-btn:hover .material-symbols-outlined {
-  color: #fff;
+  color: var(--danger);
 }
 
 .save-edit-btn {
@@ -1115,8 +1173,8 @@ textarea {
   animation: rotating 1s linear infinite;
 }
 
-.example-tooltip {
-  position: absolute;
+.custom-tooltip {
+  position: fixed;
   background: var(--card);
   border: 2px solid var(--primary);
   color: var(--text);
@@ -1124,12 +1182,12 @@ textarea {
   border-radius: 8px;
   font-size: 0.9rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
   pointer-events: none;
-  white-space: nowrap;
+  z-index: 9999;
   max-width: 300px;
   word-wrap: break-word;
   white-space: normal;
+  transition: opacity 0.2s;
 }
 
 .wc-footer {
@@ -1138,6 +1196,144 @@ textarea {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+.install-btn {
+  display: none; /* по умолчанию скрыта */
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.install-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.install-btn:hover::before {
+  left: 100%;
+}
+
+.install-btn.visible {
+  display: flex;
+  animation: slideIn 0.4s ease-out;
+}
+
+.install-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.install-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.install-btn:disabled,
+.install-btn[style*='cursor: default'] {
+  opacity: 0.7;
+  cursor: default !important;
+  transform: none;
+}
+
+.install-btn:disabled:hover,
+.install-btn[style*='cursor: default']:hover {
+  background: var(--card);
+  color: var(--muted);
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: bold;
+  overflow: hidden;
+  position: relative;
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-icon {
+  font-size: 32px;
+  opacity: 0.85;
+}
+
+.avatar-letter {
+  position: absolute;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.user-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-xs {
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
 }
 
 .wc-streak {
@@ -1521,13 +1717,13 @@ body.dark .badge-learned {
 }
 
 .btn-icon.btn-danger:hover {
-  background: var(--danger);
+  background: var(--bg);
   border-color: var(--danger);
-  color: #fff;
+  color: var(--danger);
 }
 
 .btn-icon.btn-danger:hover .material-symbols-outlined {
-  color: #fff;
+  color: var(--danger) !important;
 }
 
 .btn-icon.btn-secondary {
@@ -1571,7 +1767,7 @@ body.dark .badge-learned {
   color: var(--muted);
 }
 
-.btn-icon:hover .material-symbols-outlined {
+.btn-icon:not(.btn-primary):not(.btn-danger):hover .material-symbols-outlined {
   color: #fff;
 }
 
@@ -1919,6 +2115,45 @@ body.dark .badge-learned {
   margin-top: 1.5rem;
 }
 
+/* Exercise buttons styling */
+#ex-btns {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+#ex-btns .btn-icon {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  width: 47px;
+  height: 47px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  transition: all 0.2s;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+#ex-btns .btn-icon .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--text);
+}
+
+#ex-btns .btn-icon:hover {
+  border-color: var(--primary);
+  transform: scale(1.1);
+}
+
+#ex-btns .btn-icon:hover .material-symbols-outlined {
+  color: var(--text);
+}
+
 .results-score {
   font-size: 4rem;
   font-weight: 800;
@@ -2018,13 +2253,15 @@ body.dark .badge-learned {
   background: var(--border);
   border-radius: 4px;
   overflow: hidden;
+  width: 100%;
 }
 
 .stat-prog-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  background: linear-gradient(90deg, #6c63ff, #8b85ff);
   border-radius: 4px;
   transition: width 0.6s ease;
+  min-width: 2px;
 }
 
 /* ==================== УЛУЧШЕННЫЙ ГРАФИК ==================== */
@@ -2335,10 +2572,15 @@ h3:has(+ .week-chart-container) {
 .auth-gate-logo .logo {
   font-size: 2.5rem;
   font-weight: 800;
-  color: var(--text);
+  color: var(--primary);
 }
 
 .auth-gate-logo .logo span {
+  color: var(--text);
+}
+
+/* Fix for light theme - use primary color for main text */
+body:not(.dark) .auth-gate-logo .logo {
   color: var(--primary);
 }
 
@@ -2376,6 +2618,14 @@ body:not(.authenticated) > main {
   user-select: none;
   width: 20px;
   height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle .material-symbols-outlined {
+  font-size: 1.1rem;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3146,9 +3396,9 @@ body.dark .due-soon {
   flex-shrink: 0;
 }
 .audio-card-btn:hover {
-  background: var(--muted);
-  color: #fff;
-  border-color: var(--muted);
+  background: var(--bg);
+  color: var(--primary);
+  border-color: var(--primary);
   transform: scale(1.1);
 }
 
@@ -3533,7 +3783,16 @@ body.dark .due-soon {
   color: var(--danger);
 }
 
-/* ===== SPEECH RECOGNITION EXERCISE ===== */
+/* ===== PRACTICE EXERCISE ===== */
+#ex-type-lbl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#ex-type-lbl .material-symbols-outlined {
+  font-size: inherit;
+}
 .speech-exercise {
   text-align: center;
   padding: 2rem 1rem;
@@ -3590,6 +3849,7 @@ body.dark .due-soon {
 }
 #speech-start-btn .material-symbols-outlined {
   font-size: 24px;
+  color: inherit;
 }
 #speech-start-btn.recording {
   background: var(--danger);
@@ -3924,4 +4184,27 @@ input:checked + .theme-slider:before {
     padding-bottom: env(safe-area-inset-bottom);
     height: calc(66px + env(safe-area-inset-bottom));
   }
+}
+
+#dict-input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  outline: none;
+}
+
+#dict-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.12);
 }

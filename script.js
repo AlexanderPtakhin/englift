@@ -16,15 +16,48 @@ window.words = [];
 // Добавь в самое начало файла (рядом с другими let)
 let saveTimeout = null;
 
+// Универсальная функция сохранения всех данных пользователя
+function saveAllUserData() {
+  if (!auth.currentUser) return;
+
+  const userData = {
+    xpData,
+    streak,
+    speechCfg,
+    darkTheme: document.body.classList.contains('dark'),
+  };
+
+  saveUserData(auth.currentUser.uid, userData).catch(e =>
+    console.error('Error saving all user data:', e),
+  );
+}
+
+// ============================================================
+// DEBUG CONFIGURATION
+// ============================================================
+const DEBUG =
+  location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+// Conditional debug logging
+const debugLog = (...args) => {
+  if (DEBUG) console.log(...args);
+};
+
 // ============================================================
 // WEEK STATISTICS (простая замена графика)
 // ============================================================
 function renderWeekChart() {
-  console.log('=== renderWeekChart called ===');
+  debugLog('=== renderWeekChart called ===');
+
+  // Защита от вызова до загрузки слов
+  if (!window.words || !Array.isArray(window.words)) {
+    debugLog('Words not loaded yet, skipping renderWeekChart');
+    return;
+  }
 
   // Ищем контейнер, а не canvas (т.к. canvas заменен на HTML)
   const container = document.querySelector('.week-chart-container');
-  console.log('Container found:', !!container);
+  debugLog('Container found:', !!container);
   if (!container) return;
 
   // Ищем существующий HTML или canvas
@@ -484,14 +517,6 @@ const XP_K = CONSTANTS.STORAGE_KEYS.XP;
 const STREAK_K = CONSTANTS.STORAGE_KEYS.STREAK;
 const SPEECH_K = CONSTANTS.STORAGE_KEYS.SPEECH;
 
-// Функция для получения ключа с учётом текущего пользователя
-function getStorageKey() {
-  const userId = window.authExports?.auth?.currentUser?.uid;
-  return userId
-    ? `${CONSTANTS.STORAGE_KEYS.WORDS}_${userId}`
-    : CONSTANTS.STORAGE_KEYS.WORDS;
-}
-
 // Функции для получения ключей
 function getXPKey() {
   const userId = window.authExports?.auth?.currentUser?.uid;
@@ -537,32 +562,17 @@ window.updateStreak = function (newStreak) {
 
 async function load() {
   try {
-    const key = getStorageKey();
-    console.log('Loading window.words from localStorage with key:', key);
+    debugLog('Loading words from Firebase only...');
 
-    // Загружаем слова из localStorage (только слова, остальное из Firebase)
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try {
-        window.words = JSON.parse(saved);
-        console.log(
-          'Loaded window.words from localStorage:',
-          window.words.length,
-        );
-      } catch (e) {
-        console.error('Error parsing saved window.words:', e);
-        window.words = [];
-      }
-    } else {
-      console.log('No saved window.words found, starting with empty array');
-      window.words = []; // Начинаем с пустого словаря
-    }
+    // Больше не используем localStorage для слов
+    window.words = [];
 
-    // НИЧЕГО больше не загружаем из localStorage - всё из Firebase
+    // Загрузка будет происходить через Firebase listener в auth.js
+    debugLog('Words array initialized, waiting for Firebase sync...');
   } catch (e) {
     window.words = [];
+    debugLog('Error in load function:', e);
   }
-  console.log('load() completed - waiting for Firebase data...');
 }
 
 // Миграция переводов примеров из dictionary.json в существующие слова
@@ -665,10 +675,9 @@ async function loadDictionaryFromJson() {
       `Initialized ${window.words.length} words from dictionary.json`,
     );
 
-    // Сохраняем в localStorage
-    const saveKey = getStorageKey();
-    localStorage.setItem(saveKey, JSON.stringify(window.words));
-    console.log('Saved initial words to localStorage');
+    // Инициализация слов - только через Firebase
+    debugLog(`Initialized ${window.words.length} words from dictionary.json`);
+    debugLog('Words will be synced to Firebase on user login');
   } catch (error) {
     console.error('Error loading dictionary.json:', error);
     window.words = [];
@@ -690,30 +699,21 @@ function save(silent = false) {
 
   try {
     if (!window.authExports?.auth?.currentUser) {
-      console.warn('No user, skipping localStorage save');
+      console.warn('No user, skipping Firebase save');
       return false;
     }
-    const key = getStorageKey();
-    console.log(
-      'Saving to localStorage with key:',
-      key,
-      'window.words count:',
-      window.words.length,
-    );
+    debugLog('Saving words to Firebase only, count:', window.words.length);
     const data = JSON.stringify(window.words);
     // Проверяем размер данных перед сохранением
     if (data.length > 5 * 1024 * 1024) {
       // 5MB limit
-      console.warn('Data size exceeds 5MB, trimming...');
+      debugLog('Data size exceeds 5MB, trimming...');
       window.words = window.words.slice(0, 1000); // Оставляем только первые 1000 слов
     }
-    localStorage.setItem(key, data);
 
-    if (!silent) {
-      console.log('Words saved to localStorage');
-    }
+    debugLog('Saving words to Firebase only, count:', window.words.length);
 
-    // Сохраняем в Firebase асинхронно (уважаем параметр silent)
+    // Сохраняем только в Firebase (localStorage больше не используем для слов)
     saveAllWordsToDb(window.words, silent).catch(e => {
       console.error('Firebase save error:', e);
       if (!silent) {
@@ -736,29 +736,20 @@ function save(silent = false) {
 // Делаем save глобальным для доступа из db.js
 window.save = save;
 
+// Делаем speak глобальным для доступа из HTML
+window.speak = speak;
+
 function saveXP() {
   localStorage.setItem(getXPKey(), JSON.stringify(xpData));
-  if (auth.currentUser) {
-    saveUserData(auth.currentUser.uid, { xpData }).catch(e =>
-      console.error('Firestore save error (xp):', e),
-    );
-  }
+  saveAllUserData();
 }
 function saveStreak() {
   localStorage.setItem(getStreakKey(), JSON.stringify(streak));
-  if (auth.currentUser) {
-    saveUserData(auth.currentUser.uid, { streak }).catch(e =>
-      console.error('Firestore save error (streak):', e),
-    );
-  }
+  saveAllUserData();
 }
 function saveSpeech() {
   localStorage.setItem(getSpeechKey(), JSON.stringify(speechCfg));
-  if (auth.currentUser) {
-    saveUserData(auth.currentUser.uid, { speechCfg }).catch(e =>
-      console.error('Firestore save error (speech):', e),
-    );
-  }
+  saveAllUserData();
 }
 
 // Fallback для генерации UUID в старых браузерах
@@ -1548,7 +1539,12 @@ function renderStats() {
   const stLearnedEl = document.getElementById('st-learned');
   if (stLearnedEl) stLearnedEl.textContent = learned;
   const stLearnedBarEl = document.getElementById('st-learned-bar');
-  if (stLearnedBarEl) stLearnedBarEl.style.width = pct + '%';
+  if (stLearnedBarEl) {
+    stLearnedBarEl.style.width = pct + '%';
+    console.log('Progress bar updated:', pct + '%', 'element:', stLearnedBarEl);
+  } else {
+    console.log('Progress bar element not found!');
+  }
   const stStreakEl = document.getElementById('st-streak');
   if (stStreakEl) stStreakEl.textContent = streak.count;
   const stWeekEl = document.getElementById('st-week');
@@ -1569,6 +1565,61 @@ function renderStats() {
   }
   // Старый sparkline код удалён - теперь используем Chart.js
   // График отрисовывается через renderWeekChart()
+
+  // Топ легких и сложных слов
+  const wordsWithStats = window.words.filter(w => w.stats && w.stats.shown > 0);
+
+  // Сложные слова (самый низкий процент правильных ответов)
+  const hardWords = wordsWithStats
+    .map(w => ({
+      ...w,
+      accuracy: w.stats.correct / w.stats.shown,
+    }))
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 5);
+
+  // Легкие слова (самый высокий процент правильных ответов)
+  const easyWords = wordsWithStats
+    .map(w => ({
+      ...w,
+      accuracy: w.stats.correct / w.stats.shown,
+    }))
+    .sort((a, b) => b.accuracy - a.accuracy)
+    .slice(0, 5);
+
+  // Отображаем сложные слова
+  const stHardEl = document.getElementById('st-hard');
+  if (stHardEl) {
+    stHardEl.innerHTML = hardWords
+      .map(
+        w => `
+      <li>
+        <strong>${esc(w.en)}</strong>
+        <button class="btn-audio audio-card-btn" onclick="speak(&quot;${esc(w.en)}&quot;)" title="Произнести">
+          <span class="material-symbols-outlined">sound_detection_loud_sound</span>
+        </button>
+      </li>
+    `,
+      )
+      .join('');
+  }
+
+  // Отображаем легкие слова
+  const stEasyEl = document.getElementById('st-easy');
+  if (stEasyEl) {
+    stEasyEl.innerHTML = easyWords
+      .map(
+        w => `
+      <li>
+        <strong>${esc(w.en)}</strong>
+        <button class="btn-audio audio-card-btn" onclick="speak(&quot;${esc(w.en)}&quot;)" title="Произнести">
+          <span class="material-symbols-outlined">sound_detection_loud_sound</span>
+        </button>
+      </li>
+    `,
+      )
+      .join('');
+  }
 }
 
 function switchTab(name) {
@@ -1669,9 +1720,6 @@ updateDueBadge = function () {
   originalUpdateDueBadge();
   syncBadges();
 };
-
-// ===== PWA INSTALLATION =====
-let deferredPrompt;
 
 // Детектор устройства
 function detectDevice() {
@@ -1774,6 +1822,7 @@ function initPWAInstall() {
     deferredPrompt = e;
     // Показываем кнопку установки
     if (installBtn) {
+      installBtn.style.display = 'flex';
       installBtn.classList.add('visible');
       console.log('PWA install prompt available, button shown');
     }
@@ -2357,74 +2406,118 @@ function makeCard(w) {
 
   // Добавляем обработчики для кнопок внутри контейнера примеров
   const container = card.querySelector('[data-example-container]');
-  if (container && examples.length > 0) {
-    // Переключение примеров
-    container.addEventListener('click', e => {
-      const btn = e.target.closest('.example-prev, .example-next');
-      if (!btn) return;
-      e.stopPropagation();
-
-      let newIndex = parseInt(card.dataset.exampleIndex);
-      if (btn.classList.contains('example-prev')) {
-        newIndex = (newIndex - 1 + examples.length) % examples.length;
-      } else {
-        newIndex = (newIndex + 1) % examples.length;
-      }
-      card.dataset.exampleIndex = newIndex;
-      // Обновляем только блок примера, не всю карточку
-      container.innerHTML = getExampleHtml(newIndex);
-    });
-
-    // Показ перевода
-    container.addEventListener('click', e => {
-      const translateBtn = e.target.closest('.example-translate');
-      if (!translateBtn) return;
-      e.stopPropagation();
-
-      const currentIndex = parseInt(card.dataset.exampleIndex);
-      const currentExample = examples[currentIndex];
-      if (!currentExample) return;
-
-      // Показываем тултип даже если перевод пустой (showTooltip подставит "Перевод не добавлен")
-      showTooltip(currentExample.translation || '', translateBtn);
-    });
-  }
+  // Обработчики теперь на words-grid через делегирование
 
   return card;
 }
 
-// Функция показа тултипа для примеров
+// Глобальная функция для получения HTML примера
+function getExampleHtmlForCard(card, index) {
+  const examples = JSON.parse(card.dataset.examples || '[]');
+  if (examples.length === 0) return '';
+  const ex = examples[index];
+  if (!ex) return '';
+  const translation = ex.translation || '';
+  const hasMultiple = examples.length > 1;
+  return `
+      <div class="wc-example">
+        <div class="example-text">
+          <span class="example-text-content">${esc(ex.text)}</span>
+          <button class="example-translate" title="Перевод примера">
+            <span class="material-symbols-outlined">info</span>
+          </button>
+        </div>
+        ${
+          hasMultiple
+            ? `
+          <button class="example-prev" title="Предыдущий пример">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button class="example-next" title="Следующий пример">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        `
+            : ''
+        }
+      </div>
+    `;
+}
+
+// === УЛУЧШЕННЫЙ ТУЛТИП (рекомендую заменить полностью) ===
+let currentTooltip = null;
+
 function showTooltip(text, targetElement) {
-  const existing = document.querySelector('.example-tooltip');
-  if (existing) existing.remove();
+  // Проверяем, что элемент всё ещё в DOM
+  if (!targetElement || !targetElement.isConnected) return;
+
+  // Удаляем предыдущий тултип
+  if (currentTooltip) currentTooltip.remove();
 
   const displayText = text && text.trim() ? text : 'Перевод не добавлен';
 
   const tooltip = document.createElement('div');
-  tooltip.className = 'example-tooltip';
+  tooltip.className = 'custom-tooltip';
   tooltip.textContent = displayText;
-  tooltip.style.cssText = `
-    position: absolute;
-    background: var(--card);
-    border: 2px solid var(--primary);
-    color: var(--text);
-    padding: 0.5rem 0.8rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    z-index: 1000;
-    pointer-events: none;
-    white-space: nowrap;
-  `;
-  document.body.appendChild(tooltip);
+
+  // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ:
+  tooltip.style.position = 'fixed'; // ← fixed, а не absolute
+  tooltip.style.zIndex = '9999';
+  tooltip.style.visibility = 'hidden';
+  tooltip.style.pointerEvents = 'none';
+
+  document.body.appendChild(tooltip); // ← всегда в body
 
   const rect = targetElement.getBoundingClientRect();
-  tooltip.style.top = rect.bottom + 5 + 'px';
-  tooltip.style.left =
-    rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+  const tipRect = tooltip.getBoundingClientRect();
 
-  setTimeout(() => tooltip.remove(), 3000);
+  // Центрируем по горизонтали под кнопкой
+  let left = rect.left + rect.width / 2 - tipRect.width / 2;
+  let top = rect.bottom + 8; // снизу от кнопки
+
+  // Не выходим за пределы экрана
+  if (left < 12) left = 12;
+  if (left + tipRect.width > window.innerWidth - 12) {
+    left = window.innerWidth - tipRect.width - 12;
+  }
+
+  // Если снизу мало места — показываем сверху
+  if (top + tipRect.height > window.innerHeight - 12) {
+    top = rect.top - tipRect.height - 8;
+  }
+
+  tooltip.style.top = `${top}px`;
+  tooltip.style.left = `${left}px`;
+  tooltip.style.visibility = 'visible';
+
+  currentTooltip = tooltip;
+
+  // Авто-скрытие через 3.5 секунды
+  const timeoutId = setTimeout(() => {
+    if (tooltip.parentNode) tooltip.remove();
+    if (currentTooltip === tooltip) currentTooltip = null;
+  }, 3500);
+
+  // Сохраняем timeoutId для возможной отмены
+  tooltip.dataset.timeoutId = timeoutId;
 }
+
+// Скрыть тултип при скролле
+function hideTooltipOnScroll() {
+  if (currentTooltip) {
+    // Отменяем авто-скрытие
+    if (currentTooltip.dataset.timeoutId) {
+      clearTimeout(parseInt(currentTooltip.dataset.timeoutId));
+    }
+    currentTooltip.remove();
+    currentTooltip = null;
+  }
+}
+
+// Добавляем слушатель скролла
+window.addEventListener('scroll', hideTooltipOnScroll, { passive: true });
+
+// Для мобильных устройств - скрываем при touchmove
+window.addEventListener('touchmove', hideTooltipOnScroll, { passive: true });
 
 // Audio buttons on word cards
 document.getElementById('words-grid').addEventListener('click', e => {
@@ -2436,6 +2529,43 @@ document.getElementById('words-grid').addEventListener('click', e => {
       ? e.target
       : e.target.closest('.audio-card-btn');
     speakBtn(btn.dataset.word, btn);
+    return;
+  }
+
+  // Handle example buttons (prev/next/translate)
+  const exampleBtn = e.target.closest(
+    '.example-prev, .example-next, .example-translate',
+  );
+  if (exampleBtn) {
+    e.stopPropagation();
+    const card = exampleBtn.closest('.word-card');
+    if (!card) return;
+
+    const examples = JSON.parse(card.dataset.examples || '[]');
+    const currentIndex = parseInt(card.dataset.exampleIndex);
+    const container = card.querySelector('[data-example-container]');
+
+    if (
+      exampleBtn.classList.contains('example-prev') ||
+      exampleBtn.classList.contains('example-next')
+    ) {
+      // Переключение примеров
+      let newIndex = currentIndex;
+      if (exampleBtn.classList.contains('example-prev')) {
+        newIndex = (newIndex - 1 + examples.length) % examples.length;
+      } else {
+        newIndex = (newIndex + 1) % examples.length;
+      }
+      card.dataset.exampleIndex = newIndex;
+      container.innerHTML = getExampleHtmlForCard(card, newIndex);
+    } else if (exampleBtn.classList.contains('example-translate')) {
+      // Показ перевода
+      const currentExample = examples[currentIndex];
+      if (!currentExample) return;
+
+      const translation = currentExample?.translation || '';
+      showTooltip(translation || '', exampleBtn);
+    }
     return;
   }
 
@@ -3610,23 +3740,26 @@ function nextExercise() {
       // Берём до 6 слов из оставшихся
       const batchSize = Math.min(6, session.words.length - sIdx);
       if (batchSize < 2) {
-        // Меньше 2 слов — пропускаем match, берём flash
-        session.exTypes = session.exTypes.filter(x => x !== 'match');
-        if (!session.exTypes.length) session.exTypes = ['flash'];
+        // Меньше 2 слов — просто пропускаем match и переходим к следующему слову
+        sIdx++;
         nextExercise();
         return;
       }
       const batch = session.words.slice(sIdx, sIdx + batchSize);
       runMatchExercise(batch, elapsed => {
         sIdx += batchSize;
-        toast(`🧩 Все пары за ${elapsed}s!`, 'success');
+        toast(
+          `<span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">extension</span> Все пары за ${elapsed}s!`,
+          'success',
+        );
         nextExercise();
       });
       return;
     }
 
     if (t === 'flash') {
-      document.getElementById('ex-type-lbl').textContent = '🃏 Флеш-карточка';
+      document.getElementById('ex-type-lbl').innerHTML =
+        '<span class="material-symbols-outlined">style</span> Флеш-карточка';
       document.getElementById('ex-counter').textContent =
         `${sIdx + 1} / ${session.words.length}`;
       const dir = session.dir || 'both';
@@ -3662,7 +3795,7 @@ function nextExercise() {
       }
       if (autoPron && !showRU && speechSupported)
         setTimeout(() => speak(w.en), 300);
-      btns.innerHTML = `<button class="btn-icon btn-success" id="knew-btn"><span class="material-symbols-outlined">check</span></button><button class="btn-icon btn-danger" id="didnt-btn"><span class="material-symbols-outlined">close</span></button>`;
+      btns.innerHTML = `<button class="btn-icon" id="knew-btn"><span class="material-symbols-outlined">check</span></button><button class="btn-icon" id="didnt-btn"><span class="material-symbols-outlined">close</span></button>`;
       document.getElementById('knew-btn').onclick = () => recordAnswer(true);
       document.getElementById('didnt-btn').onclick = () => recordAnswer(false);
     } else if (t === 'speech') {
@@ -3672,8 +3805,8 @@ function nextExercise() {
         if (!session.exTypes.length) session.exTypes = ['flash'];
         nextExercise();
       } else {
-        document.getElementById('ex-type-lbl').textContent =
-          'record_voice_over Произнеси вслух';
+        document.getElementById('ex-type-lbl').innerHTML =
+          '<span class="material-symbols-outlined">record_voice_over</span> Произнеси вслух';
         document.getElementById('ex-counter').textContent =
           `${sIdx + 1} / ${session.words.length}`;
         content.innerHTML = `
@@ -3686,7 +3819,6 @@ function nextExercise() {
           <div class="speech-controls">
             <button id="speech-start-btn">
               <span class="material-symbols-outlined speech-icon">mic</span>
-              <span class="speech-text">Начать запись</span>
             </button>
             <div class="speech-status" id="speech-status"></div>
             <div class="speech-result" id="speech-result"></div>
@@ -3707,8 +3839,6 @@ function nextExercise() {
           isRecording = true;
           startBtn.classList.add('recording');
           startBtn.querySelector('.speech-icon').textContent = 'stop';
-          startBtn.querySelector('.speech-text').textContent =
-            'Остановить запись';
           statusEl.innerHTML =
             '<div class="recording-indicator">🔴 Слушаю...</div>';
           resultEl.innerHTML = '';
@@ -3768,7 +3898,6 @@ function nextExercise() {
           isRecording = false;
           startBtn.classList.remove('recording');
           startBtn.querySelector('.speech-icon').textContent = 'mic';
-          startBtn.querySelector('.speech-text').textContent = 'Начать запись';
           statusEl.innerHTML = '';
 
           if (recognitionTimeout) {
@@ -3793,8 +3922,8 @@ function nextExercise() {
         }
       }
     } else if (t === 'multi') {
-      document.getElementById('ex-type-lbl').textContent =
-        '<span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">target</span> Выбор ответа';
+      document.getElementById('ex-type-lbl').innerHTML =
+        '<span class="material-symbols-outlined">target</span> Выбор ответа';
       document.getElementById('ex-counter').textContent =
         `${sIdx + 1} / ${session.words.length}`;
       const dir = session.dir || 'both';
@@ -3837,7 +3966,8 @@ function nextExercise() {
         }),
       );
     } else if (t === 'type') {
-      document.getElementById('ex-type-lbl').textContent = '⌨️ Напиши перевод';
+      document.getElementById('ex-type-lbl').innerHTML =
+        '<span class="material-symbols-outlined">keyboard</span> Напиши перевод';
       document.getElementById('ex-counter').textContent =
         `${sIdx + 1} / ${session.words.length}`;
       const dir = session.dir || 'both';
@@ -3853,7 +3983,7 @@ function nextExercise() {
       </div>
       <div class="ta-row">
         <input type="text" class="form-control" id="ta-input" placeholder="${isRUEN ? 'Напиши по-английски...' : 'Введи перевод...'}" autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn-icon btn-primary" id="ta-submit"><span class="material-symbols-outlined">send</span></button>
+        <button class="btn-icon" id="ta-submit"><span class="material-symbols-outlined">send</span></button>
       </div>
       <div class="ta-feedback" id="ta-fb"></div>
     `;
@@ -3881,24 +4011,25 @@ function nextExercise() {
         if (e.key === 'Enter') check();
       });
     } else if (t === 'dictation') {
-      document.getElementById('ex-type-lbl').textContent = '🔊 Диктант';
+      document.getElementById('ex-type-lbl').innerHTML =
+        '<span class="material-symbols-outlined">volume_up</span> Диктант';
       document.getElementById('ex-counter').textContent =
         `${sIdx + 1} / ${session.words.length}`;
       content.innerHTML = `
       <div class="dictation-card">
-        <div class="dictation-big">🔊</div>
+        <div class="dictation-big"><span class="material-symbols-outlined">volume_up</span></div>
         <div class="dictation-hint">Послушай слово и напиши его по-английски</div>
         <div class="dictation-reveal" id="dict-reveal">${esc(w.en)}</div>
       </div>
       <div class="ta-row" style="margin-top:1rem">
         <input type="text" id="dict-input" placeholder="Напиши слово по-английски..." autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn-icon btn-primary" id="dict-submit"><span class="material-symbols-outlined">send</span></button>
+        <button class="btn-icon" id="dict-submit"><span class="material-symbols-outlined">check</span></button>
       </div>
       <div class="ta-feedback" id="dict-fb"></div>
     `;
       // Play immediately
       setTimeout(() => speak(w.en), 200);
-      btns.innerHTML = `<button class="btn-icon btn-secondary" id="dict-replay"><span class="material-symbols-outlined">replay</span></button>`;
+      btns.innerHTML = `<button class="btn-icon btn-secondary" id="dict-replay"><span class="material-symbols-outlined">volume_up</span></button>`;
       document.getElementById('dict-replay').onclick = () => speak(w.en);
       const inp = document.getElementById('dict-input');
       inp.focus();
@@ -4021,15 +4152,9 @@ function spawnConfetti() {
 // Мост для Firebase
 window._getLocalWords = () => window.words;
 window._setWords = async newWords => {
-  console.log(
-    '_setWords called with',
-    newWords.length,
-    'window.words. Current user:',
-    window.authExports?.auth?.currentUser?.uid,
-  );
+  console.log('_setWords called with', newWords.length, 'words');
 
-  // Обновляем обе переменные
-  window.words = newWords;
+  // Обновляем слова
   window.words = newWords;
 
   console.log(
@@ -4162,7 +4287,7 @@ async function renderWotd() {
         ${randomWord.tags?.length ? `<div class="wotd-tags">${randomWord.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join(' ')}</div>` : ''}
       </div>
       <div style="display: flex; gap: 0.5rem;">
-        ${speechSupported ? `<button class="wotd-audio" id="wotd-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+        ${speechSupported ? `<button class="wotd-audio" id="wotd-audio-btn"><span class="material-symbols-outlined">sound_detection_loud_sound</span></button>` : ''}
         <button class="wotd-add-btn" id="wotd-add-btn"><span class="material-symbols-outlined">add</span></button>
       </div>
     </div>`;
@@ -4179,11 +4304,6 @@ async function renderWotd() {
     document
       .getElementById('wotd-add-btn')
       ?.addEventListener('click', function () {
-        console.log('Add button clicked');
-        console.log('randomWord:', randomWord);
-        console.log('Current window.words:', window.words);
-        console.log('window.words.length:', window.words.length);
-
         if (
           window.words.some(
             w => w.en.toLowerCase() === randomWord.en.toLowerCase(),
@@ -4413,11 +4533,11 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
       <h3>Выйти из урока?</h3>
       <p>Весь прогресс будет сохранён</p>
       <div class="modal-actions">
-        <button class="cancel-edit-btn" id="exit-cancel">
-          <span class="material-symbols-outlined">undo</span>
+        <button class="btn-icon" id="exit-confirm">
+          <span class="material-symbols-outlined">check</span>
         </button>
-        <button class="save-edit-btn" id="exit-confirm">
-          <span class="material-symbols-outlined">logout</span>
+        <button class="btn-icon" id="exit-cancel">
+          <span class="material-symbols-outlined">close</span>
         </button>
       </div>
     </div>
@@ -4577,6 +4697,105 @@ if (savedTheme) {
 setTimeout(() => {
   if (!window.authExports?.auth?.currentUser) {
     console.log('No Firebase user - keeping localStorage theme');
+    // Проверяем доступность Firebase
+    if (navigator.onLine) {
+      console.log('Online but no Firebase user - using offline mode');
+    } else {
+      console.log('Offline mode detected - using localStorage only');
+      toast('📴 Оффлайн режим', 'info');
+    }
   }
 }, 2000);
+
+// Проверяем соединение с Firebase
+window.addEventListener('online', () => {
+  console.log('Connection restored - checking Firebase');
+  if (window.authExports?.auth) {
+    // Пытаемся переподключиться к Firebase
+    window.authExports.auth.onAuthStateChanged(user => {
+      if (user) {
+        console.log('Firebase connection restored');
+        toast('🟢 Соединение восстановлено', 'success');
+      }
+    });
+  }
+});
+
+window.addEventListener('offline', () => {
+  console.log('Offline mode activated');
+  toast('📴 Оффлайн режим', 'info');
+});
+
+// ====================== PWA INSTALL BUTTON ======================
+let deferredPrompt = null;
+const installBtn = document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  console.log('✅ beforeinstallprompt сработал — показываем кнопку PWA');
+  e.preventDefault();
+  deferredPrompt = e;
+
+  if (installBtn) {
+    installBtn.style.display = 'flex';
+    installBtn.classList.add('visible');
+  }
+});
+
+// Клик по кнопке
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+
+    installBtn.style.display = 'none'; // прячем кнопку после клика
+    deferredPrompt.prompt();
+
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log('PWA install outcome:', outcome);
+
+    if (outcome === 'accepted') {
+      toast('🎉 Приложение установлено на главный экран!', 'success');
+    } else {
+      toast('Установка отменена', 'info');
+    }
+
+    deferredPrompt = null;
+  });
+}
+
+// Для отладки
+console.log('PWA install handler подключён');
+
+// Слушаем событие установки PWA
+window.addEventListener('appinstalled', () => {
+  console.log('PWA успешно установлено!');
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) {
+    installBtn.innerHTML =
+      '<span class="material-symbols-outlined">check_circle</span>';
+    installBtn.title = 'Приложение установлено';
+    installBtn.style.opacity = '0.7';
+    installBtn.style.cursor = 'default';
+    installBtn.style.pointerEvents = 'none';
+  }
+  toast('🎉 Приложение добавлено на главный экран!', 'success');
+});
+
+// Проверяем, установлено ли PWA уже
+if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+  navigator.serviceWorker
+    .getRegistration()
+    .then(registration => {
+      if (registration && registration.scope === window.location.origin) {
+        // PWA уже установлено, скрываем кнопку
+        const installBtn = document.getElementById('install-btn');
+        if (installBtn) {
+          installBtn.style.display = 'none';
+        }
+      }
+    })
+    .catch(() => {
+      // Ошибка проверки - оставляем как есть
+    });
+}
+
 switchTab('words');

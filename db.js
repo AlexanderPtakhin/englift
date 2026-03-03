@@ -16,8 +16,18 @@ import {
   writeBatch,
   where,
   serverTimestamp,
+  enableIndexedDbPersistence,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+
+// Включаем оффлайн-персистентность для Firestore
+enableIndexedDbPersistence(db).catch(err => {
+  if (err.code === 'failed-precondition') {
+    console.log('Multiple tabs open, persistence disabled');
+  } else if (err.code === 'unimplemented') {
+    console.log('Browser does not support persistence');
+  }
+});
 
 // Функция для сохранения пользовательских данных (XP, streak, настройки)
 export async function saveUserData(uid, data) {

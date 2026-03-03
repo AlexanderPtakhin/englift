@@ -61,11 +61,9 @@ async function loadWordBank() {
 
   // Принудительная очистка кеша для отладки
   if (
-    (window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1') &&
-    window.DEBUG
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
   ) {
-    console.log('Отладочный режим: принудительно очищаем кеш word bank');
     localStorage.removeItem(BANK_CACHE_KEY);
     localStorage.removeItem(BANK_VERSION_KEY);
     wordBank = null;
@@ -143,7 +141,6 @@ async function loadWordBank() {
   // 2. Пробуем загрузить JSON
   try {
     console.log('Пытаемся загрузить dictionary.json...');
-    console.log('URL запроса:', './dictionary.json');
 
     const response = await fetch('./dictionary.json', { cache: 'no-cache' });
 
@@ -176,7 +173,7 @@ async function loadWordBank() {
 
       // Если examples - это массив строк или смешанный формат, конвертируем все в объекты
       if (word.examples && Array.isArray(word.examples)) {
-        return {
+        const converted = {
           ...word,
           examples: word.examples.map(ex => {
             if (typeof ex === 'string') {
@@ -184,16 +181,18 @@ async function loadWordBank() {
               return { text: ex, translation: '' };
             } else if (typeof ex === 'object' && ex.text) {
               // Это объект - проверяем наличие translation
-              return {
+              const result = {
                 text: ex.text || '',
                 translation: ex.translation || '',
               };
+              return result;
             } else {
               // Неизвестный формат
               return { text: '', translation: '' };
             }
           }),
         };
+        return converted;
       }
 
       // Если examples нет или неправильный формат
