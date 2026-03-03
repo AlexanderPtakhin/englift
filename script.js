@@ -11,6 +11,50 @@ import './auth.js';
 // Инициализация глобальных переменных
 window.words = [];
 
+// Daily Goals configuration
+const DAILY_GOALS = [
+  {
+    id: 'add_new',
+    label: 'Добавить 5 новых слов',
+    target: 5,
+    icon: 'add_circle',
+    xpReward: 30,
+  },
+  {
+    id: 'review',
+    label: 'Повторить 15 слов',
+    target: 15,
+    icon: 'repeat',
+    xpReward: 50,
+  },
+  {
+    id: 'practice_time',
+    label: 'Практиковать 10+ минут',
+    target: 10, // в минутах
+    icon: 'timer',
+    xpReward: 40,
+  },
+];
+
+// Daily progress tracking
+window.dailyProgress = {
+  add_new: 0,
+  review: 0,
+  practice_time: 0,
+  completed: false,
+  lastReset: null,
+};
+
+// CEFR levels tracking
+window.cefrLevels = {
+  A1: 0,
+  A2: 0,
+  B1: 0,
+  B2: 0,
+  C1: 0,
+  C2: 0,
+};
+
 // XSS protection function
 
 // Добавь в самое начало файла (рядом с другими let)
@@ -560,9 +604,83 @@ window.updateStreak = function (newStreak) {
   console.log('streak after update:', streak);
 };
 
+// Global function to update daily progress from Firebase
+window.updateDailyProgress = function (newDailyProgress) {
+  console.log('updateDailyProgress called with:', newDailyProgress);
+  // Полностью заменяем dailyProgress данными из Firebase
+  window.dailyProgress = { ...newDailyProgress }; // Полная замена, а не слияние
+  renderStats(); // Обновляем отображение
+  console.log('dailyProgress after update:', window.dailyProgress);
+};
+
+// Daily goals reset function
+function resetDailyGoalsIfNeeded() {
+  const today = new Date().toDateString();
+  if (window.dailyProgress.lastReset !== today) {
+    window.dailyProgress = {
+      add_new: 0,
+      review: 0,
+      practice_time: 0,
+      completed: false,
+      lastReset: today,
+    };
+    // Сохраняем в Firebase для персистентности
+    if (auth.currentUser) {
+      saveUserData(auth.currentUser.uid, {
+        dailyProgress: window.dailyProgress,
+      });
+    }
+  }
+}
+
+// Check daily goals completion and give rewards
+function checkDailyGoalsCompletion() {
+  const allCompleted = DAILY_GOALS.every(goal => {
+    return window.dailyProgress[goal.id] >= goal.target;
+  });
+
+  if (allCompleted && !window.dailyProgress.completed) {
+    window.dailyProgress.completed = true;
+
+    // Calculate total reward
+    const totalReward = DAILY_GOALS.reduce(
+      (sum, goal) => sum + goal.xpReward,
+      0,
+    );
+
+    // Give bonus XP
+    gainXP(totalReward, 'все ежедневные цели выполнены! 🎉');
+
+    // Save to Firebase for persistence
+    if (auth.currentUser) {
+      saveUserData(auth.currentUser.uid, {
+        dailyProgress: window.dailyProgress,
+      });
+    }
+
+    toast(
+      '🎉 Все ежедневные цели выполнены! +' + totalReward + ' XP',
+      'success',
+    );
+
+    // Trigger confetti animation
+    spawnConfetti();
+    renderStats(); // Update display
+  } else {
+    // Also save progress for persistence
+    if (auth.currentUser) {
+      saveUserData(auth.currentUser.uid, {
+        dailyProgress: window.dailyProgress,
+      });
+    }
+  }
+}
+
 async function load() {
   try {
     debugLog('Loading words from Firebase only...');
+    // Сбрасываем ежедневные цели при загрузке
+    resetDailyGoalsIfNeeded();
 
     // Больше не используем localStorage для слов
     window.words = [];
@@ -883,16 +1001,29 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
   try {
     await saveWordToDb(newWord);
     toast('Синхронизировано', 'success', 'sync');
+
+    // Обновляем прогресс ежедневных целей ТОЛЬКО после успешного сохранения в Firebase
+    resetDailyGoalsIfNeeded(); // Ensure proper daily reset
+    window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
+    checkDailyGoalsCompletion();
+
+    gainXP(5, 'новое слово');
+    visibleLimit = 30; // <-- сброс при добавлении слова
+
+    // Пересчитываем уровни CEFR
+    recalculateCefrLevels();
+
+    // Обновляем график активности после добавления слова
+    renderWeekChart();
   } catch (error) {
     console.error('Error saving word to DB:', error);
     toast('Ошибка синхронизации', 'danger', 'sync_problem');
+
+    // Откатываем изменения если сохранение в Firebase не удалось
+    window.words.pop();
+    renderCache.clear();
+    return false;
   }
-
-  gainXP(5, 'новое слово');
-  visibleLimit = 30; // <-- сброс при добавлении слова
-
-  // Обновляем график активности после добавления слова
-  renderWeekChart();
 
   return true;
 }
@@ -917,6 +1048,9 @@ async function delWord(id) {
 
     toast('Слово удалено', 'success', 'delete');
 
+    // Пересчитываем уровни CEFR после удаления
+    recalculateCefrLevels();
+
     // Обновляем график активности после удаления
     renderWeekChart();
   } catch (error) {
@@ -939,6 +1073,9 @@ async function updWord(id, data) {
       console.error('Error updating word in DB:', error);
       toast('Ошибка синхронизации изменений', 'warning', 'sync_problem');
     }
+
+    // Пересчитываем уровни CEFR после обновления
+    recalculateCefrLevels();
   }
 }
 function updStats(id, correct) {
@@ -1200,7 +1337,7 @@ function startBadgeAutoCheck() {
 function showXPToast(msg) {
   const el = document.createElement('div');
   el.className = 'xp-toast';
-  el.textContent = msg;
+  el.innerHTML = msg; // Используем innerHTML вместо textContent для поддержки HTML
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2800);
 }
@@ -1620,7 +1757,139 @@ function renderStats() {
       )
       .join('');
   }
+
+  // Ежедневные цели
+  renderDailyGoals();
+
+  // CEFR уровни (группировка по tags)
+  recalculateCefrLevels();
+  renderCefrLevels();
+
+  // Daily review cap progress
+  const totalDueCount = window.words.filter(
+    w => new Date(w.stats.nextReview || new Date()) <= new Date(),
+  ).length;
+  const capProgress = document.getElementById('daily-cap-progress');
+  if (capProgress) {
+    const pct = Math.min(
+      100,
+      Math.round((totalDueCount / MAX_REVIEWS_PER_DAY) * 100),
+    );
+    capProgress.innerHTML = `
+      <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">
+        : ${Math.min(totalDueCount, MAX_REVIEWS_PER_DAY)} / ${MAX_REVIEWS_PER_DAY} (${pct}%)
+      </div>
+      <div class="goal-progress" style="height: 6px;">
+        <div class="goal-fill" style="width: ${pct}%; background: linear-gradient(90deg, var(--primary), var(--success));"></div>
+      </div>
+    `;
+  }
 }
+
+// Render daily goals separately
+function renderDailyGoals() {
+  const container = document.getElementById('daily-goals-list');
+  if (!container) return;
+
+  let html = '';
+  DAILY_GOALS.forEach(goal => {
+    const current = window.dailyProgress[goal.id] || 0;
+    const percent = Math.min(100, Math.round((current / goal.target) * 100));
+    const done = current >= goal.target;
+
+    html += `
+      <div class="goal-item ${done ? 'goal-completed' : ''}">
+        <div class="goal-header">
+          <span class="material-symbols-outlined goal-icon">${goal.icon}</span>
+          <div class="goal-text">
+            ${goal.label}
+            <div class="goal-progress">
+              <div class="goal-fill" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="goal-counter">${current}/${goal.target}</div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+// Render CEFR levels separately
+function renderCefrLevels() {
+  const container = document.getElementById('cefr-grid');
+  if (!container) return;
+
+  let html = '';
+  Object.keys(window.cefrLevels).forEach(level => {
+    const count = window.cefrLevels[level] || 0;
+    html += `
+      <div class="cefr-level">
+        <div class="cefr-label">${level}</div>
+        <div class="cefr-count">${count}</div>
+        <small>слов</small>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+// Recalculate CEFR levels from words
+function recalculateCefrLevels() {
+  const levels = { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 };
+  window.words.forEach(w => {
+    if (w.tags) {
+      w.tags.forEach(tag => {
+        if (levels.hasOwnProperty(tag)) levels[tag]++;
+      });
+    }
+  });
+  window.cefrLevels = levels;
+}
+
+// Confetti animation for completed daily goals
+function spawnConfetti() {
+  const colors = ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const confettiCount = 50;
+
+  for (let i = 0; i < confettiCount; i++) {
+    setTimeout(() => {
+      const confetti = document.createElement('div');
+      confetti.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        animation: confetti-fall ${2 + Math.random() * 2}s ease-out forwards;
+        transform: translate(-50%, -50%);
+      `;
+      document.body.appendChild(confetti);
+
+      setTimeout(() => confetti.remove(), 4000);
+    }, i * 30);
+  }
+}
+
+// Add confetti animation styles
+const confettiStyles = document.createElement('style');
+confettiStyles.textContent = `
+  @keyframes confetti-fall {
+    0% {
+      transform: translate(-50%, -50%) translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) translateY(300px) rotate(720deg);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(confettiStyles);
 
 function switchTab(name) {
   if (name === 'window.words') {
@@ -3639,7 +3908,47 @@ document
   .getElementById('start-btn')
   .addEventListener('click', () => startSession());
 
+// Practice time tracking
+let practiceStartTime = null;
+
+// Daily review cap to prevent overwhelm
+const MAX_REVIEWS_PER_DAY = 120; // Can be made configurable later
+
+function getCardsToReview() {
+  const now = new Date();
+  let due = window.words.filter(
+    w => new Date(w.stats.nextReview || now) <= now,
+  );
+
+  // Sort by urgency (most overdue first)
+  due.sort(
+    (a, b) =>
+      new Date(a.stats.nextReview || now) - new Date(b.stats.nextReview || now),
+  );
+
+  // Apply daily cap
+  if (due.length > MAX_REVIEWS_PER_DAY) {
+    const originalCount = due.length;
+    due = due.slice(0, MAX_REVIEWS_PER_DAY);
+
+    // Show cap notification only once per session
+    if (!window.capNotified) {
+      toast(
+        `Сегодня показано только ${MAX_REVIEWS_PER_DAY} карточек из ${originalCount}. Остальные — завтра!`,
+        'info',
+        'schedule',
+      );
+      window.capNotified = true;
+    }
+  }
+
+  return due;
+}
+
 function startSession(cfg) {
+  // Start tracking practice time
+  practiceStartTime = Date.now();
+
   sResults = { correct: [], wrong: [] };
   sIdx = 0; // Reset index for new session
   window.words.forEach(w => delete w._matched);
@@ -3657,8 +3966,7 @@ function startSession(cfg) {
     pool = [...window.words];
     if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
     if (filterVal === 'due') {
-      const now = new Date();
-      pool = pool.filter(w => new Date(w.stats.nextReview) <= now);
+      pool = getCardsToReview(); // Use capped function
     }
     if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
     if (!pool.length) {
@@ -3690,8 +3998,7 @@ function startSession(cfg) {
     pool = [...window.words];
     if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
     if (filterVal === 'due') {
-      const now = new Date();
-      pool = pool.filter(w => new Date(w.stats.nextReview) <= now);
+      pool = getCardsToReview(); // Use capped function
     }
     if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
     if (!pool.length) {
@@ -3748,10 +4055,7 @@ function nextExercise() {
       const batch = session.words.slice(sIdx, sIdx + batchSize);
       runMatchExercise(batch, elapsed => {
         sIdx += batchSize;
-        toast(
-          `<span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">extension</span> Все пары за ${elapsed}s!`,
-          'success',
-        );
+        toast(`Все пары за ${elapsed}s!`, 'success', 'extension');
         nextExercise();
       });
       return;
@@ -4063,6 +4367,14 @@ function recordAnswer(correct) {
   playSound(correct ? 'correct' : 'wrong');
   updStats(session.words[sIdx].id, correct);
   updStreak();
+
+  // Обновляем прогресс ежедневных целей для правильных ответов
+  if (correct) {
+    resetDailyGoalsIfNeeded(); // Ensure proper daily reset
+    window.dailyProgress.review = (window.dailyProgress.review || 0) + 1;
+    checkDailyGoalsCompletion();
+  }
+
   if (correct) sResults.correct.push(session.words[sIdx]);
   else sResults.wrong.push(session.words[sIdx]);
   sIdx++;
@@ -4074,6 +4386,17 @@ function showResults() {
   if (hkHint) hkHint.style.display = 'none';
   updateDueBadge();
   renderStats();
+
+  // Update practice time progress
+  if (practiceStartTime) {
+    const minutes = Math.floor((Date.now() - practiceStartTime) / 60000);
+    resetDailyGoalsIfNeeded(); // Ensure proper daily reset
+    window.dailyProgress.practice_time =
+      (window.dailyProgress.practice_time || 0) + minutes;
+    checkDailyGoalsCompletion();
+    practiceStartTime = null; // Reset for next session
+  }
+
   document.getElementById('practice-ex').style.display = 'none';
   document.getElementById('practice-results').style.display = 'block';
   const resTotal = sResults.correct.length + sResults.wrong.length;
@@ -4327,6 +4650,15 @@ async function renderWotd() {
 
         console.log('New word created:', newWord);
         window.words.unshift(newWord);
+
+        // Обновляем прогресс ежедневных целей для WOTD
+        resetDailyGoalsIfNeeded(); // Ensure proper daily reset
+        window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
+        checkDailyGoalsCompletion();
+
+        // Пересчитываем уровни CEFR
+        recalculateCefrLevels();
+
         debouncedSave();
         renderWords();
         renderStats();

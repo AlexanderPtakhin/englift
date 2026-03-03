@@ -37,6 +37,15 @@ async function loadUserDataFromFirebase() {
         window.updateStreak(userData.streak);
       }
 
+      // Загружаем ежедневный прогресс
+      if (userData.dailyProgress && window.updateDailyProgress) {
+        console.log(
+          'Loading daily progress from Firebase:',
+          userData.dailyProgress,
+        );
+        window.updateDailyProgress(userData.dailyProgress);
+      }
+
       // Загружаем настройки речи
       if (userData.speechCfg) {
         console.log('Loading speech config from Firebase:', userData.speechCfg);
@@ -117,6 +126,11 @@ async function loadUserDataFromFirebase() {
       };
       await dbModule.setDoc(userRef, newUserData);
       console.log('Created user document with current data');
+    }
+
+    // Пересчитываем уровни CEFR после загрузки всех данных
+    if (window.recalculateCefrLevels) {
+      window.recalculateCefrLevels();
     }
   } catch (error) {
     console.error('Error loading/saving user data from Firebase:', error);
