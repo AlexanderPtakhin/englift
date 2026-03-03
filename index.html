@@ -160,7 +160,7 @@
             <div class="user-email" id="dropdown-email">Загрузка...</div>
             <div class="dropdown-item" id="dropdown-speech-settings">
               <span class="material-symbols-outlined">tune</span>
-              <span>Настройки речи</span>
+              <span>Настройки</span>
             </div>
             <div class="dropdown-item" id="dropdown-theme-toggle">
               <span class="material-symbols-outlined">sunny</span>
@@ -828,6 +828,18 @@
           <canvas id="weekChart" height="140"></canvas>
         </div>
 
+        <!-- Daily Review Cap -->
+        <div class="daily-cap-section">
+          <h3>
+            <span
+              class="material-symbols-outlined"
+              style="vertical-align: middle; margin-right: 8px"
+              >schedule</span
+            >Лимит повторений
+          </h3>
+          <div id="daily-cap-progress"></div>
+        </div>
+
         <!-- Ежедневные цели -->
         <div class="daily-goals-section">
           <h3>
@@ -911,27 +923,45 @@
             class="material-symbols-outlined"
             style="vertical-align: middle; margin-right: 8px"
             >tune</span
-          >Настройки произношения
+          >Настройки
         </h3>
-        <div id="no-speech-modal" class="no-speech" style="display: none">
-          Синтез речи не поддерживается браузером
-        </div>
-        <div id="speech-modal-controls">
-          <div class="form-group">
-            <label>Акцент</label>
-            <select id="modal-accent-select" class="form-control">
-              <option value="US">🇺🇸 American (US)</option>
-              <option value="UK">🇬🇧 British (UK)</option>
-              <option value="all">🌍 Все голоса</option>
-            </select>
+
+        <!-- Speech Settings Section -->
+        <div class="settings-section">
+          <h4 style="margin-bottom: 1rem; color: var(--primary)">
+            <span
+              class="material-symbols-outlined"
+              style="
+                font-size: 1.2rem;
+                vertical-align: middle;
+                margin-right: 4px;
+              "
+              >record_voice_over</span
+            >
+            Произношение
+          </h4>
+          <div id="no-speech-modal" class="no-speech" style="display: none">
+            Синтез речи не поддерживается браузером
           </div>
           <div class="form-group">
             <label>Голос</label>
-            <select id="modal-voice-select" class="form-control"></select>
+            <select class="form-control" id="modal-voice-select">
+              <option value="">Загрузка...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Акцент</label>
+            <select class="form-control" id="modal-accent-select">
+              <option value="US">🇺🇸 США</option>
+              <option value="UK">🇬🇧 Великобритания</option>
+              <option value="AU">�🇺 Австралия</option>
+              <option value="IN">🇮🇳 Индия</option>
+              <option value="CA">🇨🇦 Канада</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Скорость</label>
-            <div style="display: flex; align-items: center; gap: 1rem">
+            <div class="range-group">
               <input
                 class="form-control"
                 type="range"
@@ -940,18 +970,13 @@
                 max="1.5"
                 step="0.1"
                 value="0.9"
-                style="flex: 1"
               />
-              <span
-                id="modal-speed-val"
-                style="font-weight: 700; min-width: 40px"
-                >0.9x</span
-              >
+              <span class="range-value" id="modal-speed-val">0.9x</span>
             </div>
           </div>
           <div class="form-group">
             <label>Высота</label>
-            <div style="display: flex; align-items: center; gap: 1rem">
+            <div class="range-group">
               <input
                 class="form-control"
                 type="range"
@@ -960,33 +985,80 @@
                 max="2"
                 step="0.1"
                 value="1"
-                style="flex: 1"
               />
-              <span
-                id="modal-pitch-val"
-                style="font-weight: 700; min-width: 40px"
-                >1.0</span
-              >
+              <span class="range-value" id="modal-pitch-val">1.0</span>
             </div>
-          </div>
           <div
             style="
               display: flex;
               align-items: center;
               gap: 0.5rem;
+              margin-top: 1.5rem;
               margin-bottom: 1rem;
             "
           >
             <button class="btn btn-secondary" id="modal-test-voice-btn">
-              🔊 Тест голоса
+              <span class="material-symbols-outlined">sound_detection_loud_sound</span>
+              Тест голоса
             </button>
-            <span
-              style="color: var(--muted); font-size: 0.85rem; font-weight: 600"
-            >
-              послушай как звучит
-            </span>
           </div>
         </div>
+
+        <!-- Practice Settings Section -->
+        <div
+          class="settings-section"
+          style="
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+          "
+        >
+          <h4 style="margin-bottom: 1rem; color: var(--primary)">
+            <span
+              class="material-symbols-outlined"
+              style="
+                font-size: 1.2rem;
+                vertical-align: middle;
+                margin-right: 4px;
+              "
+              >schedule</span
+            >
+            Лимит повторений
+          </h4>
+          <p
+            style="
+              color: var(--muted);
+              margin-bottom: 1.5rem;
+              font-size: 0.9rem;
+            "
+          >
+            Выберите, сколько карточек вы готовы повторять за один день.
+            Остальные автоматически перенесутся на завтра — так вы не
+            перегрузитесь.
+          </p>
+
+          <div class="form-group">
+            <label>Лимит в день</label>
+            <select id="review-limit-select" class="form-control">
+              <option value="50">50 — лёгкий режим (10–20 мин)</option>
+              <option value="80">80 — комфортный</option>
+              <option value="100" selected>
+                100 — рекомендовано (20–40 мин)
+              </option>
+              <option value="150">150 — интенсив</option>
+              <option value="200">200 — мощный режим</option>
+              <option value="9999">Без лимита (для энтузиастов)</option>
+            </select>
+          </div>
+
+          <small
+            id="current-limit-info"
+            style="display: block; color: var(--muted); margin-top: 0.5rem"
+          >
+            Текущий лимит: <strong>100</strong>
+          </small>
+        </div>
+
         <div class="modal-actions">
           <button class="save-edit-btn btn-icon" id="speech-modal-save">
             <span class="material-symbols-outlined">save</span>

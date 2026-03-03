@@ -46,6 +46,19 @@ async function loadUserDataFromFirebase() {
         window.updateDailyProgress(userData.dailyProgress);
       }
 
+      // Загружаем счетчик повторений за сегодня
+      if (userData.todayReviewedCount !== undefined) {
+        window.todayReviewedCount = userData.todayReviewedCount;
+      }
+      if (userData.lastReviewedReset) {
+        window.lastReviewedReset = userData.lastReviewedReset;
+      }
+
+      // Загружаем настройки пользователя
+      if (window.loadUserSettings) {
+        window.loadUserSettings(userData);
+      }
+
       // Загружаем настройки речи
       if (userData.speechCfg) {
         console.log('Loading speech config from Firebase:', userData.speechCfg);
@@ -112,20 +125,7 @@ async function loadUserDataFromFirebase() {
         }
       }
     } else {
-      // Документа пользователя нет – создаём с текущими данными
-      const newUserData = {
-        xpData: window.xpData || { xp: 0, level: 1, badges: [] },
-        streak: window.streak || { count: 0, lastDate: null },
-        speechCfg: window.speechCfg || {
-          voiceURI: '',
-          rate: 0.9,
-          pitch: 1.0,
-          accent: 'US',
-        },
-        darkTheme: localStorage.getItem('engliftDark') === 'true',
-      };
-      await dbModule.setDoc(userRef, newUserData);
-      console.log('Created user document with current data');
+      console.log('No user data found, using defaults');
     }
 
     // Пересчитываем уровни CEFR после загрузки всех данных

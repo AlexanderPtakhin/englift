@@ -2401,6 +2401,63 @@ h3:has(+ .week-chart-container) {
   text-align: center;
 }
 
+/* Modal specific range styles */
+.modal-box input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  background: var(--primary) !important;
+  cursor: pointer !important;
+  margin-top: -6px !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 1px 1px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.2s ease !important;
+}
+
+.modal-box input[type='range']::-moz-range-thumb {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  background: var(--primary) !important;
+  cursor: pointer !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 1px 1px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.2s ease !important;
+}
+
+.modal-box input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.05) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    0 2px 2px rgba(0, 0, 0, 0.12) !important;
+}
+
+.modal-box input[type='range']:hover::-moz-range-thumb {
+  transform: scale(1.05) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    0 2px 2px rgba(0, 0, 0, 0.12) !important;
+}
+
+.modal-box input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(0.95) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 1px 1px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modal-box input[type='range']:active::-moz-range-thumb {
+  transform: scale(0.95) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 1px 1px rgba(0, 0, 0, 0.15) !important;
+}
+
 .modal-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
@@ -2455,6 +2512,129 @@ h3:has(+ .week-chart-container) {
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+/* Modal Form Styles */
+.modal-box .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-box .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-box .form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.modal-box .form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.12);
+  outline: none;
+}
+
+.modal-box .range-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal-box .range-value {
+  font-weight: 700;
+  min-width: 50px;
+  text-align: center;
+  color: var(--text);
+}
+
+/* Custom Range Inputs */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+}
+
+input[type='range']::-webkit-slider-track {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  height: 6px;
+  border-radius: 3px;
+}
+
+input[type='range']::-moz-range-track {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  height: 6px;
+  border-radius: 3px;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 1px 1px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 1px 1px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.05);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    0 2px 2px rgba(0, 0, 0, 0.12);
+}
+
+input[type='range']:hover::-moz-range-thumb {
+  transform: scale(1.05);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    0 2px 2px rgba(0, 0, 0, 0.12);
+}
+
+input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(0.95);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 1px 1px rgba(0, 0, 0, 0.15);
+}
+
+input[type='range']:active::-moz-range-thumb {
+  transform: scale(0.95);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 1px 1px rgba(0, 0, 0, 0.15);
 }
 
 /* TOAST */
@@ -2650,9 +2830,12 @@ body:not(.authenticated) > main {
   background: var(--card);
   border-radius: var(--radius);
   padding: 2rem;
-  max-width: 420px;
+  max-width: 500px;
   width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
   box-shadow: var(--shadow-hover);
+  margin: 0 auto;
 }
 
 .modal-box h3 {
@@ -4207,6 +4390,15 @@ input:checked + .theme-slider:before {
 #dict-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.12);
+}
+
+/* Daily Review Cap Styles */
+.daily-cap-section {
+  margin: 2rem 0;
+  background: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 /* Daily Goals Styles */

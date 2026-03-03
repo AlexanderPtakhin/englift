@@ -681,6 +681,8 @@ async function load() {
     debugLog('Loading words from Firebase only...');
     // Сбрасываем ежедневные цели при загрузке
     resetDailyGoalsIfNeeded();
+    // Сбрасываем счетчик повторений при загрузке
+    resetDailyReviewedCountIfNeeded();
 
     // Больше не используем localStorage для слов
     window.words = [];
@@ -1578,7 +1580,8 @@ function setupSpeechListeners() {
       const btn = this;
       const orig = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '🔊 Играет...';
+      btn.innerHTML =
+        '<span class="material-symbols-outlined">graphic_eq</span> Играет...';
       speak('Test pronunciation. This is how your voice sounds.', () => {
         btn.innerHTML = orig;
         btn.disabled = false;
@@ -1765,22 +1768,32 @@ function renderStats() {
   recalculateCefrLevels();
   renderCefrLevels();
 
-  // Daily review cap progress
-  const totalDueCount = window.words.filter(
-    w => new Date(w.stats.nextReview || new Date()) <= new Date(),
-  ).length;
+  // Daily review count display
+  const reviewedCountEl = document.getElementById('today-reviewed-count');
+  if (reviewedCountEl) {
+    reviewedCountEl.textContent = window.todayReviewedCount;
+  }
+
+  // Update cap progress bar
   const capProgress = document.getElementById('daily-cap-progress');
   if (capProgress) {
+    const limit =
+      window.userSettings?.reviewLimit &&
+      window.userSettings.reviewLimit !== 9999
+        ? window.userSettings.reviewLimit
+        : MAX_REVIEWS_PER_DAY;
     const pct = Math.min(
       100,
-      Math.round((totalDueCount / MAX_REVIEWS_PER_DAY) * 100),
+      Math.round((window.todayReviewedCount / limit) * 100),
     );
+    const status =
+      window.todayReviewedCount >= limit ? ' — лимит достигнут!' : '';
     capProgress.innerHTML = `
       <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">
-        : ${Math.min(totalDueCount, MAX_REVIEWS_PER_DAY)} / ${MAX_REVIEWS_PER_DAY} (${pct}%)
+        Сегодня повторено: ${window.todayReviewedCount} / ${limit === 9999 ? '∞' : limit}${status}
       </div>
       <div class="goal-progress" style="height: 6px;">
-        <div class="goal-fill" style="width: ${pct}%; background: linear-gradient(90deg, var(--primary), var(--success));"></div>
+        <div class="goal-fill" style="width: ${pct}%; background: linear-gradient(90deg, var(--primary), ${window.todayReviewedCount >= limit ? 'var(--success)' : 'var(--primary)'});"></div>
       </div>
     `;
   }
@@ -3538,24 +3551,36 @@ function showPreview() {
 
 document
   .getElementById('dropdown-speech-settings')
-  .addEventListener('click', () => {
-    document.getElementById('speech-modal').classList.add('open');
-    // Sync values when opening modal
-    const modalAccent = document.getElementById('modal-accent-select');
-    const modalVoice = document.getElementById('modal-voice-select');
-    const modalSpeed = document.getElementById('modal-speed-range');
-    const modalPitch = document.getElementById('modal-pitch-range');
-    const modalSpeedVal = document.getElementById('modal-speed-val');
-    const modalPitchVal = document.getElementById('modal-pitch-val');
+  ?.addEventListener('click', () => {
+    const modal = document.getElementById('speech-modal');
+    modal.classList.add('open');
 
-    if (modalAccent) modalAccent.value = speechCfg.accent || 'US';
-    if (modalSpeed) modalSpeed.value = speechCfg.rate;
-    if (modalSpeedVal) modalSpeedVal.textContent = speechCfg.rate + 'x';
-    if (modalPitch) modalPitch.value = speechCfg.pitch;
-    if (modalPitchVal) modalPitchVal.textContent = speechCfg.pitch.toFixed(1);
-
-    // Reload voices for modal
+    // Load voices
     loadVoices();
+
+    // Set current speech settings
+    setTimeout(() => {
+      document.getElementById('modal-voice-select').value =
+        window.speechCfg.voiceURI || '';
+      document.getElementById('modal-accent-select').value =
+        window.speechCfg.accent || 'US';
+      document.getElementById('modal-speed-range').value =
+        window.speechCfg.rate || 0.9;
+      document.getElementById('modal-pitch-range').value =
+        window.speechCfg.pitch || 1.0;
+      document.getElementById('modal-speed-val').textContent =
+        (window.speechCfg.rate || 0.9) + 'x';
+      document.getElementById('modal-pitch-val').textContent = (
+        window.speechCfg.pitch || 1.0
+      ).toFixed(1);
+    }, 100);
+
+    // Load practice settings
+    const current = window.userSettings?.reviewLimit || MAX_REVIEWS_PER_DAY;
+    document.getElementById('review-limit-select').value =
+      current === 9999 ? '9999' : current;
+    document.getElementById('current-limit-info').innerHTML =
+      `Текущий лимит: <strong>${current === 9999 ? 'Без лимита' : current}</strong>`;
   });
 
 // Speech modal handlers
@@ -3563,9 +3588,55 @@ document.getElementById('speech-modal-cancel').addEventListener('click', () => {
   document.getElementById('speech-modal').classList.remove('open');
 });
 
-document.getElementById('speech-modal-save').addEventListener('click', () => {
+document.getElementById('speech-modal-save')?.addEventListener('click', () => {
+  const voiceSelect = document.getElementById('modal-voice-select');
+  const accentSelect = document.getElementById('modal-accent-select');
+  const speedRange = document.getElementById('modal-speed-range');
+  const pitchRange = document.getElementById('modal-pitch-range');
+  const limitSelect = document.getElementById('review-limit-select');
+
+  // Save speech settings
+  const selectedVoice = voiceSelect.value;
+  const selectedAccent = accentSelect.value;
+  const selectedSpeed = parseFloat(speedRange.value);
+  const selectedPitch = parseFloat(pitchRange.value);
+
+  window.speechCfg = {
+    voiceURI: selectedVoice,
+    accent: selectedAccent,
+    rate: selectedSpeed,
+    pitch: selectedPitch,
+  };
+
+  // Save practice settings
+  const newLimit =
+    limitSelect.value === '9999' ? 9999 : parseInt(limitSelect.value);
+  window.userSettings = window.userSettings || {};
+  window.userSettings.reviewLimit = newLimit;
+
+  // Update global limit if custom
+  if (newLimit !== 9999) {
+    window.MAX_REVIEWS_PER_DAY = newLimit;
+  }
+
+  // Save to Firebase
+  if (auth.currentUser) {
+    saveUserData(auth.currentUser.uid, {
+      speechCfg: window.speechCfg,
+      userSettings: window.userSettings,
+    });
+  }
+
+  // Update UI
+  localStorage.setItem('englift_speech', JSON.stringify(window.speechCfg));
   document.getElementById('speech-modal').classList.remove('open');
-  toast('Настройки произношения сохранены', 'success');
+
+  // Update statistics
+  renderStats();
+
+  // Show success toast
+  const limitText = newLimit === 9999 ? 'Без лимита' : newLimit;
+  toast(`Настройки сохранены! Лимит повторений: ${limitText}`, 'success');
 });
 
 document.getElementById('speech-modal').addEventListener('click', e => {
@@ -3911,43 +3982,93 @@ document
 // Practice time tracking
 let practiceStartTime = null;
 
-// Daily review cap to prevent overwhelm
-const MAX_REVIEWS_PER_DAY = 120; // Can be made configurable later
+// Soft cap for daily reviews
+const MAX_REVIEWS_PER_DAY = 100;
+
+// Global tracking for today's reviewed cards
+window.todayReviewedCount = 0;
+window.lastReviewedReset = null;
+window.postponedToastShown = false;
+
+function resetDailyReviewedCountIfNeeded() {
+  const today = new Date().toDateString();
+  if (window.lastReviewedReset !== today) {
+    window.todayReviewedCount = 0;
+    window.lastReviewedReset = today;
+    window.postponedToastShown = false;
+  }
+}
+
+function updateTodayReviewedCount(increment = 1) {
+  window.todayReviewedCount += increment;
+  // Can save to Firebase for persistence between tabs
+  if (auth.currentUser) {
+    saveUserData(auth.currentUser.uid, {
+      todayReviewedCount: window.todayReviewedCount,
+      lastReviewedReset: window.lastReviewedReset,
+    });
+  }
+}
 
 function getCardsToReview() {
-  const now = new Date();
-  let due = window.words.filter(
-    w => new Date(w.stats.nextReview || now) <= now,
+  resetDailyReviewedCountIfNeeded();
+
+  // All cards that are due (nextReview <= now)
+  let dueCards = window.words.filter(w => {
+    if (!w.stats || !w.stats.nextReview) return false;
+    return new Date(w.stats.nextReview) <= new Date();
+  });
+
+  // Sort by urgency (oldest/overdue first)
+  dueCards.sort(
+    (a, b) => new Date(a.stats.nextReview) - new Date(b.stats.nextReview),
   );
 
-  // Sort by urgency (most overdue first)
-  due.sort(
-    (a, b) =>
-      new Date(a.stats.nextReview || now) - new Date(b.stats.nextReview || now),
-  );
+  // Get user limit or default
+  const userLimit =
+    window.userSettings?.reviewLimit && window.userSettings.reviewLimit !== 9999
+      ? window.userSettings.reviewLimit
+      : MAX_REVIEWS_PER_DAY;
 
-  // Apply daily cap
-  if (due.length > MAX_REVIEWS_PER_DAY) {
-    const originalCount = due.length;
-    due = due.slice(0, MAX_REVIEWS_PER_DAY);
+  // Remaining until cap
+  const remaining = userLimit - window.todayReviewedCount;
 
-    // Show cap notification only once per session
-    if (!window.capNotified) {
-      toast(
-        `Сегодня показано только ${MAX_REVIEWS_PER_DAY} карточек из ${originalCount}. Остальные — завтра!`,
-        'info',
-        'schedule',
-      );
-      window.capNotified = true;
-    }
+  let cardsToShow = dueCards;
+  let postponedCount = 0;
+
+  // Apply soft cap
+  if (dueCards.length > remaining && remaining > 0) {
+    cardsToShow = dueCards.slice(0, remaining);
+    postponedCount = dueCards.length - remaining;
+  } else if (remaining <= 0) {
+    cardsToShow = [];
+    postponedCount = dueCards.length;
   }
 
-  return due;
+  // Show notification once per session
+  if (postponedCount > 0 && !window.postponedToastShown) {
+    toast(
+      `Сегодня показано ${cardsToShow.length} карточек из ${dueCards.length}. ` +
+        `Остальные ${postponedCount} перенесены на завтра — не перегружайся! 😌`,
+      'info',
+      'schedule',
+      8000,
+    );
+    window.postponedToastShown = true;
+  }
+
+  // Update statistics
+  updateTodayReviewedCount(cardsToShow.length);
+
+  return cardsToShow;
 }
 
 function startSession(cfg) {
   // Start tracking practice time
   practiceStartTime = Date.now();
+
+  // Reset postponed toast notification for new session
+  window.postponedToastShown = false;
 
   sResults = { correct: [], wrong: [] };
   sIdx = 0; // Reset index for new session
@@ -4373,6 +4494,9 @@ function recordAnswer(correct) {
     resetDailyGoalsIfNeeded(); // Ensure proper daily reset
     window.dailyProgress.review = (window.dailyProgress.review || 0) + 1;
     checkDailyGoalsCompletion();
+
+    // Увеличиваем счётчик повторений за день (только для повторений, не новых слов)
+    updateTodayReviewedCount(1);
   }
 
   if (correct) sResults.correct.push(session.words[sIdx]);
