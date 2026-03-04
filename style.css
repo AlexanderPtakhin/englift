@@ -4414,6 +4414,40 @@ body.dark .due-soon {
 .sync-status.syncing {
   color: var(--warning);
 }
+.autocomplete-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 0 0 10px 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: var(--shadow);
+}
+
+.autocomplete-suggestions .suggestion-item {
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 600;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.autocomplete-suggestions .suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-suggestions .suggestion-item:hover,
+.autocomplete-suggestions .suggestion-item.selected {
+  background: var(--primary);
+  color: #fff;
+}
+
 .sync-status.success {
   color: var(--success);
 }

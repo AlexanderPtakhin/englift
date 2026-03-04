@@ -332,23 +332,26 @@
             <form id="single-form">
               <div class="form-group">
                 <label>Английское слово *</label>
-                <div style="display: flex; gap: 0.5rem">
-                  <input
-                    class="form-control"
-                    type="text"
-                    id="f-en"
-                    required
-                    placeholder="e.g. achieve"
-                    autocomplete="off"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-secondary"
-                    id="auto-fill-btn"
-                    title="Автозаполнение перевода и примера"
-                  >
-                    <span class="material-symbols-outlined">auto_fix_high</span>
-                  </button>
+                <div style="position: relative;">
+                  <div style="display: flex; gap: 0.5rem">
+                    <input
+                      class="form-control"
+                      type="text"
+                      id="f-en"
+                      required
+                      placeholder="e.g. achieve"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      id="auto-fill-btn"
+                      title="Автозаполнение перевода и примера"
+                    >
+                      <span class="material-symbols-outlined">auto_fix_high</span>
+                    </button>
+                  </div>
+                  <div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
                 </div>
                 <div
                   id="api-loading"

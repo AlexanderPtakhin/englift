@@ -800,6 +800,21 @@ function checkDailyGoalsCompletion() {
   }
 }
 
+// Загрузка банка слов для автодополнения
+window.wordBank = [];
+async function loadWordBank() {
+  try {
+    const response = await fetch('dictionary.json');
+    if (response.ok) {
+      window.wordBank = await response.json();
+      console.log(`📚 Загружено ${window.wordBank.length} слов для подсказок`);
+    }
+  } catch (e) {
+    console.error('❌ Не удалось загрузить словарь для подсказок:', e);
+  }
+}
+loadWordBank();
+
 async function load() {
   try {
     debugLog('Loading words from Firebase only...');
@@ -3692,7 +3707,130 @@ document.getElementById('single-form').addEventListener('submit', e => {
   }
 });
 // File import variables
-let fileParsed = [];
+
+// Переменные для автодополнения
+let suggestionsVisible = false;
+let selectedSuggestionIndex = -1;
+
+const enInput = document.getElementById('f-en');
+const suggestionsContainer = document.getElementById(
+  'autocomplete-suggestions',
+);
+
+// Debounce функция
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// Фильтрация и отображение подсказок
+const showSuggestions = debounce(query => {
+  if (!query || query.length < 2) {
+    suggestionsContainer.style.display = 'none';
+    return;
+  }
+
+  const lowerQuery = query.toLowerCase();
+
+  // Собираем слова из банка и из уже добавленных пользователем
+  const bankWords = (window.wordBank || []).map(w => w.en);
+  const userWords = window.words.map(w => w.en);
+  const allWords = [...new Set([...bankWords, ...userWords])]; // убираем дубликаты
+
+  // Фильтруем по началу строки
+  const matches = allWords
+    .filter(word => word.toLowerCase().startsWith(lowerQuery))
+    .slice(0, 10); // не больше 10
+
+  if (matches.length === 0) {
+    suggestionsContainer.style.display = 'none';
+    return;
+  }
+
+  // Формируем HTML
+  suggestionsContainer.innerHTML = matches
+    .map(
+      (word, index) =>
+        `<div class="suggestion-item" data-index="${index}" data-word="${word}">${word}</div>`,
+    )
+    .join('');
+
+  suggestionsContainer.style.display = 'block';
+  selectedSuggestionIndex = -1; // сбрасываем выделение
+}, 200);
+
+// Обработчик ввода
+enInput.addEventListener('input', e => {
+  showSuggestions(e.target.value);
+});
+
+// Обработчик клика на подсказку (через делегирование)
+suggestionsContainer.addEventListener('click', e => {
+  const target = e.target.closest('.suggestion-item');
+  if (!target) return;
+
+  const selectedWord = target.dataset.word;
+  enInput.value = selectedWord;
+  suggestionsContainer.style.display = 'none';
+
+  // Автоматически запускаем автозаполнение
+  document.getElementById('auto-fill-btn').click();
+});
+
+// Скрываем подсказки при потере фокуса (с задержкой, чтобы успеть кликнуть)
+enInput.addEventListener('blur', () => {
+  setTimeout(() => {
+    suggestionsContainer.style.display = 'none';
+  }, 200);
+});
+
+// Возвращаем фокус (чтобы при клике на подсказку поле не теряло фокус раньше)
+enInput.addEventListener('focus', () => {
+  if (enInput.value.length >= 2) {
+    showSuggestions(enInput.value);
+  }
+});
+
+// Навигация с клавиатуры (стрелки вверх/вниз, Enter)
+enInput.addEventListener('keydown', e => {
+  const items = suggestionsContainer.querySelectorAll('.suggestion-item');
+  if (items.length === 0) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectedSuggestionIndex = (selectedSuggestionIndex + 1) % items.length;
+    updateSelectedItem(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectedSuggestionIndex =
+      (selectedSuggestionIndex - 1 + items.length) % items.length;
+    updateSelectedItem(items);
+  } else if (e.key === 'Enter' && selectedSuggestionIndex !== -1) {
+    e.preventDefault();
+    const selectedItem = items[selectedSuggestionIndex];
+    const word = selectedItem.dataset.word;
+    enInput.value = word;
+    suggestionsContainer.style.display = 'none';
+    document.getElementById('auto-fill-btn').click();
+  }
+});
+
+function updateSelectedItem(items) {
+  items.forEach((item, idx) => {
+    if (idx === selectedSuggestionIndex) {
+      item.classList.add('selected');
+      // Прокрутка, если нужно
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+// File import variables
 
 function showPreview() {
   console.log('🎬 showPreview called');
