@@ -1628,6 +1628,36 @@ body.dark .badge-learned {
   box-shadow: var(--shadow);
 }
 
+.exercise-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.ex-exit-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 8px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+.ex-exit-btn:hover {
+  color: var(--text);
+}
+
+.exercise-header-container .ex-exit-btn {
+  margin-left: 0;
+}
+
 .ex-progress {
   margin-bottom: 1.5rem;
 }
@@ -1639,6 +1669,46 @@ body.dark .badge-learned {
   font-weight: 700;
   color: var(--muted);
   margin-bottom: 0.4rem;
+  align-items: center;
+}
+
+.exercise-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(108, 99, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--primary);
+  transition: all 0.3s ease;
+}
+
+.exercise-timer .material-symbols-outlined {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exercise-timer.timer-urgent {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+  animation: timerPulse 1s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 .stat-lbl {
@@ -3133,10 +3203,50 @@ body:not(.authenticated) > main {
   animation: cFall linear forwards;
 }
 
+.sad-drop {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9998;
+  animation: rainFall linear forwards;
+}
+
+.firework {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 @keyframes cFall {
   to {
     transform: translateY(110vh) rotate(720deg);
     opacity: 0;
+  }
+}
+
+@keyframes rainFall {
+  to {
+    transform: translateY(110vh);
+    opacity: 0;
+  }
+}
+
+@keyframes fireworkBurst {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 10px #ffd700;
+  }
+  50% {
+    transform: scale(20);
+    opacity: 0.8;
+    box-shadow:
+      0 0 30px #ffd700,
+      0 0 50px #ff6b6b;
+  }
+  100% {
+    transform: scale(40);
+    opacity: 0;
+    box-shadow: 0 0 60px transparent;
   }
 }
 
@@ -3468,6 +3578,42 @@ body.dark .due-soon {
   color: var(--muted);
   line-height: 1.3;
   font-weight: 500;
+}
+
+.badge-progress {
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.badge-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.badge-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.badge-progress-text {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+.badge-card.locked .badge-progress-fill {
+  background: linear-gradient(90deg, var(--warning), #f59e0b);
+}
+
+.badge-card.locked .badge-progress-text {
+  color: var(--warning);
 }
 
 .xp-toast {
@@ -3876,31 +4022,6 @@ body.dark .due-soon {
   background: rgba(255, 255, 255, 0.35);
 }
 
-/* HOTKEYS */
-.hotkeys-hint {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 0.6rem;
-}
-.hk {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-.hk kbd {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: 5px;
-  padding: 0.1rem 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
 /* DUE BADGE */
 .nav-due-badge {
   display: inline-block;
@@ -4130,24 +4251,14 @@ body.dark .due-soon {
   margin-bottom: 0.25rem;
 }
 
-.ex-exit-btn {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 1.2rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0.3rem;
-  border-radius: 8px;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin-left: auto;
-  margin-bottom: 1rem;
-}
 .ex-exit-btn:hover {
   color: var(--text);
+}
+
+.ex-timer-container {
+  display: flex;
+  justify-content: center;
+  flex: 1;
 }
 
 /* Loading indicators */

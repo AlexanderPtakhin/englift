@@ -1260,34 +1260,58 @@ function updStats(id, correct) {
 const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
 const BADGES_DEF = [
+  // ===== Слова в словаре =====
   {
     id: 'first_word',
     icon: 'emoji_nature',
     name: 'Первое слово',
-    desc: 'Добавь 1 слово',
+    desc: 'Добавь 1 слово в словарь',
     check: () => window.words.length >= 1,
   },
   {
     id: 'words_10',
     icon: 'menu_book',
-    name: 'Начинающий',
+    name: 'Начинающий коллекционер',
     desc: '10 слов в словаре',
     check: () => window.words.length >= 10,
   },
   {
     id: 'words_50',
     icon: 'auto_stories',
-    name: 'Читатель',
+    name: 'Книжный червь',
     desc: '50 слов в словаре',
     check: () => window.words.length >= 50,
   },
   {
     id: 'words_100',
     icon: 'workspace_premium',
-    name: 'Словарь',
+    name: 'Словарный запас',
     desc: '100 слов в словаре',
     check: () => window.words.length >= 100,
   },
+  {
+    id: 'words_250',
+    icon: 'psychology',
+    name: 'Эрудит',
+    desc: '250 слов в словаре',
+    check: () => window.words.length >= 250,
+  },
+  {
+    id: 'words_500',
+    icon: 'library_books',
+    name: 'Лексикон',
+    desc: '500 слов в словаре',
+    check: () => window.words.length >= 500,
+  },
+  {
+    id: 'words_1000',
+    icon: 'language',
+    name: 'Полиглот',
+    desc: '1000 слов в словаре',
+    check: () => window.words.length >= 1000,
+  },
+
+  // ===== Выученные слова =====
   {
     id: 'learned_1',
     icon: 'star',
@@ -1298,77 +1322,146 @@ const BADGES_DEF = [
   {
     id: 'learned_10',
     icon: 'stars',
-    name: 'Усердный',
+    name: 'Звезда',
     desc: 'Выучи 10 слов',
     check: () => window.words.filter(w => w.stats.learned).length >= 10,
   },
   {
-    id: 'learned_50',
+    id: 'learned_25',
     icon: 'auto_awesome',
+    name: 'Блестящий',
+    desc: 'Выучи 25 слов',
+    check: () => window.words.filter(w => w.stats.learned).length >= 25,
+  },
+  {
+    id: 'learned_50',
+    icon: 'workspace_premium',
     name: 'Мастер слов',
     desc: 'Выучи 50 слов',
     check: () => window.words.filter(w => w.stats.learned).length >= 50,
   },
   {
+    id: 'learned_100',
+    icon: 'emoji_events',
+    name: 'Знаток',
+    desc: 'Выучи 100 слов',
+    check: () => window.words.filter(w => w.stats.learned).length >= 100,
+  },
+  {
+    id: 'learned_250',
+    icon: 'school',
+    name: 'Профессор',
+    desc: 'Выучи 250 слов',
+    check: () => window.words.filter(w => w.stats.learned).length >= 250,
+  },
+
+  // ===== Серии (streak) =====
+  {
     id: 'streak_3',
     icon: 'local_fire_department',
-    name: 'На огне',
+    name: 'Искра',
     desc: '3 дня подряд',
     check: () => streak.count >= 3,
   },
   {
     id: 'streak_7',
     icon: 'rocket_launch',
-    name: 'Неделя практики',
+    name: 'Пламя',
     desc: '7 дней подряд',
     check: () => streak.count >= 7,
   },
   {
     id: 'streak_30',
-    icon: 'workspace_premium',
-    name: 'Легенда',
+    icon: 'whatshot',
+    name: 'Огонь',
     desc: '30 дней подряд',
     check: () => streak.count >= 30,
   },
   {
+    id: 'streak_100',
+    icon: 'local_fire_department',
+    name: 'Неугасимый',
+    desc: '100 дней подряд',
+    check: () => streak.count >= 100,
+  },
+  {
+    id: 'streak_365',
+    icon: 'emoji_events',
+    name: 'Вечный',
+    desc: '365 дней подряд (целый год!)',
+    check: () => streak.count >= 365,
+  },
+
+  // ===== Опыт (XP) =====
+  {
+    id: 'xp_250',
+    icon: 'emoji_objects',
+    name: 'Любознательный',
+    desc: 'Набери 250 XP',
+    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 250,
+  },
+  {
     id: 'xp_500',
     icon: 'diamond',
-    name: 'Алмазный',
+    name: 'Прилежный',
     desc: 'Набери 500 XP',
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 500,
   },
   {
     id: 'xp_1000',
     icon: 'military_tech',
-    name: 'Ветеран',
+    name: 'Эксперт',
     desc: 'Набери 1000 XP',
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 1000,
   },
   {
-    id: 'xp_2500',
+    id: 'xp_2000',
     icon: 'workspace_premium',
-    name: 'Легенда',
-    desc: 'Набери 2500 XP',
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 2500,
+    name: 'Профессионал',
+    desc: 'Набери 2000 XP',
+    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 2000,
+  },
+  {
+    id: 'xp_3500',
+    icon: 'star',
+    name: 'Мастер',
+    desc: 'Набери 3500 XP',
+    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 3500,
   },
   {
     id: 'xp_5000',
-    icon: 'star',
-    name: 'Мастер',
+    icon: 'emoji_events',
+    name: 'Легенда',
     desc: 'Набери 5000 XP',
     check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 5000,
   },
   {
+    id: 'xp_7500',
+    icon: 'military_tech',
+    name: 'Герой',
+    desc: 'Набери 7500 XP',
+    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 7500,
+  },
+  {
+    id: 'xp_10000',
+    icon: 'workspace_premium',
+    name: 'Бессмертный',
+    desc: 'Набери 10000 XP',
+    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 10000,
+  },
+
+  // ===== Особые =====
+  {
     id: 'perfect',
     icon: 'target',
     name: 'Снайпер',
-    desc: 'Сессия без ошибок (5+ слов)',
-    check: () => false,
+    desc: 'Сессия без ошибок (минимум 5 слов)',
+    check: () => false, // будет проверяться через perfectSession параметр
   },
   {
     id: 'level_5',
     icon: 'bolt',
-    name: 'Прокачан',
+    name: 'Прокачанный',
     desc: 'Достигни 5 уровня',
     check: () => xpData.level >= 5,
   },
@@ -1380,25 +1473,18 @@ const BADGES_DEF = [
     check: () => xpData.level >= 10,
   },
   {
-    id: 'streak_100',
-    icon: '🔥',
-    name: 'Непоколебимый',
-    desc: '100 дней подряд',
-    check: () => streak.count >= 100,
+    id: 'level_20',
+    icon: 'rocket_launch',
+    name: 'Ас',
+    desc: 'Достигни 20 уровня',
+    check: () => xpData.level >= 20,
   },
   {
-    id: 'words_500',
-    icon: '📚',
-    name: 'Словарный гений',
-    desc: '500 слов в словаре',
-    check: () => window.words.length >= 500,
-  },
-  {
-    id: 'learned_100',
-    icon: '🌟',
-    name: 'Мастер слов',
-    desc: 'Выучи 100 слов',
-    check: () => window.words.filter(w => w.stats.learned).length >= 100,
+    id: 'level_50',
+    icon: 'workspace_premium',
+    name: 'Бог',
+    desc: 'Достигни 50 уровня',
+    check: () => xpData.level >= 50,
   },
 ];
 
@@ -1500,11 +1586,76 @@ function renderXP() {
   if (stLvl) stLvl.textContent = 'Уровень ' + xpData.level;
 }
 
+function getBadgeProgress(def) {
+  if (xpData.badges.includes(def.id)) return null; // Уже получен
+
+  const currentXP = xpData.xp + (xpData.level - 1) * XP_PER_LEVEL;
+  const currentWords = window.words.length;
+  const currentLearned = window.words.filter(w => w.stats.learned).length;
+  const currentStreak = streak.count;
+
+  // Прогресс по количеству слов
+  if (def.id.startsWith('words_')) {
+    const target = parseInt(def.id.split('_')[1]);
+    const remaining = Math.max(0, target - currentWords);
+    return {
+      type: 'words',
+      current: currentWords,
+      target: target,
+      remaining: remaining,
+      progress: Math.min(100, (currentWords / target) * 100),
+    };
+  }
+
+  // Прогресс по выученным словам
+  if (def.id.startsWith('learned_')) {
+    const target = parseInt(def.id.split('_')[1]);
+    const remaining = Math.max(0, target - currentLearned);
+    return {
+      type: 'learned',
+      current: currentLearned,
+      target: target,
+      remaining: remaining,
+      progress: Math.min(100, (currentLearned / target) * 100),
+    };
+  }
+
+  // Прогресс по стрику
+  if (def.id.startsWith('streak_')) {
+    const target = parseInt(def.id.split('_')[1]);
+    const remaining = Math.max(0, target - currentStreak);
+    return {
+      type: 'streak',
+      current: currentStreak,
+      target: target,
+      remaining: remaining,
+      progress: Math.min(100, (currentStreak / target) * 100),
+    };
+  }
+
+  // Прогресс по XP
+  if (def.id.startsWith('xp_')) {
+    const target = parseInt(def.id.split('_')[1]);
+    const remaining = Math.max(0, target - currentXP);
+    return {
+      type: 'xp',
+      current: currentXP,
+      target: target,
+      remaining: remaining,
+      progress: Math.min(100, (currentXP / target) * 100),
+    };
+  }
+
+  return null;
+}
+
 function renderBadges() {
   const grid = document.getElementById('badges-grid');
   if (!grid) return;
   grid.innerHTML = BADGES_DEF.map(def => {
     const ok = xpData.badges.includes(def.id);
+    const progress = ok ? null : getBadgeProgress(def);
+
     return (
       '<div class="badge-card ' +
       (ok ? 'unlocked' : 'locked') +
@@ -1519,9 +1670,43 @@ function renderBadges() {
       '</div>' +
       '<div class="badge-desc">' +
       def.desc +
-      '</div></div>'
+      '</div>' +
+      (progress
+        ? `
+        <div class="badge-progress">
+          <div class="badge-progress-bar">
+            <div class="badge-progress-fill" style="width: ${progress.progress}%"></div>
+          </div>
+          <div class="badge-progress-text">
+            ${progress.remaining > 0 ? `Осталось: ${getProgressText(progress)}` : 'Почти готово!'}
+          </div>
+        </div>
+      `
+        : '') +
+      '</div>'
     );
   }).join('');
+}
+
+function getProgressText(progress) {
+  switch (progress.type) {
+    case 'words':
+      return `${progress.remaining} ${getWordForm(progress.remaining, 'слово', 'слова', 'слов')}`;
+    case 'learned':
+      return `${progress.remaining} ${getWordForm(progress.remaining, 'слово', 'слова', 'слов')} выучить`;
+    case 'streak':
+      return `${progress.remaining} ${getWordForm(progress.remaining, 'день', 'дня', 'дней')}`;
+    case 'xp':
+      return `${progress.remaining} XP`;
+    default:
+      return `${progress.remaining}`;
+  }
+}
+
+function getWordForm(n, one, few, many) {
+  if (n % 10 === 1 && n % 100 !== 11) return one;
+  if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return few;
+  return many;
 }
 
 function updStreak() {
@@ -4120,7 +4305,8 @@ let sResults = { correct: [], wrong: [] };
 let sIdx = 0;
 let session = null;
 let autoPron = true,
-  lastSessionConfig = null;
+  lastSessionConfig = null,
+  currentExerciseTimer = null; // Глобальная переменная для текущего таймера
 
 document.querySelectorAll('.chip[data-count]').forEach(c =>
   c.addEventListener('click', () => {
@@ -4153,6 +4339,14 @@ document.querySelectorAll('.chip[data-dir]').forEach(b =>
       .querySelectorAll('.chip[data-dir]')
       .forEach(x => x.classList.remove('on'));
     b.classList.add('on');
+  }),
+);
+document.querySelectorAll('.chip[data-timed]').forEach(c =>
+  c.addEventListener('click', () => {
+    document
+      .querySelectorAll('.chip[data-timed]')
+      .forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
   }),
 );
 
@@ -4317,7 +4511,15 @@ function startSession(cfg) {
 
   const dirVal =
     document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
-  session = { words: pool, exTypes: types, dir: dirVal };
+  const timedVal =
+    document.querySelector('.chip[data-timed].on')?.dataset.timed || 'off';
+
+  session = {
+    words: pool,
+    exTypes: types,
+    dir: dirVal,
+    timed: timedVal === 'on',
+  };
   document.getElementById('practice-setup').style.display = 'none';
   document.getElementById('practice-results').style.display = 'none';
   document.getElementById('practice-ex').style.display = 'block';
@@ -4326,8 +4528,6 @@ function startSession(cfg) {
 
 function nextExercise() {
   try {
-    const hkHint = document.getElementById('hotkeys-hint');
-    if (hkHint) hkHint.style.display = 'flex';
     if (sIdx >= session.words.length) {
       showResults();
       return;
@@ -4339,6 +4539,101 @@ function nextExercise() {
       Math.round((sIdx / session.words.length) * 100) + '%';
     document.getElementById('ex-counter').textContent =
       `${sIdx + 1} / ${session.words.length}`;
+
+    // Добавляем таймер если включен режим на время и упражнение подходит
+    // Сначала останавливаем и удаляем старый таймер если есть
+    if (currentExerciseTimer) {
+      clearInterval(currentExerciseTimer);
+      currentExerciseTimer = null;
+    }
+    // Таймер только для определенных упражнений
+    const timedExercises = ['flash', 'multi', 'type', 'builder'];
+    const hasTimer = session.timed && timedExercises.includes(t);
+
+    if (hasTimer) {
+      // Если есть таймер - создаем контейнер с таймером слева и кнопкой выхода справа
+      let headerContainer = document.querySelector(
+        '.exercise-header-container',
+      );
+      if (!headerContainer) {
+        headerContainer = document.createElement('div');
+        headerContainer.className = 'exercise-header-container';
+
+        // Находим кнопку выхода и перемещаем ее в наш контейнер
+        const exitBtn = document.getElementById('ex-exit-btn');
+        if (exitBtn) {
+          headerContainer.appendChild(exitBtn);
+        }
+
+        // Вставляем контейнер в начало карточки
+        const exWrap = document.querySelector('.ex-wrap');
+        if (exWrap) {
+          exWrap.insertBefore(headerContainer, exWrap.firstChild);
+        }
+      }
+
+      // Очищаем контейнер от старого таймера
+      const oldTimer = headerContainer.querySelector('.exercise-timer');
+      if (oldTimer) {
+        oldTimer.remove();
+      }
+
+      // Создаем новый таймер
+      const timeLimit = 10; // 10 секунд на вопрос
+      let timeRemaining = timeLimit;
+
+      const timerEl = document.createElement('div');
+      timerEl.className = 'exercise-timer';
+      timerEl.id = 'exercise-timer';
+      timerEl.innerHTML = `
+        <span class="material-symbols-outlined">timer</span>
+        <span class="timer-text">${timeRemaining}</span>
+      `;
+
+      // Вставляем таймер в начало контейнера (слева от кнопки выхода)
+      headerContainer.insertBefore(timerEl, headerContainer.firstChild);
+
+      // Запускаем обратный отсчет
+      currentExerciseTimer = setInterval(() => {
+        timeRemaining--;
+        const timerText = timerEl.querySelector('.timer-text');
+        if (timerText) {
+          timerText.textContent = timeRemaining;
+
+          // Меняем цвет при малом времени
+          if (timeRemaining <= 3) {
+            timerEl.classList.add('timer-urgent');
+          }
+        }
+
+        if (timeRemaining <= 0) {
+          clearInterval(currentExerciseTimer);
+          currentExerciseTimer = null;
+          // Время вышло - засчитываем как неправильный ответ
+          recordAnswer(false);
+          sIdx++;
+          nextExercise();
+        }
+      }, 1000);
+    } else {
+      // Если таймера нет - удаляем контейнер и возвращаем кнопку в конец карточки
+      const headerContainer = document.querySelector(
+        '.exercise-header-container',
+      );
+      if (headerContainer) {
+        const exitBtn = headerContainer.querySelector('#ex-exit-btn');
+        if (exitBtn) {
+          // Возвращаем кнопку в конец .ex-wrap
+          const exWrap = document.querySelector('.ex-wrap');
+          if (exWrap) {
+            exWrap.appendChild(exitBtn);
+          }
+        }
+        // Удаляем пустой контейнер
+        headerContainer.remove();
+      }
+    }
+
     const content = document.getElementById('ex-content');
     const btns = document.getElementById('ex-btns');
     btns.innerHTML = '';
@@ -4790,6 +5085,17 @@ function nextExercise() {
 }
 
 function recordAnswer(correct) {
+  // Останавливаем и удаляем таймер если он есть
+  if (currentExerciseTimer) {
+    clearInterval(currentExerciseTimer);
+    currentExerciseTimer = null;
+  }
+
+  const timerEl = document.getElementById('exercise-timer');
+  if (timerEl) {
+    timerEl.remove();
+  }
+
   playSound(correct ? 'correct' : 'wrong');
   updStats(session.words[sIdx].id, correct);
   updStreak();
@@ -4802,6 +5108,19 @@ function recordAnswer(correct) {
 
     // Увеличиваем счётчик повторений за день (только для повторений, не новых слов)
     updateTodayReviewedCount(1);
+
+    // Бонусные XP за быстрые ответы в режиме на время (только для упражнений с таймером)
+    if (session.timed && timerEl) {
+      const timerText = timerEl.querySelector('.timer-text');
+      const timeRemaining = parseInt(timerText?.textContent || '0');
+      if (timeRemaining >= 7) {
+        // Бонус за очень быстрый ответ (>=7 секунд осталось)
+        gainXP(5, 'быстрый ответ ⚡');
+      } else if (timeRemaining >= 4) {
+        // Маленький бонус за быстрый ответ (>=4 секунды осталось)
+        gainXP(2, 'хороший темп 🏃');
+      }
+    }
   }
 
   if (correct) sResults.correct.push(session.words[sIdx]);
@@ -4814,8 +5133,17 @@ function recordAnswer(correct) {
 }
 
 function showResults() {
-  const hkHint = document.getElementById('hotkeys-hint');
-  if (hkHint) hkHint.style.display = 'none';
+  // Останавливаем и удаляем таймер при завершении сессии
+  if (currentExerciseTimer) {
+    clearInterval(currentExerciseTimer);
+    currentExerciseTimer = null;
+  }
+
+  const timerEl = document.getElementById('exercise-timer');
+  if (timerEl) {
+    timerEl.remove();
+  }
+
   updateDueBadge();
   renderStats();
 
@@ -4854,7 +5182,22 @@ function showResults() {
   document.getElementById('r-wrong').innerHTML = sResults.wrong
     .map(w => `<li>${esc(w.en)} — ${esc(w.ru)}</li>`)
     .join('');
-  spawnConfetti();
+
+  // Запускаем разные анимации в зависимости от процента правильных ответов
+  if (resPct === 0) {
+    spawnSadRain(); // 0% - Грустный дождь 🌧️
+  } else if (resPct <= 20) {
+    spawnFewDrops(); // 1-20% - Несколько капель 🌦️
+  } else if (resPct <= 50) {
+    spawnLightRain(); // 21-50% - Легкий дождик 🌧️
+  } else if (resPct <= 80) {
+    spawnSmallConfetti(); // 51-80% - Маленький салют 🎆
+  } else if (resPct < 100) {
+    spawnGoodConfetti(); // 81-99% - Хороший салют 🎇
+  } else {
+    spawnEpicConfetti(); // 100% - Большой салют + фейерверк 🎊🎆
+  }
+
   // XP
   const xpCorrect = resCorrect;
   const xpTotal = resTotal;
@@ -4879,26 +5222,198 @@ document.getElementById('setup-btn').addEventListener('click', () => {
 });
 
 // ============================================================
-// CONFETTI
+// CONFETTI ANIMATIONS
 // ============================================================
-function spawnConfetti() {
-  document.querySelectorAll('.confetti-piece').forEach(p => p.remove());
-  const colors = [
-    '#6C63FF',
-    '#22C55E',
-    '#F59E0B',
-    '#EF4444',
-    '#8B84FF',
-    '#34D399',
-  ];
-  for (let i = 0; i < 60; i++) {
+
+// 0% - Грустный дождь (полный провал)
+function spawnSadRain() {
+  document.querySelectorAll('.sad-drop').forEach(p => p.remove());
+
+  for (let i = 0; i < 30; i++) {
     const p = document.createElement('div');
-    const s = 8 + Math.random() * 8;
+    const s = 4 + Math.random() * 6;
+    p.className = 'sad-drop';
+    p.style.cssText = `
+      left:${Math.random() * 100}vw;
+      top:-20px;
+      width:${s}px;
+      height:${s * 2}px;
+      background:linear-gradient(to bottom, #94a3b8, #64748b);
+      border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+      animation-duration:${3 + Math.random() * 2}s;
+      animation-delay:${Math.random() * 1}s;
+      opacity: 0.6;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 5000);
+  }
+}
+
+// 1-20% - Несколько капель (почти провал)
+function spawnFewDrops() {
+  document.querySelectorAll('.sad-drop').forEach(p => p.remove());
+
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement('div');
+    const s = 3 + Math.random() * 4;
+    p.className = 'sad-drop';
+    p.style.cssText = `
+      left:${Math.random() * 100}vw;
+      top:-20px;
+      width:${s}px;
+      height:${s * 2}px;
+      background:linear-gradient(to bottom, #cbd5e1, #94a3b8);
+      border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+      animation-duration:${4 + Math.random() * 1}s;
+      animation-delay:${Math.random() * 0.5}s;
+      opacity: 0.5;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 5000);
+  }
+}
+
+// 21-50% - Легкий дождик (посредственно)
+function spawnLightRain() {
+  document.querySelectorAll('.sad-drop').forEach(p => p.remove());
+
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    const s = 3 + Math.random() * 5;
+    p.className = 'sad-drop';
+    p.style.cssText = `
+      left:${Math.random() * 100}vw;
+      top:-20px;
+      width:${s}px;
+      height:${s * 2}px;
+      background:linear-gradient(to bottom, #94a3b8, #64748b);
+      border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+      animation-duration:${3.5 + Math.random() * 1.5}s;
+      animation-delay:${Math.random() * 0.8}s;
+      opacity: 0.7;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 5000);
+  }
+}
+
+// 51-80% - Маленький салют (неплохо)
+function spawnSmallConfetti() {
+  document.querySelectorAll('.confetti-piece').forEach(p => p.remove());
+  const colors = ['#6C63FF', '#22C55E', '#F59E0B'];
+
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('div');
+    const s = 5 + Math.random() * 8;
     p.className = 'confetti-piece';
-    p.style.cssText = `left:${Math.random() * 100}vw;top:-20px;width:${s}px;height:${s}px;background:${colors[Math.floor(Math.random() * colors.length)]};border-radius:${Math.random() > 0.5 ? '50%' : '3px'};animation-duration:${2 + Math.random() * 2}s;animation-delay:${Math.random() * 0.8}s;`;
+    p.style.cssText = `
+      left:${Math.random() * 100}vw;
+      top:-20px;
+      width:${s}px;
+      height:${s}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      border-radius:${Math.random() > 0.5 ? '50%' : '3px'};
+      animation-duration:${2 + Math.random() * 1.5}s;
+      animation-delay:${Math.random() * 0.6}s;
+      opacity: 0.8;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 3500);
+  }
+}
+
+// 81-99% - Хороший салют (отлично)
+function spawnGoodConfetti() {
+  document.querySelectorAll('.confetti-piece').forEach(p => p.remove());
+  const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1'];
+
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement('div');
+    const s = 6 + Math.random() * 10;
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left:${Math.random() * 100}vw;
+      top:-20px;
+      width:${s}px;
+      height:${s}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      border-radius:${Math.random() > 0.5 ? '50%' : '3px'};
+      animation-duration:${1.5 + Math.random() * 2}s;
+      animation-delay:${Math.random() * 0.5}s;
+      opacity: 0.9;
+    `;
     document.body.appendChild(p);
     setTimeout(() => p.remove(), 4000);
   }
+}
+
+// 100% - Эпичный салют + фейерверк (идеально)
+function spawnEpicConfetti() {
+  document.querySelectorAll('.confetti-piece').forEach(p => p.remove());
+  document.querySelectorAll('.firework').forEach(p => p.remove());
+
+  const colors = [
+    '#FFD700',
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FFEAA7',
+    '#FF1744',
+    '#D500F9',
+  ];
+
+  // Больше конфетти для идеального результата
+  for (let i = 0; i < 150; i++) {
+    const p = document.createElement('div');
+    const s = 8 + Math.random() * 12;
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left:${Math.random() * 100}vw;
+      top:-20px;
+      width:${s}px;
+      height:${s}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      border-radius:${Math.random() > 0.5 ? '50%' : '3px'};
+      animation-duration:${1 + Math.random() * 2}s;
+      animation-delay:${Math.random() * 0.3}s;
+      opacity: 1;
+      box-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 4000);
+  }
+
+  // Добавляем фейерверки
+  setTimeout(() => {
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const f = document.createElement('div');
+        f.className = 'firework';
+        const x = 20 + Math.random() * 60; // 20-80% ширины экрана
+        f.style.cssText = `
+          left:${x}vw;
+          top:30vh;
+          width:4px;
+          height:4px;
+          background:#FFD700;
+          border-radius:50%;
+          animation:fireworkBurst 1s ease-out forwards;
+        `;
+        document.body.appendChild(f);
+        setTimeout(() => f.remove(), 1000);
+      }, i * 200);
+    }
+  }, 500);
+}
+
+// Старые функции для совместимости
+function spawnVictoryConfetti() {
+  spawnGoodConfetti();
+}
+
+function spawnConfetti() {
+  spawnVictoryConfetti();
 }
 
 // ============================================================
@@ -5236,57 +5751,6 @@ function runMatchExercise(words6, onComplete) {
   });
 }
 
-// === HOTKEYS ===
-document.addEventListener('keydown', e => {
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))
-    return;
-  const exPane = document.getElementById('practice-ex');
-  if (!exPane || exPane.style.display === 'none') return;
-  const key = e.key;
-  if (key === ' ' || key === 'f' || key === 'F') {
-    const fc = document.getElementById('fc-inner');
-    if (fc) {
-      e.preventDefault();
-      fc.classList.toggle('flipped');
-    }
-    return;
-  }
-  if (key === 'y' || key === 'Y' || key === 'ArrowRight') {
-    const b = document.getElementById('knew-btn');
-    if (b && !b.disabled) {
-      e.preventDefault();
-      b.click();
-    }
-    return;
-  }
-  if (key === 'n' || key === 'N' || key === 'ArrowLeft') {
-    const b = document.getElementById('didnt-btn');
-    if (b && !b.disabled) {
-      e.preventDefault();
-      b.click();
-    }
-    return;
-  }
-  if (['1', '2', '3', '4'].includes(key)) {
-    const btns = [...document.querySelectorAll('.mc-btn:not([disabled])')];
-    if (btns[+key - 1]) {
-      e.preventDefault();
-      btns[+key - 1].click();
-    }
-    return;
-  }
-  if (key === 'p' || key === 'P') {
-    const ab =
-      document.getElementById('fc-audio-btn') ||
-      document.getElementById('mc-audio-btn') ||
-      document.getElementById('ta-audio-btn');
-    if (ab) {
-      e.preventDefault();
-      ab.click();
-    }
-  }
-});
-
 // === EXIT SESSION ===
 document.getElementById('ex-exit-btn').addEventListener('click', () => {
   // Показываем модалку подтверждения
@@ -5323,6 +5787,18 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
     clearInterval(window._matchTimerInterval);
     window._matchTimerInterval = null; // Очищаем ссылку
 
+    // Останавливаем таймер упражнения если активен
+    if (currentExerciseTimer) {
+      clearInterval(currentExerciseTimer);
+      currentExerciseTimer = null;
+    }
+
+    // Удаляем элемент таймера если есть
+    const timerEl = document.getElementById('exercise-timer');
+    if (timerEl) {
+      timerEl.remove();
+    }
+
     // Останавливаем Speech Recognition если активно
     if (speechRecognition && speechRecognitionSupported) {
       try {
@@ -5339,8 +5815,6 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
     document.getElementById('practice-ex').style.display = 'none';
     document.getElementById('practice-setup').style.display = 'block';
-    const hkHint = document.getElementById('hotkeys-hint');
-    if (hkHint) hkHint.style.display = 'none';
   });
 });
 
