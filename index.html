@@ -114,6 +114,12 @@
             Нет аккаунта? Зарегистрироваться
           </button>
         </div>
+
+        <div style="text-align: center; margin-top: 0.75rem">
+          <button class="btn btn-link" id="forgot-password-btn">
+            Забыли пароль?
+          </button>
+        </div>
       </div>
     </div>
 
@@ -173,10 +179,7 @@
                 <span class="theme-slider"></span>
               </label>
             </div>
-            <div class="dropdown-item" id="dropdown-export">
-              <span class="material-symbols-outlined">export_notes</span>
-              <span>Экспорт</span>
-            </div>
+
             <div class="dropdown-item" id="dropdown-logout">
               <span class="material-symbols-outlined">logout</span>
               <span>Выйти</span>
@@ -332,7 +335,7 @@
             <form id="single-form">
               <div class="form-group">
                 <label>Английское слово *</label>
-                <div style="position: relative;">
+                <div style="position: relative">
                   <div style="display: flex; gap: 0.5rem">
                     <input
                       class="form-control"
@@ -348,10 +351,15 @@
                       id="auto-fill-btn"
                       title="Автозаполнение перевода и примера"
                     >
-                      <span class="material-symbols-outlined">auto_fix_high</span>
+                      <span class="material-symbols-outlined"
+                        >auto_fix_high</span
+                      >
                     </button>
                   </div>
-                  <div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
+                  <div
+                    id="autocomplete-suggestions"
+                    class="autocomplete-suggestions"
+                  ></div>
                 </div>
                 <div
                   id="api-loading"
@@ -536,7 +544,17 @@
             <button
               class="io-btn"
               id="import-file-btn"
-              style="display: none; margin-top: 1rem"
+              style="
+                display: none;
+                margin-top: 1rem;
+                background: none;
+                border: none;
+                color: var(--primary);
+                text-decoration: underline;
+                cursor: pointer;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.9rem;
+              "
             >
               Импортировать
             </button>
@@ -557,7 +575,11 @@
             </h2>
             <div class="setup-row">
               <label>
-                <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">school</span>
+                <span
+                  class="material-symbols-outlined"
+                  style="vertical-align: middle; margin-right: 8px"
+                  >school</span
+                >
                 Режим
               </label>
               <div class="chip-group" id="practice-mode">
@@ -576,23 +598,23 @@
             </div>
 
             <!-- Блок настроек для экзамена (изначально скрыт) -->
-          <div id="exam-settings" style="display: none;">
-            <div class="setup-row">
-              <label>Длительность</label>
-              <div class="chip-group">
-                <button class="chip" data-exam-time="300">5 мин</button>
-                <button class="chip on" data-exam-time="600">10 мин</button>
-                <button class="chip" data-exam-time="1200">20 мин</button>
-                <button class="chip" data-exam-time="1800">30 мин</button>
+            <div id="exam-settings" style="display: none">
+              <div class="setup-row">
+                <label>Длительность</label>
+                <div class="chip-group">
+                  <button class="chip" data-exam-time="300">5 мин</button>
+                  <button class="chip on" data-exam-time="600">10 мин</button>
+                  <button class="chip" data-exam-time="1200">20 мин</button>
+                  <button class="chip" data-exam-time="1800">30 мин</button>
+                </div>
+              </div>
+              <div class="setup-row">
+                <label>Статистика</label>
+                <div class="exam-stats-container">
+                  <span id="exam-stats">12 слов • 50 сек/слово</span>
+                </div>
               </div>
             </div>
-            <div class="setup-row">
-              <label>Статистика</label>
-              <div class="exam-stats-container">
-                <span id="exam-stats">12 слов • 50 сек/слово</span>
-              </div>
-            </div>
-          </div>
 
             <div class="setup-row">
               <label>Тип упражнений</label>
@@ -1035,6 +1057,7 @@
               />
               <span class="range-value" id="modal-pitch-val">1.0</span>
             </div>
+          </div>
           <div
             style="
               display: flex;
@@ -1045,7 +1068,9 @@
             "
           >
             <button class="btn btn-secondary" id="modal-test-voice-btn">
-              <span class="material-symbols-outlined">sound_detection_loud_sound</span>
+              <span class="material-symbols-outlined"
+                >sound_detection_loud_sound</span
+              >
               Тест голоса
             </button>
           </div>
@@ -1146,6 +1171,46 @@
           </button>
           <button class="btn btn-primary" id="logout-from-unverified">
             Выйти
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password Reset Modal -->
+    <div class="modal-backdrop" id="reset-password-modal">
+      <div class="modal-box">
+        <h3 style="color: var(--text)">
+          <span
+            class="material-symbols-outlined"
+            style="
+              vertical-align: middle;
+              margin-right: 8px;
+              color: var(--primary);
+            "
+            >lock_reset</span
+          >
+          Восстановление пароля
+        </h3>
+        <p style="color: var(--muted); margin-bottom: 1.5rem">
+          Введите email, на который зарегистрирован аккаунт. Мы отправим ссылку
+          для сброса пароля.
+        </p>
+        <div class="form-group">
+          <label style="color: var(--text); font-weight: 600">Email</label>
+          <input
+            type="email"
+            id="reset-email"
+            class="form-control"
+            placeholder="your@email.com"
+            autocomplete="email"
+          />
+        </div>
+        <div class="modal-actions">
+          <button class="btn-icon" id="send-reset-btn">
+            <span class="material-symbols-outlined">check</span>
+          </button>
+          <button class="btn-icon" id="cancel-reset-btn">
+            <span class="material-symbols-outlined">close</span>
           </button>
         </div>
       </div>

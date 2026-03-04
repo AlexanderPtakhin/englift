@@ -5,6 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 
 // Функция для загрузки данных пользователя из Firebase
@@ -492,5 +493,71 @@ onAuthStateChanged(auth, async user => {
     if (window.clearUserData) window.clearUserData();
     window.authExports.unsubscribeWords();
     stopEmailCheck();
+  }
+});
+
+// ============================================================
+// PASSWORD RESET FUNCTIONALITY
+// ============================================================
+const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+const resetModal = document.getElementById('reset-password-modal');
+const resetEmail = document.getElementById('reset-email');
+const sendResetBtn = document.getElementById('send-reset-btn');
+const cancelResetBtn = document.getElementById('cancel-reset-btn');
+
+if (forgotPasswordBtn) {
+  forgotPasswordBtn.addEventListener('click', () => {
+    resetModal.classList.add('open');
+    resetEmail.value = ''; // очистить поле
+    resetEmail.focus();
+  });
+}
+
+if (cancelResetBtn) {
+  cancelResetBtn.addEventListener('click', () => {
+    resetModal.classList.remove('open');
+  });
+}
+
+if (sendResetBtn) {
+  sendResetBtn.addEventListener('click', async () => {
+    const email = resetEmail.value.trim();
+    if (!email) {
+      window.toast?.('Введите email', 'warning');
+      return;
+    }
+
+    sendResetBtn.disabled = true;
+    sendResetBtn.innerHTML =
+      '<span class="material-symbols-outlined">hourglass_empty</span>';
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      window.toast?.(
+        'Письмо для сброса пароля отправлено! Проверьте почту.',
+        'success',
+      );
+      resetModal.classList.remove('open');
+    } catch (error) {
+      console.error('Reset password error:', error);
+      let message = 'Ошибка при отправке';
+      if (error.code === 'auth/user-not-found') {
+        message = 'Пользователь с таким email не найден';
+      } else if (error.code === 'auth/invalid-email') {
+        message = 'Неверный формат email';
+      }
+      window.toast?.(message, 'danger');
+    } finally {
+      sendResetBtn.disabled = false;
+      sendResetBtn.innerHTML =
+        '<span class="material-symbols-outlined">check</span>';
+    }
+  });
+}
+
+// Закрытие по клику на фон
+resetModal?.addEventListener('click', e => {
+  if (e.target === resetModal) {
+    resetModal.classList.remove('open');
   }
 });

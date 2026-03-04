@@ -10,6 +10,9 @@ import { getCompleteWordData } from './api.js';
 import { auth } from './firebase.js';
 import './auth.js';
 
+// File import variables
+let fileParsed = [];
+
 // Инициализация глобальных переменных
 window.words = [];
 
@@ -457,10 +460,10 @@ if (speechRecognitionSupported) {
 
 // Проверка схожести произнесенного слова с правильным
 function checkSpeechSimilarity(spoken, correct) {
-  if (!spoken || !correct) return false;
+  if (!spoken || !correct) return { isCorrect: false, confidence: 0 };
 
   // Точное совпадение
-  if (spoken === correct) return true;
+  if (spoken === correct) return { isCorrect: true, confidence: 100 };
 
   // Удаляем артикли и предлоги для сравнения
   const cleanSpoken = spoken
@@ -470,19 +473,23 @@ function checkSpeechSimilarity(spoken, correct) {
     .replace(/\b(a|an|the|in|on|at|to|for|of|with)\b/gi, '')
     .trim();
 
-  if (cleanSpoken === cleanCorrect) return true;
+  if (cleanSpoken === cleanCorrect) return { isCorrect: true, confidence: 95 };
 
   // Проверяем содержит ли одно другое
   if (cleanSpoken.includes(cleanCorrect) || cleanCorrect.includes(cleanSpoken))
-    return true;
+    return { isCorrect: true, confidence: 85 };
 
   // Расстояние Левенштейна для похожих слов
   const distance = levenshteinDistance(cleanSpoken, cleanCorrect);
   const maxLength = Math.max(cleanSpoken.length, cleanCorrect.length);
   const similarity = 1 - distance / maxLength;
+  const confidencePercentage = Math.round(similarity * 100);
 
   // Считаем правильным если схожесть > 80%
-  return similarity > CONSTANTS.SPEECH.SIMILARITY_THRESHOLD;
+  return {
+    isCorrect: similarity > CONSTANTS.SPEECH.SIMILARITY_THRESHOLD,
+    confidence: confidencePercentage,
+  };
 }
 
 // Расстояние Левенштейна для сравнения строк
@@ -817,14 +824,22 @@ loadWordBank();
 
 async function load() {
   try {
-    debugLog('Loading words from Firebase only...');
+    debugLog('Loading words...');
+
+    // Сначала пробуем загрузить из localStorage
+    const local = localStorage.getItem('englift_words');
+    if (local) {
+      window.words = JSON.parse(local);
+      debugLog('Loaded', window.words.length, 'words from localStorage');
+    } else {
+      window.words = [];
+      debugLog('No local words found');
+    }
+
     // Сбрасываем ежедневные цели при загрузке
     resetDailyGoalsIfNeeded();
     // Сбрасываем счетчик повторений при загрузке
     resetDailyReviewedCountIfNeeded();
-
-    // Больше не используем localStorage для слов
-    window.words = [];
 
     // Загрузка будет происходить через Firebase listener в auth.js
     debugLog('Words array initialized, waiting for Firebase sync...');
@@ -962,6 +977,11 @@ function save(silent = false) {
       return false;
     }
     debugLog('Saving words to Firebase only, count:', window.words.length);
+
+    // Сохраняем в localStorage для офлайн-режима
+    if (!silent) {
+      localStorage.setItem('englift_words', JSON.stringify(window.words));
+    }
     const data = JSON.stringify(window.words);
     // Проверяем размер данных перед сохранением
     if (data.length > 5 * 1024 * 1024) {
@@ -1111,42 +1131,24 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
     return false;
   }
 
-  const newWord = mkWord(
-    normalizedEn,
-    normalizedRu,
-    normalizedEx,
-    normalizedTags,
-    normalizedPhonetic,
-    examples,
-  );
-  window.words.push(newWord);
-  logWrite(); // логируем write операцию
-  scheduleSync(); // планируем автосинхронизацию через 30 сек
-
-  // Очищаем кеш рендеринга при добавлении нового слова
-  renderCache.clear();
-
-  // Проверяем успешность сохранения
-  if (!save()) {
-    // Откатываем изменения если сохранение не удалось
-    window.words.pop();
-    return false;
-  }
-
-  // Показываем индикатор синхронизации
-  updateSyncIndicator('syncing');
-  toast('Синхронизация...', 'info', 'sync');
-
-  // Устанавливаем флаг локальных изменений
-  window.hasLocalChanges = true;
-
-  // Асинхронная синхронизация с обработкой ошибок
   try {
-    await saveWordToDb(newWord);
-    toast('Синхронизировано', 'success', 'sync');
+    const newWord = mkWord(
+      normalizedEn,
+      normalizedRu,
+      normalizedEx,
+      normalizedTags,
+      normalizedPhonetic,
+      examples,
+    );
+    window.words.push(newWord);
+    markDirty(newWord.id); // отмечаем слово как изменённое
+    scheduleSync(); // планируем синхронизацию через 5 минут
 
-    // Обновляем прогресс ежедневных целей ТОЛЬКО после успешного сохранения в Firebase
-    resetDailyGoalsIfNeeded(); // Ensure proper daily reset
+    // Очищаем кеш рендеринга при добавлении нового слова
+    renderCache.clear();
+
+    // Обновляем прогресс ежедневных целей локально
+    resetDailyGoalsIfNeeded();
     window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
     checkDailyGoalsCompletion();
 
@@ -1157,18 +1159,13 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
     recalculateCefrLevels();
 
     // Обновляем график активности после добавления слова
-    renderWeekChart();
+    updateActivityChart();
+    return true;
   } catch (error) {
-    console.error('Error saving word to DB:', error);
-    toast('Ошибка синхронизации', 'danger', 'sync_problem');
-
-    // Откатываем изменения если сохранение в Firebase не удалось
-    window.words.pop();
-    renderCache.clear();
+    console.error('Error adding word:', error);
+    toast('Ошибка добавления слова', 'danger', 'add_word');
     return false;
   }
-
-  return true;
 }
 async function delWord(id) {
   try {
@@ -1189,9 +1186,9 @@ async function delWord(id) {
     // Сбрасываем лимит видимых слов
     visibleLimit = 30;
 
-    debouncedSave();
-
-    toast('Слово удалено', 'success', 'delete');
+    // Отмечаем слово как удаленное и планируем синхронизацию
+    markDirty(id);
+    scheduleSync();
 
     // Пересчитываем уровни CEFR после удаления
     recalculateCefrLevels();
@@ -1206,18 +1203,12 @@ async function updWord(id, data) {
   const w = window.words.find(w => w.id === id);
   if (w) {
     Object.assign(w, data, { updatedAt: new Date().toISOString() }); // добавляем updatedAt
-    debouncedSave();
+    markDirty(id);
+    scheduleSync();
     renderCache.clear(); // <-- добавляем очистку кеша рендеринга
 
     // Устанавливаем флаг локальных изменений
     window.hasLocalChanges = true;
-
-    try {
-      await saveWordToDb(w);
-    } catch (error) {
-      console.error('Error updating word in DB:', error);
-      toast('Ошибка синхронизации изменений', 'warning', 'sync_problem');
-    }
 
     // Пересчитываем уровни CEFR после обновления
     recalculateCefrLevels();
@@ -1263,7 +1254,8 @@ function updStats(id, correct) {
     gainXP(20, 'слово выучено 🌟');
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
-  debouncedSave();
+  markDirty(id);
+  scheduleSync();
 
   // Обновляем график активности после практики
   renderWeekChart();
@@ -2515,23 +2507,14 @@ function applyDark(on) {
     document.documentElement.style.setProperty('--primary-light', '#93c5fd');
     console.log('Forced dark CSS variables');
   } else {
-    document.documentElement.style.setProperty('--bg', '');
-    document.documentElement.style.setProperty('--text', '');
-    document.documentElement.style.setProperty('--bg-secondary', '');
-    document.documentElement.style.setProperty('--border', '');
-    document.documentElement.style.setProperty('--muted', '');
-    document.documentElement.style.setProperty('--primary', '');
-    document.documentElement.style.setProperty('--primary-light', '');
+    document.documentElement.style.removeProperty('--bg');
+    document.documentElement.style.removeProperty('--text');
+    document.documentElement.style.removeProperty('--bg-secondary');
+    document.documentElement.style.removeProperty('--border');
+    document.documentElement.style.removeProperty('--muted');
+    document.documentElement.style.removeProperty('--primary');
+    document.documentElement.style.removeProperty('--primary-light');
     console.log('Reset CSS variables to default');
-  }
-
-  const darkToggle = document.getElementById('dark-toggle');
-  if (darkToggle) {
-    const icon = on ? 'sunny' : 'dark_mode';
-    darkToggle.innerHTML = `<span class="material-symbols-outlined">${icon}</span>`;
-    console.log('Dark toggle icon updated to:', icon);
-  } else {
-    console.log('Dark toggle element not found');
   }
 
   // Update dropdown menu theme toggle checkbox
@@ -2554,34 +2537,6 @@ function applyDark(on) {
   } else {
     console.log('Theme icon element not found');
   }
-}
-
-// Theme toggle handlers
-const darkToggle = document.getElementById('dark-toggle');
-if (darkToggle) {
-  darkToggle.addEventListener('click', () => {
-    const on = !document.body.classList.contains('dark');
-    console.log('Theme toggle clicked, new theme:', on);
-    localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
-    applyDark(on);
-
-    // Сохраняем тему в Firebase
-    if (auth.currentUser) {
-      console.log(
-        'Saving theme to Firebase:',
-        on,
-        'for user:',
-        auth.currentUser.uid,
-      );
-      debouncedSaveUserData(auth.currentUser.uid, { darkTheme: on })
-        .then(() => {
-          console.log('Theme saved to Firebase successfully');
-        })
-        .catch(e => console.error('Firestore save error (theme):', e));
-    } else {
-      console.log('No authenticated user - theme not saved to Firebase');
-    }
-  });
 }
 
 // New theme toggle checkbox handler
@@ -4777,7 +4732,6 @@ function getCardsToReview() {
         `Остальные ${postponedCount} перенесены на завтра — не перегружайся! 😌`,
       'info',
       'schedule',
-      8000,
     );
     window.postponedToastShown = true;
   }
@@ -4840,7 +4794,7 @@ function startSession(cfg) {
     console.log('🎯 Starting EXAM mode');
 
     // Экзамен - используем фиксированный набор типов
-    const types = ['multi', 'type', 'builder'];
+    const types = ['multi', 'type', 'builder', 'speech'];
     const dirVal =
       document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
 
@@ -5450,6 +5404,177 @@ function nextExercise() {
           fb.textContent = '';
         }
       }
+    } else if (t === 'speech') {
+      if (exTypeLbl) {
+        exTypeLbl.innerHTML =
+          '<span class="material-symbols-outlined">record_voice_over</span> Произнеси';
+      }
+      if (exCounter) {
+        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+      }
+
+      // Показываем английское слово, просим произнести его, потом показываем перевод
+      const promptWord = w.en; // показываем английское слово
+      const expectedWord = w.en; // нужно произнести английское слово
+
+      if (exContent) {
+        exContent.innerHTML = `
+          <div class="speech-exercise">
+            <div class="speech-prompt">
+              <div class="speech-word-container">
+                <div class="speech-word">${esc(promptWord)}</div>
+                <button class="btn-icon btn-small" id="speech-replay-btn" title="Прослушать слово">
+                  <span class="material-symbols-outlined">volume_up</span>
+                </button>
+              </div>
+              ${w.phonetic ? `<div class="speech-phonetic">/${esc(w.phonetic)}/</div>` : ''}
+              <div class="speech-translation" id="speech-translation" style="display: none; margin-top: 0.5rem; opacity: 0.7;">
+                Перевод: ${esc(w.ru)}
+              </div>
+              <div class="speech-hint">Прослушайте слово, затем повторите его</div>
+            </div>
+            <div class="speech-controls">
+              <button class="btn-icon" id="speech-start-btn">
+                <span class="material-symbols-outlined">mic</span>
+              </button>
+              <div class="recording-indicator" id="recording-indicator" style="display: none;">
+                <span class="material-symbols-outlined">graphic_eq</span> Говорите...
+              </div>
+            </div>
+            <div class="speech-feedback" id="speech-feedback"></div>
+          </div>
+        `;
+      }
+
+      const replayBtn = document.getElementById('speech-replay-btn');
+      const startBtn = document.getElementById('speech-start-btn');
+      const indicator = document.getElementById('recording-indicator');
+      const feedback = document.getElementById('speech-feedback');
+      const translationEl = document.getElementById('speech-translation');
+      let recognitionActive = false;
+
+      // Автоматическая озвучка слова при запуске упражнения
+      setTimeout(() => {
+        if (speechSupported) {
+          console.log('Автоматическая озвучка:', expectedWord);
+          speak(expectedWord);
+        }
+      }, 500); // Небольшая задержка чтобы интерфейс загрузился
+
+      // Обработчик кнопки повторного прослушивания
+      if (replayBtn) {
+        replayBtn.addEventListener('click', () => {
+          if (speechSupported) {
+            console.log('Повторная озвучка:', expectedWord);
+            speak(expectedWord);
+          }
+        });
+      }
+
+      if (!speechRecognitionSupported) {
+        feedback.textContent =
+          'Распознавание речи не поддерживается вашим браузером.';
+        if (startBtn) startBtn.disabled = true;
+      }
+
+      startBtn?.addEventListener('click', () => {
+        if (recognitionActive) return;
+        if (!speechRecognition) {
+          feedback.textContent = 'Ошибка инициализации распознавания.';
+          return;
+        }
+
+        // Показываем индикатор
+        indicator.style.display = 'flex';
+        startBtn.style.display = 'none';
+        feedback.textContent = '';
+
+        // Настраиваем и запускаем распознавание
+        speechRecognition.lang = 'en-US';
+        speechRecognition.start();
+        recognitionActive = true;
+
+        speechRecognition.onresult = event => {
+          const spoken = event.results[0][0].transcript.trim().toLowerCase();
+          const correct = expectedWord.toLowerCase();
+          const result = checkSpeechSimilarity(spoken, correct);
+
+          // Останавливаем индикатор
+          indicator.style.display = 'none';
+          startBtn.style.display = 'flex';
+
+          // Показываем перевод после результата
+          if (translationEl) {
+            translationEl.style.display = 'block';
+          }
+
+          if (result.isCorrect) {
+            feedback.innerHTML = `✅ Верно! (Совпадение: ${result.confidence}%)`;
+            playSound('correct');
+            recordAnswer(true);
+          } else {
+            feedback.innerHTML = `❌ Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)`;
+            playSound('wrong');
+            // Даём ещё одну попытку, но можно и сразу записать ошибку
+            // Здесь дадим ещё одну попытку, для этого сбрасываем флаг
+            recognitionActive = false;
+            // Можно также добавить кнопку для повторной попытки
+          }
+        };
+
+        speechRecognition.onerror = e => {
+          console.error('Speech recognition error', e);
+          indicator.style.display = 'none';
+          startBtn.style.display = 'flex';
+
+          let errorMessage = 'Произошла ошибка распознавания.';
+          if (e.error === 'not-allowed') {
+            errorMessage =
+              'Доступ к микрофону заблокирован. Разрешите доступ к микрофону в настройках браузера.';
+          } else if (e.error === 'no-speech') {
+            errorMessage = 'Речь не распознана. Попробуйте ещё раз.';
+          } else if (e.error === 'audio-capture') {
+            errorMessage = 'Ошибка доступа к микрофону.';
+          } else if (e.error === 'network') {
+            errorMessage = 'Ошибка сети.';
+          }
+
+          feedback.textContent = errorMessage;
+          recognitionActive = false;
+        };
+
+        speechRecognition.onend = () => {
+          // Если результат не был получен (например, тишина)
+          if (recognitionActive) {
+            indicator.style.display = 'none';
+            startBtn.style.display = 'flex';
+            feedback.textContent =
+              'Не удалось распознать речь. Попробуйте ещё раз.';
+            recognitionActive = false;
+          }
+        };
+      });
+
+      // Если пользователь не хочет говорить, можно добавить кнопку пропуска
+      if (exBtns) {
+        exBtns.innerHTML = `<button class="btn-icon" id="speech-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
+        document
+          .getElementById('speech-skip')
+          ?.addEventListener('click', () => {
+            if (recognitionActive) {
+              speechRecognition.abort();
+              recognitionActive = false;
+            }
+            indicator.style.display = 'none';
+            startBtn.style.display = 'flex';
+            recordAnswer(false);
+          });
+      }
+    } else if (t === 'match') {
+      // Временно используем runMatchExercise пока не реализуем полноценно
+      runMatchExercise(session.words.slice(sIdx, sIdx + 6), () => {
+        recordAnswer(true); // Всегда считаем правильным для match упражнения
+      });
     }
   } catch (error) {
     console.error('Error in nextExercise:', error);
@@ -6244,6 +6369,17 @@ window.clearUserData = function () {
   switchTab('words');
 };
 
+// Глобальные функции для доступа из других модулей
+window.showApiLoading = function (show) {
+  const loadingEl = document.getElementById('api-loading');
+  if (loadingEl) {
+    loadingEl.style.display = show ? 'flex' : 'none';
+  }
+};
+
+// Hide loading on page load
+window.showApiLoading(false);
+
 // ============================================================
 // GLOBAL FUNCTIONS FOR AUTH.JS
 // ============================================================
@@ -6252,20 +6388,69 @@ window.renderXP = renderXP; // обновление XP
 window.renderBadges = renderBadges;
 window.renderStats = renderStats;
 
+// Заглушка для loadUserSettings (используется в auth.js)
+window.loadUserSettings = function (data) {
+  // Пока ничего не делаем - функция-заглушка для совместимости
+};
+
+// ============================================================
+// DIRTY WORDS TRACKING & DELAYED SYNC
+// ============================================================
+let dirtyWords = new Set(); // id изменённых слов
+let syncTimer = null;
+
+function markDirty(id) {
+  dirtyWords.add(id);
+}
+
+function scheduleSync(delay = 300000) {
+  // 5 минут по умолчанию
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    performSync();
+  }, delay);
+}
+
+async function performSync() {
+  if (!navigator.onLine || !auth.currentUser || dirtyWords.size === 0) return;
+
+  const wordsToSync = window.words.filter(w => dirtyWords.has(w.id));
+  try {
+    await batchSaveWords(wordsToSync);
+    dirtyWords.clear();
+    console.log('✅ Синхронизировано', wordsToSync.length, 'слов');
+    updateSyncIndicator('synced');
+  } catch (e) {
+    console.error('Ошибка синхронизации:', e);
+    // повторим позже
+    scheduleSync(60000);
+  }
+}
+
 // ============================================================
 // INITIALIZATION
 // ============================================================
 // СРАЗУ применяем тему из localStorage
-const savedTheme = localStorage.getItem('engliftDark') === 'true';
-if (savedTheme) {
-  // Применяем тему немедленно через CSS переменные
-  document.documentElement.style.setProperty('--bg', '#13121f');
-  document.documentElement.style.setProperty('--text', '#ffffff');
-  document.documentElement.style.setProperty('--bg-secondary', '#1e1e2e');
-  document.documentElement.style.setProperty('--border', '#374151');
-  document.documentElement.style.setProperty('--muted', '#9ca3af');
-  document.documentElement.style.setProperty('--primary', '#60a5fa');
+if (localStorage.getItem('engliftDark') === 'true') {
+  document.body.classList.add('dark');
 }
+
+// Синхронизация при закрытии вкладки
+window.addEventListener('beforeunload', () => {
+  if (dirtyWords.size === 0) return;
+  const wordsToSync = window.words.filter(w => dirtyWords.has(w.id));
+  const blob = new Blob([JSON.stringify(wordsToSync)], {
+    type: 'application/json',
+  });
+  navigator.sendBeacon('/api/sync', blob);
+});
+
+// Синхронизация при переходе в фоновый режим
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && dirtyWords.size > 0) {
+    performSync();
+  }
+});
 
 // Инициализация
 (async () => {
