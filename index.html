@@ -553,6 +553,16 @@
               >Настройка тренировки
             </h2>
             <div class="setup-row">
+              <label>
+                <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">school</span>
+                Режим
+              </label>
+              <div class="chip-group" id="practice-mode">
+                <button class="chip on" data-mode="normal">Обычный</button>
+                <button class="chip" data-mode="exam">Экзамен</button>
+              </div>
+            </div>
+            <div class="setup-row">
               <label>Количество слов</label>
               <div class="chip-group">
                 <button class="chip on" data-count="5">5</button>
@@ -561,6 +571,26 @@
                 <button class="chip" data-count="all">Все</button>
               </div>
             </div>
+
+            <!-- Блок настроек для экзамена (изначально скрыт) -->
+          <div id="exam-settings" style="display: none;">
+            <div class="setup-row">
+              <label>Длительность</label>
+              <div class="chip-group">
+                <button class="chip" data-exam-time="300">5 мин</button>
+                <button class="chip on" data-exam-time="600">10 мин</button>
+                <button class="chip" data-exam-time="1200">20 мин</button>
+                <button class="chip" data-exam-time="1800">30 мин</button>
+              </div>
+            </div>
+            <div class="setup-row">
+              <label>Статистика</label>
+              <div class="exam-stats-container">
+                <span id="exam-stats">12 слов • 50 сек/слово</span>
+              </div>
+            </div>
+          </div>
+
             <div class="setup-row">
               <label>Тип упражнений</label>
               <div class="exercise-grid">
@@ -748,7 +778,7 @@
                     <span class="material-symbols-outlined">refresh</span>
                   </button>
                   <button class="btn-icon" id="setup-btn">
-                    <span class="material-symbols-outlined">settings</span>
+                    <span class="material-symbols-outlined">close</span>
                   </button>
                 </div>
               </div>

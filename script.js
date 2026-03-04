@@ -2218,7 +2218,7 @@ confettiStyles.textContent = `
 document.head.appendChild(confettiStyles);
 
 function switchTab(name) {
-  if (name === 'window.words') {
+  if (name === 'words') {
     visibleLimit = 30; // <-- сброс при переключении на слова
     renderWotd(); // Вызываем без await, т.к. в синхронной функции
     updateDueBadge();
@@ -2236,7 +2236,7 @@ function switchTab(name) {
     renderStats();
     setTimeout(() => renderWeekChart(), 100);
   }
-  if (name === 'window.words') renderWords();
+  if (name === 'words') renderWords();
 
   // Скроллим наверх при переключении вкладок (особенно для мобильных)
   if (window.innerWidth <= 768) {
@@ -3682,7 +3682,7 @@ document.getElementById('single-form').addEventListener('submit', e => {
         renderWords(); // вызываем renderWords только если изменили сортировку
       }
       setTimeout(() => {
-        const newCard = document.querySelector('#window.words-grid .word-card');
+        const newCard = document.querySelector('#words-grid .word-card');
         if (newCard) {
           newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
           newCard.classList.add('new-word-highlight');
@@ -3894,6 +3894,18 @@ document
       current === 9999 ? '9999' : current;
     document.getElementById('current-limit-info').innerHTML =
       `Текущий лимит: <strong>${current === 9999 ? 'Без лимита' : current}</strong>`;
+
+    // Load timer settings
+    const currentTimed = window.userSettings?.timedMode || 'off';
+    const timedChip = document.querySelector(
+      `.chip[data-timed="${currentTimed}"]`,
+    );
+    if (timedChip) {
+      document
+        .querySelectorAll('.chip[data-timed]')
+        .forEach(chip => chip.classList.remove('on'));
+      timedChip.classList.add('on');
+    }
   });
 
 // Обработчик кнопки синхронизации
@@ -4347,15 +4359,205 @@ document.querySelectorAll('.chip[data-timed]').forEach(c =>
       .querySelectorAll('.chip[data-timed]')
       .forEach(x => x.classList.remove('on'));
     c.classList.add('on');
+
+    // Сохраняем настройку таймера
+    window.userSettings = window.userSettings || {};
+    window.userSettings.timedMode = c.dataset.timed;
+
+    // Сохраняем в Firestore если пользователь авторизован
+    if (auth.currentUser) {
+      debouncedSaveUserData(auth.currentUser.uid, {
+        speechCfg: window.speechCfg,
+        userSettings: window.userSettings,
+      });
+    }
   }),
 );
 
-document
-  .getElementById('start-btn')
-  .addEventListener('click', () => startSession());
+document.getElementById('start-btn').addEventListener('click', () => {
+  console.log('🔘 Start button clicked!');
+  console.log('📊 Current practiceMode before start:', practiceMode);
+  console.log('📚 window.words.length:', window.words.length);
+  startSession();
+});
+
+// Обработчики переключения режимов практики
+document.querySelectorAll('.chip[data-mode]').forEach(c =>
+  c.addEventListener('click', () => {
+    console.log('🔄 Mode chip clicked:', c.dataset.mode);
+
+    document
+      .querySelectorAll('.chip[data-mode]')
+      .forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    practiceMode = c.dataset.mode;
+
+    console.log('✅ practiceMode updated to:', practiceMode);
+
+    // Управляем классами вместо прямых манипуляций со стилями
+    if (practiceMode === 'exam') {
+      document.body.classList.add('exam-mode');
+    } else {
+      document.body.classList.remove('exam-mode');
+    }
+
+    // Показываем/скрываем настройки экзамена
+    document.getElementById('exam-settings').style.display =
+      practiceMode === 'exam' ? 'block' : 'none';
+
+    // Обновляем статистику экзамена при переключении режима
+    if (practiceMode === 'exam') {
+      updateExamStats();
+    }
+  }),
+);
+
+// Обработчики настроек экзамена
+document.querySelectorAll('.chip[data-exam-time]').forEach(c =>
+  c.addEventListener('click', () => {
+    document
+      .querySelectorAll('.chip[data-exam-time]')
+      .forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    examTime = parseInt(c.dataset.examTime);
+    updateExamStats();
+  }),
+);
+
+// Добавляем обработчик для изменения количества слов чтобы обновлять статистику экзамена
+document.querySelectorAll('.chip[data-count]').forEach(c =>
+  c.addEventListener('click', () => {
+    // Обновляем статистику если в режиме экзамена
+    if (practiceMode === 'exam') {
+      setTimeout(updateExamStats, 10); // Небольшая задержка чтобы UI обновился
+    }
+  }),
+);
+
+// Функция обновления статистики экзамена
+function updateExamStats() {
+  const time = parseInt(
+    document.querySelector('.chip[data-exam-time].on').dataset.examTime,
+  );
+  // Учитываем выбор количества слов
+  const countVal =
+    document.querySelector('.chip[data-count].on')?.dataset.count || 'all';
+  const total =
+    countVal === 'all'
+      ? window.words.length
+      : Math.min(parseInt(countVal), window.words.length);
+  const avg = Math.round(time / total);
+
+  const statsEl = document.getElementById('exam-stats');
+  if (statsEl) {
+    let message = `${total} слов • `;
+
+    if (avg > 60) {
+      message += `${avg} сек/слово (медленно)`;
+      statsEl.style.color = 'var(--warning)';
+    } else if (avg > 45) {
+      message += `${avg} сек/слово`;
+      statsEl.style.color = 'var(--muted)';
+    } else {
+      message += `${avg} сек/слово (быстро)`;
+      statsEl.style.color = 'var(--success)';
+    }
+
+    statsEl.textContent = message;
+  }
+}
 
 // Practice time tracking
 let practiceStartTime = null;
+
+// Exam mode variables
+let practiceMode = 'normal'; // 'normal' или 'exam'
+let examTime = 600; // секунд (по умолчанию 10 мин)
+let examQuestions = 50;
+let examTimerInterval = null;
+
+// Таймер экзамена
+function startExamTimer(seconds) {
+  if (examTimerInterval) clearInterval(examTimerInterval);
+
+  let headerContainer = document.querySelector('.exercise-header-container');
+  const exitBtn = document.getElementById('ex-exit-btn');
+  const exWrap = document.querySelector('.ex-wrap');
+
+  if (!headerContainer && exitBtn && exWrap) {
+    // Создаём контейнер и перемещаем в него кнопку
+    headerContainer = document.createElement('div');
+    headerContainer.className = 'exercise-header-container';
+    exWrap.insertBefore(headerContainer, exWrap.firstChild);
+    headerContainer.appendChild(exitBtn);
+  }
+
+  if (!headerContainer) {
+    // Если не удалось создать контейнер (например, нет кнопки), выходим
+    console.error('Cannot create timer container');
+    return;
+  }
+
+  // Удаляем старый таймер, если есть
+  const oldTimer = document.getElementById('exam-timer');
+  if (oldTimer) oldTimer.remove();
+
+  const timerEl = document.createElement('div');
+  timerEl.id = 'exam-timer';
+  timerEl.className = 'exercise-timer';
+  timerEl.innerHTML = `
+    <span class="material-symbols-outlined">hourglass_empty</span>
+    <span class="timer-text">${formatTime(seconds)}</span>
+  `;
+
+  headerContainer.insertBefore(timerEl, headerContainer.firstChild);
+
+  const endTime = Date.now() + seconds * 1000;
+
+  examTimerInterval = setInterval(() => {
+    const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+    const timerText = timerEl.querySelector('.timer-text');
+    if (timerText) timerText.textContent = formatTime(remaining);
+
+    if (remaining <= 0) {
+      clearInterval(examTimerInterval);
+      examTimerInterval = null;
+      finishExam();
+    }
+  }, 200);
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+function finishExam() {
+  // Останавливаем все таймеры
+  if (examTimerInterval) clearInterval(examTimerInterval);
+  if (currentExerciseTimer) clearInterval(currentExerciseTimer);
+
+  // Удаляем таймер экзамена если есть
+  const examTimerEl = document.getElementById('exam-timer');
+  if (examTimerEl) {
+    examTimerEl.remove();
+  }
+
+  // Возвращаем кнопку на место, если она была в контейнере
+  const headerContainer = document.querySelector('.exercise-header-container');
+  const exitBtn = document.getElementById('ex-exit-btn');
+  const exWrap = document.querySelector('.ex-wrap');
+
+  if (headerContainer && exitBtn && exWrap) {
+    // Перемещаем кнопку обратно в конец .ex-wrap
+    exWrap.appendChild(exitBtn);
+    headerContainer.remove();
+  }
+
+  // Показываем результаты
+  showResults();
+}
 
 // Soft cap for daily reviews
 const MAX_REVIEWS_PER_DAY = 100;
@@ -4364,6 +4566,16 @@ const MAX_REVIEWS_PER_DAY = 100;
 window.todayReviewedCount = 0;
 window.lastReviewedReset = null;
 window.postponedToastShown = false;
+
+// Вспомогательная функция для перемешивания массива
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 function resetDailyReviewedCountIfNeeded() {
   const today = new Date().toDateString();
@@ -4439,6 +4651,11 @@ function getCardsToReview() {
 }
 
 function startSession(cfg) {
+  console.log('🚀 startSession called with cfg:', cfg);
+  console.log('📊 Current practiceMode:', practiceMode);
+  console.log('⏱️ examTime:', examTime);
+  console.log('📝 examQuestions:', examQuestions);
+
   // Start tracking practice time
   practiceStartTime = Date.now();
 
@@ -4449,64 +4666,101 @@ function startSession(cfg) {
   sIdx = 0; // Reset index for new session
   window.words.forEach(w => delete w._matched);
 
-  let countVal, filterVal, exTypes, types, pool;
-
+  // 1. Общие параметры (количество слов, фильтр)
+  let countVal, filterVal;
   if (cfg && cfg.countVal !== undefined) {
-    // Повтор той же сессии
-    ({ countVal, filterVal, exTypes } = cfg);
-    types = speechSupported ? exTypes : exTypes.filter(t => t !== 'dictation');
-    if (!types.length) {
-      toast('Диктант недоступен без синтеза речи', 'danger');
-      return;
-    }
-    pool = [...window.words];
-    if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
-    if (filterVal === 'due') {
-      pool = getCardsToReview(); // Use capped function
-    }
-    if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
-    if (!pool.length) {
-      toast('Нет слов для практики', 'warning');
-      return;
-    }
-    const cnt =
-      countVal === 'all'
-        ? pool.length
-        : Math.min(parseInt(countVal), pool.length);
-    pool = pool.sort(() => Math.random() - 0.5).slice(0, cnt);
+    countVal = cfg.countVal;
+    filterVal = cfg.filterVal;
   } else {
-    // Новая сессия из настроек
-    countVal = document.querySelector('.chip[data-count].on').dataset.count;
-    filterVal = document.querySelector('.chip[data-filter-w].on').dataset
-      .filterW;
-    exTypes = [...document.querySelectorAll('.exercise-card.selected')].map(
-      c => c.dataset.ex,
-    );
+    countVal =
+      document.querySelector('.chip[data-count].on')?.dataset.count || '5';
+    filterVal =
+      document.querySelector('.chip[data-filter-w].on')?.dataset.filterW ||
+      'all';
+  }
+
+  // 2. Формируем пул слов (общий для обоих режимов)
+  let pool = [...window.words];
+  if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
+  if (filterVal === 'due') {
+    pool = getCardsToReview(); // Use capped function
+  }
+  if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
+  if (!pool.length) {
+    toast('Нет слов для практики', 'warning');
+    return;
+  }
+
+  const totalCount =
+    countVal === 'all'
+      ? pool.length
+      : Math.min(parseInt(countVal), pool.length);
+  pool = pool.sort(() => Math.random() - 0.5).slice(0, totalCount);
+
+  // 3. Определяем режим и создаем сессию
+  if (practiceMode === 'exam') {
+    console.log('🎯 Starting EXAM mode');
+
+    // Экзамен - используем фиксированный набор типов
+    const types = ['multi', 'type', 'builder'];
+    const dirVal =
+      document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
+
+    // Создаем сессию для экзамена
+    session = {
+      words: pool,
+      exTypes: types,
+      dir: dirVal,
+      mode: 'exam',
+      timeLimit: examTime,
+      startTime: Date.now(),
+      questionsTotal: totalCount,
+      questionsAnswered: 0,
+      results: { correct: [], wrong: [] },
+    };
+
+    console.log('📝 Session created:', session);
+
+    // Запускаем таймер экзамена
+    startExamTimer(examTime);
+
+    // Сохраняем конфигурацию экзамена для повторной сессии
+    lastSessionConfig = {
+      mode: 'exam',
+      examTime,
+      examQuestions: countVal,
+      dirVal,
+    };
+
+    // Показываем экран упражнения
+    document.getElementById('practice-setup').style.display = 'none';
+    document.getElementById('practice-results').style.display = 'none';
+    document.getElementById('practice-ex').style.display = 'block';
+
+    console.log('🎬 Showing exercise screen');
+    nextExercise();
+    return;
+  }
+
+  // 4. Обычный режим
+  console.log('📚 Starting NORMAL mode');
+
+  // Получаем выбранные типы упражнений
+  let exTypes = [...document.querySelectorAll('.exercise-card.selected')].map(
+    c => c.dataset.ex,
+  );
+  if (!exTypes.length) {
+    toast('Выбери тип упражнений', 'warning');
+    return;
+  }
+
+  // Фильтруем неподдерживаемые (например, диктант без речи)
+  if (!speechSupported) {
+    exTypes = exTypes.filter(t => t !== 'dictation');
     if (!exTypes.length) {
-      toast('Выбери тип упражнений', 'warning');
-      return;
-    }
-    types = speechSupported ? exTypes : exTypes.filter(t => t !== 'dictation');
-    if (!types.length) {
       toast('Диктант недоступен без синтеза речи', 'danger');
       return;
     }
-    pool = [...window.words];
-    if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
-    if (filterVal === 'due') {
-      pool = getCardsToReview(); // Use capped function
-    }
-    if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
-    if (!pool.length) {
-      toast('Нет слов для практики', 'warning');
-      return;
-    }
-    const count =
-      countVal === 'all'
-        ? pool.length
-        : Math.min(parseInt(countVal), pool.length);
-    pool = pool.sort(() => Math.random() - 0.5).slice(0, count);
-    lastSessionConfig = { countVal, filterVal, exTypes };
   }
 
   const dirVal =
@@ -4514,20 +4768,122 @@ function startSession(cfg) {
   const timedVal =
     document.querySelector('.chip[data-timed].on')?.dataset.timed || 'off';
 
+  // Создаем сессию для обычного режима
   session = {
     words: pool,
-    exTypes: types,
+    exTypes,
     dir: dirVal,
     timed: timedVal === 'on',
+    mode: 'normal',
   };
+
+  // Сохраняем конфигурацию для повторной сессии
+  lastSessionConfig = { countVal, filterVal, exTypes };
+
+  // Показываем экран упражнения
   document.getElementById('practice-setup').style.display = 'none';
   document.getElementById('practice-results').style.display = 'none';
   document.getElementById('practice-ex').style.display = 'block';
+
+  console.log('🎬 Showing exercise screen');
   nextExercise();
+}
+
+function showResults() {
+  // Показываем экран результатов
+  document.getElementById('practice-ex').style.display = 'none';
+  document.getElementById('practice-results').style.display = 'block';
+
+  const resTotal = sResults.correct.length + sResults.wrong.length;
+  const resCorrect = sResults.correct.length;
+  const resPct = resTotal > 0 ? Math.round((resCorrect / resTotal) * 100) : 0;
+
+  document.getElementById('r-score').textContent = `${resCorrect}/${resTotal}`;
+  document.getElementById('r-label').textContent =
+    `правильно · ${resPct}% точность`;
+  const r = 50;
+  const cx = 65;
+  const cy = 65;
+  const circ = 2 * Math.PI * r;
+  document.getElementById('r-ring').innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--primary)" stroke-width="10"
+      stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - resPct / 100)}"
+      transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dashoffset .8s ease"/>
+    <text x="${cx}" y="${cy + 7}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--text)">${resPct}%</text>
+  `;
+  document.getElementById('r-correct').innerHTML = sResults.correct
+    .map(w => `<li>${esc(w.en)} — ${esc(w.ru)}</li>`)
+    .join('');
+  document.getElementById('r-wrong').innerHTML = sResults.wrong
+    .map(w => `<li>${esc(w.en)} — ${esc(w.ru)}</li>`)
+    .join('');
+
+  // Запускаем разные анимации в зависимости от процента правильных ответов
+  if (resPct === 0) {
+    spawnSadRain(); // 0% - Грустный дождь 🌧️
+  } else if (resPct <= 20) {
+    spawnFewDrops(); // 1-20% - Несколько капель 🌦️
+  } else if (resPct <= 50) {
+    spawnLightRain(); // 21-50% - Легкий дождик 🌧️
+  } else if (resPct <= 80) {
+    spawnSmallConfetti(); // 51-80% - Маленький салют 🎆
+  } else if (resPct < 100) {
+    spawnGoodConfetti(); // 81-99% - Хороший салют 🎇
+  } else {
+    spawnEpicConfetti(); // 100% - Большой салют + фейерверк 🎊🎆
+  }
+
+  // XP
+  const xpCorrect = resCorrect;
+  const xpTotal = resTotal;
+  if (xpCorrect > 0) gainXP(xpCorrect * 3, xpCorrect + ' правильных');
+  const isPerfect = xpTotal >= 5 && xpCorrect === xpTotal;
+  if (isPerfect)
+    gainXP(
+      10,
+      'идеальная сессия <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">target</span>',
+    );
+  updStreak();
+  checkBadges(isPerfect);
 }
 
 function nextExercise() {
   try {
+    // Проверяем наличие необходимых DOM элементов
+    const progFill = document.getElementById('prog-fill');
+    const exCounter = document.getElementById('ex-counter');
+    const exTypeLbl = document.getElementById('ex-type-lbl');
+    const exContent = document.getElementById('ex-content');
+    const exBtns = document.getElementById('ex-btns');
+
+    if (!progFill || !exCounter || !exTypeLbl || !exContent || !exBtns) {
+      console.error('Required DOM elements not found');
+      toast('Ошибка: отсутствуют необходимые элементы', 'error');
+      return;
+    }
+
+    // Создаём или получаем контейнер заголовка (для кнопки выхода и таймера)
+    let headerContainer = document.querySelector('.exercise-header-container');
+    if (!headerContainer) {
+      headerContainer = document.createElement('div');
+      headerContainer.className = 'exercise-header-container';
+      const exWrap = document.querySelector('.ex-wrap');
+      const exitBtn = document.getElementById('ex-exit-btn');
+      if (exitBtn) {
+        headerContainer.appendChild(exitBtn);
+      }
+      exWrap.insertBefore(headerContainer, exWrap.firstChild);
+    }
+
+    if (practiceMode === 'exam') {
+      const elapsed = (Date.now() - session.startTime) / 1000;
+      if (elapsed >= session.timeLimit) {
+        finishExam();
+        return;
+      }
+    }
+
     if (sIdx >= session.words.length) {
       showResults();
       return;
@@ -4535,298 +4891,124 @@ function nextExercise() {
     const w = session.words[sIdx];
     const t =
       session.exTypes[Math.floor(Math.random() * session.exTypes.length)];
-    document.getElementById('prog-fill').style.width =
-      Math.round((sIdx / session.words.length) * 100) + '%';
-    document.getElementById('ex-counter').textContent =
-      `${sIdx + 1} / ${session.words.length}`;
 
-    // Добавляем таймер если включен режим на время и упражнение подходит
-    // Сначала останавливаем и удаляем старый таймер если есть
+    if (progFill) {
+      progFill.style.width =
+        Math.round((sIdx / session.words.length) * 100) + '%';
+    }
+    if (exCounter) {
+      exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+    }
+
     if (currentExerciseTimer) {
       clearInterval(currentExerciseTimer);
       currentExerciseTimer = null;
     }
-    // Таймер только для определенных упражнений
-    const timedExercises = ['flash', 'multi', 'type', 'builder'];
-    const hasTimer = session.timed && timedExercises.includes(t);
 
-    if (hasTimer) {
-      // Если есть таймер - создаем контейнер с таймером слева и кнопкой выхода справа
-      let headerContainer = document.querySelector(
-        '.exercise-header-container',
-      );
-      if (!headerContainer) {
-        headerContainer = document.createElement('div');
-        headerContainer.className = 'exercise-header-container';
-
-        // Находим кнопку выхода и перемещаем ее в наш контейнер
-        const exitBtn = document.getElementById('ex-exit-btn');
-        if (exitBtn) {
-          headerContainer.appendChild(exitBtn);
-        }
-
-        // Вставляем контейнер в начало карточки
-        const exWrap = document.querySelector('.ex-wrap');
-        if (exWrap) {
-          exWrap.insertBefore(headerContainer, exWrap.firstChild);
-        }
-      }
-
-      // Очищаем контейнер от старого таймера
+    if (session.timed) {
       const oldTimer = headerContainer.querySelector('.exercise-timer');
       if (oldTimer) {
         oldTimer.remove();
       }
 
-      // Создаем новый таймер
-      const timeLimit = 10; // 10 секунд на вопрос
-      let timeRemaining = timeLimit;
-
       const timerEl = document.createElement('div');
-      timerEl.className = 'exercise-timer';
       timerEl.id = 'exercise-timer';
+      timerEl.className = 'exercise-timer';
       timerEl.innerHTML = `
         <span class="material-symbols-outlined">timer</span>
-        <span class="timer-text">${timeRemaining}</span>
+        <span class="timer-text">0:10</span>
       `;
 
-      // Вставляем таймер в начало контейнера (слева от кнопки выхода)
       headerContainer.insertBefore(timerEl, headerContainer.firstChild);
 
-      // Запускаем обратный отсчет
+      let timeRemaining = 10;
+      session.currentTimerEl = timerEl;
+
       currentExerciseTimer = setInterval(() => {
         timeRemaining--;
         const timerText = timerEl.querySelector('.timer-text');
         if (timerText) {
-          timerText.textContent = timeRemaining;
-
-          // Меняем цвет при малом времени
-          if (timeRemaining <= 3) {
-            timerEl.classList.add('timer-urgent');
-          }
+          timerText.textContent = `${timeRemaining}s`;
         }
 
         if (timeRemaining <= 0) {
           clearInterval(currentExerciseTimer);
           currentExerciseTimer = null;
-          // Время вышло - засчитываем как неправильный ответ
+          timerEl.remove();
+          session.currentTimerEl = null;
           recordAnswer(false);
           sIdx++;
           nextExercise();
         }
       }, 1000);
-    } else {
-      // Если таймера нет - удаляем контейнер и возвращаем кнопку в конец карточки
-      const headerContainer = document.querySelector(
-        '.exercise-header-container',
-      );
-      if (headerContainer) {
-        const exitBtn = headerContainer.querySelector('#ex-exit-btn');
-        if (exitBtn) {
-          // Возвращаем кнопку в конец .ex-wrap
-          const exWrap = document.querySelector('.ex-wrap');
-          if (exWrap) {
-            exWrap.appendChild(exitBtn);
-          }
-        }
-        // Удаляем пустой контейнер
-        headerContainer.remove();
-      }
-    }
-
-    const content = document.getElementById('ex-content');
-    const btns = document.getElementById('ex-btns');
-    btns.innerHTML = '';
-
-    // Auto-pronounce: вынесено внутрь каждого упражнения (учитывает направление)
-
-    if (t === 'match') {
-      // Берём до 6 слов из оставшихся
-      const batchSize = Math.min(6, session.words.length - sIdx);
-      if (batchSize < 2) {
-        // Меньше 2 слов — просто пропускаем match и переходим к следующему слову
-        sIdx++;
-        nextExercise();
-        return;
-      }
-      const batch = session.words.slice(sIdx, sIdx + batchSize);
-      runMatchExercise(batch, elapsed => {
-        sIdx += batchSize;
-        toast(`Все пары за ${elapsed}s!`, 'success', 'extension');
-        nextExercise();
-      });
-      return;
     }
 
     if (t === 'flash') {
-      document.getElementById('ex-type-lbl').innerHTML =
-        '<span class="material-symbols-outlined">style</span> Флеш-карточка';
-      document.getElementById('ex-counter').textContent =
-        `${sIdx + 1} / ${session.words.length}`;
+      if (exTypeLbl) {
+        exTypeLbl.innerHTML =
+          '<span class="material-symbols-outlined">style</span> Карточка';
+      }
+      if (exCounter) {
+        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+      }
       const dir = session.dir || 'both';
       const showRU = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
       const frontWord = showRU ? w.ru : w.en;
       const backWord = showRU ? w.en : w.ru;
-      content.innerHTML = `
-      <div class="flashcard-scene" id="fc-scene">
-        <div class="flashcard-inner" id="fc-inner">
-          <div class="card-face front">
-            <div style="display:flex;align-items:center;gap:.75rem">
-              <div class="card-word">${esc(frontWord)}</div>
-              ${!showRU && speechSupported ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
-            </div>
-            <div class="card-hint" style="font-size:.7rem;opacity:.5">${showRU ? 'RU' : 'EN'} · нажми для перевода</div>
-          </div>
-          <div class="card-face back">
-            <div class="card-trans">${esc(backWord)}</div>
-            ${!showRU && w.ex ? `<div class="card-ex">${esc(w.ex)}</div>` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-      document.getElementById('fc-scene').addEventListener('click', e => {
-        if (e.target.closest('.btn-audio')) return;
-        document.getElementById('fc-inner').classList.toggle('flipped');
-      });
-      if (!showRU && speechSupported) {
-        document.getElementById('fc-audio-btn').addEventListener('click', e => {
-          e.stopPropagation();
-          speakBtn(w.en, e.currentTarget);
-        });
-      }
-      if (autoPron && !showRU && speechSupported)
-        setTimeout(() => speak(w.en), 300);
-      btns.innerHTML = `<button class="btn-icon" id="knew-btn"><span class="material-symbols-outlined">check</span></button><button class="btn-icon" id="didnt-btn"><span class="material-symbols-outlined">close</span></button>`;
-      document.getElementById('knew-btn').onclick = () => recordAnswer(true);
-      document.getElementById('didnt-btn').onclick = () => recordAnswer(false);
-    } else if (t === 'speech') {
-      if (!speechRecognitionSupported) {
-        // Если Speech Recognition не поддерживается, заменяем на другое упражнение
-        session.exTypes = session.exTypes.filter(x => x !== 'speech');
-        if (!session.exTypes.length) session.exTypes = ['flash'];
-        nextExercise();
-      } else {
-        document.getElementById('ex-type-lbl').innerHTML =
-          '<span class="material-symbols-outlined">record_voice_over</span> Произнеси вслух';
-        document.getElementById('ex-counter').textContent =
-          `${sIdx + 1} / ${session.words.length}`;
-        content.innerHTML = `
-        <div class="speech-exercise">
-          <div class="speech-prompt">
-            <div class="speech-word">${esc(w.en)}</div>
-            <div class="speech-hint">Произнеси это слово вслух на английском</div>
-            ${w.ru ? `<div class="speech-translation">${esc(w.ru)}</div>` : ''}
-          </div>
-          <div class="speech-controls">
-            <button id="speech-start-btn">
-              <span class="material-symbols-outlined speech-icon">mic</span>
-            </button>
-            <div class="speech-status" id="speech-status"></div>
-            <div class="speech-result" id="speech-result"></div>
-          </div>
-      </div>
-    `;
-
-        let isRecording = false;
-        let recognitionTimeout = null;
-
-        const startBtn = document.getElementById('speech-start-btn');
-        const statusEl = document.getElementById('speech-status');
-        const resultEl = document.getElementById('speech-result');
-
-        function startRecording() {
-          if (isRecording) return;
-
-          isRecording = true;
-          startBtn.classList.add('recording');
-          startBtn.querySelector('.speech-icon').textContent = 'stop';
-          statusEl.innerHTML =
-            '<div class="recording-indicator">🔴 Слушаю...</div>';
-          resultEl.innerHTML = '';
-
-          // Останавливаем запись через 5 секунд автоматически
-          recognitionTimeout = setTimeout(() => {
-            stopRecording();
-          }, CONSTANTS.SPEECH.RECOGNITION_TIMEOUT);
-
-          speechRecognition.onresult = event => {
-            const transcript = event.results[0][0].transcript
-              .toLowerCase()
-              .trim();
-            const confidence = event.results[0][0].confidence;
-            const correctWord = w.en.toLowerCase().trim();
-
-            // Проверяем схожесть слов
-            const isCorrect = checkSpeechSimilarity(transcript, correctWord);
-
-            resultEl.innerHTML = `
-          <div class="speech-feedback">
-            <div class="speech-heard">Ты сказал: "<strong>${esc(transcript)}</strong>"</div>
-            <div class="speech-confidence">Уверенность: ${Math.round(confidence * 100)}%</div>
-            <div class="speech-verdict ${isCorrect ? 'correct' : 'incorrect'}">
-              ${isCorrect ? '✓ Отлично! Правильно!' : '✗ Попробуй еще раз'}
+      if (exContent) {
+        exContent.innerHTML = `
+          <div class="flashcard-scene" id="fc-scene">
+            <div class="flashcard-inner" id="fc-inner">
+              <div class="card-face front">
+                <div style="display:flex;align-items:center;gap:.75rem">
+                  <div class="card-word">${esc(frontWord)}</div>
+                  ${!showRU && speechSupported ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+                </div>
+                <div class="card-hint" style="font-size:.7rem;opacity:.5">${showRU ? 'RU' : 'EN'} · нажми для перевода</div>
+              </div>
+              <div class="card-face back">
+                <div class="card-trans">${esc(backWord)}</div>
+                ${!showRU && w.ex ? `<div class="card-ex">${esc(w.ex)}</div>` : ''}
+              </div>
             </div>
           </div>
         `;
-
-            setTimeout(() => {
-              recordAnswer(isCorrect);
-              if (isCorrect) {
-                gainXP(15, 'произношение'); // Бонус за произношение
-              }
-              sIdx++;
-              nextExercise();
-            }, 2000);
-          };
-
-          speechRecognition.onerror = event => {
-            console.error('Speech recognition error:', event.error);
-            statusEl.innerHTML =
-              '<div class="speech-error">❌ Ошибка распознавания. Попробуй еще раз.</div>';
-            stopRecording();
-          };
-
-          speechRecognition.onend = () => {
-            stopRecording();
-          };
-
-          speechRecognition.start();
-        }
-
-        function stopRecording() {
-          if (!isRecording) return;
-
-          isRecording = false;
-          startBtn.classList.remove('recording');
-          startBtn.querySelector('.speech-icon').textContent = 'mic';
-          statusEl.innerHTML = '';
-
-          if (recognitionTimeout) {
-            clearTimeout(recognitionTimeout);
-            recognitionTimeout = null;
-          }
-
-          speechRecognition.stop();
-        }
-
-        startBtn.addEventListener('click', () => {
-          if (isRecording) {
-            stopRecording();
-          } else {
-            startRecording();
-          }
+      }
+      const fcScene = document.getElementById('fc-scene');
+      if (fcScene) {
+        fcScene.addEventListener('click', e => {
+          if (e.target.closest('.btn-audio')) return;
+          const fcInner = document.getElementById('fc-inner');
+          if (fcInner) fcInner.classList.toggle('flipped');
         });
-
-        // Автовоспроизведение слова
-        if (autoPron && speechSupported) {
-          setTimeout(() => speak(w.en), 500);
+      }
+      if (!showRU && speechSupported) {
+        const fcAudioBtn = document.getElementById('fc-audio-btn');
+        if (fcAudioBtn) {
+          fcAudioBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            speakBtn(w.en, e.currentTarget);
+          });
         }
       }
+      if (autoPron && !showRU && speechSupported)
+        setTimeout(() => speak(w.en), 300);
+      if (exBtns) {
+        exBtns.innerHTML = `<button class="btn-icon" id="knew-btn"><span class="material-symbols-outlined">check</span></button><button class="btn-icon" id="didnt-btn"><span class="material-symbols-outlined">close</span></button>`;
+        const knewBtn = document.getElementById('knew-btn');
+        const didntBtn = document.getElementById('didnt-btn');
+        if (knewBtn) knewBtn.onclick = () => recordAnswer(true);
+        if (didntBtn) didntBtn.onclick = () => recordAnswer(false);
+      }
     } else if (t === 'multi') {
-      document.getElementById('ex-type-lbl').innerHTML =
-        '<span class="material-symbols-outlined">target</span> Выбор ответа';
-      document.getElementById('ex-counter').textContent =
-        `${sIdx + 1} / ${session.words.length}`;
+      if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
+      if (exTypeLbl) {
+        exTypeLbl.innerHTML =
+          '<span class="material-symbols-outlined">target</span> Выбор ответа';
+      }
+      if (exCounter) {
+        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+      }
       const dir = session.dir || 'both';
       const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
       const question = isRUEN ? w.ru : w.en;
@@ -4842,139 +5024,191 @@ function nextExercise() {
       if (!options.includes(correct)) options[0] = correct;
       if (autoPron && !isRUEN && speechSupported)
         setTimeout(() => speak(w.en), 300);
-      content.innerHTML = `
-      <div class="mc-question">
-        ${esc(question)}
-        ${!isRUEN && speechSupported ? `<button class="btn-audio" id="mc-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
-      </div>
-      <div class="mc-grid">${options.map(o => `<button class="mc-btn" data-ans="${esc(o)}">${esc(o)}</button>`).join('')}</div>
-    `;
-      if (!isRUEN && speechSupported)
-        document.getElementById('mc-audio-btn').addEventListener('click', e => {
-          e.stopPropagation();
-          speakBtn(w.en, e.currentTarget);
-        });
-      content.querySelectorAll('.mc-btn').forEach(b =>
-        b.addEventListener('click', () => {
-          const ok = b.dataset.ans === correct;
-          content.querySelectorAll('.mc-btn').forEach(x => {
-            x.disabled = true;
-            if (x.dataset.ans === correct) x.classList.add('correct');
+      if (exContent) {
+        exContent.innerHTML = `
+          <div class="mc-question">
+            ${esc(question)}
+            ${!isRUEN && speechSupported ? `<button class="btn-audio" id="mc-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+          </div>
+          <div class="mc-grid">${options.map(o => `<button class="mc-btn" data-ans="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+        `;
+      }
+      if (!isRUEN && speechSupported) {
+        const mcAudioBtn = document.getElementById('mc-audio-btn');
+        if (mcAudioBtn) {
+          mcAudioBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            speakBtn(w.en, e.currentTarget);
           });
-          if (!ok) b.classList.add('wrong');
-          if (ok && speechSupported) speak(w.en);
-          setTimeout(() => recordAnswer(ok), 1100);
-        }),
-      );
+        }
+      }
+      if (exContent) {
+        exContent.querySelectorAll('.mc-btn').forEach(b =>
+          b.addEventListener('click', () => {
+            const ok = b.dataset.ans === correct;
+            exContent.querySelectorAll('.mc-btn').forEach(x => {
+              x.disabled = true;
+              if (x.dataset.ans === correct) x.classList.add('correct');
+            });
+            if (!ok) b.classList.add('wrong');
+            if (ok && speechSupported) speak(w.en);
+            setTimeout(() => recordAnswer(ok), 1100);
+          }),
+        );
+      }
     } else if (t === 'type') {
-      document.getElementById('ex-type-lbl').innerHTML =
-        '<span class="material-symbols-outlined">keyboard</span> Напиши перевод';
-      document.getElementById('ex-counter').textContent =
-        `${sIdx + 1} / ${session.words.length}`;
+      if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
+      if (exTypeLbl) {
+        exTypeLbl.innerHTML =
+          '<span class="material-symbols-outlined">keyboard</span> Напиши перевод';
+      }
+      if (exCounter) {
+        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+      }
       const dir = session.dir || 'both';
       const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
       const question = isRUEN ? w.ru : w.en;
       const answer = isRUEN ? w.en : w.ru;
       if (autoPron && !isRUEN && speechSupported)
         setTimeout(() => speak(w.en), 300);
-      content.innerHTML = `
-      <div class="ta-word">
-        ${esc(question)}
-        ${!isRUEN && speechSupported ? `<button class="btn-icon btn-audio" id="ta-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
-      </div>
-      <div class="ta-row">
-        <input type="text" class="form-control" id="ta-input" placeholder="${isRUEN ? 'Напиши по-английски...' : 'Введи перевод...'}" autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn-icon" id="ta-submit"><span class="material-symbols-outlined">send</span></button>
-      </div>
-      <div class="ta-feedback" id="ta-fb"></div>
-    `;
-      if (!isRUEN && speechSupported)
-        document.getElementById('ta-audio-btn').addEventListener('click', e => {
-          e.stopPropagation();
-          speakBtn(w.en, e.currentTarget);
-        });
-      const inp = document.getElementById('ta-input');
-      inp.focus();
-      const check = () => {
-        const val = inp.value.trim().toLowerCase();
-        const answerVariants = parseAnswerVariants(answer);
-        const ok = answerVariants.some(v => v === val);
-        const fb = document.getElementById('ta-fb');
-        fb.className = 'ta-feedback ' + (ok ? 'ok' : 'err');
-        fb.textContent = ok ? '✓ Верно!' : '✗ Правильно: ' + answer;
-        inp.disabled = true;
-        document.getElementById('ta-submit').disabled = true;
-        if (ok && speechSupported) speak(w.en);
-        setTimeout(() => recordAnswer(ok), 1300);
-      };
-      document.getElementById('ta-submit').onclick = check;
-      inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') check();
-      });
+      if (exContent) {
+        exContent.innerHTML = `
+          <div class="ta-word">
+            ${esc(question)}
+            ${!isRUEN && speechSupported ? `<button class="btn-icon btn-audio" id="ta-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+          </div>
+          <div class="ta-row">
+            <input type="text" class="form-control" id="ta-input" placeholder="${isRUEN ? 'Напиши по-английски...' : 'Введи перевод...'}" autocomplete="off" autocorrect="off" spellcheck="false">
+            <button class="btn-icon" id="ta-submit"><span class="material-symbols-outlined">send</span></button>
+          </div>
+          <div class="ta-feedback" id="ta-fb"></div>
+        `;
+      }
+      if (!isRUEN && speechSupported) {
+        const taAudioBtn = document.getElementById('ta-audio-btn');
+        if (taAudioBtn) {
+          taAudioBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            speakBtn(w.en, e.currentTarget);
+          });
+        }
+      }
+      const input = document.getElementById('ta-input');
+      const submit = document.getElementById('ta-submit');
+      const fb = document.getElementById('ta-fb');
+      if (input) {
+        input.focus();
+        if (submit) {
+          const checkAnswer = () => {
+            const userAnswer = input.value.trim().toLowerCase();
+            const correctAnswer = answer.toLowerCase().trim();
+            const isCorrect = userAnswer === correctAnswer;
+            if (input) input.disabled = true;
+            if (submit) submit.disabled = true;
+            if (fb) {
+              if (isCorrect) {
+                fb.className = 'ta-feedback correct';
+                fb.innerHTML = `✓ ${esc(answer)} ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}`;
+                if (speechSupported) speak(answer);
+                setTimeout(() => recordAnswer(true), 1500);
+              } else {
+                fb.className = 'ta-feedback incorrect';
+                fb.innerHTML = `✗ ${esc(answer)} ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}`;
+                setTimeout(() => recordAnswer(false), 2000);
+              }
+            }
+          };
+          submit.addEventListener('click', checkAnswer);
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') checkAnswer();
+          });
+        }
+      }
     } else if (t === 'dictation') {
-      document.getElementById('ex-type-lbl').innerHTML =
-        '<span class="material-symbols-outlined">volume_up</span> Диктант';
-      document.getElementById('ex-counter').textContent =
-        `${sIdx + 1} / ${session.words.length}`;
-      content.innerHTML = `
-      <div class="dictation-card">
-        <div class="dictation-big"><span class="material-symbols-outlined">volume_up</span></div>
-        <div class="dictation-hint">Послушай слово и напиши его по-английски</div>
-        <div class="dictation-reveal" id="dict-reveal">${esc(w.en)}</div>
-      </div>
-      <div class="ta-row" style="margin-top:1rem">
-        <input type="text" id="dict-input" placeholder="Напиши слово по-английски..." autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn-icon" id="dict-submit"><span class="material-symbols-outlined">check</span></button>
-      </div>
-      <div class="ta-feedback" id="dict-fb"></div>
-    `;
-      // Play immediately
+      if (exTypeLbl) {
+        exTypeLbl.innerHTML =
+          '<span class="material-symbols-outlined">hearing</span> Диктант';
+      }
+      if (exCounter) {
+        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+      }
+      if (exContent) {
+        exContent.innerHTML = `
+          <div class="flashcard-scene" id="dict-scene">
+            <div class="flashcard-inner" id="dict-inner">
+              <div class="card-face front">
+                <div class="card-word">${esc(w.ru)}</div>
+                <div class="card-hint" style="font-size:.7rem;opacity:.5">RU · Прослушай и напиши по-английски</div>
+              </div>
+            </div>
+          </div>
+          <div class="ta-row" style="margin-top:1rem">
+            <input type="text" id="dict-input" placeholder="Напиши слово по-английски..." autocomplete="off" autocorrect="off" spellcheck="false">
+            <button class="btn-icon" id="dict-submit"><span class="material-symbols-outlined">check</span></button>
+          </div>
+          <div class="ta-feedback" id="dict-fb"></div>
+        `;
+      }
       setTimeout(() => speak(w.en), 200);
-      btns.innerHTML = `<button class="btn-icon btn-secondary" id="dict-replay"><span class="material-symbols-outlined">volume_up</span></button>`;
-      document.getElementById('dict-replay').onclick = () => speak(w.en);
-      const inp = document.getElementById('dict-input');
-      inp.focus();
-      const check = () => {
-        const val = inp.value.trim().toLowerCase();
-        const answerVariants = parseAnswerVariants(w.en);
-        const ok = answerVariants.some(v => v === val);
-        const fb = document.getElementById('dict-fb');
-        fb.className = 'ta-feedback ' + (ok ? 'ok' : 'err');
-        fb.textContent = ok ? '✓ Верно!' : '✗ Правильно: ' + w.en;
-        document.getElementById('dict-reveal').style.display = 'block';
-        inp.disabled = true;
-        document.getElementById('dict-submit').disabled = true;
-        setTimeout(() => recordAnswer(ok), 1400);
-      };
-      document.getElementById('dict-submit').onclick = check;
-      inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') check();
-      });
+      if (exBtns) {
+        exBtns.innerHTML = `<button class="btn-icon btn-secondary" id="dict-replay"><span class="material-symbols-outlined">volume_up</span></button>`;
+        const dictReplay = document.getElementById('dict-replay');
+        if (dictReplay) {
+          dictReplay.onclick = () => speak(w.en);
+        }
+      }
+      const dictInput = document.getElementById('dict-input');
+      const dictSubmit = document.getElementById('dict-submit');
+      const dictFb = document.getElementById('dict-fb');
+      if (dictInput) {
+        dictInput.focus();
+        if (dictSubmit && dictFb) {
+          const check = () => {
+            const val = dictInput.value.trim().toLowerCase();
+            const answerVariants = parseAnswerVariants(w.en);
+            const ok = answerVariants.some(v => v === val);
+            dictFb.className = 'ta-feedback ' + (ok ? 'ok' : 'err');
+            dictFb.textContent = ok ? 'Верно!' : 'Правильно: ' + w.en;
+            if (dictInput) dictInput.disabled = true;
+            if (dictSubmit) dictSubmit.disabled = true;
+            setTimeout(() => recordAnswer(ok), 1400);
+          };
+          dictSubmit.addEventListener('click', check);
+          dictInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') check();
+          });
+        }
+      }
     } else if (t === 'builder') {
-      document.getElementById('ex-type-lbl').innerHTML =
-        '<span class="material-symbols-outlined">construction</span> Собери слово';
-      document.getElementById('ex-counter').textContent =
-        `${sIdx + 1} / ${session.words.length}`;
+      if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
+      if (exTypeLbl) {
+        exTypeLbl.innerHTML =
+          '<span class="material-symbols-outlined">construction</span> Собери слово';
+      }
+      if (exCounter) {
+        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+      }
 
-      // Перемешиваем буквы слова
       const word = w.en.toLowerCase().replace(/[^a-z]/g, ''); // только буквы
       const letters = word.split('');
       const shuffled = [...letters].sort(() => Math.random() - 0.5);
 
-      content.innerHTML = `
-        <div class="builder-card">
-          <div class="builder-question">${esc(w.ru)}</div>
-          <div class="builder-answer" id="builder-answer"></div>
-          <div class="builder-letters" id="builder-letters"></div>
-          <div class="builder-hint">Собери английское слово из букв</div>
-        </div>
-        <div class="builder-controls">
-          <button class="btn-icon" id="builder-clear"><span class="material-symbols-outlined">clear</span></button>
-          <button class="btn-icon" id="builder-hint-btn"><span class="material-symbols-outlined">lightbulb</span></button>
-          <button class="btn-icon" id="builder-show-answer" disabled><span class="material-symbols-outlined">visibility</span></button>
-        </div>
-        <div class="builder-feedback" id="builder-fb"></div>
-      `;
+      if (exContent) {
+        exContent.innerHTML = `
+          <div class="builder-card">
+            <div class="builder-question">${esc(w.ru)}</div>
+            <div class="builder-answer" id="builder-answer"></div>
+            <div class="builder-letters" id="builder-letters"></div>
+            <div class="builder-hint">Собери английское слово из букв</div>
+          </div>
+          <div class="builder-controls">
+            <button class="btn-icon" id="builder-clear"><span class="material-symbols-outlined">clear</span></button>
+            <button class="btn-icon" id="builder-hint-btn"><span class="material-symbols-outlined">lightbulb</span></button>
+            <button class="btn-icon" id="builder-show-answer" disabled><span class="material-symbols-outlined">visibility</span></button>
+          </div>
+          <div class="builder-feedback" id="builder-fb"></div>
+        `;
+      }
 
       // Создаем кнопки для букв
       const lettersContainer = document.getElementById('builder-letters');
@@ -5044,15 +5278,19 @@ function nextExercise() {
         });
 
       // Показать ответ
-      document
-        .getElementById('builder-show-answer')
-        .addEventListener('click', () => {
-          const fb = document.getElementById('builder-fb');
-          fb.textContent = `✗ Правильный ответ: ${w.en}`;
+      function setupShowAnswerButton(word) {
+        const showAnswerBtn = document.getElementById('builder-show-answer');
+        const fb = document.getElementById('builder-fb');
+
+        showAnswerBtn.addEventListener('click', () => {
+          fb.textContent = `✗ Правильный ответ: ${word.en}`;
           fb.className = 'builder-feedback err';
-          document.getElementById('builder-show-answer').disabled = true;
+          showAnswerBtn.disabled = true;
           setTimeout(() => recordAnswer(false), 2000);
         });
+      }
+
+      setupShowAnswerButton(w);
 
       function checkBuilderAnswer() {
         const currentAnswer = answerContainer.textContent.toLowerCase();
@@ -5091,14 +5329,43 @@ function recordAnswer(correct) {
     currentExerciseTimer = null;
   }
 
-  const timerEl = document.getElementById('exercise-timer');
+  // Используем сохраненный таймер из session для надежности
+  const timerEl =
+    session.currentTimerEl || document.getElementById('exercise-timer');
   if (timerEl) {
     timerEl.remove();
+    session.currentTimerEl = null; // Очищаем ссылку
   }
 
   playSound(correct ? 'correct' : 'wrong');
   updStats(session.words[sIdx].id, correct);
   updStreak();
+
+  // В режиме экзамена подсчитываем отвеченные вопросы
+  if (practiceMode === 'exam') {
+    session.questionsAnswered++;
+
+    if (correct) {
+      session.results.correct.push(session.words[sIdx]);
+    } else {
+      session.results.wrong.push(session.words[sIdx]);
+    }
+
+    // Проверяем, отвечены ли все вопросы
+    if (session.questionsAnswered >= session.questionsTotal) {
+      // Все вопросы отвечены — завершаем экзамен
+      finishExam();
+      return;
+    }
+
+    sIdx++;
+    nextExercise();
+    return; // Важно: выходим чтобы не продолжать обычную логику
+  }
+
+  // Обычный режим - существующая логика
+  if (correct) sResults.correct.push(session.words[sIdx]);
+  else sResults.wrong.push(session.words[sIdx]);
 
   // Обновляем прогресс ежедневных целей для правильных ответов
   if (correct) {
@@ -5123,93 +5390,34 @@ function recordAnswer(correct) {
     }
   }
 
-  if (correct) sResults.correct.push(session.words[sIdx]);
-  else sResults.wrong.push(session.words[sIdx]);
-
-  // Планируем быструю синхронизацию после практики (10 секунд)
-  scheduleSync(10000);
   sIdx++;
   nextExercise();
+  // Планируем быструю синхронизацию после практики (10 секунд)
+  scheduleSync(10000);
 }
 
-function showResults() {
-  // Останавливаем и удаляем таймер при завершении сессии
+function finishExam() {
+  // Останавливаем все активные таймеры
+  if (examTimerInterval) {
+    clearInterval(examTimerInterval);
+    examTimerInterval = null;
+  }
   if (currentExerciseTimer) {
     clearInterval(currentExerciseTimer);
     currentExerciseTimer = null;
   }
 
+  // Удаляем элементы таймеров
   const timerEl = document.getElementById('exercise-timer');
-  if (timerEl) {
-    timerEl.remove();
-  }
+  if (timerEl) timerEl.remove();
+  const examTimerEl = document.getElementById('exam-timer');
+  if (examTimerEl) examTimerEl.remove();
 
-  updateDueBadge();
-  renderStats();
+  // Копируем результаты экзамена в глобальную переменную для отображения
+  sResults = session.results;
 
-  // Update practice time progress
-  if (practiceStartTime) {
-    const minutes = Math.floor((Date.now() - practiceStartTime) / 60000);
-    resetDailyGoalsIfNeeded(); // Ensure proper daily reset
-    window.dailyProgress.practice_time =
-      (window.dailyProgress.practice_time || 0) + minutes;
-    checkDailyGoalsCompletion();
-    practiceStartTime = null; // Reset for next session
-  }
-
-  document.getElementById('practice-ex').style.display = 'none';
-  document.getElementById('practice-results').style.display = 'block';
-  const resTotal = sResults.correct.length + sResults.wrong.length;
-  const resCorrect = sResults.correct.length;
-  const resPct = resTotal ? Math.round((resCorrect / resTotal) * 100) : 0;
-  document.getElementById('r-score').textContent = `${resCorrect}/${resTotal}`;
-  document.getElementById('r-label').textContent =
-    `правильно · ${resPct}% точность`;
-  const r = 50,
-    cx = 65,
-    cy = 65,
-    circ = 2 * Math.PI * r;
-  document.getElementById('r-ring').innerHTML = `
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--primary)" stroke-width="10"
-      stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - resPct / 100)}"
-      transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dashoffset .8s ease"/>
-    <text x="${cx}" y="${cy + 7}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--text)">${resPct}%</text>
-  `;
-  document.getElementById('r-correct').innerHTML = sResults.correct
-    .map(w => `<li>${esc(w.en)} — ${esc(w.ru)}</li>`)
-    .join('');
-  document.getElementById('r-wrong').innerHTML = sResults.wrong
-    .map(w => `<li>${esc(w.en)} — ${esc(w.ru)}</li>`)
-    .join('');
-
-  // Запускаем разные анимации в зависимости от процента правильных ответов
-  if (resPct === 0) {
-    spawnSadRain(); // 0% - Грустный дождь 🌧️
-  } else if (resPct <= 20) {
-    spawnFewDrops(); // 1-20% - Несколько капель 🌦️
-  } else if (resPct <= 50) {
-    spawnLightRain(); // 21-50% - Легкий дождик 🌧️
-  } else if (resPct <= 80) {
-    spawnSmallConfetti(); // 51-80% - Маленький салют 🎆
-  } else if (resPct < 100) {
-    spawnGoodConfetti(); // 81-99% - Хороший салют 🎇
-  } else {
-    spawnEpicConfetti(); // 100% - Большой салют + фейерверк 🎊🎆
-  }
-
-  // XP
-  const xpCorrect = resCorrect;
-  const xpTotal = resTotal;
-  if (xpCorrect > 0) gainXP(xpCorrect * 3, xpCorrect + ' правильных');
-  const isPerfect = xpTotal >= 5 && xpCorrect === xpTotal;
-  if (isPerfect)
-    gainXP(
-      10,
-      'идеальная сессия <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">target</span>',
-    );
-  updStreak();
-  checkBadges(isPerfect);
+  // Показываем результаты
+  showResults();
 }
 
 document.getElementById('repeat-btn').addEventListener('click', () => {
@@ -5472,6 +5680,12 @@ renderStats();
 function playSound(type) {
   try {
     const ctx = getAudioContext();
+
+    // Возобновляем аудиоконтекст если он приостановлен
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
     if (type === 'correct') {
       const oscs = [];
       [
