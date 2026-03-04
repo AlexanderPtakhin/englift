@@ -1,11 +1,10 @@
 import {
   saveWordToDb,
   deleteWordFromDb,
-  saveAllWordsToDb,
   saveUserData,
   loadWordsOnce,
   batchSaveWords,
-} from './db.js';
+} from './firebase.js';
 import { getCompleteWordData } from './api.js';
 import { auth } from './firebase.js';
 import './auth.js';
@@ -37,56 +36,8 @@ const debouncedSaveUserData = debounce((uid, data) => {
 }, 2000); // 2 секунды debounce
 
 // ============================================================
-// УМНАЯ АВТОСИНХРОНИЗАЦИЯ (offline-first)
+// DELAYED SYNC SYSTEM (offline-first)
 // ============================================================
-
-let pendingSyncTimer = null;
-let writeCount = 0;
-
-function scheduleSync(delay = 30000) {
-  // 30 секунд по умолчанию
-  // Если квота исчерпана, не пытаемся синхронизировать
-  if (window.quotaExceeded) {
-    console.warn('⚠️ Квота Firebase исчерпана, пропускаем синхронизацию');
-    return;
-  }
-
-  clearTimeout(pendingSyncTimer);
-  pendingSyncTimer = setTimeout(async () => {
-    if (navigator.onLine && auth.currentUser && window.words.length > 0) {
-      try {
-        await window.authExports.batchSaveWords(window.words);
-        writeCount++;
-        console.log(
-          `🔄 Автосинхронизация завершена #${writeCount} (${window.words.length} слов)`,
-        );
-      } catch (e) {
-        console.error('❌ Ошибка автосинхронизации:', e);
-
-        // Проверяем на quota exceeded
-        if (
-          e.code === 'resource-exhausted' ||
-          e.message?.includes('Quota exceeded')
-        ) {
-          console.warn(
-            '⚠️ Firebase quota exceeded, отключаем автосинхронизацию',
-          );
-          toast(
-            '⚠️ Лимит Firebase исчерпан. Данные сохранятся локально.',
-            'warning',
-          );
-          // Отключаем дальнейшие попытки синхронизации на сегодня
-          window.quotaExceeded = true;
-        }
-      }
-    }
-  }, delay);
-}
-
-function logWrite() {
-  writeCount++;
-  console.log(`📊 Writes сегодня: ${writeCount}`);
-}
 
 // Синхронизация при закрытии вкладки
 window.addEventListener('beforeunload', async () => {
@@ -992,13 +943,7 @@ function save(silent = false) {
 
     debugLog('Saving words to Firebase only, count:', window.words.length);
 
-    // Сохраняем только в Firebase (localStorage больше не используем для слов)
-    saveAllWordsToDb(window.words, silent).catch(e => {
-      console.error('Firebase save error:', e);
-      if (!silent) {
-        toast('Ошибка синхронизации', 'danger', 'sync_problem');
-      }
-    });
+    // В Firebase сохраняем только через performSync, здесь ничего не делаем
 
     return true;
   } catch (e) {
@@ -1142,7 +1087,7 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
     );
     window.words.push(newWord);
     markDirty(newWord.id); // отмечаем слово как изменённое
-    scheduleSync(); // планируем синхронизацию через 5 минут
+    scheduleDelayedSync(); // планируем синхронизацию через 5 минут
 
     // Очищаем кеш рендеринга при добавлении нового слова
     renderCache.clear();
@@ -1177,8 +1122,7 @@ async function delWord(id) {
 
     // Только потом обновляем локальный массив
     window.words = window.words.filter(w => w.id !== id);
-    logWrite(); // логируем write операцию
-    scheduleSync(5000); // быстрая синхронизация после удаления (5 секунд)
+    scheduleDelayedSync(5000); // быстрая синхронизация после удаления (5 секунд)
 
     // Очищаем кеш рендеринга при удалении слова
     renderCache.clear();
@@ -1188,7 +1132,7 @@ async function delWord(id) {
 
     // Отмечаем слово как удаленное и планируем синхронизацию
     markDirty(id);
-    scheduleSync();
+    scheduleDelayedSync();
 
     // Пересчитываем уровни CEFR после удаления
     recalculateCefrLevels();
@@ -1204,7 +1148,7 @@ async function updWord(id, data) {
   if (w) {
     Object.assign(w, data, { updatedAt: new Date().toISOString() }); // добавляем updatedAt
     markDirty(id);
-    scheduleSync();
+    scheduleDelayedSync();
     renderCache.clear(); // <-- добавляем очистку кеша рендеринга
 
     // Устанавливаем флаг локальных изменений
@@ -1255,7 +1199,7 @@ function updStats(id, correct) {
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
   markDirty(id);
-  scheduleSync();
+  scheduleDelayedSync();
 
   // Обновляем график активности после практики
   renderWeekChart();
@@ -4030,7 +3974,6 @@ document
         await window.authExports.batchSaveWords(window.words);
       }
 
-      logWrite();
       toast(
         `✅ Синхронизация завершена (${window.words.length} слов)`,
         'success',
@@ -5656,7 +5599,7 @@ function recordAnswer(correct) {
   sIdx++;
   nextExercise();
   // Планируем быструю синхронизацию после практики (10 секунд)
-  scheduleSync(10000);
+  scheduleDelayedSync(10000);
 }
 
 function finishExam() {
@@ -6403,7 +6346,7 @@ function markDirty(id) {
   dirtyWords.add(id);
 }
 
-function scheduleSync(delay = 300000) {
+function scheduleDelayedSync(delay = 300000) {
   // 5 минут по умолчанию
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(() => {
@@ -6423,7 +6366,7 @@ async function performSync() {
   } catch (e) {
     console.error('Ошибка синхронизации:', e);
     // повторим позже
-    scheduleSync(60000);
+    scheduleDelayedSync(60000);
   }
 }
 
