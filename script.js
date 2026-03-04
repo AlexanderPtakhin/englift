@@ -3581,15 +3581,15 @@ function showPreview() {
   }
 
   const btn = document.getElementById('import-file-btn');
-  console.log('🔘 Import button element:', btn);
+  console.log('Import button element:', btn);
 
   if (btn) {
     const newCount = fileParsed.filter(
       w => !window.words.find(x => x.en.toLowerCase() === w.en.toLowerCase()),
     ).length;
 
-    console.log('🆕 New window.words count:', newCount);
-    console.log('🔄 Duplicate count:', fileParsed.length - newCount);
+    console.log('New window.words count:', newCount);
+    console.log('Duplicate count:', fileParsed.length - newCount);
 
     // Показываем детальную информацию о первых словах
     fileParsed.slice(0, 3).forEach((w, i) => {
@@ -3597,31 +3597,31 @@ function showPreview() {
         x => x.en.toLowerCase() === w.en.toLowerCase(),
       );
       console.log(
-        `📝 Word ${i}: "${w.en}" - ${isDuplicate ? 'DUPLICATE' : 'NEW'}`,
+        `Word ${i}: "${w.en}" - ${isDuplicate ? 'DUPLICATE' : 'NEW'}`,
       );
     });
 
     btn.style.display = fileParsed.length ? 'block' : 'none';
     btn.textContent = `✓ Импортировать ${newCount} новых слов${fileParsed.length - newCount > 0 ? ' (' + (fileParsed.length - newCount) + ' дублей пропустим)' : ''}`;
 
-    console.log('📝 Button configured, display:', btn.style.display);
-    console.log('📝 Button text:', btn.textContent);
+    console.log('Button configured, display:', btn.style.display);
+    console.log('Button text:', btn.textContent);
 
     // Назначаем обработчик прямо здесь
     btn.onclick = function () {
-      console.log('📝 Import button clicked!');
-      console.log('📊 fileParsed length:', fileParsed.length);
+      console.log('Import button clicked!');
+      console.log('fileParsed length:', fileParsed.length);
 
       const checkboxes = document.querySelectorAll('.fchk:checked');
-      console.log('📝 Checked checkboxes:', checkboxes.length);
+      console.log('Checked checkboxes:', checkboxes.length);
 
       const indices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.i));
-      console.log('📍 Selected indices:', indices);
+      console.log('Selected indices:', indices);
 
       let added = 0;
       indices.forEach(i => {
         const w = fileParsed[i];
-        console.log(`📝 Processing word ${i}:`, w);
+        console.log(`Processing word ${i}:`, w);
         if (
           !window.words.some(
             existing => existing.en.toLowerCase() === w.en.toLowerCase(),
@@ -3631,14 +3631,14 @@ function showPreview() {
             mkWord(w.en, w.ru, w.ex, w.tags || [], w.phonetic || null),
           );
           added++;
-          console.log(`✅ Added word: ${w.en}`);
+          console.log(`Added word: ${w.en}`);
         } else {
-          console.log(`⚠️ Duplicate skipped: ${w.en}`);
+          console.log(`Duplicate skipped: ${w.en}`);
         }
       });
 
-      console.log(`🎯 Total added: ${added}`);
-      console.log('💾 Saving changes...');
+      console.log(`Total added: ${added}`);
+      console.log('Saving changes...');
 
       // Сохраняем изменения
       debouncedSave();
@@ -4378,7 +4378,7 @@ function nextExercise() {
           <div class="card-face front">
             <div style="display:flex;align-items:center;gap:.75rem">
               <div class="card-word">${esc(frontWord)}</div>
-              ${!showRU && speechSupported ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести">🔊</button>` : ''}
+              ${!showRU && speechSupported ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
             </div>
             <div class="card-hint" style="font-size:.7rem;opacity:.5">${showRU ? 'RU' : 'EN'} · нажми для перевода</div>
           </div>
@@ -4477,7 +4477,7 @@ function nextExercise() {
             setTimeout(() => {
               recordAnswer(isCorrect);
               if (isCorrect) {
-                gainXP(15, 'произношение 🎤'); // Бонус за произношение
+                gainXP(15, 'произношение'); // Бонус за произношение
               }
               sIdx++;
               nextExercise();
@@ -4550,7 +4550,7 @@ function nextExercise() {
       content.innerHTML = `
       <div class="mc-question">
         ${esc(question)}
-        ${!isRUEN && speechSupported ? `<button class="btn-audio" id="mc-audio-btn">🔊</button>` : ''}
+        ${!isRUEN && speechSupported ? `<button class="btn-audio" id="mc-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
       </div>
       <div class="mc-grid">${options.map(o => `<button class="mc-btn" data-ans="${esc(o)}">${esc(o)}</button>`).join('')}</div>
     `;
@@ -4674,8 +4674,9 @@ function nextExercise() {
           <div class="builder-hint">Собери английское слово из букв</div>
         </div>
         <div class="builder-controls">
-          <button class="btn-icon btn-secondary" id="builder-clear"><span class="material-symbols-outlined">clear</span></button>
-          <button class="btn-icon btn-secondary" id="builder-hint-btn"><span class="material-symbols-outlined">lightbulb</span></button>
+          <button class="btn-icon" id="builder-clear"><span class="material-symbols-outlined">clear</span></button>
+          <button class="btn-icon" id="builder-hint-btn"><span class="material-symbols-outlined">lightbulb</span></button>
+          <button class="btn-icon" id="builder-show-answer" disabled><span class="material-symbols-outlined">visibility</span></button>
         </div>
         <div class="builder-feedback" id="builder-fb"></div>
       `;
@@ -4692,6 +4693,11 @@ function nextExercise() {
         letterBtn.dataset.index = index;
 
         letterBtn.addEventListener('click', () => {
+          // Проверяем, что кнопка еще не нажата (видима)
+          if (letterBtn.style.visibility === 'hidden') {
+            return; // Если уже скрыта, игнорируем клик
+          }
+
           const answerLetter = document.createElement('span');
           answerLetter.className = 'builder-answer-letter';
           answerLetter.textContent = letter.toUpperCase();
@@ -4713,6 +4719,8 @@ function nextExercise() {
           btn.style.visibility = 'visible';
         });
         document.getElementById('builder-fb').textContent = '';
+        // Сбрасываем кнопку "Показать ответ" в неактивное состояние
+        document.getElementById('builder-show-answer').disabled = true;
       });
 
       // Подсказка
@@ -4740,6 +4748,17 @@ function nextExercise() {
           }
         });
 
+      // Показать ответ
+      document
+        .getElementById('builder-show-answer')
+        .addEventListener('click', () => {
+          const fb = document.getElementById('builder-fb');
+          fb.textContent = `✗ Правильный ответ: ${w.en}`;
+          fb.className = 'builder-feedback err';
+          document.getElementById('builder-show-answer').disabled = true;
+          setTimeout(() => recordAnswer(false), 2000);
+        });
+
       function checkBuilderAnswer() {
         const currentAnswer = answerContainer.textContent.toLowerCase();
         const fb = document.getElementById('builder-fb');
@@ -4753,12 +4772,9 @@ function nextExercise() {
           setTimeout(() => recordAnswer(true), 1500);
         } else if (currentAnswer.length >= word.length) {
           fb.className = 'builder-feedback err';
-          fb.textContent = '✗ Неверно. Попробуй еще раз!';
-          // Показываем правильный ответ через 2 секунды
-          setTimeout(() => {
-            fb.textContent = `✗ Правильный ответ: ${w.en}`;
-            setTimeout(() => recordAnswer(false), 2000);
-          }, 2000);
+          fb.textContent = '✗ Неверно. Нажми "Очистить" и попробуй еще раз!';
+          // Активируем кнопку "Показать ответ"
+          document.getElementById('builder-show-answer').disabled = false;
         } else {
           fb.textContent = '';
         }
@@ -5096,7 +5112,8 @@ function runMatchExercise(words6, onComplete) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   btns.innerHTML = '';
-  document.getElementById('ex-type-lbl').textContent = '🧩 Найди пары';
+  document.getElementById('ex-type-lbl').innerHTML =
+    '<span class="material-symbols-outlined">extension</span> Найди пары';
 
   // Перемешиваем переводы отдельно
   const enWords = [...words6];
