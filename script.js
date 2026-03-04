@@ -4655,6 +4655,114 @@ function nextExercise() {
       inp.addEventListener('keydown', e => {
         if (e.key === 'Enter') check();
       });
+    } else if (t === 'builder') {
+      document.getElementById('ex-type-lbl').innerHTML =
+        '<span class="material-symbols-outlined">construction</span> Собери слово';
+      document.getElementById('ex-counter').textContent =
+        `${sIdx + 1} / ${session.words.length}`;
+
+      // Перемешиваем буквы слова
+      const word = w.en.toLowerCase().replace(/[^a-z]/g, ''); // только буквы
+      const letters = word.split('');
+      const shuffled = [...letters].sort(() => Math.random() - 0.5);
+
+      content.innerHTML = `
+        <div class="builder-card">
+          <div class="builder-question">${esc(w.ru)}</div>
+          <div class="builder-answer" id="builder-answer"></div>
+          <div class="builder-letters" id="builder-letters"></div>
+          <div class="builder-hint">Собери английское слово из букв</div>
+        </div>
+        <div class="builder-controls">
+          <button class="btn-icon btn-secondary" id="builder-clear"><span class="material-symbols-outlined">clear</span></button>
+          <button class="btn-icon btn-secondary" id="builder-hint-btn"><span class="material-symbols-outlined">lightbulb</span></button>
+        </div>
+        <div class="builder-feedback" id="builder-fb"></div>
+      `;
+
+      // Создаем кнопки для букв
+      const lettersContainer = document.getElementById('builder-letters');
+      const answerContainer = document.getElementById('builder-answer');
+
+      shuffled.forEach((letter, index) => {
+        const letterBtn = document.createElement('button');
+        letterBtn.className = 'builder-letter';
+        letterBtn.textContent = letter.toUpperCase();
+        letterBtn.dataset.letter = letter;
+        letterBtn.dataset.index = index;
+
+        letterBtn.addEventListener('click', () => {
+          const answerLetter = document.createElement('span');
+          answerLetter.className = 'builder-answer-letter';
+          answerLetter.textContent = letter.toUpperCase();
+          answerLetter.dataset.originalIndex = index;
+          answerContainer.appendChild(answerLetter);
+          letterBtn.style.visibility = 'hidden';
+
+          // Проверяем ответ
+          checkBuilderAnswer();
+        });
+
+        lettersContainer.appendChild(letterBtn);
+      });
+
+      // Очистка ответа
+      document.getElementById('builder-clear').addEventListener('click', () => {
+        answerContainer.innerHTML = '';
+        document.querySelectorAll('.builder-letter').forEach(btn => {
+          btn.style.visibility = 'visible';
+        });
+        document.getElementById('builder-fb').textContent = '';
+      });
+
+      // Подсказка
+      document
+        .getElementById('builder-hint-btn')
+        .addEventListener('click', () => {
+          const currentAnswer = answerContainer.textContent.toLowerCase();
+          const nextLetter = word[currentAnswer.length];
+          if (nextLetter) {
+            // Находим кнопку с нужной буквой
+            const targetBtn = Array.from(
+              document.querySelectorAll('.builder-letter'),
+            ).find(
+              btn =>
+                btn.dataset.letter === nextLetter &&
+                btn.style.visibility !== 'hidden',
+            );
+
+            if (targetBtn) {
+              targetBtn.classList.add('builder-hint-pulse');
+              setTimeout(() => {
+                targetBtn.classList.remove('builder-hint-pulse');
+              }, 2000);
+            }
+          }
+        });
+
+      function checkBuilderAnswer() {
+        const currentAnswer = answerContainer.textContent.toLowerCase();
+        const fb = document.getElementById('builder-fb');
+
+        if (currentAnswer === word) {
+          fb.className = 'builder-feedback ok';
+          fb.textContent = '✓ Отлично! Правильно!';
+          document.querySelectorAll('.builder-letter').forEach(btn => {
+            btn.disabled = true;
+          });
+          setTimeout(() => recordAnswer(true), 1500);
+        } else if (currentAnswer.length >= word.length) {
+          fb.className = 'builder-feedback err';
+          fb.textContent = '✗ Неверно. Попробуй еще раз!';
+          // Показываем правильный ответ через 2 секунды
+          setTimeout(() => {
+            fb.textContent = `✗ Правильный ответ: ${w.en}`;
+            setTimeout(() => recordAnswer(false), 2000);
+          }, 2000);
+        } else {
+          fb.textContent = '';
+        }
+      }
     }
   } catch (error) {
     console.error('Error in nextExercise:', error);

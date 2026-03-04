@@ -2066,6 +2066,218 @@ body.dark .badge-learned {
   color: var(--danger);
 }
 
+/* ============================================================
+   УПРАЖНЕНИЕ "СОБЕРИ СЛОВО" (Word Builder)
+   ============================================================ */
+
+.builder-card {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.builder-question {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2rem;
+  line-height: 1.4;
+}
+
+.builder-answer {
+  min-height: 3rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--surface);
+  transition: all 0.3s ease;
+}
+
+.builder-answer-letter {
+  display: inline-block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-width: 3rem;
+  text-align: center;
+  animation: builderLetterAdd 0.3s ease;
+}
+
+@keyframes builderLetterAdd {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.builder-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.builder-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+}
+
+.builder-letter:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.builder-letter:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.builder-letter:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.builder-hint {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.builder-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.builder-feedback {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 1rem;
+  min-height: 1.5rem;
+  font-weight: 500;
+}
+
+.builder-feedback.ok {
+  color: var(--success);
+  animation: builderSuccess 0.5s ease;
+}
+
+.builder-feedback.err {
+  color: var(--danger);
+  animation: builderError 0.5s ease;
+}
+
+@keyframes builderSuccess {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes builderError {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.builder-hint-pulse {
+  animation: builderHintPulse 2s ease-in-out;
+}
+
+@keyframes builderHintPulse {
+  0%,
+  100% {
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  50% {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.5);
+  }
+}
+
+/* Адаптивность для builder */
+@media (max-width: 768px) {
+  .builder-question {
+    font-size: 1.3rem;
+  }
+
+  .builder-answer {
+    min-height: 2.5rem;
+    padding: 0.75rem;
+  }
+
+  .builder-answer-letter {
+    font-size: 1.5rem;
+    min-width: 2.5rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .builder-letter {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.3rem;
+  }
+
+  .builder-letters {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+}
+
 .ex-btns {
   display: flex;
   gap: 0.75rem;
