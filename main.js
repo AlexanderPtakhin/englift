@@ -6,6 +6,8 @@ import {
   unsubscribeWords,
   syncLocalWordsWithFirestore,
   userRef,
+  loadWordsOnce,
+  batchSaveWords,
 } from './db.js';
 
 // Экспортируем функции для использования в других скриптах
@@ -17,6 +19,8 @@ window.authExports = {
   unsubscribeWords,
   syncLocalWordsWithFirestore,
   userRef,
+  loadWordsOnce,
+  batchSaveWords,
 };
 
 // Ждем полной загрузки DOM перед загрузкой остальных скриптов

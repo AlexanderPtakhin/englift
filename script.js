@@ -3,6 +3,8 @@ import {
   deleteWordFromDb,
   saveAllWordsToDb,
   saveUserData,
+  loadWordsOnce,
+  batchSaveWords,
 } from './db.js';
 import { getCompleteWordData } from './api.js';
 import { auth } from './firebase.js';
@@ -10,6 +12,130 @@ import './auth.js';
 
 // Инициализация глобальных переменных
 window.words = [];
+
+// Debounce функция для оптимизации renderStats
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const debouncedRenderStats = debounce(renderStats, 800);
+
+// Debounce для saveUserData чтобы не убивать квоту
+const debouncedSaveUserData = debounce((uid, data) => {
+  if (auth.currentUser) {
+    saveUserData(uid, data).catch(e =>
+      console.error('Error saving user data:', e),
+    );
+  }
+}, 2000); // 2 секунды debounce
+
+// ============================================================
+// УМНАЯ АВТОСИНХРОНИЗАЦИЯ (offline-first)
+// ============================================================
+
+let pendingSyncTimer = null;
+let writeCount = 0;
+
+function scheduleSync(delay = 30000) {
+  // 30 секунд по умолчанию
+  // Если квота исчерпана, не пытаемся синхронизировать
+  if (window.quotaExceeded) {
+    console.warn('⚠️ Квота Firebase исчерпана, пропускаем синхронизацию');
+    return;
+  }
+
+  clearTimeout(pendingSyncTimer);
+  pendingSyncTimer = setTimeout(async () => {
+    if (navigator.onLine && auth.currentUser && window.words.length > 0) {
+      try {
+        await window.authExports.batchSaveWords(window.words);
+        writeCount++;
+        console.log(
+          `🔄 Автосинхронизация завершена #${writeCount} (${window.words.length} слов)`,
+        );
+      } catch (e) {
+        console.error('❌ Ошибка автосинхронизации:', e);
+
+        // Проверяем на quota exceeded
+        if (
+          e.code === 'resource-exhausted' ||
+          e.message?.includes('Quota exceeded')
+        ) {
+          console.warn(
+            '⚠️ Firebase quota exceeded, отключаем автосинхронизацию',
+          );
+          toast(
+            '⚠️ Лимит Firebase исчерпан. Данные сохранятся локально.',
+            'warning',
+          );
+          // Отключаем дальнейшие попытки синхронизации на сегодня
+          window.quotaExceeded = true;
+        }
+      }
+    }
+  }, delay);
+}
+
+function logWrite() {
+  writeCount++;
+  console.log(`📊 Writes сегодня: ${writeCount}`);
+}
+
+// Синхронизация при закрытии вкладки
+window.addEventListener('beforeunload', async () => {
+  if (navigator.onLine && auth.currentUser && window.words.length > 0) {
+    // Синхронно не успеем, но пробуем
+    try {
+      await window.authExports.batchSaveWords(window.words);
+      console.log('🔄 Синхронизация при закрытии вкладки');
+    } catch (e) {
+      console.warn('⚠️ Не удалось синхронизировать при закрытии:', e);
+    }
+  }
+});
+
+// Более надежная синхронизация через visibilitychange
+document.addEventListener('visibilitychange', () => {
+  if (
+    document.visibilityState === 'hidden' &&
+    navigator.onLine &&
+    auth.currentUser &&
+    window.words.length > 0
+  ) {
+    try {
+      // Просто вызываем batchSaveWords без sendBeacon
+      window.authExports.batchSaveWords(window.words);
+      console.log('🔄 Синхронизация при скрытии вкладки');
+    } catch (e) {
+      console.warn('⚠️ Ошибка синхронизации при скрытии:', e);
+    }
+  }
+});
+
+// Фоновая синхронизация каждые 5 минут
+setInterval(
+  async () => {
+    if (navigator.onLine && auth.currentUser) {
+      try {
+        // Сначала тихо обновляем с сервера
+        await window.authExports.loadWordsOnce(() => {});
+
+        // Затем отправляем локальные изменения
+        if (window.words.length > 0) {
+          await window.authExports.batchSaveWords(window.words);
+          console.log('🔄 Фоновая синхронизация завершена');
+        }
+      } catch (e) {
+        console.warn('⚠️ Ошибка фоновой синхронизации:', e);
+      }
+    }
+  },
+  5 * 60 * 1000,
+); // каждые 5 минут
 
 // Daily Goals configuration
 const DAILY_GOALS = [
@@ -71,9 +197,7 @@ function saveAllUserData() {
     darkTheme: document.body.classList.contains('dark'),
   };
 
-  saveUserData(auth.currentUser.uid, userData).catch(e =>
-    console.error('Error saving all user data:', e),
-  );
+  debouncedSaveUserData(auth.currentUser.uid, userData);
 }
 
 // ============================================================
@@ -653,7 +777,7 @@ function checkDailyGoalsCompletion() {
 
     // Save to Firebase for persistence
     if (auth.currentUser) {
-      saveUserData(auth.currentUser.uid, {
+      debouncedSaveUserData(auth.currentUser.uid, {
         dailyProgress: window.dailyProgress,
       });
     }
@@ -669,7 +793,7 @@ function checkDailyGoalsCompletion() {
   } else {
     // Also save progress for persistence
     if (auth.currentUser) {
-      saveUserData(auth.currentUser.uid, {
+      debouncedSaveUserData(auth.currentUser.uid, {
         dailyProgress: window.dailyProgress,
       });
     }
@@ -981,6 +1105,8 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
     examples,
   );
   window.words.push(newWord);
+  logWrite(); // логируем write операцию
+  scheduleSync(); // планируем автосинхронизацию через 30 сек
 
   // Очищаем кеш рендеринга при добавлении нового слова
   renderCache.clear();
@@ -1039,6 +1165,8 @@ async function delWord(id) {
 
     // Только потом обновляем локальный массив
     window.words = window.words.filter(w => w.id !== id);
+    logWrite(); // логируем write операцию
+    scheduleSync(5000); // быстрая синхронизация после удаления (5 секунд)
 
     // Очищаем кеш рендеринга при удалении слова
     renderCache.clear();
@@ -2245,7 +2373,7 @@ if (darkToggle) {
         'for user:',
         auth.currentUser.uid,
       );
-      saveUserData(auth.currentUser.uid, { darkTheme: on })
+      debouncedSaveUserData(auth.currentUser.uid, { darkTheme: on })
         .then(() => {
           console.log('Theme saved to Firebase successfully');
         })
@@ -2273,7 +2401,7 @@ if (themeCheckbox) {
         'for user:',
         auth.currentUser.uid,
       );
-      saveUserData(auth.currentUser.uid, { darkTheme: on })
+      debouncedSaveUserData(auth.currentUser.uid, { darkTheme: on })
         .then(() => {
           console.log('Theme saved to Firebase successfully from checkbox');
         })
@@ -3583,6 +3711,59 @@ document
       `Текущий лимит: <strong>${current === 9999 ? 'Без лимита' : current}</strong>`;
   });
 
+// Обработчик кнопки синхронизации
+document
+  .getElementById('dropdown-sync')
+  ?.addEventListener('click', async () => {
+    if (!navigator.onLine) {
+      toast('⚠️ Нет подключения к интернету', 'warning');
+      return;
+    }
+
+    // Проверяем на quota exceeded
+    if (window.quotaExceeded) {
+      toast('⚠️ Лимит Firebase исчерпан. Попробуйте позже.', 'warning');
+      return;
+    }
+
+    toast('🔄 Синхронизация...', 'info');
+
+    try {
+      // Подгружаем свежие данные с сервера (overwrite локальный кэш)
+      await window.authExports.loadWordsOnce(freshWords => {
+        window.words = freshWords;
+        renderStats();
+      });
+
+      // Отправляем локальные изменения
+      if (window.words.length > 0) {
+        await window.authExports.batchSaveWords(window.words);
+      }
+
+      logWrite();
+      toast(
+        `✅ Синхронизация завершена (${window.words.length} слов)`,
+        'success',
+      );
+    } catch (e) {
+      console.error('Ошибка синхронизации:', e);
+
+      // Проверяем на quota exceeded
+      if (
+        e.code === 'resource-exhausted' ||
+        e.message?.includes('Quota exceeded')
+      ) {
+        toast(
+          '⚠️ Лимит Firebase исчерпан. Данные сохранятся локально.',
+          'warning',
+        );
+        window.quotaExceeded = true;
+      } else {
+        toast('❌ Ошибка синхронизации', 'danger');
+      }
+    }
+  });
+
 // Speech modal handlers
 document.getElementById('speech-modal-cancel').addEventListener('click', () => {
   document.getElementById('speech-modal').classList.remove('open');
@@ -3621,7 +3802,7 @@ document.getElementById('speech-modal-save')?.addEventListener('click', () => {
 
   // Save to Firebase
   if (auth.currentUser) {
-    saveUserData(auth.currentUser.uid, {
+    debouncedSaveUserData(auth.currentUser.uid, {
       speechCfg: window.speechCfg,
       userSettings: window.userSettings,
     });
@@ -4003,7 +4184,7 @@ function updateTodayReviewedCount(increment = 1) {
   window.todayReviewedCount += increment;
   // Can save to Firebase for persistence between tabs
   if (auth.currentUser) {
-    saveUserData(auth.currentUser.uid, {
+    debouncedSaveUserData(auth.currentUser.uid, {
       todayReviewedCount: window.todayReviewedCount,
       lastReviewedReset: window.lastReviewedReset,
     });
@@ -4501,6 +4682,9 @@ function recordAnswer(correct) {
 
   if (correct) sResults.correct.push(session.words[sIdx]);
   else sResults.wrong.push(session.words[sIdx]);
+
+  // Планируем быструю синхронизацию после практики (10 секунд)
+  scheduleSync(10000);
   sIdx++;
   nextExercise();
 }
@@ -5235,6 +5419,25 @@ window.addEventListener('appinstalled', () => {
   }
   toast('🎉 Приложение добавлено на главный экран!', 'success');
 });
+
+// ============================================================
+// АВТОМАТИЧЕСКАЯ ТИХАЯ СИНХРОНИЗАЦИЯ
+// ============================================================
+
+setInterval(
+  async () => {
+    if (navigator.onLine && auth.currentUser && window.authExports) {
+      try {
+        // Тихо обновляем данные без показа тоста
+        await window.authExports.loadWordsOnce(() => {});
+        console.log('🔄 Тихая синхронизация завершена');
+      } catch (e) {
+        console.warn('⚠️ Ошибка тихой синхронизации:', e);
+      }
+    }
+  },
+  10 * 60 * 1000,
+); // каждые 10 минут
 
 // Проверяем, установлено ли PWA уже
 if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {

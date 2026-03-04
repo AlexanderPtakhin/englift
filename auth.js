@@ -24,6 +24,9 @@ async function loadUserDataFromFirebase() {
     const userDoc = await dbModule.getDoc(userRef);
     const userData = userDoc.data();
 
+    // Экспортируем loadWordsOnce для использования в auth.js
+    window.authExports.loadWordsOnce = dbModule.loadWordsOnce;
+
     if (userData) {
       // Загружаем XP данные
       if (userData.xpData && window.updateXpData) {
@@ -459,7 +462,8 @@ onAuthStateChanged(auth, async user => {
         console.log('No local words to sync');
       }
 
-      window.authExports.subscribeToWords(firestoreWords => {
+      // Загружаем слова одноразово (offline-first)
+      window.authExports.loadWordsOnce(firestoreWords => {
         if (window._setWords) window._setWords(firestoreWords);
       });
 

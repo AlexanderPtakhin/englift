@@ -232,7 +232,62 @@ export async function syncLocalWordsWithFirestore(localWords) {
   }
 }
 
+// ============================================================
+// ОДНОРАЗОВАЯ ЗАГРУЗКА (offline-first подход)
+// ============================================================
+
+export async function loadWordsOnce(callback) {
+  if (!auth.currentUser) {
+    callback([]);
+    return;
+  }
+
+  try {
+    const q = query(
+      wordsRef(auth.currentUser.uid),
+      orderBy('updatedAt', 'desc'),
+    );
+    const snap = await getDocs(q);
+    const words = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    window.words = words;
+    callback(words);
+    console.log(`📦 Загружено ${words.length} слов из Firestore`);
+  } catch (e) {
+    console.error('❌ Ошибка загрузки слов:', e);
+    callback([]);
+  }
+}
+
+// ============================================================
+// БАТЧ-СОХРАНЕНИЕ (оптимизация writes)
+// ============================================================
+
+export async function batchSaveWords(wordsArray) {
+  if (!auth.currentUser || !wordsArray.length) return;
+
+  try {
+    const batch = writeBatch(db);
+    const col = wordsRef(auth.currentUser.uid);
+
+    wordsArray.forEach(word => {
+      const ref = doc(col, word.id);
+      batch.set(ref, word, { merge: true });
+    });
+
+    await batch.commit();
+    console.log(`✅ Batch сохранено ${wordsArray.length} слов`);
+  } catch (e) {
+    console.error('❌ Batch ошибка:', e);
+    throw e;
+  }
+}
+
+// ============================================================
+// СТАРЫЕ ФУНКЦИИ (оставлены для совместимости, но не используются)
+// ============================================================
+
 export function subscribeToWords(callback) {
+  console.warn('⚠️ subscribeToWords устарела, используй loadWordsOnce');
   if (unsubscribe) unsubscribe();
   if (!auth.currentUser) {
     console.log('No user for subscription');
