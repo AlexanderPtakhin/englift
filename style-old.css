@@ -1,52 +1,3 @@
-/* Loading state для устранения мерцания темы */
-body.loading main,
-body.loading header {
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.3s ease,
-    visibility 0.3s ease;
-}
-
-/* Auth gate показываем только если нет пользователя И еще в загрузке */
-body.loading:not(.authenticated) .auth-gate {
-  display: flex;
-}
-
-body.loading.authenticated .auth-gate {
-  display: none;
-}
-
-body:not(.loading) main,
-body:not(.loading) header {
-  opacity: 1;
-  visibility: visible;
-  transition:
-    opacity 0.3s ease,
-    visibility 0.3s ease;
-}
-
-body:not(.loading) .auth-gate {
-  display: none;
-}
-
-/* Убираем visibility: hidden трюк для темы */
-html {
-  transition: none;
-}
-
-html.dark {
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
-}
-
-html:not(.dark) {
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
-}
-
 :root {
   --primary: #2563eb;
   --primary-light: #60a5fa;
@@ -64,7 +15,7 @@ html:not(.dark) {
   --shadow-hover: 0 8px 30px rgba(108, 99, 255, 0.18);
 }
 
-html.dark {
+body.dark {
   --primary: #60a5fa;
   --primary-light: #93c5fd;
   --bg: #13121f;
@@ -382,15 +333,13 @@ button {
   }
 }
 
-/* Мгновенное переключение темы без мерцания */
-html {
-  transition: none !important;
-}
-
 body {
   font-family: 'Nunito', sans-serif;
   background: var(--bg);
   color: var(--text);
+  transition:
+    background 0.3s,
+    color 0.3s;
   min-height: 100vh;
 }
 
@@ -1111,45 +1060,37 @@ textarea {
 }
 
 .pill {
-  background: var(--card);
+  padding: 0.4rem 0.9rem;
   border: 2px solid var(--border);
+  background: var(--card);
   border-radius: 20px;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.8rem;
-  font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
-  outline: none;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: var(--muted);
-  flex: none;
-  min-width: auto;
-  text-align: left;
+  transition: all 0.18s;
 }
 
 .pill:hover,
 .pill.active {
   border-color: var(--primary);
-  color: var(--primary);
+  background: var(--primary);
+  color: #fff;
 }
 
-.pill:hover .material-symbols-outlined,
-.pill.active .material-symbols-outlined {
-  color: var(--primary);
-}
-
-.pill .material-symbols-outlined {
-  font-size: 0.9rem;
-  display: block;
+.pill:hover .list-icon,
+.pill:hover .learning-icon,
+.pill.active .list-icon,
+.pill.active .learning-icon,
+.pill:hover .done-icon,
+.pill.active .done-icon {
+  color: #fff;
 }
 
 .words-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.2rem;
-  will-change: contents;
 }
 
 .word-card {
@@ -1189,16 +1130,19 @@ textarea {
 
 .pill .list-icon {
   font-size: 14px;
+  color: var(--muted);
   margin-right: 0;
 }
 
 .pill .done-icon {
   font-size: 14px;
+  color: var(--success);
   margin-right: 0;
 }
 
 .pill .learning-icon {
   font-size: 14px;
+  color: var(--muted);
   margin-right: 0;
 }
 
@@ -1533,7 +1477,7 @@ textarea {
   font-weight: 700;
 }
 
-html.dark .badge-learned {
+body.dark .badge-learned {
   background: #064e3b;
   color: #6ee7b7;
 }
@@ -2120,14 +2064,6 @@ html.dark .badge-learned {
 
 .flashcard-inner.flipped {
   transform: rotateY(180deg);
-}
-
-.flash-hint {
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.9rem;
-  padding: 1rem;
-  opacity: 0.7;
 }
 
 .card-face {
@@ -3468,7 +3404,7 @@ body:not(.authenticated) > main {
   display: none;
 }
 
-html.dark .no-speech {
+body.dark .no-speech {
   background: #451a03;
   color: #fcd34d;
 }
@@ -3640,11 +3576,11 @@ html.dark .no-speech {
 .stat-card.srs-hl {
   border: 2px solid var(--primary);
 }
-html.dark .due-now {
+body.dark .due-now {
   background: #450a0a;
   color: #fca5a5;
 }
-html.dark .due-soon {
+body.dark .due-soon {
   background: #451a03;
   color: #fcd34d;
 }
@@ -5040,12 +4976,13 @@ input:checked + .theme-slider:before {
   box-shadow: var(--shadow);
 }
 
-/* Daily Goals Styles - будут переработаны в стиле бейджей */
+/* Daily Goals Styles */
 .daily-goals-section {
   margin: 2rem 0;
   background: var(--card);
   padding: 1.5rem;
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 .goals-list {
@@ -5055,155 +4992,148 @@ input:checked + .theme-slider:before {
   margin-top: 1rem;
 }
 
-/* Ежедневные цели в стиле бейджей */
 .goal-item {
-  background: var(--card);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  padding: 1.5rem;
-  position: relative;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.2rem;
+  border-radius: 12px;
+  background: rgba(108, 99, 255, 0.05);
   transition: all 0.3s ease;
-  cursor: pointer;
+  border: 2px solid var(--border);
+}
+
+.goal-item:hover {
+  background: rgba(108, 99, 255, 0.1);
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.goal-header {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.goal-item::before {
+.goal-icon {
+  font-size: 1.8rem;
+  min-width: 40px;
+  text-align: center;
+  color: var(--primary);
+}
+
+.goal-text {
+  flex: 1;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.goal-progress {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.goal-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--success) 100%);
+  width: 0%;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 4px;
+  position: relative;
+}
+
+.goal-fill::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.goal-item:hover::before {
-  opacity: 0.1;
-}
-
-.goal-item.completed {
-  border-color: var(--primary);
   background: linear-gradient(
-    135deg,
-    rgba(108, 99, 255, 0.1),
-    rgba(96, 165, 250, 0.1)
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
   );
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(108, 99, 255, 0.4);
+  animation: shimmer 2s infinite;
 }
 
-.goal-item.completed:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(108, 99, 255, 0.5);
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
-.goal-item.locked {
-  opacity: 0.5;
-  filter: grayscale(1);
-  border-color: var(--border);
-}
-
-.goal-item.locked:hover {
-  opacity: 0.7;
-  filter: grayscale(0.8);
-  transform: translateY(-1px);
-}
-
-.goal-icon {
-  font-size: 2.2rem;
-  min-width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  transition: color 0.3s ease;
-}
-
-.goal-item.completed .goal-icon {
-  color: var(--primary);
-}
-
-.goal-content {
-  flex: 1;
+.goal-completed {
+  color: white;
+  border: 2px solid var(--success);
   position: relative;
-  z-index: 1;
-}
-
-.goal-name {
-  font-size: 1rem;
-  font-weight: 800;
-  margin-bottom: 0.3rem;
-  color: var(--muted);
-  line-height: 1.2;
-  transition: color 0.3s ease;
-}
-
-.goal-item.completed .goal-name {
-  color: var(--text);
-}
-
-.goal-desc {
-  font-size: 0.85rem;
-  color: var(--muted);
-  line-height: 1.3;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-
-.goal-item.completed .goal-desc {
-  color: var(--primary);
-}
-
-.goal-progress {
-  margin-top: 0.5rem;
-  width: 100%;
-}
-
-.goal-progress-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
   overflow: hidden;
-  margin-bottom: 0.25rem;
+  background: rgba(108, 99, 255, 0.05);
 }
 
-.goal-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  border-radius: 2px;
-  transition: width 0.3s ease;
+.goal-completed::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(34, 197, 94, 0.1) 0%,
+    transparent 70%
+  );
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.goal-item.locked .goal-progress-fill {
-  background: linear-gradient(90deg, var(--warning), #f59e0b);
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
 
-.goal-progress-text {
-  font-size: 0.85rem;
-  color: var(--muted);
-  font-weight: 600;
-  text-align: center;
+.goal-completed .goal-text {
+  color: var(--success);
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 
-.goal-item.completed .goal-progress-text {
+.goal-completed .goal-icon {
+  color: var(--success);
+}
+
+.goal-completed .goal-fill {
+  background: rgba(34, 197, 94, 0.3);
+  width: 100% !important;
+}
+
+.goal-counter {
+  font-weight: 800;
+  font-size: 1.4rem;
   color: var(--primary);
-  font-weight: 700;
+  text-align: center;
+  line-height: 1;
+  transition: all 0.3s ease;
 }
 
-/* Темная тема для ежедневных целей */
-html.dark .goal-item.locked .goal-progress-fill {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
-}
-
-html.dark .goal-item.locked .goal-progress-text {
-  color: #fbbf24;
+.goal-completed .goal-counter {
+  color: var(--success);
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 
 /* CEFR Levels Styles */
@@ -5254,17 +5184,4 @@ html.dark .goal-item.locked .goal-progress-text {
 .cefr-level small {
   color: var(--muted);
   font-size: 0.9rem;
-}
-
-/* WOTD smooth transitions */
-#wotd-wrap {
-  transition: opacity 0.3s ease;
-}
-
-#wotd-wrap.wotd-fade-out {
-  opacity: 0;
-}
-
-#wotd-wrap.wotd-fade-in {
-  opacity: 1;
 }

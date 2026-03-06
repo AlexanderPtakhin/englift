@@ -1,302 +1,45 @@
-import { auth } from './firebase.js';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-} from 'firebase/auth';
+import { supabase } from './supabase.js';
+import { saveUserData } from './db.js';
 
-// Функция для загрузки данных пользователя из Firebase
-async function loadUserDataFromFirebase() {
-  if (!window.authExports?.auth?.currentUser) return;
-
-  try {
-    const db = window.authExports?.db;
-    if (!db) return;
-
-    const userRef = window.authExports?.userRef(
-      window.authExports.auth.currentUser.uid,
-    );
-    if (!userRef) return;
-
-    const dbModule = await import('./db.js');
-    const userDoc = await dbModule.getDoc(userRef);
-    const userData = userDoc.data();
-
-    // Экспортируем loadWordsOnce для использования в auth.js
-    window.authExports.loadWordsOnce = dbModule.loadWordsOnce;
-
-    if (userData) {
-      // Загружаем XP данные
-      if (userData.xpData && window.updateXpData) {
-        console.log('Loading XP data from Firebase:', userData.xpData);
-        window.updateXpData(userData.xpData);
-      }
-
-      // Загружаем streak данные
-      if (userData.streak && window.updateStreak) {
-        console.log('Loading streak data from Firebase:', userData.streak);
-        window.updateStreak(userData.streak);
-      }
-
-      // Загружаем ежедневный прогресс
-      if (userData.dailyProgress && window.updateDailyProgress) {
-        console.log(
-          'Loading daily progress from Firebase:',
-          userData.dailyProgress,
-        );
-        window.updateDailyProgress(userData.dailyProgress);
-      }
-
-      // Загружаем счетчик повторений за сегодня
-      if (userData.todayReviewedCount !== undefined) {
-        window.todayReviewedCount = userData.todayReviewedCount;
-      }
-      if (userData.lastReviewedReset) {
-        window.lastReviewedReset = userData.lastReviewedReset;
-      }
-
-      // Загружаем настройки пользователя
-      if (window.loadUserSettings) {
-        window.loadUserSettings(userData);
-      }
-
-      // Загружаем настройки речи
-      if (userData.speechCfg) {
-        console.log('Loading speech config from Firebase:', userData.speechCfg);
-        window.speechCfg = userData.speechCfg;
-        // Сохраняем только локально, без вызова saveSpeech
-        localStorage.setItem(
-          'englift_speech',
-          JSON.stringify(userData.speechCfg),
-        );
-      }
-
-      // Загружаем тему
-      if (userData.darkTheme !== undefined) {
-        console.log('Loading theme from Firebase:', userData.darkTheme);
-        localStorage.setItem('engliftDark', userData.darkTheme.toString());
-
-        // Вызываем applyDark для применения темы
-        if (typeof window.applyDark === 'function') {
-          console.log(
-            'Calling applyDark from Firebase with:',
-            userData.darkTheme,
-          );
-          window.applyDark(userData.darkTheme);
-        } else {
-          console.log('applyDark function not available - applying directly');
-          // Применяем тему напрямую через DOM
-          if (window.applyDark) {
-            window.applyDark(userData.darkTheme);
-          } else {
-            document.body.classList.toggle('dark', userData.darkTheme);
-          }
-          console.log(
-            'Dark class applied directly. Body classes:',
-            document.body.className,
-          );
-          console.log(
-            'Has dark class:',
-            document.body.classList.contains('dark'),
-          );
-
-          // Обновляем UI элементы
-          setTimeout(() => {
-            const darkToggle = document.getElementById('dark-toggle');
-            if (darkToggle) {
-              const icon = userData.darkTheme ? 'sunny' : 'dark_mode';
-              darkToggle.innerHTML = `<span class="material-symbols-outlined">${icon}</span>`;
-            }
-
-            const themeCheckbox = document.getElementById('theme-checkbox');
-            if (themeCheckbox) {
-              themeCheckbox.checked = userData.darkTheme;
-            }
-
-            const themeIcon = document.querySelector(
-              '#dropdown-theme-toggle .material-symbols-outlined',
-            );
-            if (themeIcon) {
-              const icon = userData.darkTheme ? 'sunny' : 'dark_mode';
-              themeIcon.textContent = icon;
-            }
-
-            console.log('Theme applied directly via DOM');
-          }, 100);
-        }
-      }
-    } else {
-      console.log('No user data found, using defaults');
-    }
-
-    // Пересчитываем уровни CEFR после загрузки всех данных
-    if (window.recalculateCefrLevels) {
-      window.recalculateCefrLevels();
-    }
-  } catch (error) {
-    console.error('Error loading/saving user data from Firebase:', error);
-  }
-}
-
-// ============================================================
-// DOM ЭЛЕМЕНТЫ И ПЕРЕМЕННЫЕ (глобальные для модуля)
-// ============================================================
-let isRegisterMode = false;
-let lastUserId = sessionStorage.getItem('englift_lastUserId') || null;
-
+// DOM элементы (оставляем те же)
 const authGate = document.getElementById('auth-gate');
-const gateEmailInput = document.getElementById('gate-email');
-const gatePasswordInput = document.getElementById('gate-password');
-const gateConfirmPasswordInput = document.getElementById(
-  'gate-confirm-password',
-);
+const gateEmail = document.getElementById('gate-email');
+const gatePassword = document.getElementById('gate-password');
+const gateConfirm = document.getElementById('gate-confirm-password');
 const gateConfirmGroup = document.getElementById('gate-confirm-group');
-const gatePasswordToggle = document.getElementById('gate-password-toggle');
-const gateConfirmToggle = document.getElementById('gate-confirm-toggle');
-const gateSubmitBtn = document.getElementById('gate-submit-btn');
-const gateToggleBtn = document.getElementById('gate-toggle-btn');
-const gateErrorEl = document.getElementById('gate-error');
-
+const gateSubmit = document.getElementById('gate-submit-btn');
+const gateToggle = document.getElementById('gate-toggle-btn');
+const gateError = document.getElementById('gate-error');
+const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+const resetModal = document.getElementById('reset-password-modal');
+const resetEmail = document.getElementById('reset-email');
+const sendResetBtn = document.getElementById('send-reset-btn');
+const cancelResetBtn = document.getElementById('cancel-reset-btn');
 const emailNotVerifiedBlock = document.getElementById('email-not-verified');
 const unverifiedEmailSpan = document.getElementById('unverified-email');
 const resendEmailBtn = document.getElementById('resend-email-btn');
 const logoutFromUnverifiedBtn = document.getElementById(
   'logout-from-unverified',
 );
-
 const userMenu = document.getElementById('user-menu');
 const userAvatar = document.getElementById('user-avatar');
 const userDropdown = document.getElementById('user-dropdown');
 const dropdownEmail = document.getElementById('dropdown-email');
 const dropdownLogout = document.getElementById('dropdown-logout');
 
-let emailCheckInterval = null;
+let isRegisterMode = false;
+let hideTimeout;
 
-// ============================================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ============================================================
-function stopEmailCheck() {
-  if (emailCheckInterval) {
-    clearInterval(emailCheckInterval);
-    emailCheckInterval = null;
-  }
-}
-
-async function handleAuth(
-  email,
-  password,
-  confirmPassword,
-  errorElement,
-  submitButton,
-  isGate = false,
-) {
-  if (!email || !password) return;
-  if (isRegisterMode && password !== confirmPassword) {
-    errorElement.textContent = 'Пароли не совпадают';
-    return;
-  }
-  errorElement.textContent = '';
-  submitButton.disabled = true;
-  submitButton.textContent = '...';
-
-  try {
-    if (isRegisterMode) {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
-      try {
-        await sendEmailVerification(userCredential.user);
-        window.toast?.(
-          '📧 Письмо для подтверждения отправлено на ваш email. Проверьте почту (и папку "Спам").',
-          'success',
-        );
-      } catch (emailError) {
-        console.error('Error sending verification email:', emailError);
-        window.toast?.(
-          '⚠️ Регистрация успешна, но не удалось отправить письмо подтверждения. Ошибка: ' +
-            emailError.message,
-          'warning',
-        );
-      }
-    } else {
-      await signInWithEmailAndPassword(auth, email, password);
-    }
-
-    if (isGate) {
-      clearGateForm();
-      hideAuthGate();
-    } else {
-      // closeModal(); // Removed - function doesn't exist
-    }
-  } catch (err) {
-    const msgs = {
-      'auth/email-already-in-use': 'Этот email уже занят',
-      'auth/invalid-email': 'Неверный формат email',
-      'auth/weak-password': 'Пароль слишком короткий (мин. 6 символов)',
-      'auth/invalid-credential': 'Неверный email или пароль',
-      'auth/user-not-found': 'Пользователь не найден',
-      'auth/wrong-password': 'Неверный пароль',
-    };
-    errorElement.textContent = msgs[err.code] || err.message;
-  } finally {
-    submitButton.disabled = false;
-    submitButton.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-  }
-}
-
-function toggleAuthMode(isGate = false) {
-  isRegisterMode = !isRegisterMode;
-  if (isGate) {
-    gateSubmitBtn.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-    gateToggleBtn.textContent = isRegisterMode
-      ? 'Уже есть аккаунт? Войти'
-      : 'Нет аккаунта? Зарегистрироваться';
-    gateErrorEl.textContent = '';
-  }
-  toggleConfirmPassword(isRegisterMode);
-}
-
-function togglePasswordVisibility(input, toggleBtn) {
-  if (input.type === 'password') {
-    input.type = 'text';
-    toggleBtn.innerHTML =
-      '<span class="material-symbols-outlined">visibility_off</span>';
-  } else {
-    input.type = 'password';
-    toggleBtn.innerHTML =
-      '<span class="material-symbols-outlined">visibility</span>';
-  }
-}
-
-function toggleConfirmPassword(show) {
-  if (show) {
-    gateConfirmGroup.style.display = 'block';
-  } else {
-    gateConfirmGroup.style.display = 'none';
-    gateConfirmPasswordInput.value = '';
-  }
-}
-
+// Вспомогательные функции (те же)
 function showAuthGate() {
   authGate.classList.remove('hidden');
   document.body.classList.remove('authenticated');
-  gateEmailInput.focus();
+  gateEmail.focus();
 }
 
 function hideAuthGate() {
   authGate.classList.add('hidden');
-}
-
-function clearGateForm() {
-  gateEmailInput.value = '';
-  gatePasswordInput.value = '';
-  gateConfirmPasswordInput.value = '';
-  gateErrorEl.textContent = '';
+  document.body.classList.add('authenticated');
 }
 
 function showEmailNotVerified(email) {
@@ -312,25 +55,135 @@ function hideEmailNotVerified() {
   if (emailNotVerifiedBlock) emailNotVerifiedBlock.style.display = 'none';
 }
 
-async function resendVerificationEmail() {
-  const user = auth.currentUser;
-  if (user && !user.emailVerified) {
-    try {
-      await sendEmailVerification(user);
-      window.toast?.(
-        '✉️ Письмо отправлено повторно. Проверьте почту.',
-        'success',
-      );
-    } catch (error) {
-      window.toast?.('❌ Ошибка отправки письма: ' + error.message, 'danger');
-    }
+function toggleConfirmPassword(show) {
+  if (show) {
+    gateConfirmGroup.style.display = 'block';
+  } else {
+    gateConfirmGroup.style.display = 'none';
+    gateConfirm.value = '';
   }
 }
 
-// ============================================================
-// ОБРАБОТЧИКИ МЕНЮ
-// ============================================================
-let hideTimeout;
+function clearGateForm() {
+  gateEmail.value = '';
+  gatePassword.value = '';
+  gateConfirm.value = '';
+  gateError.textContent = '';
+}
+
+// Обработка входа/регистрации
+async function handleAuth(email, password, confirm, isRegister) {
+  if (!email || !password) return;
+  if (isRegister && password !== confirm) {
+    gateError.textContent = 'Пароли не совпадают';
+    return;
+  }
+  gateError.textContent = '';
+  gateSubmit.disabled = true;
+  gateSubmit.textContent = '...';
+
+  try {
+    if (isRegister) {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      if (data.user) {
+        // Создаём профиль в таблице profiles
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({ id: data.user.id });
+        if (profileError)
+          console.error('Error creating profile:', profileError);
+        window.toast?.(
+          '📧 Письмо для подтверждения отправлено на ваш email. Проверьте почту (и папку "Спам").',
+          'success',
+        );
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+    }
+    clearGateForm();
+    hideAuthGate();
+  } catch (err) {
+    const msgs = {
+      email_already_exists: 'Этот email уже занят',
+      invalid_email: 'Неверный формат email',
+      weak_password: 'Пароль слишком короткий (мин. 6 символов)',
+      invalid_credentials: 'Неверный email или пароль',
+    };
+    gateError.textContent = msgs[err.message] || err.message;
+  } finally {
+    gateSubmit.disabled = false;
+    gateSubmit.textContent = isRegister ? 'Создать аккаунт' : 'Войти';
+  }
+}
+
+// Переключение режима (вход/регистрация)
+gateToggle.addEventListener('click', () => {
+  isRegisterMode = !isRegisterMode;
+  gateSubmit.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
+  gateToggle.textContent = isRegisterMode
+    ? 'Уже есть аккаунт? Войти'
+    : 'Нет аккаунта? Зарегистрироваться';
+  toggleConfirmPassword(isRegisterMode);
+  gateError.textContent = '';
+});
+
+// Обработчик кнопки отправки
+gateSubmit.addEventListener('click', () => {
+  handleAuth(
+    gateEmail.value.trim(),
+    gatePassword.value.trim(),
+    gateConfirm.value.trim(),
+    isRegisterMode,
+  );
+});
+
+// Забыли пароль
+forgotPasswordBtn.addEventListener('click', () => {
+  resetModal.classList.add('open');
+  resetEmail.focus();
+});
+
+sendResetBtn.addEventListener('click', async () => {
+  const email = resetEmail.value.trim();
+  if (!email) {
+    window.toast?.('Введите email', 'warning');
+    return;
+  }
+  sendResetBtn.disabled = true;
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw error;
+    window.toast?.(
+      'Письмо для сброса пароля отправлено! Проверьте почту.',
+      'success',
+    );
+    resetModal.classList.remove('open');
+  } catch (err) {
+    window.toast?.(err.message, 'danger');
+  } finally {
+    sendResetBtn.disabled = false;
+  }
+});
+
+cancelResetBtn.addEventListener('click', () =>
+  resetModal.classList.remove('open'),
+);
+
+// Выход
+dropdownLogout.addEventListener('click', async () => {
+  window.currentUserId = null; // Очищаем ID пользователя
+  profileLoaded = false; // Сбрасываем флаг загрузки профиля
+  isProfileLoading = false; // Сбрасываем флаг загрузки
+  lastLoadedUserId = null; // Сбрасываем ID последнего загруженного пользователя
+  await supabase.auth.signOut();
+});
+
+// Меню пользователя
 userMenu.addEventListener('mouseenter', () => {
   clearTimeout(hideTimeout);
   userDropdown.style.display = 'block';
@@ -340,224 +193,326 @@ userMenu.addEventListener('mouseleave', () => {
     userDropdown.style.display = 'none';
   }, 200);
 });
-userDropdown.addEventListener('mouseenter', () => {
-  clearTimeout(hideTimeout);
-});
-userDropdown.addEventListener('mouseleave', () => {
-  userDropdown.style.display = 'none';
-});
-
-dropdownLogout.addEventListener('click', () => {
-  stopEmailCheck();
-  signOut(auth);
-});
-
-// ============================================================
-// ОБРАБОТЧИКИ ФОРМ
-// ============================================================
-gateToggleBtn.addEventListener('click', () => toggleAuthMode(true));
-gateSubmitBtn.addEventListener('click', () => {
-  handleAuth(
-    gateEmailInput.value.trim(),
-    gatePasswordInput.value.trim(),
-    gateConfirmPasswordInput.value.trim(),
-    gateErrorEl,
-    gateSubmitBtn,
-    true,
-  );
-});
-gateEmailInput.addEventListener('keypress', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    gatePasswordInput.focus();
-  }
-});
-gatePasswordToggle.addEventListener('click', () =>
-  togglePasswordVisibility(gatePasswordInput, gatePasswordToggle),
-);
-gateConfirmToggle.addEventListener('click', () =>
-  togglePasswordVisibility(gateConfirmPasswordInput, gateConfirmToggle),
+userDropdown.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+userDropdown.addEventListener(
+  'mouseleave',
+  () => (userDropdown.style.display = 'none'),
 );
 
-if (resendEmailBtn) {
-  resendEmailBtn.addEventListener('click', resendVerificationEmail);
-}
-if (logoutFromUnverifiedBtn) {
-  logoutFromUnverifiedBtn.addEventListener('click', () => {
-    stopEmailCheck();
-    signOut(auth);
-  });
-}
+// Глобальный флаг
+let profileLoaded = false;
+let profileLoadPromise = null; // Добавляем промис-флаг
 
-// ============================================================
-// СЛУШАЕМ СОСТОЯНИЕ АВТОРИЗАЦИИ
-// ============================================================
-onAuthStateChanged(auth, async user => {
-  const newUid = user?.uid || null;
+// Следим за состоянием аутентификации
+supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log('🔐 Auth state changed:', event, session?.user?.id || 'no user');
 
-  if (newUid !== lastUserId) {
-    if (window.clearUserData) window.clearUserData();
-    if (window.loadData) window.loadData();
-    if (window.renderXP) window.renderXP();
-    if (window.renderBadges) window.renderBadges();
-    if (window.renderStats) window.renderStats();
+  const user = session?.user;
 
-    lastUserId = newUid;
-    if (newUid) {
-      sessionStorage.setItem('englift_lastUserId', newUid);
-    } else {
-      sessionStorage.removeItem('englift_lastUserId');
-    }
-  }
-
-  if (user) {
-    if (user.emailVerified) {
-      // Сначала загружаем данные (тему, XP, streak и т.д.)
-      await loadUserDataFromFirebase();
-
-      // Теперь скрываем модалку и показываем приложение
-      hideEmailNotVerified();
-      hideAuthGate();
-      document.body.classList.add('authenticated');
-
-      // Обновляем меню
-      dropdownEmail.textContent = user.email;
-
-      // Простая и надёжная иконка
-      userAvatar.innerHTML =
-        '<span class="material-symbols-outlined">person</span>';
-      userAvatar.style.display = 'flex';
-      userAvatar.style.alignItems = 'center';
-      userAvatar.style.justifyContent = 'center';
-
-      const localWords =
-        typeof window._getLocalWords === 'function'
-          ? window._getLocalWords()
-          : [];
-
-      console.log('Local words before sync:', localWords?.length || 0);
-
-      if (localWords && Array.isArray(localWords) && localWords.length > 0) {
-        try {
-          console.log('Starting sync with', localWords.length, 'words');
-          const syncResult =
-            await window.authExports.syncLocalWordsWithFirestore(localWords);
-          console.log('Sync result:', syncResult);
-
-          if (syncResult?.success && syncResult.mergedWords) {
-            console.log(
-              'Sync successful, merged',
-              syncResult.mergedWords.length,
-              'words',
-            );
-            window._setWords(syncResult.mergedWords);
-          } else {
-            console.log('Sync failed or no merged words, using local words');
-            window._setWords(localWords);
-          }
-        } catch (e) {
-          console.error('Ошибка синхронизации слов:', e);
-          // Не показываем toast при ошибке синхронизации при входе
-        }
-      } else {
-        console.log('No local words to sync');
-      }
-
-      // Загружаем слова одноразово (offline-first)
-      window.authExports.loadWordsOnce(firestoreWords => {
-        if (window._setWords) window._setWords(firestoreWords);
+  // === ЗАПУСК ПРОФИЛЯ ===
+  if (event === 'INITIAL_SESSION' && user && user.email_confirmed_at) {
+    if (!profileLoadPromise) {
+      profileLoadPromise = loadUserProfile(user).finally(() => {
+        profileLoaded = true;
+        profileLoadPromise = null;
       });
-
-      stopEmailCheck();
-    } else {
-      hideAuthGate();
-      document.body.classList.remove('authenticated');
-      showEmailNotVerified(user.email);
-
-      dropdownEmail.textContent = user.email;
-      userAvatar.innerHTML =
-        '<span class="material-symbols-outlined">person</span>';
-
-      if (window.clearUserData) window.clearUserData();
-      window.authExports.unsubscribeWords();
     }
-  } else {
-    hideEmailNotVerified();
-    showAuthGate(); // убрать setTimeout
-    document.body.classList.remove('authenticated');
+  } else if (
+    event === 'SIGNED_IN' &&
+    user &&
+    user.email_confirmed_at &&
+    !profileLoaded &&
+    !profileLoadPromise
+  ) {
+    console.log('⚠️ INITIAL_SESSION был пустым → загружаем по SIGNED_IN');
+    profileLoadPromise = loadUserProfile(user).finally(() => {
+      profileLoaded = true;
+      profileLoadPromise = null;
+    });
+  } else if (event === 'TOKEN_REFRESHED' && user) {
+    console.log('✅ TOKEN_REFRESHED — обновляем профиль');
+    await loadUserProfile(user);
+  } else if (event === 'SIGNED_IN') {
+    console.log('SIGNED_IN пришёл — профиль уже загружен или загружается');
+  }
 
-    dropdownEmail.textContent = '';
+  // === ОБНОВЛЕНИЕ UI ===
+  if (user && user.email_confirmed_at) {
+    hideEmailNotVerified();
+    hideAuthGate();
+    document.body.classList.add('authenticated');
+    dropdownEmail.textContent = user.email;
     userAvatar.innerHTML =
       '<span class="material-symbols-outlined">person</span>';
 
-    if (window.clearUserData) window.clearUserData();
-    window.authExports.unsubscribeWords();
-    stopEmailCheck();
+    window.renderBadges?.();
+
+    // Загружаем слова ТОЛЬКО если профиль уже загружен
+    if (profileLoaded) {
+      window.authExports?.loadWordsOnce(remoteWords => {
+        const localWords = window.words || [];
+        const merged = window.mergeWords
+          ? window.mergeWords(localWords, remoteWords)
+          : remoteWords;
+        window.words = merged;
+        localStorage.setItem('englift_words', JSON.stringify(window.words));
+
+        // НЕ вызываем рендер здесь - loadUserProfile сделает это через onProfileFullyLoaded
+        console.log(
+          '📚 Слова загружены, рендер будет через onProfileFullyLoaded',
+        );
+      });
+    }
+  } else if (user && !user.email_confirmed_at) {
+    hideAuthGate();
+    document.body.classList.remove('authenticated');
+    showEmailNotVerified(user.email);
+  } else if (event === 'SIGNED_OUT') {
+    hideEmailNotVerified();
+    showAuthGate();
+    document.body.classList.remove('authenticated');
+    window.clearUserData?.();
+    dropdownEmail.textContent = '';
+    userAvatar.innerHTML =
+      '<span class="material-symbols-outlined">person</span>';
+  } else {
+    hideEmailNotVerified();
+    showAuthGate();
+    document.body.classList.remove('authenticated');
+    dropdownEmail.textContent = '';
+    userAvatar.innerHTML =
+      '<span class="material-symbols-outlined">person</span>';
+    window.clearUserData?.();
   }
 });
 
-// ============================================================
-// PASSWORD RESET FUNCTIONALITY
-// ============================================================
-const forgotPasswordBtn = document.getElementById('forgot-password-btn');
-const resetModal = document.getElementById('reset-password-modal');
-const resetEmail = document.getElementById('reset-email');
-const sendResetBtn = document.getElementById('send-reset-btn');
-const cancelResetBtn = document.getElementById('cancel-reset-btn');
+// Повторная отправка подтверждения
+resendEmailBtn.addEventListener('click', async () => {
+  try {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (user) {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+      });
+      if (error) window.toast?.('Ошибка: ' + error.message, 'danger');
+      else window.toast?.('Письмо отправлено на ' + user.email, 'success');
+    } else {
+      window.toast?.('Пользователь не найден', 'warning');
+    }
+  } catch (error) {
+    console.warn('Ошибка при повторной отправке email:', error.message);
+    window.toast?.('Ошибка сети при отправке email', 'danger');
+  }
+});
 
-if (forgotPasswordBtn) {
-  forgotPasswordBtn.addEventListener('click', () => {
-    resetModal.classList.add('open');
-    resetEmail.value = ''; // очистить поле
-    resetEmail.focus();
-  });
-}
+logoutFromUnverifiedBtn.addEventListener('click', () => {
+  window.currentUserId = null; // Очищаем ID пользователя
+  profileLoaded = false; // Сбрасываем флаг загрузки профиля
+  isProfileLoading = false; // Сбрасываем флаг загрузки
+  lastLoadedUserId = null; // Сбрасываем ID последнего загруженного пользователя
+  supabase.auth.signOut();
+});
 
-if (cancelResetBtn) {
-  cancelResetBtn.addEventListener('click', () => {
-    resetModal.classList.remove('open');
-  });
-}
+// Защита от повторных вызовов загрузки профиля
+let isProfileLoading = false;
+let lastLoadedUserId = null;
 
-if (sendResetBtn) {
-  sendResetBtn.addEventListener('click', async () => {
-    const email = resetEmail.value.trim();
-    if (!email) {
-      window.toast?.('Введите email', 'warning');
+// Функция загрузки профиля (будет использоваться внутри)
+async function loadUserProfile(user) {
+  if (!user || !user.id) {
+    console.warn('loadUserProfile: нет пользователя');
+    return;
+  }
+
+  if (isProfileLoading || lastLoadedUserId === user.id) {
+    console.log(
+      ' Профиль уже загружается / загружен для этого пользователя - ПРОПУСКАЕМ',
+    );
+    return;
+  }
+
+  isProfileLoading = true;
+  lastLoadedUserId = user.id;
+  window.currentUserId = user.id; // Устанавливаем глобальный ID пользователя
+
+  try {
+    console.log(' loadUserProfile для', user.id);
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    // Профиль не найден – создаём и сразу сохраняем локальные данные
+    if (error && error.code === 'PGRST116') {
+      console.log(' Профиль не найден, создаём новый');
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({ id: user.id });
+      if (insertError) {
+        console.error('Error creating profile:', insertError);
+        return;
+      }
+
+      // Сохраняем текущие локальные данные (если есть)
+      const initialData = {
+        xp: window.xpData?.xp || 0,
+        level: window.xpData?.level || 1,
+        badges: window.xpData?.badges || [],
+        streak: window.streak?.count || 0,
+        last_streak_date: window.streak?.lastDate || null,
+        daily_progress: window.dailyProgress || {
+          add_new: 0,
+          review: 0,
+          practice_time: 0,
+          completed: false,
+          lastReset: new Date().toISOString().split('T')[0],
+        },
+        today_reviewed_count: window.todayReviewedCount || 0,
+        last_reviewed_reset: window.lastReviewedReset || null,
+        speech_cfg: window.speech_cfg || {},
+        user_settings: window.user_settings || {},
+        dark_theme:
+          document.documentElement.classList.contains('dark') || false,
+      };
+      await saveUserData(user.id, initialData);
+      console.log(' Профиль создан и заполнен локальными данными');
+
+      // Загружаем слова (если ещё не загружены)
+      window.authExports.loadWordsOnce(remoteWords => {
+        const localWords = window.words || [];
+        const merged = window.mergeWords
+          ? window.mergeWords(localWords, remoteWords)
+          : remoteWords;
+        window.words = merged;
+        localStorage.setItem('englift_words', JSON.stringify(window.words));
+
+        if (window.refreshUI) {
+          window.refreshUI();
+        } else {
+          renderWords();
+          renderStats();
+          updateDueBadge();
+        }
+      });
+
+      window.onProfileFullyLoaded?.();
       return;
     }
 
-    sendResetBtn.disabled = true;
-    sendResetBtn.innerHTML =
-      '<span class="material-symbols-outlined">hourglass_empty</span>';
-
-    try {
-      await sendPasswordResetEmail(auth, email);
-      window.toast?.(
-        'Письмо для сброса пароля отправлено! Проверьте почту.',
-        'success',
-      );
-      resetModal.classList.remove('open');
-    } catch (error) {
-      console.error('Reset password error:', error);
-      let message = 'Ошибка при отправке';
-      if (error.code === 'auth/user-not-found') {
-        message = 'Пользователь с таким email не найден';
-      } else if (error.code === 'auth/invalid-email') {
-        message = 'Неверный формат email';
-      }
-      window.toast?.(message, 'danger');
-    } finally {
-      sendResetBtn.disabled = false;
-      sendResetBtn.innerHTML =
-        '<span class="material-symbols-outlined">check</span>';
+    if (error) {
+      console.error('Error loading profile:', error);
+      return;
     }
-  });
+
+    if (data) {
+      console.log(' Данные профиля загружены:', data);
+
+      // Умное слияние по updated_at
+      const serverUpdated = data.updated_at
+        ? new Date(data.updated_at).getTime()
+        : 0;
+      const localUpdated = window.lastProfileUpdate || 0;
+
+      console.log('🔄 Сравнение времени обновления профиля:');
+      console.log('  Сервер:', new Date(serverUpdated).toISOString());
+      console.log('  Локально:', new Date(localUpdated).toISOString());
+
+      if (serverUpdated > localUpdated) {
+        // Серверные данные новее – применяем их
+        console.log('🔄 Профиль на сервере новее, обновляем локальные данные');
+
+        window.updateXpData?.({
+          xp: data.xp || 0,
+          level: data.level || 1,
+          badges: data.badges || [],
+        });
+
+        window.updateStreak?.({
+          count: data.streak || 0,
+          lastDate: data.last_streak_date || null,
+        });
+
+        if (data.daily_progress) {
+          window.updateDailyProgress?.(data.daily_progress);
+        }
+
+        window.todayReviewedCount = data.today_reviewed_count ?? 0;
+        window.lastReviewedReset = data.last_reviewed_reset;
+
+        // Объединение настроек речи
+        if (data.speech_cfg) {
+          window.speech_cfg = { ...window.speech_cfg, ...data.speech_cfg };
+          console.log(' Настройки речи объединены:', window.speech_cfg);
+        }
+
+        // Объединение пользовательских настроек
+        if (data.user_settings) {
+          window.user_settings = {
+            ...window.user_settings,
+            ...data.user_settings,
+          };
+          console.log(
+            ' Пользовательские настройки объединены:',
+            window.user_settings,
+          );
+        }
+
+        // НЕ применяем тему здесь - она применится в onProfileFullyLoaded
+        localStorage.setItem('engliftDark', data.dark_theme ?? false);
+
+        // Обновляем время последнего обновления
+        window.lastProfileUpdate = serverUpdated;
+      } else {
+        // Локальные данные новее – отправляем их на сервер
+        console.log('🔄 Локальные данные новее, сохраняем профиль');
+        if (window.immediateSaveAllUserData) {
+          await window.immediateSaveAllUserData();
+        }
+      }
+
+      // Загрузка слов из Supabase
+      window.authExports.loadWordsOnce(remoteWords => {
+        const localWords = window.words || [];
+        const merged = window.mergeWords
+          ? window.mergeWords(localWords, remoteWords)
+          : remoteWords;
+        window.words = merged;
+        localStorage.setItem('englift_words', JSON.stringify(window.words));
+
+        if (window.refreshUI) {
+          window.refreshUI();
+        } else {
+          renderWords();
+          renderStats();
+          updateDueBadge();
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Ошибка в loadUserProfile:', err);
+  } finally {
+    isProfileLoading = false;
+  }
+
+  window.onProfileFullyLoaded?.();
 }
 
-// Закрытие по клику на фон
-resetModal?.addEventListener('click', e => {
-  if (e.target === resetModal) {
-    resetModal.classList.remove('open');
+// Инициализация при загрузке страницы
+(async () => {
+  console.log(' Начинаем инициализацию auth...');
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  console.log(' getSession вернул:', session ? session.user.id : 'null');
+
+  if (session?.user && session.user.email_confirmed_at) {
+    console.log(' Есть активная сессия при старте - ждем onAuthStateChange');
+    // Не загружаем профиль здесь - onAuthStateChange сделает это
+  } else {
+    console.log(' Нет активной сессии при старте');
   }
-});
+})();

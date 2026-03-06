@@ -1,0 +1,9 @@
+{
+  "extends": "@parcel/config-default",
+  "transformers": {
+    "*.json": ["@parcel/transformer-json"]
+  },
+  "packagers": {
+    "*.json": "@parcel/packager-raw-url"
+  }
+}

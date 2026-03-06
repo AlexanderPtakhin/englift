@@ -1,35 +1,29 @@
-// Импортируем все необходимые модули
-import { auth, db } from './firebase.js';
+import { supabase } from './supabase.js';
 import {
-  saveAllWordsToDb,
-  subscribeToWords,
-  unsubscribeWords,
-  syncLocalWordsWithFirestore,
-  userRef,
+  saveWordToDb,
+  deleteWordFromDb,
+  saveUserData,
   loadWordsOnce,
   batchSaveWords,
 } from './db.js';
 
-// Экспортируем функции для использования в других скриптах
+// Экспортируем для использования в других скриптах
 window.authExports = {
-  auth,
-  db,
-  saveAllWordsToDb,
-  subscribeToWords,
-  unsubscribeWords,
-  syncLocalWordsWithFirestore,
-  userRef,
+  auth: supabase.auth,
+  saveWordToDb,
+  deleteWordFromDb,
+  saveUserData,
   loadWordsOnce,
   batchSaveWords,
 };
 
-// Ждем полной загрузки DOM перед загрузкой остальных скриптов
+// Ждём загрузки DOM и подключаем остальные скрипты
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    import('./script.js');
     import('./auth.js');
+    import('./script.js');
   });
 } else {
-  import('./script.js');
   import('./auth.js');
+  import('./script.js');
 }

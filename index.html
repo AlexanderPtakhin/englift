@@ -12,19 +12,65 @@
     <link rel="manifest" href="manifest.json" />
     <link
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap"
+    />
+    <link
+      rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Асинхронная загрузка xlsx.js с fallback -->
+    <script>
+      (function () {
+        const script = document.createElement('script');
+        script.src =
+          'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+        script.async = true;
+        script.onerror = function () {
+          console.warn(
+            '⚠️ Не удалось загрузить xlsx.js из CDN, импорт Excel будет недоступен',
+          );
+          window.xlsx = null; // Устанавливаем fallback
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
+
     <script src="api.js"></script>
     <script type="module" src="main.js"></script>
+
+    <style>
+      /* Убираем переход background-color чтобы избежать мерцания */
+    </style>
   </head>
-  <body>
+  <body class="loading">
+    <!-- Индикатор загрузки -->
+    <div
+      id="loading-indicator"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      "
+    >
+      <div class="loading-spinner"></div>
+      <div style="margin-top: 1rem; color: var(--text); font-size: 0.9rem">
+        Загружаем EngLift...
+      </div>
+    </div>
+
     <!-- AUTH GATE - обязательная авторизация -->
     <div class="auth-gate hidden" id="auth-gate">
       <div class="auth-gate-container">

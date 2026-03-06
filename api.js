@@ -57,8 +57,6 @@ const EMERGENCY_WORDS = [
  * если не получилось — fallback на встроенный WORD_BANK
  */
 async function loadWordBank() {
-  console.log('🔍 loadWordBank started');
-
   // Принудительная очистка кеша для отладки
   if (
     window.location.hostname === 'localhost' ||
@@ -77,9 +75,6 @@ async function loadWordBank() {
 
   // Принудительно очищаем кеш если версия изменилась
   if (cachedVersion !== CURRENT_BANK_VERSION) {
-    console.log(
-      `Версия изменилась с ${cachedVersion} на ${CURRENT_BANK_VERSION}, очищаем кеш`,
-    );
     localStorage.removeItem(BANK_CACHE_KEY);
     localStorage.removeItem(BANK_VERSION_KEY);
   }
@@ -130,8 +125,6 @@ async function loadWordBank() {
         };
       });
 
-      console.log(`Кэш: ${wordBank.length} слов (v${CURRENT_BANK_VERSION})`);
-      console.log('Пример конвертированного слова из кэша:', wordBank[0]);
       return wordBank;
     } catch (e) {
       console.warn('Кэш повреждён, загружаем заново');
@@ -140,8 +133,6 @@ async function loadWordBank() {
 
   // 2. Пробуем загрузить JSON
   try {
-    console.log('Пытаемся загрузить dictionary.json...');
-
     const response = await fetch('./dictionary.json', { cache: 'no-cache' });
 
     if (!response.ok) {
@@ -156,7 +147,6 @@ async function loadWordBank() {
     }
 
     const data = await response.json();
-    console.log('Dictionary loaded successfully');
 
     // Конвертируем примеры в новый формат если нужно
     wordBank = data.map(word => {
@@ -202,21 +192,9 @@ async function loadWordBank() {
       };
     });
 
-    console.log(`Успешно загружено ${wordBank.length} слов из dictionary.json`);
-    console.log('Пример конвертированного слова:', wordBank[0]);
-    console.log(
-      'Проверяем слово "stand" в загруженных данных:',
-      wordBank.find(w => w.en === 'stand') ? 'НАЙДЕНО' : 'НЕ НАЙДЕНО',
-    );
-    console.log(
-      'Первые 3 слова:',
-      wordBank
-        .slice(0, 3)
-        .map(w => `${w.en}: ${w.phonetic || 'нет транскрипции'}`),
-    );
-
     // Сохраняем в кэш
-    localStorage.setItem(BANK_CACHE_KEY, JSON.stringify(wordBank));
+    const dataJson = JSON.stringify(wordBank);
+    localStorage.setItem(BANK_CACHE_KEY, dataJson);
     localStorage.setItem(BANK_VERSION_KEY, CURRENT_BANK_VERSION);
 
     return wordBank;
@@ -231,7 +209,6 @@ async function loadWordBank() {
 
     // Emergency fallback
     wordBank = EMERGENCY_WORDS;
-    console.log(`Emergency fallback → ${wordBank.length} слов`);
     return wordBank;
   }
 }
@@ -886,23 +863,10 @@ async function getCompleteWordData(englishWord) {
 
     // Сначала проверяем локальный банк
     const bank = await loadWordBank();
-    console.log(`Ищем слово "${lowerWord}" в банке из ${bank.length} слов`);
-    console.log(
-      'Первые 3 слова в банке:',
-      bank.slice(0, 3).map(w => w.en),
-    );
 
     const localEntry = bank.find(w => w.en.toLowerCase() === lowerWord);
-    console.log(
-      `Результат поиска "${lowerWord}":`,
-      localEntry ? 'НАЙДЕНО' : 'НЕ НАЙДЕНО',
-    );
-    if (localEntry) {
-      console.log('Найденная запись:', localEntry);
-    }
 
     if (localEntry) {
-      console.log(`Found "${englishWord}" in local bank`);
       // Преобразуем примеры в новый формат
       const examples = localEntry.examples
         ? localEntry.examples.map(e =>
@@ -920,7 +884,6 @@ async function getCompleteWordData(englishWord) {
     }
 
     // Если не нашли в банке, идём в API
-    console.log(`"${englishWord}" not found in local bank, using API`);
 
     // Параллельно запрашиваем перевод и данные слова
     const [translationResult, wordData] = await Promise.all([
@@ -957,28 +920,20 @@ async function getRandomNewWord() {
     return null;
   }
 
-  console.log('Word bank loaded, length:', bank.length);
-
-  // Получаем слова пользователя из глобального массива (если доступен)
   const userWords = window.words || [];
-  console.log('User words length:', userWords.length);
 
   // Фильтруем слова, которых нет в словаре пользователя
   const available = bank.filter(
     item => !userWords.some(w => w.en.toLowerCase() === item.en.toLowerCase()),
   );
 
-  console.log('Available new words:', available.length);
-
   if (available.length === 0) {
     // Если все слова уже есть, возвращаем случайное из всего банка
     const randomWord = bank[Math.floor(Math.random() * bank.length)];
-    console.log('All words exist, returning random:', randomWord.en);
     return randomWord;
   }
 
   const randomWord = available[Math.floor(Math.random() * available.length)];
-  console.log('Returning new word:', randomWord.en);
   return randomWord;
 }
 

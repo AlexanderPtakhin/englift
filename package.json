@@ -6,6 +6,7 @@
     "build": "parcel build index.html --public-url / --no-scope-hoist"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
     "firebase": "^10.14.1"
   },
   "devDependencies": {
