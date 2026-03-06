@@ -366,7 +366,7 @@ logoutFromUnverifiedBtn.addEventListener('click', () => {
 let isProfileLoading = false;
 let lastLoadedUserId = null;
 
-// Функция загрузки профиля (будет использоваться внутри)
+// Функция загрузки профиля (простая версия)
 async function loadUserProfile(user) {
   if (!user || !user.id) {
     console.warn('loadUserProfile: нет пользователя');
@@ -374,76 +374,52 @@ async function loadUserProfile(user) {
   }
 
   if (isProfileLoading || lastLoadedUserId === user.id) {
-    console.log(
-      ' Профиль уже загружается / загружен для этого пользователя - ПРОПУСКАЕМ',
-    );
+    console.log('Профиль уже загружается / загружен – пропускаем');
     return;
   }
 
   isProfileLoading = true;
   lastLoadedUserId = user.id;
-  window.currentUserId = user.id; // Устанавливаем глобальный ID пользователя
+  window.currentUserId = user.id;
 
   try {
-    console.log(' loadUserProfile для', user.id);
+    console.log('loadUserProfile для', user.id);
 
-    const { data, error } = await supabase
+    // Загружаем профиль с сервера
+    const { data: serverProfile, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    // Профиль не найден – создаём и сразу сохраняем локальные данные
+    // Если профиля нет - создаём новый
     if (error && error.code === 'PGRST116') {
-      console.log(' Профиль не найден, создаём новый');
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert({ id: user.id });
-      if (insertError) {
-        console.error('Error creating profile:', insertError);
-        return;
-      }
-
-      // Сохраняем текущие локальные данные (если есть)
-      const initialData = {
-        xp: window.xpData?.xp || 0,
-        level: window.xpData?.level || 1,
-        badges: window.xpData?.badges || [],
-        streak: window.streak?.count || 0,
-        last_streak_date: window.streak?.lastDate || null,
-        daily_progress: window.dailyProgress || {
+      console.log('Профиль не найден, создаём новый');
+      await saveUserData(user.id, {
+        xp: 0,
+        level: 1,
+        badges: [],
+        streak: 0,
+        last_streak_date: null,
+        daily_progress: {
           add_new: 0,
           review: 0,
           practice_time: 0,
           completed: false,
           lastReset: new Date().toISOString().split('T')[0],
         },
-        today_reviewed_count: window.todayReviewedCount || 0,
-        last_reviewed_reset: window.lastReviewedReset || null,
-        speech_cfg: window.speech_cfg || {},
-        user_settings: window.user_settings || {},
-        dark_theme:
-          document.documentElement.classList.contains('dark') || false,
-      };
-      await saveUserData(user.id, initialData);
-      console.log(' Профиль создан и заполнен локальными данными');
+        today_reviewed_count: 0,
+        last_reviewed_reset: new Date().toISOString().split('T')[0],
+        speech_cfg: {},
+        user_settings: {},
+        dark_theme: false,
+      });
 
-      // Загружаем слова (если ещё не загружены)
+      // Загружаем слова
       window.authExports.loadWordsOnce(remoteWords => {
-        const localWords = window.words || [];
-        const merged = window.mergeWords
-          ? window.mergeWords(localWords, remoteWords)
-          : remoteWords;
-        window.words = merged;
+        window.words = remoteWords || [];
         localStorage.setItem('englift_words', JSON.stringify(window.words));
-
-        if (window.refreshUI) {
-          window.refreshUI();
-        } else {
-          renderWords();
-          renderStats();
-          updateDueBadge();
-        }
+        if (window.refreshUI) window.refreshUI();
       });
 
       window.onProfileFullyLoaded?.();
@@ -451,101 +427,48 @@ async function loadUserProfile(user) {
     }
 
     if (error) {
-      console.error('Error loading profile:', error);
+      console.error('Ошибка загрузки профиля:', error);
       return;
     }
 
-    if (data) {
-      console.log(' Данные профиля загружены:', data);
+    // Применяем данные с сервера
+    console.log('Данные профиля загружены с сервера:', serverProfile);
+    window.updateXpData?.({
+      xp: serverProfile.xp || 0,
+      level: serverProfile.level || 1,
+      badges: serverProfile.badges || [],
+    });
+    window.updateStreak?.({
+      count: serverProfile.streak || 0,
+      lastDate: serverProfile.last_streak_date || null,
+    });
+    if (serverProfile.daily_progress)
+      window.updateDailyProgress?.(serverProfile.daily_progress);
+    window.todayReviewedCount = serverProfile.today_reviewed_count ?? 0;
+    window.lastReviewedReset = serverProfile.last_reviewed_reset;
+    window.speech_cfg = serverProfile.speech_cfg || {};
+    window.user_settings = serverProfile.user_settings || {};
+    window.lastProfileUpdate = serverProfile.updated_at
+      ? new Date(serverProfile.updated_at).getTime()
+      : Date.now();
 
-      // Умное слияние по updated_at
-      const serverUpdated = data.updated_at
-        ? new Date(data.updated_at).getTime()
-        : 0;
-      const localUpdated = window.lastProfileUpdate || 0;
+    // Загружаем слова
+    window.authExports.loadWordsOnce(remoteWords => {
+      const localWords = window.words || [];
+      const merged = window.mergeWords
+        ? window.mergeWords(localWords, remoteWords)
+        : remoteWords;
+      window.words = merged;
+      localStorage.setItem('englift_words', JSON.stringify(window.words));
+      if (window.refreshUI) window.refreshUI();
+    });
 
-      console.log('🔄 Сравнение времени обновления профиля:');
-      console.log('  Сервер:', new Date(serverUpdated).toISOString());
-      console.log('  Локально:', new Date(localUpdated).toISOString());
-
-      if (serverUpdated > localUpdated) {
-        // Серверные данные новее – применяем их
-        console.log('🔄 Профиль на сервере новее, обновляем локальные данные');
-
-        window.updateXpData?.({
-          xp: data.xp || 0,
-          level: data.level || 1,
-          badges: data.badges || [],
-        });
-
-        window.updateStreak?.({
-          count: data.streak || 0,
-          lastDate: data.last_streak_date || null,
-        });
-
-        if (data.daily_progress) {
-          window.updateDailyProgress?.(data.daily_progress);
-        }
-
-        window.todayReviewedCount = data.today_reviewed_count ?? 0;
-        window.lastReviewedReset = data.last_reviewed_reset;
-
-        // Объединение настроек речи
-        if (data.speech_cfg) {
-          window.speech_cfg = { ...window.speech_cfg, ...data.speech_cfg };
-          console.log(' Настройки речи объединены:', window.speech_cfg);
-        }
-
-        // Объединение пользовательских настроек
-        if (data.user_settings) {
-          window.user_settings = {
-            ...window.user_settings,
-            ...data.user_settings,
-          };
-          console.log(
-            ' Пользовательские настройки объединены:',
-            window.user_settings,
-          );
-        }
-
-        // НЕ применяем тему здесь - она применится в onProfileFullyLoaded
-        localStorage.setItem('engliftDark', data.dark_theme ?? false);
-
-        // Обновляем время последнего обновления
-        window.lastProfileUpdate = serverUpdated;
-      } else {
-        // Локальные данные новее – отправляем их на сервер
-        console.log('🔄 Локальные данные новее, сохраняем профиль');
-        if (window.immediateSaveAllUserData) {
-          await window.immediateSaveAllUserData();
-        }
-      }
-
-      // Загрузка слов из Supabase
-      window.authExports.loadWordsOnce(remoteWords => {
-        const localWords = window.words || [];
-        const merged = window.mergeWords
-          ? window.mergeWords(localWords, remoteWords)
-          : remoteWords;
-        window.words = merged;
-        localStorage.setItem('englift_words', JSON.stringify(window.words));
-
-        if (window.refreshUI) {
-          window.refreshUI();
-        } else {
-          renderWords();
-          renderStats();
-          updateDueBadge();
-        }
-      });
-    }
+    window.onProfileFullyLoaded?.();
   } catch (err) {
     console.error('Ошибка в loadUserProfile:', err);
   } finally {
     isProfileLoading = false;
   }
-
-  window.onProfileFullyLoaded?.();
 }
 
 // Инициализация при загрузке страницы

@@ -14,35 +14,8 @@ let fileParsed = [];
 // Инициализация глобальных переменных
 window.words = [];
 
-// Время последнего обновления профиля для синхронизации
-let lastProfileUpdate = 0;
-window.lastProfileUpdate = lastProfileUpdate;
-
-// Блокировка для сохранения профиля
-let isSavingProfile = false;
-let pendingSaveData = false;
-let retryAttempts = 0;
-const MAX_RETRY_ATTEMPTS = 3;
-
-// Система повторных попыток при ошибках сети
-function scheduleRetrySave() {
-  if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-    console.warn('⚠️ Максимальное количество повторных попыток исчерпано');
-    retryAttempts = 0;
-    return;
-  }
-
-  retryAttempts++;
-  const delay = Math.min(1000 * Math.pow(2, retryAttempts), 30000); // Экспоненциальная задержка
-
-  console.log(
-    `🔄 Повторная попытка сохранения через ${delay / 1000} сек (попытка ${retryAttempts}/${MAX_RETRY_ATTEMPTS})`,
-  );
-
-  setTimeout(() => {
-    immediateSaveAllUserData();
-  }, delay);
-}
+// Intersection Observer для бесконечной прокрутки
+let intersectionObserver = null;
 
 // Пакетное сохранение слов
 let pendingWordUpdates = new Map(); // id -> слово
@@ -146,13 +119,137 @@ function debouncedSaveProfile() {
     }
     profileSaveTimeout = setTimeout(async () => {
       try {
-        await immediateSaveAllUserData();
+        await window.saveProfileData();
         resolve();
       } catch (error) {
         reject(error);
       }
-    }, 5000); // 5 секунд задержки как в решении
+    }, 5000); // 5 секунд задержки
   });
+}
+
+// Синхронизация слов с сервером
+async function syncWordsToServer() {
+  console.log('🔄 syncWordsToServer вызван');
+
+  if (!navigator.onLine) {
+    console.log('❌ Нет соединения с интернетом');
+    return;
+  }
+
+  if (!window.currentUserId) {
+    console.log('❌ Нет пользователя для синхронизации');
+    return;
+  }
+
+  try {
+    // Собираем все измененные слова
+    const dirtyWordsArray = Array.from(dirtyWords)
+      .map(id => {
+        const word = window.words.find(w => w.id === id);
+        return word ? { ...word } : null;
+      })
+      .filter(Boolean);
+
+    if (dirtyWordsArray.length === 0) {
+      console.log('📥 Нет измененных слов для синхронизации');
+      return;
+    }
+
+    console.log(`📤 Синхронизируем ${dirtyWordsArray.length} слов на сервер`);
+
+    // Сохраняем каждое слово отдельно
+    for (const word of dirtyWordsArray) {
+      try {
+        console.log(
+          `💾 Пытаемся сохранить слово "${word.en}" с ID: ${word.id}`,
+        );
+        console.log(
+          '📤 Данные слова для сохранения:',
+          JSON.stringify(word, null, 2),
+        );
+
+        // Проверяем существует ли слово уже в базе
+        const { data: existingWord } = await supabase
+          .from('user_words')
+          .select('id')
+          .eq('id', word.id)
+          .single();
+
+        if (existingWord) {
+          console.log('🔄 Слово уже существует, обновляем только статистику');
+          // Обновляем только статистику и updatedAt, а не всё слово целиком
+          const { error } = await supabase
+            .from('user_words')
+            .update({
+              stats: word.stats,
+              updatedAt: new Date().toISOString(),
+            })
+            .eq('id', word.id);
+
+          if (error) {
+            console.error(
+              `❌ Ошибка обновления статистики слова "${word.en}":`,
+              error,
+            );
+          } else {
+            console.log(`✅ Статистика слова "${word.en}" обновлена`);
+          }
+        } else {
+          console.log('🆕 Слово новое, сохраняем через INSERT');
+          // Если слова нет, используем INSERT
+          const { error } = await saveWordToDb(word);
+          if (error) {
+            console.error(`❌ Ошибка сохранения слова "${word.en}":`, error);
+          } else {
+            console.log(`✅ Слово "${word.en}" сохранено через INSERT`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Ошибка синхронизации слова "${word.en}":`, error);
+        console.error('📤 Детали ошибки:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          details: error.details,
+        });
+      }
+    }
+
+    // Очищаем очередь после успешной синхронизации
+    dirtyWords.clear();
+    console.log('✅ Синхронизация слов завершена успешно');
+  } catch (error) {
+    console.error('❌ Ошибка синхронизации слов:', error);
+  }
+}
+
+// Отложенная синхронизация при восстановлении соединения
+function scheduleDelayedSync(delay = 30000) {
+  console.log('🔄 scheduleDelayedSync вызван с задержкой:', delay);
+  console.log('🔄 Текущий syncTimeout:', syncTimeout);
+
+  if (syncTimeout) {
+    console.log('⚠️ Отменяем предыдущий таймер синхронизации');
+    clearTimeout(syncTimeout);
+  }
+
+  syncTimeout = setTimeout(async () => {
+    console.log('🔄 Запускаем отложенную синхронизацию слов');
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        await syncWordsToServer();
+        console.log('✅ Отложенная синхронизация завершена');
+      } else {
+        console.log('❌ Нет пользователя для синхронизации');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка отложенной синхронизации:', error);
+    }
+  }, delay);
+
+  console.log('🔄 Таймер синхронизации установлен на', delay, 'мс');
 }
 
 // Инициализация переменных ДО их использования
@@ -307,73 +404,45 @@ async function saveAllUserData() {
   });
 }
 
-// Немедленное сохранение всех данных профиля
-async function immediateSaveAllUserData() {
-  if (isSavingProfile) {
-    pendingSaveData = true;
+// Простая функция сохранения всего профиля
+async function saveProfileData() {
+  if (!window.currentUserId) {
+    console.log('❌ Нет currentUserId, не сохраняем профиль');
     return;
   }
-  isSavingProfile = true;
+
   try {
     const user = await getCurrentUser();
-    if (!user) return;
+    if (!user) {
+      console.log('❌ Нет пользователя, не сохраняем профиль');
+      return;
+    }
+
     const profileData = {
       xp: xpData.xp,
       level: xpData.level,
       badges: xpData.badges,
       streak: streak.count,
-      last_streak_date: streak.lastDate, // Уже в формате "YYYY-MM-DD"
+      last_streak_date: streak.lastDate,
       daily_progress: window.dailyProgress,
       last_reviewed_reset: window.lastReviewedReset,
       today_reviewed_count: window.todayReviewedCount,
       speech_cfg: speech_cfg,
       user_settings: window.user_settings,
       dark_theme: document.documentElement.classList.contains('dark'),
-      updated_at: new Date().toISOString(), // Для profiles используется snake_case
+      updated_at: new Date().toISOString(),
     };
-    console.log('💾 Немедленно сохраняем профиль:', {
-      daily_progress: window.dailyProgress,
-      xp: xpData.xp,
-      level: xpData.level,
-      streak: streak.count,
-    });
+
+    console.log('💾 Сохраняем профиль на сервер:', profileData);
     await saveUserData(user.id, profileData);
-    window.lastProfileUpdate = Date.now(); // Обновляем время последнего сохранения
-    console.log('✅ Профиль сохранён немедленно');
-    retryAttempts = 0; // Сбрасываем счетчик при успешном сохранении
+    console.log('✅ Профиль сохранён успешно');
   } catch (error) {
-    console.error('Ошибка немедленного сохранения профиля:', error);
-
-    // Проверяем, является ли ошибка сетевой
-    const isNetworkError =
-      error.message?.includes('fetch') ||
-      error.message?.includes('network') ||
-      error.code === 'NETWORK_ERROR' ||
-      !navigator.onLine;
-
-    if (isNetworkError) {
-      console.log('🌐 Обнаружена сетевая ошибка, планируем повторную попытку');
-      scheduleRetrySave();
-    } else {
-      // Для других ошибок показываем тост и сбрасываем счетчик
-      toast(
-        '⚠️ Не удалось сохранить прогресс. Проверьте соединение.',
-        'danger',
-      );
-      retryAttempts = 0;
-    }
-  } finally {
-    isSavingProfile = false;
-    if (pendingSaveData) {
-      pendingSaveData = false;
-      // Небольшая задержка перед повторной попыткой
-      setTimeout(() => immediateSaveAllUserData(), 100);
-    }
+    console.error('❌ Ошибка сохранения профиля:', error);
   }
 }
 
 // Экспортируем глобально
-window.immediateSaveAllUserData = immediateSaveAllUserData;
+window.saveProfileData = saveProfileData;
 
 // Сохранение через Beacon при закрытии
 window.addEventListener('beforeunload', () => {
@@ -678,8 +747,131 @@ const CONSTANTS = {
   SPEECH: {
     SIMILARITY_THRESHOLD: 0.8,
     RECOGNITION_TIMEOUT: 5000,
-    AUTO_LANG: 'en-US',
+    AUTO_LANG: 'ru-RU',
   },
+};
+
+// ============================================================
+// ПРОФИЛЬ: БЭКАП И МЕРЖ
+// ============================================================
+
+const PROFILE_BACKUP_KEY = 'englift_profile_backup';
+
+function backupProfileToLocalStorage() {
+  if (!window.currentUserId) return;
+  const profileData = {
+    xp: xpData.xp,
+    level: xpData.level,
+    badges: xpData.badges,
+    streak: streak.count,
+    last_streak_date: streak.lastDate,
+    daily_progress: window.dailyProgress,
+    last_reviewed_reset: window.lastReviewedReset,
+    today_reviewed_count: window.todayReviewedCount,
+    speech_cfg: speech_cfg,
+    user_settings: window.user_settings,
+    dark_theme: document.documentElement.classList.contains('dark'),
+    lastProfileUpdate: window.lastProfileUpdate || Date.now(),
+    updated_at: new Date().toISOString(), // для сравнения
+  };
+  localStorage.setItem(PROFILE_BACKUP_KEY, JSON.stringify(profileData));
+}
+
+// Мерж двух профилей: первый считается основным (более свежим), второй – дополнительным.
+// Возвращает новый объект, где для каждого поля выбирается значение из основного, если оно не undefined,
+// иначе из дополнительного. Для вложенных объектов (daily_progress, user_settings) делается поверхностное слияние.
+function mergeProfileData(primary, secondary) {
+  if (!secondary) return { ...primary };
+  const merged = { ...primary };
+
+  // Список полей, которые нужно мержить беря максимум
+  const maxFields = ['xp', 'level', 'streak', 'today_reviewed_count'];
+  maxFields.forEach(field => {
+    const primaryValue = merged[field] || 0;
+    const secondaryValue = secondary[field] || 0;
+    merged[field] = Math.max(primaryValue, secondaryValue);
+  });
+
+  // Список полей, которые не нужно глубоко мержить
+  const simpleFields = [
+    'last_streak_date',
+    'last_reviewed_reset',
+    'dark_theme',
+  ];
+  simpleFields.forEach(field => {
+    if (merged[field] === undefined && secondary[field] !== undefined) {
+      merged[field] = secondary[field];
+    }
+  });
+
+  // daily_progress – берём максимум по каждому счётчику (кроме lastReset)
+  if (merged.daily_progress && secondary.daily_progress) {
+    merged.daily_progress = {
+      add_new: Math.max(
+        merged.daily_progress.add_new || 0,
+        secondary.daily_progress.add_new || 0,
+      ),
+      review: Math.max(
+        merged.daily_progress.review || 0,
+        secondary.daily_progress.review || 0,
+      ),
+      practice_time: Math.max(
+        merged.daily_progress.practice_time || 0,
+        secondary.daily_progress.practice_time || 0,
+      ),
+      completed:
+        merged.daily_progress.completed || secondary.daily_progress.completed,
+      lastReset:
+        merged.daily_progress.lastReset ||
+        secondary.daily_progress.lastReset ||
+        new Date().toISOString().split('T')[0],
+    };
+  } else if (!merged.daily_progress && secondary.daily_progress) {
+    merged.daily_progress = secondary.daily_progress;
+  }
+
+  // speech_cfg и user_settings – поверхностное слияние (приоритет у primary)
+  merged.speech_cfg = {
+    ...(secondary.speech_cfg || {}),
+    ...(merged.speech_cfg || {}),
+  };
+  merged.user_settings = {
+    ...(secondary.user_settings || {}),
+    ...(merged.user_settings || {}),
+  };
+
+  // Обновляем время обновления на самое свежее
+  const primaryTime = primary.updated_at
+    ? new Date(primary.updated_at).getTime()
+    : 0;
+  const secondaryTime = secondary.updated_at
+    ? new Date(secondary.updated_at).getTime()
+    : 0;
+  merged.updated_at =
+    primaryTime > secondaryTime ? primary.updated_at : secondary.updated_at;
+
+  return merged;
+}
+
+// Экспортируем функции глобально для использования в auth.js
+window.applyProfileData = function (data) {
+  window.updateXpData?.({
+    xp: data.xp || 0,
+    level: data.level || 1,
+    badges: data.badges || [],
+  });
+  window.updateStreak?.({
+    count: data.streak || 0,
+    lastDate: data.last_streak_date || null,
+  });
+  if (data.daily_progress) window.updateDailyProgress?.(data.daily_progress);
+  window.todayReviewedCount = data.today_reviewed_count ?? 0;
+  window.lastReviewedReset = data.last_reviewed_reset;
+  window.speech_cfg = data.speech_cfg || {};
+  window.user_settings = data.user_settings || {};
+  window.lastProfileUpdate = data.updated_at
+    ? new Date(data.updated_at).getTime()
+    : Date.now();
 };
 
 // ============================================================
@@ -1007,6 +1199,7 @@ window.clearUserData = function () {
   window.todayReviewedCount = 0;
   window.currentUserId = null;
   localStorage.removeItem(CONSTANTS.STORAGE_KEYS.WORDS);
+  localStorage.removeItem(PROFILE_BACKUP_KEY); // Удаляем бэкап профиля
   renderCache.clear();
   refreshUI();
 };
@@ -1044,9 +1237,6 @@ async function checkDailyGoalsCompletion() {
   if (allCompleted && !window.dailyProgress.completed) {
     window.dailyProgress.completed = true;
 
-    // Обновляем метку времени сразу (оптимистично)
-    window.lastProfileUpdate = Date.now();
-
     // Calculate total reward
     const totalReward = DAILY_GOALS.reduce(
       (sum, goal) => sum + goal.xpReward,
@@ -1059,19 +1249,6 @@ async function checkDailyGoalsCompletion() {
       'все ежедневные цели выполнены <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">celebration</span>',
     );
 
-    // Save to Supabase for persistence
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        // Сохраняем полный профиль с обновленными целями
-        await immediateSaveAllUserData();
-      }
-    } catch (error) {
-      console.error('Error saving daily progress:', error);
-    }
-
     toast(
       '🎉 Все ежедневные цели выполнены! +' + totalReward + ' XP',
       'success',
@@ -1080,22 +1257,6 @@ async function checkDailyGoalsCompletion() {
     // Trigger confetti animation
     spawnConfetti();
     refreshUI(); // Update display
-  } else {
-    // Also save progress for persistence
-    (async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          debouncedSaveUserData(user.id, {
-            daily_progress: window.dailyProgress,
-          });
-        }
-      } catch (error) {
-        console.error('Error saving daily progress:', error);
-      }
-    })();
   }
 }
 
@@ -1369,7 +1530,7 @@ async function saveStreak() {
 async function saveSpeech() {
   const key = await getSpeechKey();
   localStorage.setItem(key, JSON.stringify(speech_cfg));
-  immediateSaveAllUserData();
+  window.saveProfileData?.();
 }
 
 // Fallback для генерации UUID в старых браузерах
@@ -1420,6 +1581,15 @@ function mkWord(en, ru, ex, tags, phonetic = null, examples = null) {
   };
 }
 async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
+  console.log('🔄 addWord вызван с параметрами:', {
+    en,
+    ru,
+    ex,
+    tags,
+    phonetic,
+    examples,
+  });
+
   // Валидация входных данных
   if (!validateEnglish(en)) {
     toast(
@@ -1489,9 +1659,20 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
+      console.log('🔄 Пользователь авторизован, сохраняем слово на сервер');
       // Отмечаем слово для пакетной синхронизации
       markWordDirty(newWord.id);
+
+      // Также пробуем сохранить немедленно
+      try {
+        console.log('💾 Сохраняем слово на сервер:', newWord);
+        await saveWordToDb(newWord);
+        console.log('✅ Слово сохранено на сервере');
+      } catch (error) {
+        console.error('❌ Ошибка сохранения слова на сервер:', error);
+      }
     } else {
+      console.log('❌ Пользователь не авторизован, сохраняем только локально');
       // Если не авторизован — сохраняем только локально, позже синхронизируем
       scheduleDelayedSync(5000); // планируем синхронизацию при подключении
     }
@@ -1503,24 +1684,27 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
     resetDailyGoalsIfNeeded();
     window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
 
-    // Обновляем метку времени сразу (оптимистично)
-    window.lastProfileUpdate = Date.now();
-
     checkDailyGoalsCompletion();
 
     gainXP(5, 'новое слово');
     visibleLimit = 30; // сброс при добавлении слова
 
+    // Сохраняем профиль
+    window.saveProfileData?.();
+
     // Пересчитываем уровни CEFR и обновляем интерфейс
     recalculateCefrLevels();
-    refreshUI();
+    console.log('🔄 Вызываем saveProfileData после добавления слова');
+    window.saveProfileData?.();
 
-    // Сохраняем в localStorage
-    debouncedSave();
+    // Сохраняем слова в localStorage
+    console.log(
+      '💾 Сохраняем слова в localStorage, всего слов:',
+      window.words.length,
+    );
+    localStorage.setItem('englift_words', JSON.stringify(window.words));
 
-    // Немедленно сохраняем всю статистику
-    await immediateSaveAllUserData();
-
+    console.log('✅ addWord завершен успешно');
     return true;
   } catch (error) {
     console.error('Error adding word:', error);
@@ -1579,8 +1763,16 @@ async function updWord(id, data) {
   }
 }
 function updStats(id, correct) {
+  console.log('🔄 updStats вызван:', { id, correct });
+
   const w = window.words.find(w => w.id === id);
-  if (!w) return;
+  if (!w) {
+    console.log('❌ Слово не найдено для updStats:', id);
+    return;
+  }
+
+  console.log('📊 Обновляем статистику слова:', w.en, 'было:', w.stats);
+
   w.stats.shown++;
   w.stats.lastPracticed = new Date().toISOString();
   if (correct) {
@@ -1621,13 +1813,17 @@ function updStats(id, correct) {
     );
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
-  markDirty(id);
-  scheduleDelayedSync();
-}
 
-// ============================================================
-// XP + BADGES
-// ============================================================
+  console.log('📊 Статистика обновлена:', w.en, 'стало:', w.stats);
+
+  markDirty(id);
+
+  // Синхронизируем слово СРАЗУ, а не откладываем
+  console.log('🔄 Вызываем немедленную синхронизацию слова');
+  syncWordsToServer();
+
+  console.log('🔄 updStats завершен, слово отмечено для синхронизации');
+}
 const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
 const BADGES_DEF = [
@@ -1864,6 +2060,13 @@ function xpNeeded(lvl) {
 }
 
 function gainXP(amount, reason = '') {
+  console.log('🎯 gainXP вызван:', {
+    amount,
+    reason,
+    currentXP: xpData.xp,
+    currentLevel: xpData.level,
+  });
+
   xpData.xp += amount;
   while (xpData.xp >= xpNeeded(xpData.level)) {
     xpData.xp -= xpNeeded(xpData.level);
@@ -1877,14 +2080,20 @@ function gainXP(amount, reason = '') {
   // Показываем тост сразу
   showXPToast('+' + amount + ' XP' + (reason ? ' · ' + reason : ''));
 
-  // Обновляем метку времени сразу
-  window.lastProfileUpdate = Date.now();
+  // Сохраняем профиль
+  console.log('💾 Вызываем saveProfileData из gainXP');
+  window.saveProfileData?.();
 
-  // Используем дебаунс для сохранения профиля
-  debouncedSaveProfile().then(() => {
-    checkBadges();
-    renderBadges();
-  });
+  // Проверяем бейджи
+  checkBadges();
+  renderBadges();
+
+  console.log(
+    '✅ gainXP завершен, новый уровень:',
+    xpData.level,
+    'новый XP:',
+    xpData.xp,
+  );
 }
 
 function checkBadges(perfectSession) {
@@ -2099,19 +2308,24 @@ function getWordForm(n, one, few, many) {
 }
 
 function updStreak() {
+  console.log('🔥 updStreak вызван, текущий streak:', streak);
+
   const today = new Date().toISOString().split('T')[0]; // "2026-03-05"
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  if (streak.lastDate === today) return;
+  if (streak.lastDate === today) {
+    console.log('🔥 Сегодня streak уже обновлен');
+    return;
+  }
   if (streak.lastDate === yesterday) streak.count++;
   else streak.count = 1;
   streak.lastDate = today;
 
-  // Обновляем метку времени сразу (оптимистично)
-  window.lastProfileUpdate = Date.now();
+  console.log('🔥 Новый streak:', streak);
 
   saveStreak();
-  immediateSaveAllUserData(); // Сохраняем полный профиль с обновленным стиком
-  debouncedSave();
+  window.saveProfileData?.();
+
+  console.log('✅ updStreak завершен');
 }
 
 // ============================================================
@@ -2986,7 +3200,6 @@ let activeFilter = 'all',
 let visibleLimit = 30; // сколько слов показываем сейчас
 const PAGE_SIZE = 20; // сколько подгружаем за раз
 let isLoadingMore = false; // флаг, чтобы не делать множественных запросов
-let intersectionObserver = null; // сам наблюдатель
 
 // Кеширование для оптимизации
 let renderCache = new Map();
@@ -5186,13 +5399,9 @@ function resetDailyReviewedCountIfNeeded() {
 
 function updateTodayReviewedCount(increment = 1) {
   window.todayReviewedCount += increment;
-  // Сохраняем через debounce чтобы не создавать слишком много запросов
-  if (window.currentUserId) {
-    debouncedSaveUserData(window.currentUserId, {
-      today_reviewed_count: window.todayReviewedCount,
-      last_reviewed_reset: window.lastReviewedReset,
-    });
-  }
+
+  // Сохраняем профиль
+  window.saveProfileData?.();
 }
 
 function getCardsToReview() {
@@ -5388,6 +5597,8 @@ function startSession(cfg) {
 }
 
 function showResults() {
+  console.log('📊 showResults вызван, результаты:', sResults);
+
   // Показываем экран результатов
   document.getElementById('practice-ex').style.display = 'none';
   document.getElementById('practice-results').style.display = 'block';
@@ -5395,6 +5606,12 @@ function showResults() {
   const resTotal = sResults.correct.length + sResults.wrong.length;
   const resCorrect = sResults.correct.length;
   const resPct = resTotal > 0 ? Math.round((resCorrect / resTotal) * 100) : 0;
+
+  console.log('📊 Статистика практики:', {
+    total: resTotal,
+    correct: resCorrect,
+    percent: resPct,
+  });
 
   document.getElementById('r-score').textContent = `${resCorrect}/${resTotal}`;
   document.getElementById('r-label').textContent =
@@ -5464,7 +5681,10 @@ function showResults() {
   refreshUI();
 
   // Немедленно сохраняем статистику после завершения практики
-  immediateSaveAllUserData();
+  console.log('💾 Вызываем saveProfileData из showResults');
+  window.saveProfileData?.();
+
+  console.log('✅ showResults завершен');
 }
 
 function nextExercise() {
@@ -6710,9 +6930,24 @@ async function renderWotd() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
+          console.log(
+            '🔄 WOTD: Пользователь авторизован, сохраняем слово на сервер',
+          );
           // Отмечаем слово для пакетной синхронизации
           markWordDirty(newWord.id);
+
+          // Также пробуем сохранить немедленно
+          try {
+            console.log('💾 WOTD: Сохраняем слово на сервер:', newWord);
+            await saveWordToDb(newWord);
+            console.log('✅ WOTD: Слово сохранено на сервере');
+          } catch (error) {
+            console.error('❌ WOTD: Ошибка сохранения слова на сервер:', error);
+          }
         } else {
+          console.log(
+            '❌ WOTD: Пользователь не авторизован, сохраняем только локально',
+          );
           markDirty(newWord.id);
         }
 
@@ -6728,6 +6963,11 @@ async function renderWotd() {
         autoCheckBadges(); // ← и это тоже
         recalculateCefrLevels();
         debouncedSave();
+
+        // Сохраняем профиль
+        console.log('🔄 WOTD: Вызываем saveProfileData после добавления слова');
+        window.saveProfileData?.();
+
         addWordToDOM(newWord);
 
         toast(`${randomWord.en} добавлено! +5 XP`, 'success', 'add_circle');
@@ -7113,7 +7353,7 @@ document.addEventListener('visibilitychange', () => {
 
     // Немедленно сохраняем статистику
     if (window.currentUserId) {
-      immediateSaveAllUserData();
+      window.saveProfileData?.();
       console.log('💾 Немедленно сохраняем профиль при скрытии страницы');
     }
 
