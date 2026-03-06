@@ -208,11 +208,40 @@ cancelResetBtn.addEventListener('click', () =>
 
 // Выход
 dropdownLogout.addEventListener('click', async () => {
+  console.log(
+    '🚪 Начинаем выход из аккаунта...',
+    'at',
+    new Date().toISOString(),
+  );
+  console.log('🚪 Logout details:', {
+    device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+    currentUserId: window.currentUserId,
+    hasPendingSync: pendingWordUpdates?.size > 0,
+  });
+
+  // Синхронизируем слова перед выходом
+  if (window.currentUserId && navigator.onLine) {
+    console.log('🔄 Синхронизируем слова перед выходом...');
+    try {
+      await window.syncPendingWords?.();
+      console.log('✅ Синхронизация слов завершена');
+    } catch (e) {
+      console.error('❌ Ошибка синхронизации при выходе:', e);
+    }
+  }
+
   window.currentUserId = null; // Очищаем ID пользователя
   profileLoaded = false; // Сбрасываем флаг загрузки профиля
   isProfileLoading = false; // Сбрасываем флаг загрузки
   lastLoadedUserId = null; // Сбрасываем ID последнего загруженного пользователя
+
+  console.log(
+    '🚪 Вызываем supabase.auth.signOut()...',
+    'at',
+    new Date().toISOString(),
+  );
   await supabase.auth.signOut();
+  console.log('🚪 Выход из аккаунта завершён', 'at', new Date().toISOString());
 });
 
 // Меню пользователя
@@ -233,11 +262,25 @@ userDropdown.addEventListener(
 
 // Глобальный флаг
 let profileLoaded = false;
+let wordsLoaded = false; // Добавляем флаг для однократной загрузки слов
 let profileLoadPromise = null; // Добавляем промис-флаг
 
 // Следим за состоянием аутентификации
 supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log('🔐 Auth state changed:', event, session?.user?.id || 'no user');
+  console.log(
+    '🔐 Auth state changed:',
+    event,
+    session?.user?.id || 'no user',
+    'at',
+    new Date().toISOString(),
+  );
+  console.log('🔐 Session details:', {
+    hasSession: !!session,
+    userId: session?.user?.id,
+    emailConfirmed: !!session?.user?.email_confirmed_at,
+    expiresAt: session?.expires_at,
+    device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+  });
 
   const user = session?.user;
 
@@ -283,20 +326,24 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
     window.renderBadges?.();
 
-    // Загружаем слова ТОЛЬКО если профиль уже загружен
-    if (profileLoaded) {
+    // Загружаем слова ТОЛЬКО если профиль уже загружен и слова еще не загружены
+    if (profileLoaded && !wordsLoaded) {
+      wordsLoaded = true;
       window.authExports?.loadWordsOnce(remoteWords => {
+        console.log(
+          `🔄 Автосинхронизация: локально ${window.words?.length || 0} → сервер ${remoteWords?.length || 0}`,
+        );
+
+        // Умный мерж: сохраняем офлайн слова, но удаляем те что нет на сервере
         const localWords = window.words || [];
         const merged = window.mergeWords
           ? window.mergeWords(localWords, remoteWords)
           : remoteWords;
         window.words = merged;
         localStorage.setItem('englift_words', JSON.stringify(window.words));
+        if (window.refreshUI) window.refreshUI();
 
-        // НЕ вызываем рендер здесь - loadUserProfile сделает это через onProfileFullyLoaded
-        console.log(
-          '📚 Слова загружены, рендер будет через onProfileFullyLoaded',
-        );
+        console.log(`✅ Синхронизация завершена: ${merged.length} слов`);
       });
     }
   } else if (user && !user.email_confirmed_at) {
@@ -304,7 +351,12 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     document.body.classList.remove('authenticated');
     showEmailNotVerified(user.email);
   } else if (event === 'SIGNED_OUT') {
-    console.log('🚪 SIGNED_OUT event received');
+    console.log('🚪 SIGNED_OUT event received', 'at', new Date().toISOString());
+    console.log('🚪 SIGNED_OUT details:', {
+      device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+      timestamp: new Date().toISOString(),
+      reason: 'User clicked logout or session expired',
+    });
     hideEmailNotVerified();
     showAuthGate();
     document.body.classList.remove('authenticated');
@@ -385,87 +437,125 @@ async function loadUserProfile(user) {
   try {
     console.log('loadUserProfile для', user.id);
 
-    // Загружаем профиль с сервера
+    // Загружаем серверный профиль
     const { data: serverProfile, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    // Если профиля нет - создаём новый
-    if (error && error.code === 'PGRST116') {
-      console.log('Профиль не найден, создаём новый');
-      await saveUserData(user.id, {
-        xp: 0,
-        level: 1,
-        badges: [],
-        streak: 0,
-        last_streak_date: null,
-        daily_progress: {
-          add_new: 0,
-          review: 0,
-          practice_time: 0,
-          completed: false,
-          lastReset: new Date().toISOString().split('T')[0],
-        },
-        today_reviewed_count: 0,
-        last_reviewed_reset: new Date().toISOString().split('T')[0],
-        speech_cfg: {},
-        user_settings: {},
-        dark_theme: false,
-      });
+    // Загружаем локальный бэкап
+    const localBackup = window.restoreProfileFromLocalStorage?.() || null;
+
+    // Если сервер вернул ошибку (кроме отсутствия)
+    if (error && error.code !== 'PGRST116') {
+      console.error('Ошибка загрузки профиля:', error);
+      if (localBackup && !window.isProfileEmpty?.(localBackup)) {
+        console.log('🔄 Используем локальный бэкап');
+        window.applyProfileData?.(localBackup);
+        // Попробуем сохранить на сервер
+        window.saveProfileData?.();
+      }
+      // Загружаем слова и выходим
+      if (!wordsLoaded) {
+        wordsLoaded = true;
+        window.authExports.loadWordsOnce(remoteWords => {
+          window.words = remoteWords || [];
+          localStorage.setItem('englift_words', JSON.stringify(window.words));
+          if (window.refreshUI) window.refreshUI();
+        });
+      }
+      window.onProfileFullyLoaded?.();
+      return;
+    }
+
+    // Если профиля нет на сервере
+    if (!serverProfile) {
+      if (localBackup && !window.isProfileEmpty?.(localBackup)) {
+        console.log('🔄 Восстанавливаем локальный прогресс на сервер');
+        window.applyProfileData?.(localBackup);
+        await window.saveProfileData?.();
+      } else {
+        // Создаём пустой профиль
+        await saveUserData(user.id, {
+          xp: 0,
+          level: 1,
+          badges: [],
+          streak: 0,
+          last_streak_date: null,
+          daily_progress: {
+            add_new: 0,
+            review: 0,
+            practice_time: 0,
+            completed: false,
+            lastReset: new Date().toISOString().split('T')[0],
+          },
+          today_reviewed_count: 0,
+          last_reviewed_reset: new Date().toISOString().split('T')[0],
+          speech_cfg: {},
+          user_settings: {},
+          dark_theme: false,
+        });
+      }
 
       // Загружаем слова
-      window.authExports.loadWordsOnce(remoteWords => {
-        window.words = remoteWords || [];
-        localStorage.setItem('englift_words', JSON.stringify(window.words));
-        if (window.refreshUI) window.refreshUI();
-      });
+      if (!wordsLoaded) {
+        wordsLoaded = true;
+        window.authExports.loadWordsOnce(remoteWords => {
+          window.words = remoteWords || [];
+          localStorage.setItem('englift_words', JSON.stringify(window.words));
+          if (window.refreshUI) window.refreshUI();
+        });
+      }
 
       window.onProfileFullyLoaded?.();
       return;
     }
 
-    if (error) {
-      console.error('Ошибка загрузки профиля:', error);
-      return;
+    // Есть серверный профиль – мержим с локальным бэкапом
+    const merged =
+      window.mergeProfileData?.(serverProfile, localBackup || {}) ||
+      serverProfile;
+    window.applyProfileData?.(merged);
+
+    // Если мерж изменил данные, сохраняем
+    if (merged.updated_at !== serverProfile.updated_at) {
+      console.log('🔄 Локальные данные новее, сохраняем на сервер');
+      await window.saveProfileData?.();
+    } else {
+      console.log('🔄 Обновляем бэкап');
+      window.backupProfileToLocalStorage?.();
     }
 
-    // Применяем данные с сервера
-    console.log('Данные профиля загружены с сервера:', serverProfile);
-    window.updateXpData?.({
-      xp: serverProfile.xp || 0,
-      level: serverProfile.level || 1,
-      badges: serverProfile.badges || [],
-    });
-    window.updateStreak?.({
-      count: serverProfile.streak || 0,
-      lastDate: serverProfile.last_streak_date || null,
-    });
-    if (serverProfile.daily_progress)
-      window.updateDailyProgress?.(serverProfile.daily_progress);
-    window.todayReviewedCount = serverProfile.today_reviewed_count ?? 0;
-    window.lastReviewedReset = serverProfile.last_reviewed_reset;
-    window.speech_cfg = serverProfile.speech_cfg || {};
-    window.user_settings = serverProfile.user_settings || {};
-    window.lastProfileUpdate = serverProfile.updated_at
-      ? new Date(serverProfile.updated_at).getTime()
-      : Date.now();
-
     // Загружаем слова
-    window.authExports.loadWordsOnce(remoteWords => {
-      const localWords = window.words || [];
-      const merged = window.mergeWords
-        ? window.mergeWords(localWords, remoteWords)
-        : remoteWords;
-      window.words = merged;
-      localStorage.setItem('englift_words', JSON.stringify(window.words));
-      if (window.refreshUI) window.refreshUI();
-    });
+    if (!wordsLoaded) {
+      wordsLoaded = true;
+      window.authExports.loadWordsOnce(remoteWords => {
+        console.log(
+          `🔄 Автосинхронизация: локально ${window.words?.length || 0} → сервер ${remoteWords?.length || 0}`,
+        );
+
+        // Умный мерж: сохраняем офлайн слова, но удаляем те что нет на сервере
+        const localWords = window.words || [];
+        const merged = window.mergeWords
+          ? window.mergeWords(localWords, remoteWords)
+          : remoteWords;
+        window.words = merged;
+        localStorage.setItem('englift_words', JSON.stringify(window.words));
+        if (window.refreshUI) window.refreshUI();
+
+        console.log(`✅ Синхронизация завершена: ${merged.length} слов`);
+      });
+    }
 
     window.onProfileFullyLoaded?.();
   } catch (err) {
     console.error('Ошибка в loadUserProfile:', err);
+    // Fallback – пробуем бэкап
+    const localBackup = window.restoreProfileFromLocalStorage?.();
+    if (localBackup && !window.isProfileEmpty?.(localBackup)) {
+      window.applyProfileData?.(localBackup);
+    }
   } finally {
     isProfileLoading = false;
   }
