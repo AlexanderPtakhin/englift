@@ -9315,13 +9315,13 @@ function nextExercise() {
 
               ${w.phonetic ? `<div class="speech-phonetic">/${esc(w.phonetic)}/</div>` : ''}
 
-              <div class="speech-translation" id="speech-translation" style="display: none; margin-top: 0.5rem; opacity: 0.7;">
+              <div class="speech-translation" id="speech-translation" style="margin-top: 0.5rem; opacity: 0.7;">
 
-                Перевод: ${esc(w.ru)}
+                ${esc(w.ru)}
 
               </div>
 
-              <div class="speech-hint">Прослушайте слово, затем повторите его</div>
+              <div class="speech-hint"></div>
 
             </div>
 
@@ -9426,12 +9426,6 @@ function nextExercise() {
           indicator.style.display = 'none';
 
           startBtn.style.display = 'flex';
-
-          // Показываем перевод после результата
-
-          if (translationEl) {
-            translationEl.style.display = 'block';
-          }
 
           if (result.isCorrect) {
             feedback.innerHTML = `✅ Верно! (Совпадение: ${result.confidence}%)`;
@@ -9541,8 +9535,8 @@ function nextExercise() {
         sIdx++;
         nextExercise();
       });
-    } else if (t === 'anagram') {
-      runAnagramExercise(w, () => {
+    } else if (t === 'speech-sentence') {
+      runSpeechSentenceExercise(w, () => {
         sIdx++;
         nextExercise();
       });
@@ -10729,7 +10723,7 @@ function runContextExercise(word, onComplete) {
   }
 }
 
-function runAnagramExercise(word, onComplete) {
+function runSpeechSentenceExercise(word, onComplete) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   const exTypeLbl = document.getElementById('ex-type-lbl');
@@ -10737,103 +10731,199 @@ function runAnagramExercise(word, onComplete) {
 
   if (exTypeLbl) {
     exTypeLbl.innerHTML =
-      '<span class="material-symbols-outlined">shuffle</span> Анаграммы';
+      '<span class="material-symbols-outlined">record_voice_over</span> Слушай и говори';
   }
 
   if (exCounter) {
     exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
   }
 
-  // Создаем анаграмму
-  const letters = word.en.split('').sort(() => Math.random() - 0.5);
-  const hint = word.phonetic || word.ru;
+  // Показываем предложение, если есть пример, иначе слово
+  const hasExample = word.ex && word.ex.trim().length > 0;
+  const promptText = hasExample ? word.ex : word.en;
+  const expectedWord = word.en; // для проверки все еще используем слово
+  const exampleTranslation =
+    hasExample && word.examples && word.examples[0]
+      ? word.examples[0].translation
+      : null;
 
-  content.innerHTML = `
-    <div class="anagram-exercise">
-      <div class="anagram-hint">
-        <div class="anagram-hint-text">${hint}</div>
+  if (content) {
+    content.innerHTML = `
+
+      <div class="speech-exercise">
+
+        <div class="speech-prompt">
+
+          <div class="speech-word-container">
+
+            <div class="speech-word speech-sentence">${esc(promptText)}</div>
+
+            <button class="btn-icon btn-small" id="speech-sentence-replay-btn" title="Прослушать предложение">
+
+              <span class="material-symbols-outlined">volume_up</span>
+
+            </button>
+
+          </div>
+
+          ${!hasExample ? `<div class="speech-phonetic">${esc(word.ru)}</div>` : ''}
+
+          <div class="speech-hint">${hasExample ? '' : 'Прослушайте слово, затем повторите его'}</div>
+
+          <div class="speech-translation" id="speech-sentence-translation" style="margin-top: 0.5rem; opacity: 0.7;">
+
+            ${!hasExample ? `${esc(word.ru)}` : exampleTranslation ? `${esc(exampleTranslation)}` : ''}
+
+          </div>
+
+        </div>
+
+        <div class="speech-controls">
+
+          <button class="btn-icon" id="speech-sentence-start-btn">
+
+            <span class="material-symbols-outlined">mic</span>
+
+          </button>
+
+          <div class="recording-indicator" id="speech-sentence-recording-indicator" style="display: none;">
+
+            <span class="material-symbols-outlined">graphic_eq</span> Говорите...
+
+          </div>
+
+        </div>
+
+        <div class="speech-feedback" id="speech-sentence-feedback"></div>
+
       </div>
-      <div class="anagram-letters" id="anagram-letters"></div>
-      <div class="anagram-answer" id="anagram-answer">
-        <input type="text" class="form-control" placeholder="Собери слово" autocomplete="off">
-      </div>
-    </div>
-  `;
 
-  const lettersContainer = document.getElementById('anagram-letters');
-  const answerInput = content.querySelector('input');
-
-  // Создаем кнопки с буквами
-  letters.forEach((letter, index) => {
-    const btn = document.createElement('button');
-    btn.className = 'anagram-letter-btn';
-    btn.textContent = letter.toUpperCase();
-    btn.dataset.letter = letter;
-    btn.dataset.index = index;
-
-    btn.addEventListener('click', () => {
-      answerInput.value += letter;
-      btn.style.visibility = 'hidden';
-      btn.disabled = true;
-    });
-
-    lettersContainer.appendChild(btn);
-  });
-
-  // Кнопка очистки
-  const clearBtn = document.createElement('button');
-  clearBtn.className = 'btn-icon';
-  clearBtn.innerHTML =
-    '<span class="material-symbols-outlined">backspace</span>';
-  clearBtn.addEventListener('click', () => {
-    answerInput.value = '';
-    document.querySelectorAll('.anagram-letter-btn').forEach(btn => {
-      btn.style.visibility = 'visible';
-      btn.disabled = false;
-    });
-  });
-
-  answerInput.parentElement.appendChild(clearBtn);
-
-  // Обработка ввода
-  const checkAnswer = () => {
-    const userAnswer = answerInput.value.toLowerCase().trim();
-    const correctAnswer = word.en.toLowerCase();
-
-    if (userAnswer === correctAnswer) {
-      playSound('correct');
-      toast(`✅ Верно! ${word.en} - ${word.ru}`, 'success');
-      recordAnswer(true);
-
-      setTimeout(onComplete, 1500);
-    } else if (userAnswer.length >= word.en.length) {
-      playSound('wrong');
-      toast(`❌ Неверно. Правильный ответ: ${word.en}`, 'error');
-      recordAnswer(false);
-
-      setTimeout(onComplete, 2000);
-    }
-  };
-
-  answerInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      checkAnswer();
-    }
-  });
-
-  if (btns) {
-    btns.innerHTML = `
-      <button class="btn-icon" id="anagram-check"><span class="material-symbols-outlined">check</span></button>
-      <button class="btn-icon" id="anagram-skip"><span class="material-symbols-outlined">skip_next</span></button>
     `;
+  }
+
+  const replayBtn = document.getElementById('speech-sentence-replay-btn');
+  const startBtn = document.getElementById('speech-sentence-start-btn');
+  const indicator = document.getElementById(
+    'speech-sentence-recording-indicator',
+  );
+  const feedback = document.getElementById('speech-sentence-feedback');
+  const translationEl = document.getElementById('speech-sentence-translation');
+
+  let recognitionActive = false;
+
+  // Автоматическая озвучка при запуске упражнения
+  setTimeout(() => {
+    if (speechSupported) {
+      console.log('Автоматическая озвучка предложения:', promptText);
+      speak(promptText);
+    }
+  }, 500);
+
+  // Обработчик кнопки повторного прослушивания
+  if (replayBtn) {
+    replayBtn.addEventListener('click', () => {
+      if (speechSupported) {
+        console.log('Повторная озвучка предложения:', promptText);
+        speak(promptText);
+      }
+    });
+  }
+
+  if (!speechRecognitionSupported) {
+    feedback.textContent =
+      'Распознавание речи не поддерживается вашим браузером.';
+
+    if (startBtn) startBtn.disabled = true;
+  }
+
+  startBtn?.addEventListener('click', () => {
+    if (recognitionActive) return;
+
+    if (!speechRecognition) {
+      feedback.textContent = 'Ошибка инициализации распознавания.';
+      return;
+    }
+
+    // Показываем индикатор
+    indicator.style.display = 'flex';
+    startBtn.style.display = 'none';
+    feedback.textContent = '';
+
+    // Настраиваем и запускаем распознавание
+    speechRecognition.lang = 'en-US';
+    speechRecognition.start();
+    recognitionActive = true;
+
+    speechRecognition.onresult = event => {
+      const spoken = event.results[0][0].transcript.trim().toLowerCase();
+      const correct = expectedWord.toLowerCase();
+      const result = checkSpeechSimilarity(spoken, correct);
+
+      // Останавливаем индикатор
+      indicator.style.display = 'none';
+      startBtn.style.display = 'flex';
+
+      if (result.isCorrect) {
+        feedback.innerHTML = `✅ Верно! (Совпадение: ${result.confidence}%)`;
+        playSound('correct');
+        recordAnswer(true);
+        sIdx++;
+        nextExercise();
+      } else {
+        feedback.innerHTML = `❌ Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)`;
+        playSound('wrong');
+        recordAnswer(false);
+        // Даем еще одну попытку
+        recognitionActive = false;
+      }
+    };
+
+    speechRecognition.onerror = e => {
+      console.error('Speech recognition error', e);
+      indicator.style.display = 'none';
+      startBtn.style.display = 'flex';
+
+      let errorMessage = 'Произошла ошибка распознавания.';
+      if (e.error === 'not-allowed') {
+        errorMessage =
+          'Доступ к микрофону заблокирован. Разрешите доступ к микрофону в настройках браузера.';
+      } else if (e.error === 'no-speech') {
+        errorMessage = 'Речь не распознана. Попробуйте ещё раз.';
+      } else if (e.error === 'audio-capture') {
+        errorMessage = 'Ошибка доступа к микрофону.';
+      } else if (e.error === 'network') {
+        errorMessage = 'Ошибка сети.';
+      }
+
+      feedback.textContent = errorMessage;
+      recognitionActive = false;
+    };
+
+    speechRecognition.onend = () => {
+      if (recognitionActive) {
+        indicator.style.display = 'none';
+        startBtn.style.display = 'flex';
+        feedback.textContent =
+          'Не удалось распознать речь. Попробуйте ещё раз.';
+        recognitionActive = false;
+      }
+    };
+  });
+
+  // Кнопка пропуска
+  if (btns) {
+    btns.innerHTML = `<button class="btn-icon" id="speech-sentence-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
 
     document
-      .getElementById('anagram-check')
-      ?.addEventListener('click', checkAnswer);
-    document.getElementById('anagram-skip')?.addEventListener('click', () => {
-      recordAnswer(false);
-      onComplete();
-    });
+      .getElementById('speech-sentence-skip')
+      ?.addEventListener('click', () => {
+        if (recognitionActive) {
+          speechRecognition.abort();
+          recognitionActive = false;
+        }
+        recordAnswer(false);
+        onComplete();
+      });
   }
 }
 
