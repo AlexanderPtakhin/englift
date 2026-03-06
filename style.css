@@ -5567,6 +5567,135 @@ html.dark .due-soon {
   margin-top: 0.1rem;
 }
 
+/* === NEW EXERCISES === */
+
+.context-exercise {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.context-sentence {
+  margin-bottom: 2rem;
+}
+
+.context-text {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.context-phonetic {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.context-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.context-option-btn {
+  padding: 1rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.context-option-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: rgba(108, 99, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.context-option-btn.correct {
+  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.context-option-btn.wrong {
+  border-color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.anagram-exercise {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.anagram-hint {
+  margin-bottom: 2rem;
+}
+
+.anagram-hint-text {
+  font-size: 1.1rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.anagram-letters {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.anagram-letter-btn {
+  width: 50px;
+  height: 50px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.anagram-letter-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.anagram-letter-btn:disabled {
+  visibility: hidden;
+}
+
+.anagram-answer {
+  max-width: 300px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.anagram-answer input {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.anagram-answer .btn-icon {
+  position: absolute;
+  right: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 /* === IMPORT/EXPORT === */
 
 .io-modal-overlay {

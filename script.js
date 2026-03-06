@@ -8626,6 +8626,13 @@ function nextExercise() {
           timerText.textContent = `${timeRemaining}s`;
         }
 
+        // Красный цвет на последних 3 секундах
+        if (timeRemaining <= 3) {
+          timerEl.classList.add('timer-urgent');
+        } else {
+          timerEl.classList.remove('timer-urgent');
+        }
+
         if (timeRemaining <= 0) {
           clearInterval(currentExerciseTimer);
 
@@ -8636,6 +8643,9 @@ function nextExercise() {
           session.currentTimerEl = null;
 
           recordAnswer(false);
+
+          sIdx++;
+          nextExercise();
         }
       }, 1000);
     }
@@ -9524,6 +9534,16 @@ function nextExercise() {
 
         sIdx++;
 
+        nextExercise();
+      });
+    } else if (t === 'context') {
+      runContextExercise(w, () => {
+        sIdx++;
+        nextExercise();
+      });
+    } else if (t === 'anagram') {
+      runAnagramExercise(w, () => {
+        sIdx++;
         nextExercise();
       });
     }
@@ -10609,6 +10629,212 @@ function runMatchExercise(words6, onComplete) {
       }, 400);
     }
   });
+}
+
+// === NEW EXERCISES ===
+
+function runContextExercise(word, onComplete) {
+  const content = document.getElementById('ex-content');
+  const btns = document.getElementById('ex-btns');
+  const exTypeLbl = document.getElementById('ex-type-lbl');
+  const exCounter = document.getElementById('ex-counter');
+
+  if (exTypeLbl) {
+    exTypeLbl.innerHTML =
+      '<span class="material-symbols-outlined">psychology</span> Контекстная догадка';
+  }
+
+  if (exCounter) {
+    exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+  }
+
+  // Создаем варианты ответов
+  const options = [word];
+  const otherWords = session.words.filter(
+    w => w.id !== word.id && w.en !== word.en,
+  );
+
+  // Добавляем 3 случайных варианта
+  for (let i = 0; i < 3 && i < otherWords.length; i++) {
+    const randomIndex = Math.floor(Math.random() * otherWords.length);
+    options.push(otherWords[randomIndex]);
+    otherWords.splice(randomIndex, 1);
+  }
+
+  // Перемешиваем варианты
+  const shuffledOptions = options.sort(() => Math.random() - 0.5);
+
+  // Берем пример из слова или создаем заглушку
+  const example = word.ex || `I want to _____ my goals.`;
+  const exampleWithBlank = example.replace(word.en, '_____');
+
+  content.innerHTML = `
+    <div class="context-exercise">
+      <div class="context-sentence">
+        <div class="context-text">${exampleWithBlank}</div>
+        ${word.phonetic ? `<div class="context-phonetic">${word.phonetic}</div>` : ''}
+      </div>
+      <div class="context-options" id="context-options"></div>
+    </div>
+  `;
+
+  const optionsContainer = document.getElementById('context-options');
+  shuffledOptions.forEach(option => {
+    const btn = document.createElement('button');
+    btn.className = 'context-option-btn';
+    btn.textContent = option.en;
+    btn.dataset.wordId = option.id;
+
+    btn.addEventListener('click', () => {
+      const isCorrect = option.id === word.id;
+
+      if (isCorrect) {
+        btn.classList.add('correct');
+        playSound('correct');
+        toast(`✅ Верно! ${word.en} - ${word.ru}`, 'success');
+        recordAnswer(true);
+
+        // Показываем полный пример
+        const contextText = document.querySelector('.context-text');
+        if (contextText) {
+          contextText.textContent = example;
+        }
+
+        setTimeout(onComplete, 1500);
+      } else {
+        btn.classList.add('wrong');
+        playSound('wrong');
+        toast(`❌ Неверно. Правильный ответ: ${word.en}`, 'error');
+        recordAnswer(false);
+
+        setTimeout(onComplete, 2000);
+      }
+
+      // Блокируем все кнопки
+      document
+        .querySelectorAll('.context-option-btn')
+        .forEach(b => (b.disabled = true));
+    });
+
+    optionsContainer.appendChild(btn);
+  });
+
+  if (btns) {
+    btns.innerHTML = `<button class="btn-icon" id="context-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
+
+    document.getElementById('context-skip')?.addEventListener('click', () => {
+      recordAnswer(false);
+      onComplete();
+    });
+  }
+}
+
+function runAnagramExercise(word, onComplete) {
+  const content = document.getElementById('ex-content');
+  const btns = document.getElementById('ex-btns');
+  const exTypeLbl = document.getElementById('ex-type-lbl');
+  const exCounter = document.getElementById('ex-counter');
+
+  if (exTypeLbl) {
+    exTypeLbl.innerHTML =
+      '<span class="material-symbols-outlined">shuffle</span> Анаграммы';
+  }
+
+  if (exCounter) {
+    exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+  }
+
+  // Создаем анаграмму
+  const letters = word.en.split('').sort(() => Math.random() - 0.5);
+  const hint = word.phonetic || word.ru;
+
+  content.innerHTML = `
+    <div class="anagram-exercise">
+      <div class="anagram-hint">
+        <div class="anagram-hint-text">${hint}</div>
+      </div>
+      <div class="anagram-letters" id="anagram-letters"></div>
+      <div class="anagram-answer" id="anagram-answer">
+        <input type="text" class="form-control" placeholder="Собери слово" autocomplete="off">
+      </div>
+    </div>
+  `;
+
+  const lettersContainer = document.getElementById('anagram-letters');
+  const answerInput = content.querySelector('input');
+
+  // Создаем кнопки с буквами
+  letters.forEach((letter, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'anagram-letter-btn';
+    btn.textContent = letter.toUpperCase();
+    btn.dataset.letter = letter;
+    btn.dataset.index = index;
+
+    btn.addEventListener('click', () => {
+      answerInput.value += letter;
+      btn.style.visibility = 'hidden';
+      btn.disabled = true;
+    });
+
+    lettersContainer.appendChild(btn);
+  });
+
+  // Кнопка очистки
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'btn-icon';
+  clearBtn.innerHTML =
+    '<span class="material-symbols-outlined">backspace</span>';
+  clearBtn.addEventListener('click', () => {
+    answerInput.value = '';
+    document.querySelectorAll('.anagram-letter-btn').forEach(btn => {
+      btn.style.visibility = 'visible';
+      btn.disabled = false;
+    });
+  });
+
+  answerInput.parentElement.appendChild(clearBtn);
+
+  // Обработка ввода
+  const checkAnswer = () => {
+    const userAnswer = answerInput.value.toLowerCase().trim();
+    const correctAnswer = word.en.toLowerCase();
+
+    if (userAnswer === correctAnswer) {
+      playSound('correct');
+      toast(`✅ Верно! ${word.en} - ${word.ru}`, 'success');
+      recordAnswer(true);
+
+      setTimeout(onComplete, 1500);
+    } else if (userAnswer.length >= word.en.length) {
+      playSound('wrong');
+      toast(`❌ Неверно. Правильный ответ: ${word.en}`, 'error');
+      recordAnswer(false);
+
+      setTimeout(onComplete, 2000);
+    }
+  };
+
+  answerInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+      checkAnswer();
+    }
+  });
+
+  if (btns) {
+    btns.innerHTML = `
+      <button class="btn-icon" id="anagram-check"><span class="material-symbols-outlined">check</span></button>
+      <button class="btn-icon" id="anagram-skip"><span class="material-symbols-outlined">skip_next</span></button>
+    `;
+
+    document
+      .getElementById('anagram-check')
+      ?.addEventListener('click', checkAnswer);
+    document.getElementById('anagram-skip')?.addEventListener('click', () => {
+      recordAnswer(false);
+      onComplete();
+    });
+  }
 }
 
 // === EXIT SESSION ===
