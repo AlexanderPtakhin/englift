@@ -163,6 +163,9 @@ let xpData = { xp: 0, level: 1, badges: [] };
 let isSaving = false; // Защита от параллельного сохранения
 let badgeCheckInterval = null; // Идентификатор интервала проверки бейджей
 
+// Очередь отложенных сохранений профиля
+let pendingProfileSaves = [];
+
 // Daily Goals configuration - должно быть объявлено ДО использования
 const DAILY_GOALS = [
   {
@@ -248,8 +251,32 @@ function loadWordsFromLocalStorage() {
   }
 }
 
-// Вызываем сразу после объявления window.words
+// === ЗАГРУЗКА СТАТИСТИКИ ИЗ LOCALSTORAGE (fallback) ===
+function loadStatsFromLocalStorage() {
+  const saved = localStorage.getItem('englift_lastknown_progress');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      xpData = {
+        xp: data.xp || 0,
+        level: data.level || 1,
+        badges: data.badges || [],
+      };
+      streak = {
+        count: data.streak || 0,
+        lastDate: data.last_streak_date || null,
+      };
+      if (data.daily_progress) window.dailyProgress = data.daily_progress;
+      console.log('📦 Статистика загружена из localStorage (fallback)');
+    } catch (e) {
+      console.warn('Ошибка загрузки статистики из localStorage:', e);
+    }
+  }
+}
+
+// Load words and stats
 loadWordsFromLocalStorage();
+loadStatsFromLocalStorage();
 
 // Debounce функция для оптимизации renderStats
 function debounce(fn, delay) {
@@ -309,6 +336,12 @@ async function saveAllUserData() {
 
 // Немедленное сохранение всех данных профиля
 async function immediateSaveAllUserData() {
+  if (!window.currentUserId || !window.profileFullyLoaded) {
+    console.log(
+      '⛔ immediateSaveAllUserData пропущен — нет пользователя или профиль не загружен',
+    );
+    return;
+  }
   if (isSavingProfile) {
     pendingSaveData = true;
     return;
@@ -337,10 +370,28 @@ async function immediateSaveAllUserData() {
       level: xpData.level,
       streak: streak.count,
     });
+    console.log('Saving profile with xp:', xpData.xp);
+    console.trace();
     await saveUserData(user.id, profileData);
     window.lastProfileUpdate = Date.now(); // Обновляем время последнего сохранения
     console.log('✅ Профиль сохранён немедленно');
     retryAttempts = 0; // Сбрасываем счетчик при успешном сохранении
+
+    // Сохраняем статистику в localStorage как backup
+    const backupData = {
+      xp: xpData.xp,
+      level: xpData.level,
+      badges: xpData.badges,
+      streak: streak.count,
+      last_streak_date: streak.lastDate,
+      daily_progress: window.dailyProgress,
+      today_reviewed_count: window.todayReviewedCount,
+    };
+    localStorage.setItem(
+      'englift_lastknown_progress',
+      JSON.stringify(backupData),
+    );
+    console.log('💾 Статистика сохранена в localStorage backup');
   } catch (error) {
     console.error('Ошибка немедленного сохранения профиля:', error);
 
@@ -374,6 +425,17 @@ async function immediateSaveAllUserData() {
 
 // Экспортируем глобально
 window.immediateSaveAllUserData = immediateSaveAllUserData;
+
+// Очередь отложенных сохранений профиля
+async function queueProfileSave() {
+  if (window.profileFullyLoaded) {
+    await immediateSaveAllUserData();
+  } else {
+    pendingProfileSaves.push(true);
+    console.log('⏳ Сохранение профиля добавлено в очередь');
+  }
+}
+window.queueProfileSave = queueProfileSave; // для доступа из других модулей
 
 // Сохранение через Beacon при закрытии
 window.addEventListener('beforeunload', () => {
@@ -422,8 +484,8 @@ function syncSaveProfile() {
       type: 'application/json',
     });
 
-    // Отправляем через Supabase REST API
-    const url = `https://${supabase.supabaseUrl}/rest/v1/profiles?id=eq.${window.currentUserId}`;
+    // Используем beacon для надежной отправки
+    const url = `${supabase.supabaseUrl}/rest/v1/profiles?id=eq.${window.currentUserId}`;
     navigator.sendBeacon(url, blob);
 
     console.log('📡 Профиль сохранен через beacon');
@@ -992,24 +1054,45 @@ window.updateDailyProgress = function (newDailyProgress) {
   renderStats();
 };
 
-// Clear all user data on logout
+// Очистка данных пользователя (при выходе)
 window.clearUserData = function () {
+  console.trace('clearUserData called — только UI и слова');
+
+  // Сбрасываем ТОЛЬКО то, что нужно для UI
   window.words = [];
-  xpData = { xp: 0, level: 1, badges: [] };
-  streak = { count: 0, lastDate: null };
-  window.dailyProgress = {
-    add_new: 0,
-    review: 0,
-    practice_time: 0,
-    completed: false,
-    lastReset: new Date().toISOString().split('T')[0],
-  };
-  window.todayReviewedCount = 0;
+  localStorage.removeItem('englift_words');
+
+  // НЕ обнуляем статистику! Она перезагрузится из профиля при следующем SIGNED_IN
+  // xpData, streak, dailyProgress и т.д. остаются в памяти до новой загрузки профиля
+
+  renderXP();
+  renderBadges();
+  updateDueBadge();
+  switchTab('words');
+
+  // Сбрасываем флаги
   window.currentUserId = null;
-  localStorage.removeItem(CONSTANTS.STORAGE_KEYS.WORDS);
-  renderCache.clear();
-  refreshUI();
 };
+
+// Clear all user data on logout
+// window.clearUserData = function () {
+//   console.trace('clearUserData called');
+//   window.words = [];
+//   xpData = { xp: 0, level: 1, badges: [] };
+//   streak = { count: 0, lastDate: null };
+//   window.dailyProgress = {
+//     add_new: 0,
+//     review: 0,
+//     practice_time: 0,
+//     completed: false,
+//     lastReset: new Date().toISOString().split('T')[0],
+//   };
+//   window.todayReviewedCount = 0;
+//   window.currentUserId = null;
+//   localStorage.removeItem(CONSTANTS.STORAGE_KEYS.WORDS);
+//   renderCache.clear();
+//   refreshUI();
+// };
 
 // Daily goals reset function
 async function resetDailyGoalsIfNeeded() {
@@ -1066,7 +1149,7 @@ async function checkDailyGoalsCompletion() {
       } = await supabase.auth.getUser();
       if (user) {
         // Сохраняем полный профиль с обновленными целями
-        await immediateSaveAllUserData();
+        await queueProfileSave();
       }
     } catch (error) {
       console.error('Error saving daily progress:', error);
@@ -1088,9 +1171,7 @@ async function checkDailyGoalsCompletion() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
-          debouncedSaveUserData(user.id, {
-            daily_progress: window.dailyProgress,
-          });
+          queueProfileSave();
         }
       } catch (error) {
         console.error('Error saving daily progress:', error);
@@ -1193,63 +1274,10 @@ async function load() {
   }
 }
 
-// Миграция переводов примеров из dictionary.json в существующие слова
-async function migrateExampleTranslations() {
-  try {
-    // Проверяем, выполняли ли уже миграцию
-    const migrationKey = 'englift_example_translations_migrated';
-    if (localStorage.getItem(migrationKey) === 'true') {
-      console.log('📦 Миграция переводов уже выполнялась ранее');
-      return;
-    }
-
-    const bank = await window.WordAPI.loadWordBank();
-    if (!bank) {
-      return;
-    }
-
-    let updated = 0;
-    window.words = window.words.map(word => {
-      const bankWord = bank.find(
-        w => w.en.toLowerCase() === word.en.toLowerCase(),
-      );
-      if (!bankWord) {
-        console.log(`⚠️ Word "${word.en}" not found in dictionary`);
-        return word;
-      }
-
-      // Если у слова нет примеров или они пустые, копируем из банка
-      if (!word.examples || word.examples.length === 0) {
-        word.examples = bankWord.examples.map(ex => ({ ...ex }));
-        updated++;
-      } else {
-        // Если примеры есть, но перевод пустой, пробуем найти соответствующий пример в банке
-        word.examples = word.examples.map((ex, idx) => {
-          if (ex.translation) return ex; // уже есть перевод
-
-          const bankExample = bankWord.examples[idx];
-          if (bankExample && bankExample.translation) {
-            ex.translation = bankExample.translation;
-            updated++;
-          }
-          return ex;
-        });
-      }
-      return word;
-    });
-
-    if (updated > 0) {
-      debouncedSave();
-      toast(`Обновлено переводов для ${updated} примеров`, 'success');
-      console.log(`📦 Миграция завершена: обновлено ${updated} переводов`);
-    }
-
-    // Помечаем что миграция выполнена
-    localStorage.setItem(migrationKey, 'true');
-  } catch (error) {
-    console.error('❌ Migration error:', error);
-  }
-}
+// НЕ мигрируем примеры из dictionary.json - используем только пользовательские слова
+// async function migrateExampleTranslations() {
+//   // Закомментировали - упражнения должны использовать только слова пользователя
+// }
 
 // Загрузка слов из dictionary.json при первом запуске
 async function loadDictionaryFromJson() {
@@ -1516,10 +1544,10 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
     refreshUI();
 
     // Сохраняем в localStorage
-    debouncedSave();
+    queueProfileSave();
 
     // Немедленно сохраняем всю статистику
-    await immediateSaveAllUserData();
+    await queueProfileSave();
 
     return true;
   } catch (error) {
@@ -2301,7 +2329,25 @@ function setupSpeechListeners() {
     });
   }
 
+  // Загружаем настройки голоса из localStorage
+  function loadSpeechFromStorage() {
+    getSpeechKey().then(key => {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try {
+          const savedCfg = JSON.parse(saved);
+          speech_cfg = { ...speech_cfg, ...savedCfg };
+          window.speech_cfg = speech_cfg;
+          console.log('🔊 Настройки голоса загружены:', speech_cfg);
+        } catch (e) {
+          console.warn('Ошибка загрузки настроек голоса:', e);
+        }
+      }
+    });
+  }
+
   // Set initial values
+  loadSpeechFromStorage();
   if (speedRange) speedRange.value = speech_cfg.rate;
   if (speedVal) speedVal.textContent = speech_cfg.rate + 'x';
   if (pitchRange) pitchRange.value = speech_cfg.pitch;
@@ -2489,10 +2535,10 @@ function renderStats() {
       window.user_settings.reviewLimit !== 9999
         ? window.user_settings.reviewLimit
         : MAX_REVIEWS_PER_DAY;
-    const pct = Math.min(
-      100,
-      Math.round((window.todayReviewedCount / limit) * 100),
-    );
+    const pct =
+      window.todayReviewedCount >= limit
+        ? 100
+        : Math.round((window.todayReviewedCount / limit) * 100);
     const status =
       window.todayReviewedCount >= limit ? ' — лимит достигнут!' : '';
     capProgress.innerHTML = `
@@ -2500,7 +2546,7 @@ function renderStats() {
         Сегодня повторено: ${window.todayReviewedCount} / ${limit === 9999 ? '∞' : limit}${status}
       </div>
       <div class="goal-progress" style="height: 6px;">
-        <div class="goal-fill" style="width: ${pct}%; background: linear-gradient(90deg, var(--primary), ${window.todayReviewedCount >= limit ? 'var(--success)' : 'var(--primary)'});"></div>
+        <div class="goal-progress-fill" style="width: ${pct}%; background: linear-gradient(90deg, var(--primary), ${window.todayReviewedCount >= limit ? 'var(--success)' : 'var(--primary)'});"></div>
       </div>
     `;
   }
@@ -6171,6 +6217,305 @@ function nextExercise() {
         sIdx++;
         nextExercise();
       });
+    } else if (t === 'examples') {
+      // Речевое упражнение "Примеры предложений" как "Произнеси вслух"
+      const examples = w.examples || [];
+      const currentExample =
+        examples.length > 0
+          ? examples[Math.floor(Math.random() * examples.length)]
+          : null;
+
+      if (!currentExample) {
+        // Если нет примеров, показываем само слово
+        if (exTypeLbl) {
+          exTypeLbl.innerHTML =
+            '<span class="material-symbols-outlined">menu_book</span> Пример предложения';
+        }
+        if (exCounter) {
+          exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        }
+
+        // Показываем английское слово, просим произнести его
+        const promptWord = w.en;
+        const expectedWord = w.en;
+
+        if (exContent) {
+          exContent.innerHTML = `
+            <div class="speech-exercise">
+              <div class="speech-prompt">
+                <div class="speech-word-container">
+                  <div class="speech-word">${esc(promptWord)}</div>
+                  <button class="btn-icon btn-small" id="speech-replay-btn" title="Прослушать слово">
+                    <span class="material-symbols-outlined">volume_up</span>
+                  </button>
+                </div>
+                ${w.phonetic ? `<div class="speech-phonetic">/${esc(w.phonetic)}/</div>` : ''}
+                <div class="speech-translation" id="speech-translation" style="margin-top: 0.5rem; opacity: 0.7;">
+                  ${esc(w.ru)}
+                </div>
+                <div class="speech-hint">Прослушайте слово, затем повторите его</div>
+              </div>
+              <div class="speech-controls">
+                <button class="btn-icon" id="speech-start-btn">
+                  <span class="material-symbols-outlined">mic</span>
+                </button>
+                <div class="recording-indicator" id="recording-indicator" style="display: none;">
+                  <span class="material-symbols-outlined">graphic_eq</span> Говорите...
+                </div>
+              </div>
+              <div class="speech-feedback" id="speech-feedback"></div>
+            </div>
+          `;
+        }
+
+        const replayBtn = document.getElementById('speech-replay-btn');
+        const startBtn = document.getElementById('speech-start-btn');
+        const indicator = document.getElementById('recording-indicator');
+        const feedback = document.getElementById('speech-feedback');
+        const translationEl = document.getElementById('speech-translation');
+        let recognitionActive = false;
+
+        // Автоматическая озвучка слова при запуске упражнения
+        setTimeout(() => {
+          if (speechSupported) {
+            console.log('Автоматическая озвучка:', expectedWord);
+            speak(expectedWord);
+          }
+        }, 500);
+
+        if (replayBtn) {
+          replayBtn.onclick = () => speak(expectedWord);
+        }
+
+        if (startBtn && speechRecognitionSupported) {
+          startBtn.onclick = () => {
+            if (recognitionActive) return;
+
+            recognitionActive = true;
+            indicator.style.display = 'block';
+            startBtn.style.display = 'none';
+            feedback.textContent = '';
+
+            speechRecognition.onresult = event => {
+              const spoken = event.results[0][0].transcript
+                .toLowerCase()
+                .trim();
+              console.log('Распознано:', spoken);
+              console.log('Ожидалось:', expectedWord);
+
+              const result = checkSpeechSimilarity(spoken, expectedWord);
+              console.log('Результат распознавания:', result);
+
+              feedback.className =
+                'speech-feedback ' + (result.isCorrect ? 'ok' : 'err');
+              feedback.innerHTML = result.isCorrect
+                ? '✅ Отлично!'
+                : `❌ Сказано: "${spoken}"<br>Правильно: "${expectedWord}"<br>Точность: ${Math.round(result.confidence * 100)}%`;
+
+              recognitionActive = false;
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
+
+              setTimeout(() => {
+                recordAnswer(result.isCorrect);
+                sIdx++;
+                nextExercise();
+              }, 2500);
+            };
+
+            speechRecognition.onerror = event => {
+              console.error('Ошибка распознавания:', event.error);
+              feedback.className = 'speech-feedback err';
+              feedback.textContent =
+                '❌ Ошибка распознавания. Попробуйте еще раз.';
+
+              recognitionActive = false;
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
+            };
+
+            speechRecognition.onend = () => {
+              if (recognitionActive) {
+                recognitionActive = false;
+                indicator.style.display = 'none';
+                startBtn.style.display = 'flex';
+              }
+            };
+
+            speechRecognition.start();
+          };
+        } else if (startBtn && !speechRecognitionSupported) {
+          startBtn.onclick = () => {
+            feedback.className = 'speech-feedback err';
+            feedback.textContent =
+              '❌ Распознавание речи не поддерживается в вашем браузере';
+          };
+        }
+
+        // Если пользователь не хочет говорить, можно добавить кнопку пропуска
+        if (exBtns) {
+          exBtns.innerHTML = `<button class="btn-icon" id="speech-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
+          document
+            .getElementById('speech-skip')
+            ?.addEventListener('click', () => {
+              if (recognitionActive) {
+                speechRecognition.abort();
+                recognitionActive = false;
+              }
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
+              recordAnswer(false);
+              sIdx++;
+              nextExercise();
+            });
+        }
+      } else {
+        // Если есть пример, показываем его
+        if (exTypeLbl) {
+          exTypeLbl.innerHTML =
+            '<span class="material-symbols-outlined">menu_book</span> Пример предложения';
+        }
+        if (exCounter) {
+          exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        }
+
+        // Показываем английское предложение, просим произнести его
+        const promptSentence = currentExample.text;
+        const expectedSentence = currentExample.text;
+
+        if (exContent) {
+          exContent.innerHTML = `
+            <div class="speech-exercise">
+              <div class="speech-prompt">
+                <div class="speech-word-container">
+                  <div class="speech-word" style="font-size:1.1rem;line-height:1.4">${esc(promptSentence)}</div>
+                  <button class="btn-icon btn-small" id="speech-replay-btn" title="Прослушать предложение">
+                    <span class="material-symbols-outlined">volume_up</span>
+                  </button>
+                </div>
+                <div class="speech-translation" id="speech-translation" style="margin-top: 0.5rem; opacity: 0.7;">
+                  ${esc(currentExample.translation || w.ru)}
+                </div>
+                <div class="speech-hint">Прослушайте предложение, затем повторите его</div>
+              </div>
+              <div class="speech-controls">
+                <button class="btn-icon" id="speech-start-btn">
+                  <span class="material-symbols-outlined">mic</span>
+                </button>
+                <div class="recording-indicator" id="recording-indicator" style="display: none;">
+                  <span class="material-symbols-outlined">graphic_eq</span> Говорите...
+                </div>
+              </div>
+              <div class="speech-feedback" id="speech-feedback"></div>
+            </div>
+          `;
+        }
+
+        const replayBtn = document.getElementById('speech-replay-btn');
+        const startBtn = document.getElementById('speech-start-btn');
+        const indicator = document.getElementById('recording-indicator');
+        const feedback = document.getElementById('speech-feedback');
+        const translationEl = document.getElementById('speech-translation');
+        let recognitionActive = false;
+
+        // Автоматическая озвучка предложения при запуске упражнения
+        setTimeout(() => {
+          if (speechSupported) {
+            console.log(
+              'Автоматическая озвучка предложения:',
+              expectedSentence,
+            );
+            speak(expectedSentence);
+          }
+        }, 500);
+
+        if (replayBtn) {
+          replayBtn.onclick = () => speak(expectedSentence);
+        }
+
+        if (startBtn && speechRecognitionSupported) {
+          startBtn.onclick = () => {
+            if (recognitionActive) return;
+
+            recognitionActive = true;
+            indicator.style.display = 'block';
+            startBtn.style.display = 'none';
+            feedback.textContent = '';
+
+            speechRecognition.onresult = event => {
+              const spoken = event.results[0][0].transcript
+                .toLowerCase()
+                .trim();
+              console.log('Распознано:', spoken);
+              console.log('Ожидалось:', expectedSentence);
+
+              const result = checkSpeechSimilarity(spoken, expectedSentence);
+              console.log('Результат распознавания:', result);
+
+              feedback.className =
+                'speech-feedback ' + (result.isCorrect ? 'ok' : 'err');
+              feedback.innerHTML = result.isCorrect
+                ? '✅ Отлично!'
+                : `❌ Сказано: "${spoken}"<br>Правильно: "${expectedSentence}"<br>Точность: ${Math.round(result.confidence * 100)}%`;
+
+              recognitionActive = false;
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
+
+              setTimeout(() => {
+                recordAnswer(result.isCorrect);
+                sIdx++;
+                nextExercise();
+              }, 2500);
+            };
+
+            speechRecognition.onerror = event => {
+              console.error('Ошибка распознавания:', event.error);
+              feedback.className = 'speech-feedback err';
+              feedback.textContent =
+                '❌ Ошибка распознавания. Попробуйте еще раз.';
+
+              recognitionActive = false;
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
+            };
+
+            speechRecognition.onend = () => {
+              if (recognitionActive) {
+                recognitionActive = false;
+                indicator.style.display = 'none';
+                startBtn.style.display = 'flex';
+              }
+            };
+
+            speechRecognition.start();
+          };
+        } else if (startBtn && !speechRecognitionSupported) {
+          startBtn.onclick = () => {
+            feedback.className = 'speech-feedback err';
+            feedback.textContent =
+              '❌ Распознавание речи не поддерживается в вашем браузере';
+          };
+        }
+
+        // Если пользователь не хочет говорить, можно добавить кнопку пропуска
+        if (exBtns) {
+          exBtns.innerHTML = `<button class="btn-icon" id="speech-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
+          document
+            .getElementById('speech-skip')
+            ?.addEventListener('click', () => {
+              if (recognitionActive) {
+                speechRecognition.abort();
+                recognitionActive = false;
+              }
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
+              recordAnswer(false);
+              sIdx++;
+              nextExercise();
+            });
+        }
+      }
     }
   } catch (error) {
     console.error('Error in nextExercise:', error);
@@ -6549,10 +6894,6 @@ let wotdRendered = false;
   // updateDueBadge();
   renderWotd(); // Это вызов в синхронном контексте, оставляем без await
 })();
-renderWords();
-renderXP();
-renderBadges();
-renderStats();
 
 // === ЗВУКИ ===
 function playSound(type) {
@@ -7133,10 +7474,10 @@ document.addEventListener('visibilitychange', () => {
 (async () => {
   await load();
 
-  // Выполняем миграцию переводов после загрузки
-  if (window.words && window.words.length > 0) {
-    await migrateExampleTranslations();
-  }
+  // НЕ выполняем миграцию примеров - упражнения используют только пользовательские слова
+  // if (window.words && window.words.length > 0) {
+  //   await migrateExampleTranslations();
+  // }
 
   // НЕ рендерим сразу! Ждём профиль
   console.log('⏳ Ожидаем загрузки профиля перед первым рендером...');
@@ -7182,13 +7523,14 @@ window.onProfileFullyLoaded = function () {
     }, 300);
   }
 
-  renderWords();
-  renderStats();
-  renderXP();
-  renderBadges();
-  updateDueBadge();
-  renderWeekChart();
-  renderWotd();
+  // Выполняем отложенные сохранения после полной загрузки профиля
+  if (pendingProfileSaves.length > 0 && window.currentUserId) {
+    console.log(
+      `Выполняем ${pendingProfileSaves.length} отложенных сохранений профиля`,
+    );
+    pendingProfileSaves = [];
+    queueProfileSave();
+  }
 };
 
 // Если через 2 секунды Supabase не загрузил тему, оставляем localStorage fallback
@@ -7318,13 +7660,17 @@ setInterval(
 
 // Сохраняем профиль при уходе со страницы
 window.addEventListener('beforeunload', () => {
-  syncSaveProfile();
+  if (window.profileFullyLoaded) {
+    syncSaveProfile();
+  }
 });
 
 // Сохраняем профиль при смене видимости (например, переключение вкладок)
 window.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
-    syncSaveProfile();
+    if (window.profileFullyLoaded) {
+      queueProfileSave();
+    }
   }
 });
 

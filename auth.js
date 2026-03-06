@@ -1,6 +1,10 @@
 import { supabase } from './supabase.js';
 import { saveUserData } from './db.js';
 
+// Флаг для защиты от ранних сохранений
+let profileFullyLoaded = false;
+window.profileFullyLoaded = false; // Делаем доступным глобально
+
 // DOM элементы (оставляем те же)
 const authGate = document.getElementById('auth-gate');
 const gateEmail = document.getElementById('gate-email');
@@ -318,7 +322,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       .querySelectorAll('.modal-backdrop.open')
       .forEach(m => m.classList.remove('open'));
 
-    window.clearUserData?.();
+    // window.clearUserData?.();  // ← закомментировано - не нужно при выходе
     dropdownEmail.textContent = '';
     userAvatar.innerHTML =
       '<span class="material-symbols-outlined">person</span>';
@@ -330,7 +334,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     dropdownEmail.textContent = '';
     userAvatar.innerHTML =
       '<span class="material-symbols-outlined">person</span>';
-    window.clearUserData?.();
+    // window.clearUserData?.();  // ← закомментировано - не нужно при выходе
   }
 });
 
@@ -440,13 +444,12 @@ async function loadUserProfile(user) {
         if (window.refreshUI) {
           window.refreshUI();
         } else {
-          renderWords();
-          renderStats();
-          updateDueBadge();
+          window.renderWords?.();
+          window.renderStats?.();
+          window.updateDueBadge?.();
         }
       });
 
-      window.onProfileFullyLoaded?.();
       return;
     }
 
@@ -533,9 +536,9 @@ async function loadUserProfile(user) {
         if (window.refreshUI) {
           window.refreshUI();
         } else {
-          renderWords();
-          renderStats();
-          updateDueBadge();
+          window.renderWords?.();
+          window.renderStats?.();
+          window.updateDueBadge?.();
         }
       });
     }
@@ -546,6 +549,8 @@ async function loadUserProfile(user) {
   }
 
   window.onProfileFullyLoaded?.();
+  profileFullyLoaded = true;
+  window.profileFullyLoaded = true;
 }
 
 // Инициализация при загрузке страницы

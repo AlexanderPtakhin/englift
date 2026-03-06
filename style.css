@@ -305,6 +305,10 @@ body.exam-mode .setup-row:nth-of-type(8) {
   color: var(--primary);
 }
 
+.mobile-nav-btn:hover {
+  box-shadow: none !important;
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 830px) {
   /* Показываем мобильное меню */
