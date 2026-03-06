@@ -32,13 +32,26 @@ let hideTimeout;
 
 // Вспомогательные функции (те же)
 function showAuthGate() {
+  console.log('showAuthGate called');
   authGate.classList.remove('hidden');
+  authGate.style.display = 'flex'; // принудительно
   document.body.classList.remove('authenticated');
-  gateEmail.focus();
+  console.log(
+    'authGate display after:',
+    window.getComputedStyle(authGate)?.display,
+  );
+  console.log(
+    'body has authenticated:',
+    document.body.classList.contains('authenticated'),
+  );
+  if (gateEmail) {
+    gateEmail.focus();
+  }
 }
 
 function hideAuthGate() {
   authGate.classList.add('hidden');
+  authGate.style.display = ''; // сбрасываем инлайн-стиль
   document.body.classList.add('authenticated');
 }
 
@@ -73,8 +86,18 @@ function clearGateForm() {
 
 // Обработка входа/регистрации
 async function handleAuth(email, password, confirm, isRegister) {
-  if (!email || !password) return;
+  console.log('🚀 handleAuth called with:', {
+    email,
+    hasPassword: !!password,
+    isRegister,
+  });
+
+  if (!email || !password) {
+    console.log('❌ Missing email or password');
+    return;
+  }
   if (isRegister && password !== confirm) {
+    console.log('❌ Passwords do not match');
     gateError.textContent = 'Пароли не совпадают';
     return;
   }
@@ -84,6 +107,7 @@ async function handleAuth(email, password, confirm, isRegister) {
 
   try {
     if (isRegister) {
+      console.log('📝 Registering new user...');
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       if (data.user) {
@@ -99,15 +123,18 @@ async function handleAuth(email, password, confirm, isRegister) {
         );
       }
     } else {
+      console.log('🔐 Signing in user...');
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
+      console.log('✅ Sign in successful');
     }
     clearGateForm();
-    hideAuthGate();
+    hideAuthGate(); // Теперь правильно скроет с сбросом инлайн-стиля
   } catch (err) {
+    console.log('❌ Auth error:', err);
     const msgs = {
       email_already_exists: 'Этот email уже занят',
       invalid_email: 'Неверный формат email',
@@ -134,6 +161,11 @@ gateToggle.addEventListener('click', () => {
 
 // Обработчик кнопки отправки
 gateSubmit.addEventListener('click', () => {
+  console.log('🔑 Login button clicked');
+  console.log('📧 Email:', gateEmail.value.trim());
+  console.log('🔑 Password:', gatePassword.value.trim() ? '***' : 'empty');
+  console.log('📝 Mode:', isRegisterMode ? 'register' : 'login');
+
   handleAuth(
     gateEmail.value.trim(),
     gatePassword.value.trim(),
@@ -210,13 +242,17 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user;
 
   // === ЗАПУСК ПРОФИЛЯ ===
-  if (event === 'INITIAL_SESSION' && user && user.email_confirmed_at) {
-    if (!profileLoadPromise) {
-      profileLoadPromise = loadUserProfile(user).finally(() => {
-        profileLoaded = true;
-        profileLoadPromise = null;
-      });
-    }
+  if (
+    event === 'INITIAL_SESSION' &&
+    user &&
+    user.email_confirmed_at &&
+    !profileLoaded &&
+    !profileLoadPromise
+  ) {
+    profileLoadPromise = loadUserProfile(user).finally(() => {
+      profileLoaded = true;
+      profileLoadPromise = null;
+    });
   } else if (
     event === 'SIGNED_IN' &&
     user &&
@@ -268,13 +304,25 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     document.body.classList.remove('authenticated');
     showEmailNotVerified(user.email);
   } else if (event === 'SIGNED_OUT') {
+    console.log('🚪 SIGNED_OUT event received');
     hideEmailNotVerified();
     showAuthGate();
     document.body.classList.remove('authenticated');
+
+    // Скрыть индикатор загрузки, если он висит
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+
+    // Закрыть все открытые модалки
+    document
+      .querySelectorAll('.modal-backdrop.open')
+      .forEach(m => m.classList.remove('open'));
+
     window.clearUserData?.();
     dropdownEmail.textContent = '';
     userAvatar.innerHTML =
       '<span class="material-symbols-outlined">person</span>';
+    console.log('🚪 SIGNED_OUT processing completed');
   } else {
     hideEmailNotVerified();
     showAuthGate();

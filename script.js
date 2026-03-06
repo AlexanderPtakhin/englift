@@ -2911,6 +2911,12 @@ window.applyTheme = function (themeName) {
   }
   window.user_settings.theme = themeName;
 
+  // Сохраняем в localStorage для немедленного сохранения
+  localStorage.setItem(
+    'englift_user_settings',
+    JSON.stringify(window.user_settings),
+  );
+
   // Сохраняем в профиль с дебаунсом
   debouncedSaveProfile();
 };
@@ -7002,7 +7008,7 @@ window.clearUserData = function () {
   window.todayReviewedCount = 0;
   window.lastReviewedReset = new Date().toISOString().split('T')[0];
   window.speech_cfg = {};
-  window.user_settings = {};
+  // НЕ очищаем user_settings чтобы сохранить тему
 
   // Очищаем localStorage слов
   localStorage.removeItem('englift_words');
@@ -7139,9 +7145,14 @@ document.addEventListener('visibilitychange', () => {
 // Глобальный хук — вызывается из auth.js когда ВСЁ готово
 window.onProfileFullyLoaded = function () {
   console.log('🚀 onProfileFullyLoaded — убираем loading и применяем тему');
+  console.log('🔍 user_settings:', window.user_settings);
+  console.log('🔍 currentUserId:', window.currentUserId);
 
   // Сначала убираем loading класс - разрешаем показ контента
   document.body.classList.remove('loading');
+
+  // Добавляем authenticated чтобы скрыть auth-gate
+  document.body.classList.add('authenticated');
 
   // Применяем тему из профиля или fallback (только один раз!)
   let themeToApply = 'lavender'; // по умолчанию
@@ -7184,8 +7195,12 @@ window.onProfileFullyLoaded = function () {
 setTimeout(() => {
   if (document.body.classList.contains('loading')) {
     // Если все еще в загрузке, применяем тему из localStorage
-    const isDark = JSON.parse(localStorage.getItem('engliftDark') || 'false');
-    window.applyTheme(isDark ? 'dark' : 'lavender');
+    const userSettings = JSON.parse(
+      localStorage.getItem('englift_user_settings') || '{}',
+    );
+    const theme = userSettings.theme || 'lavender';
+    console.log('🔄 Fallback: применяем тему из localStorage:', theme);
+    window.applyTheme(theme);
   }
 }, 2000);
 

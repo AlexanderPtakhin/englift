@@ -5268,3 +5268,10 @@ html.dark .goal-item.locked .goal-progress-text {
 #wotd-wrap.wotd-fade-in {
   opacity: 1;
 }
+
+/* Разделитель в dropdown меню */
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.5rem 0;
+}
