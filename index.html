@@ -636,20 +636,8 @@
           <!-- Импорт/Экспорт -->
 
           <div class="add-card">
-            <h3
-              style="
-                display: flex;
-
-                align-items: center;
-
-                justify-content: center;
-
-                gap: 8px;
-              "
-            >
-              <span class="material-symbols-outlined" style="font-size: 1.2rem"
-                >import_export</span
-              >
+            <h3>
+              <span class="material-symbols-outlined">import_export</span>
 
               Импорт / Экспорт
             </h3>
@@ -657,11 +645,7 @@
             <div class="io-btn-group">
               <button class="io-btn" id="io-export-json">
                 <div class="io-btn-main">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 1.2rem"
-                    >save</span
-                  >
+                  <span class="material-symbols-outlined">save</span>
 
                   <span>Сохранить бэкап (JSON)</span>
                 </div>
@@ -671,11 +655,7 @@
 
               <button class="io-btn" id="io-export-csv">
                 <div class="io-btn-main">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 1.2rem"
-                    >description</span
-                  >
+                  <span class="material-symbols-outlined">description</span>
 
                   <span>Экспорт в CSV</span>
                 </div>
@@ -685,11 +665,7 @@
 
               <button class="io-btn" id="io-export-anki">
                 <div class="io-btn-main">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 1.2rem"
-                    >style</span
-                  >
+                  <span class="material-symbols-outlined">style</span>
 
                   <span>Экспорт в Anki (TSV)</span>
                 </div>
@@ -752,29 +728,7 @@
 
             <!-- Кнопка подтверждения импорта (изначально скрыта) -->
 
-            <button
-              class="io-btn"
-              id="import-file-btn"
-              style="
-                display: none;
-
-                margin-top: 1rem;
-
-                background: none;
-
-                border: none;
-
-                color: var(--primary);
-
-                text-decoration: underline;
-
-                cursor: pointer;
-
-                padding: 0.25rem 0.5rem;
-
-                font-size: 0.9rem;
-              "
-            >
+            <button class="btn-link" id="import-file-btn" style="display: none">
               Импортировать
             </button>
           </div>
@@ -806,9 +760,15 @@
               </label>
 
               <div class="chip-group" id="practice-mode">
-                <button class="chip on" data-mode="normal">Обычный</button>
+                <button class="chip on" data-mode="normal">
+                  <span class="material-symbols-outlined">school</span>
+                  Обычный
+                </button>
 
-                <button class="chip" data-mode="exam">Экзамен</button>
+                <button class="chip" data-mode="exam">
+                  <span class="material-symbols-outlined">quiz</span>
+                  Экзамен
+                </button>
               </div>
             </div>
 
@@ -833,13 +793,25 @@
                 <label>Длительность</label>
 
                 <div class="chip-group">
-                  <button class="chip" data-exam-time="300">5 мин</button>
+                  <button class="chip" data-exam-time="300">
+                    <span class="material-symbols-outlined">timer</span>
+                    5 мин
+                  </button>
 
-                  <button class="chip on" data-exam-time="600">10 мин</button>
+                  <button class="chip on" data-exam-time="600">
+                    <span class="material-symbols-outlined">timer</span>
+                    10 мин
+                  </button>
 
-                  <button class="chip" data-exam-time="1200">20 мин</button>
+                  <button class="chip" data-exam-time="1200">
+                    <span class="material-symbols-outlined">timer</span>
+                    20 мин
+                  </button>
 
-                  <button class="chip" data-exam-time="1800">30 мин</button>
+                  <button class="chip" data-exam-time="1800">
+                    <span class="material-symbols-outlined">timer</span>
+                    30 мин
+                  </button>
                 </div>
               </div>
 
