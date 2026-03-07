@@ -166,6 +166,7 @@ async function syncWordsFromServer() {
   console.log(`🔄 Загружаем слова, измененные после ${lastSync}`);
 
   try {
+    console.log('🔍 Начинаем запрос к Supabase...');
     const { data, error } = await supabase
 
       .from('user_words')
@@ -175,6 +176,8 @@ async function syncWordsFromServer() {
       .gt('updatedAt', lastSync)
 
       .order('updatedAt', { ascending: false });
+
+    console.log('📊 Получен ответ от Supabase:', { data, error });
 
     if (error) throw error;
 
@@ -190,6 +193,8 @@ async function syncWordsFromServer() {
   } catch (e) {
     console.error('❌ Ошибка загрузки измененных слов', e);
   }
+
+  console.log('✅ syncWordsFromServer завершена');
 }
 
 function mergeWordsWithServer(serverWords) {
@@ -5184,7 +5189,7 @@ function makeCard(w) {
         ${w.stats.learned ? '<span class="learned-badge" title="Выучено"><span class="material-symbols-outlined">check_circle</span></span>' : ''}
       </div>
     </div>
-    <div class="word-translation">${esc(w.ru)}</div>
+    <div class="word-translation">${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</div>
     <div class="word-card-footer">
       <span class="expand-hint">Нажмите, чтобы раскрыть</span>
       <span class="material-symbols-outlined expand-icon">expand_more</span>
@@ -6302,7 +6307,7 @@ function showPreview() {
 
       <td>${esc(w.en)}${isDuplicate ? '<br><span style="color: var(--warning); font-size: 0.8em;">(уже есть)</span>' : ''}</td>
 
-      <td>${esc(w.ru)}</td>
+      <td>${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</td>
 
       <td>${esc(w.ex || '-')}</td>
 
@@ -8196,13 +8201,19 @@ function showResults() {
 
   document.getElementById('r-correct').innerHTML = sResults.correct
 
-    .map(w => `<li>${esc(w.en)} — ${esc(w.ru)}</li>`)
+    .map(
+      w =>
+        `<li>${esc(w.en)} — ${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</li>`,
+    )
 
     .join('');
 
   document.getElementById('r-wrong').innerHTML = sResults.wrong
 
-    .map(w => `<li>${esc(w.en)} — ${esc(w.ru)}</li>`)
+    .map(
+      w =>
+        `<li>${esc(w.en)} — ${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</li>`,
+    )
 
     .join('');
 
@@ -8448,46 +8459,43 @@ function nextExercise() {
       }
 
       const dir = session.dir || 'both';
-
       const showRU = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
 
-      const frontWord = showRU ? w.ru : w.en;
-
-      const backWord = showRU ? w.en : w.ru;
+      let frontWord, backWord;
+      if (showRU) {
+        // RU на лицевой стороне — разбиваем на варианты и соединяем запятой
+        const ruVariants = parseAnswerVariants(w.ru);
+        frontWord = ruVariants.length ? ruVariants.join(', ') : w.ru;
+        backWord = w.en; // английское слово (может быть несколько, но на обороте мы уже обработали)
+      } else {
+        frontWord = w.en;
+        // на обороте русское — тоже разбиваем и соединяем запятой
+        const ruVariants = parseAnswerVariants(w.ru);
+        backWord = ruVariants.length ? ruVariants.join(', ') : w.ru;
+      }
 
       if (exContent) {
         exContent.innerHTML = `
-
           <div class="flashcard-scene" id="fc-scene">
-
             <div class="flashcard-inner" id="fc-inner">
-
               <div class="card-face front">
-
                 <div style="display:flex;align-items:center;gap:.75rem">
-
                   <div class="card-word">${esc(frontWord)}</div>
-
                   ${!showRU && speechSupported ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
-
                 </div>
-
                 <div class="card-hint" style="font-size:.7rem;opacity:.5">${showRU ? 'RU' : 'EN'} · нажми для перевода</div>
-
               </div>
-
               <div class="card-face back">
-
-                <div class="card-trans">${esc(backWord)}</div>
-
+                <div class="card-trans">
+                  ${(() => {
+                    const variants = parseAnswerVariants(backWord);
+                    return variants.join(', ') || esc(backWord);
+                  })()}
+                </div>
                 ${!showRU && w.ex ? `<div class="card-ex">${esc(w.ex)}</div>` : ''}
-
               </div>
-
             </div>
-
           </div>
-
         `;
       }
 
@@ -8572,47 +8580,58 @@ function nextExercise() {
       }
 
       const dir = session.dir || 'both';
-
       const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
 
-      const question = isRUEN ? w.ru : w.en;
+      // Вопрос (красиво форматируем варианты через запятую)
+      const question = isRUEN
+        ? parseAnswerVariants(w.ru).join(', ') || w.ru
+        : w.en;
 
-      const correct = isRUEN ? w.en : w.ru;
+      // Правильный ответ — первый вариант из строки перевода
+      const correctFull = isRUEN ? w.en : w.ru;
+      const correctVariants = parseAnswerVariants(correctFull);
+      const correct =
+        correctVariants.length > 0 ? correctVariants[0] : correctFull;
 
-      const others = window.words
+      // Собираем дистракторы из других слов
+      let otherWords = window.words.filter(x => x.id !== w.id);
+      // Для каждого другого слова берём первый вариант его перевода в зависимости от направления
+      let distractorCandidates = otherWords
+        .map(x => {
+          const trans = isRUEN ? x.en : x.ru;
+          const variants = parseAnswerVariants(trans);
+          return variants.length > 0 ? variants[0] : trans;
+        })
+        .filter(v => v !== correct); // исключаем совпадения с правильным ответом
 
-        .filter(x => x.id !== w.id)
-
+      // Перемешиваем и берём до 3 дистракторов
+      let distactors = distractorCandidates
         .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
 
-        .slice(0, 3)
+      // Если дистракторов меньше 3 (например, мало слов), дополняем другими вариантами текущего слова (кроме первого)
+      if (distactors.length < 3 && correctVariants.length > 1) {
+        const otherVariants = correctVariants.slice(1); // все, кроме первого
+        distactors = [...distactors, ...otherVariants].slice(0, 3);
+      }
 
-        .map(x => (isRUEN ? x.en : x.ru));
-
-      let options = [...others, correct]
-
-        .sort(() => Math.random() - 0.5)
-
-        .slice(0, 4);
-
-      if (!options.includes(correct)) options[0] = correct;
+      // Формируем опции: правильный ответ + дистракторы
+      let options = [correct, ...distactors];
+      // Перемешиваем
+      options = options.sort(() => Math.random() - 0.5);
 
       if (autoPron && !isRUEN && speechSupported)
         setTimeout(() => speak(w.en), 300);
 
       if (exContent) {
         exContent.innerHTML = `
-
           <div class="mc-question">
-
             ${esc(question)}
-
             ${!isRUEN && speechSupported ? `<button class="btn-audio" id="mc-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
-
           </div>
-
-          <div class="mc-grid">${options.map(o => `<button class="mc-btn" data-ans="${esc(o)}">${esc(o)}</button>`).join('')}</div>
-
+          <div class="mc-grid">
+            ${options.map(o => `<button class="mc-btn" data-ans="${safeAttr(o)}">${esc(o)}</button>`).join('')}
+          </div>
         `;
       }
 
@@ -8643,13 +8662,16 @@ function nextExercise() {
 
             if (ok && speechSupported) speak(w.en);
 
-            setTimeout(() => {
-              recordAnswer(ok);
+            setTimeout(
+              () => {
+                recordAnswer(ok);
 
-              sIdx++;
+                sIdx++;
 
-              nextExercise();
-            }, 1100);
+                nextExercise();
+              },
+              ok ? 1500 : 2000,
+            );
           }),
         );
       }
@@ -8669,7 +8691,9 @@ function nextExercise() {
 
       const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
 
-      const question = isRUEN ? w.ru : w.en;
+      const question = isRUEN
+        ? parseAnswerVariants(w.ru).join(', ') || w.ru
+        : w.en;
 
       const answer = isRUEN ? w.en : w.ru;
 
@@ -8725,9 +8749,11 @@ function nextExercise() {
           const checkAnswer = () => {
             const userAnswer = input.value.trim().toLowerCase();
 
-            const correctAnswer = answer.toLowerCase().trim();
-
-            const isCorrect = userAnswer === correctAnswer;
+            // Получаем массив вариантов правильного ответа
+            const answerVariants = parseAnswerVariants(answer);
+            const isCorrect = answerVariants.some(
+              variant => variant === userAnswer,
+            );
 
             if (input) input.disabled = true;
 
@@ -8790,7 +8816,7 @@ function nextExercise() {
 
               <div class="card-face front">
 
-                <div class="card-word">${esc(w.ru)}</div>
+                <div class="card-word">${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</div>
 
                 <div class="card-hint" style="font-size:.7rem;opacity:.5">RU · Прослушай и напиши по-английски</div>
 
@@ -8889,7 +8915,7 @@ function nextExercise() {
 
           <div class="builder-card">
 
-            <div class="builder-question">${esc(w.ru)}</div>
+            <div class="builder-question">${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</div>
 
             <div class="builder-answer" id="builder-answer"></div>
 
@@ -9953,7 +9979,7 @@ async function renderRandomBankWord() {
       <div class="word-bank-content">
         <div class="word-bank-label">📖 Случайное слово</div>
         <div class="word-bank-en">${esc(word.en)}</div>
-        <div class="word-bank-ru">${esc(word.ru)}</div>
+        <div class="word-bank-ru">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>
         ${word.phonetic ? `<div class="word-bank-phonetic">${esc(word.phonetic)}</div>` : ''}
         ${example ? `<div class="word-bank-example">${esc(example)}</div>` : ''}
         ${exampleTranslation ? `<div class="word-bank-example-translation">${esc(exampleTranslation)}</div>` : ''}
@@ -10394,7 +10420,10 @@ function runContextExercise(word, onComplete) {
       if (isCorrect) {
         btn.classList.add('correct');
         playSound('correct');
-        toast(`✅ Верно! ${word.en} - ${word.ru}`, 'success');
+        toast(
+          `✅ Верно! ${word.en} - ${parseAnswerVariants(word.ru).join(', ') || word.ru}`,
+          'success',
+        );
         recordAnswer(true);
 
         // Показываем полный пример
@@ -10475,13 +10504,13 @@ function runSpeechSentenceExercise(word, onComplete) {
 
           </div>
 
-          ${!hasExample ? `<div class="speech-phonetic">${esc(word.ru)}</div>` : ''}
+          ${!hasExample ? `<div class="speech-phonetic">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>` : ''}
 
           <div class="speech-hint">${hasExample ? '' : 'Прослушайте слово, затем повторите его'}</div>
 
           <div class="speech-translation" id="speech-sentence-translation" style="margin-top: 0.5rem; opacity: 0.7;">
 
-            ${!hasExample ? `${esc(word.ru)}` : exampleTranslation ? `${esc(exampleTranslation)}` : ''}
+            ${!hasExample ? `${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}` : exampleTranslation ? `${esc(exampleTranslation)}` : ''}
 
           </div>
 
@@ -11057,18 +11086,29 @@ window.onProfileFullyLoaded = async function () {
 
   // Синхронизируем измененные слова с сервера
 
-  syncWordsFromServer();
+  console.log('🚀 Начинаем инициализацию приложения...');
 
-  // Скрываем индикатор загрузки
+  try {
+    await syncWordsFromServer();
+    console.log('🔄 Синхронизация слов завершена');
+  } catch (e) {
+    console.error('❌ Ошибка синхронизации слов:', e);
+  }
+
+  // Скрываем индикатор загрузки только после завершения синхронизации
 
   const loadingIndicator = document.getElementById('loading-indicator');
 
   if (loadingIndicator) {
+    console.log('🎯 Скрываем индикатор загрузки');
     loadingIndicator.style.opacity = '0';
 
     setTimeout(() => {
       loadingIndicator.style.display = 'none';
+      console.log('✅ Индикатор загрузки скрыт');
     }, 300);
+  } else {
+    console.warn('⚠️ Индикатор загрузки не найден');
   }
 
   // Загружаем слова перед рендерингом, только если пользователь авторизован
@@ -11145,9 +11185,12 @@ setTimeout(() => {
 
     setTimeout(() => {
       loadingIndicator.style.display = 'none';
+      console.log('🔒 Индикатор загрузки скрыт принудительно');
     }, 300);
+  } else {
+    console.log('✅ Индикатор загрузки уже скрыт или не найден');
   }
-}, 10000); // 10 секунд
+}, 5000); // Уменьшил до 5 секунд
 
 // Проверяем соединение с Supabase
 

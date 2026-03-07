@@ -370,6 +370,8 @@ html:not(.dark) {
 
   --card: #ffffff;
 
+  --card-rgb: 255, 255, 255;
+
   --text: #4a4a4a;
 
   --muted: #8884aa;
@@ -397,6 +399,8 @@ html.dark {
   --bg: #13121f;
 
   --card: #1e1c30;
+
+  --card-rgb: 30, 28, 48;
 
   --text: #e8e6ff;
 
@@ -8174,6 +8178,141 @@ html.dark .goal-item.locked .goal-progress-text {
   gap: 0.75rem;
   justify-content: flex-end;
   margin-top: 1rem;
+}
+
+/* ===== ОБНОВЛЁННЫЙ ХЕДЕР ===== */
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 2rem;
+  transition: background 0.3s ease;
+}
+
+/* В тёмной теме делаем фон чуть темнее */
+html.dark header {
+  background: var(--card);
+}
+
+/* Логотип */
+.logo {
+  font-size: 1.6rem; /* Чуть больше */
+  transition: transform 0.2s;
+}
+
+.logo:hover {
+  transform: scale(1.02);
+}
+
+/* ===== НАВИГАЦИОННЫЕ КНОПКИ (PILL STYLE) ===== */
+.nav-btn {
+  min-width: auto;
+  padding: 0.5rem 1.2rem;
+  border-radius: 30px; /* Сильное скругление */
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.nav-btn .material-symbols-outlined {
+  font-size: 1.2rem;
+  color: currentColor;
+}
+
+.nav-btn:hover {
+  background: var(--border); /* Используем цвет границы как фон при наведении */
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.nav-btn.active {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  font-weight: 700;
+}
+
+/* Адаптация для мобильных (кнопки в шапке скрыты, но оставим для планшетов) */
+@media (max-width: 830px) {
+  .nav-btn {
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+  }
+  .nav-btn .material-symbols-outlined {
+    font-size: 1rem;
+  }
+}
+
+/* ===== АВАТАР ПОЛЬЗОВАТЕЛЯ ===== */
+.user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.user-avatar:hover {
+  border-color: var(--primary);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Иконка внутри аватара */
+.user-avatar .material-symbols-outlined {
+  font-size: 1.5rem;
+  color: var(--muted);
+}
+
+.user-avatar:hover .material-symbols-outlined {
+  color: var(--primary);
+}
+
+/* ===== МОБИЛЬНОЕ МЕНЮ (лёгкий рефрешинг) ===== */
+.mobile-bottom-nav {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  height: 70px; /* Чуть выше для удобства */
+}
+
+.mobile-nav-btn {
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.mobile-nav-btn .material-symbols-outlined {
+  font-size: 26px; /* Чуть крупнее */
+}
+
+.mobile-nav-btn.active {
+  color: var(--primary);
+}
+
+.mobile-nav-btn .badge {
+  top: 0.2rem;
+  right: 30%;
+  background: var(--primary);
+  color: white;
+  font-size: 0.7rem;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
 }
 
 @keyframes fadeIn {
