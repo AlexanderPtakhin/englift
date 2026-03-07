@@ -390,17 +390,77 @@ window.cefrLevels = {
   C2: 0,
 };
 
-// Soft cap for daily reviews - должно быть объявлено ДО использования
+// ВРЕМЕННЫЙ СБРОС ЛИМИТА ПОЛЬЗОВАТЕЛЯ ДЛЯ ТЕСТОВ - УДАЛЕНО
 
-const MAX_REVIEWS_PER_DAY = 100;
+// УДАЛЕНО: todayReviewedCount - заменено на dailyReviewCount
 
-// Global tracking for today's reviewed cards - должно быть объявлено ДО использования
-
-window.todayReviewedCount = 0;
-
-window.lastReviewedReset = null;
+// УДАЛЕНО: lastReviewedReset - заменено на lastReviewResetDate
 
 window.postponedToastShown = false;
+
+// ============================================================
+// ДНЕВНОЙ ЛИМИТ ПОВТОРЕНИЙ (новая простая логика)
+// ============================================================
+
+window.dailyReviewCount = 0; // сколько упражнений сделано сегодня
+window.lastReviewResetDate = null; // дата последнего сброса (строка YYYY-MM-DD)
+
+// Проверка и сброс счётчика, если наступил новый день
+function checkAndResetDailyCount() {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  if (window.lastReviewResetDate !== today) {
+    window.dailyReviewCount = 0;
+    window.lastReviewResetDate = today;
+    console.log('🔄 Дневной счётчик сброшен');
+  }
+}
+
+// Получить текущий лимит из настроек (или значение по умолчанию)
+function getReviewLimit() {
+  return window.user_settings?.reviewLimit &&
+    window.user_settings.reviewLimit !== 9999
+    ? window.user_settings.reviewLimit
+    : 100; // значение по умолчанию
+}
+
+// Проверить, можно ли начать сессию с указанным количеством слов
+// Возвращает true, если можно, иначе false (и показывает модалку)
+function canStartSession(requestedCount) {
+  const limit = getReviewLimit();
+  const remaining = limit - window.dailyReviewCount;
+
+  if (remaining <= 0) {
+    // Лимит исчерпан – показываем модалку
+    showLimitModal(limit);
+    return false;
+  }
+
+  if (requestedCount > remaining) {
+    // Запрошено больше, чем осталось – показываем предупреждение и берём только остаток
+    toast(
+      `⏰ Осталось только ${remaining} упражнений на сегодня. Будет показано ${remaining} из ${requestedCount} слов.`,
+      'info',
+      'schedule',
+    );
+    // Но мы всё равно разрешаем старт, просто позже обрежем массив
+    return true;
+  }
+
+  return true;
+}
+
+// Увеличить счётчик на 1 (вызывается при каждом ответе)
+function incrementDailyCount() {
+  window.dailyReviewCount++;
+  console.log(`📈 Счетчик упражнений увеличен до ${window.dailyReviewCount}`);
+  console.log(`🔄 Дата сброса: ${window.lastReviewResetDate}`);
+  console.log(`💾 Вызываем сохранение профиля...`);
+
+  // Сохраняем сразу после увеличения счетчика
+  if (window.currentUserId) {
+    debouncedSaveProfile(window.currentUserId);
+  }
+}
 
 // Универсальная функция для обновления всего интерфейса
 
@@ -443,6 +503,19 @@ window.restoreProfileFromLocalStorage = restoreProfileFromLocalStorage;
 window.mergeProfileData = mergeProfileData;
 
 window.applyProfileData = applyProfileData;
+
+// Глобальная функция для отладки лимитов
+window.debugLimits = function () {
+  console.log('🔍 === ОТЛАДКА ЛИМИТОВ ===');
+  console.log('📊 Текущий счетчик:', window.dailyReviewCount);
+  console.log('📅 Дата сброса:', window.lastReviewResetDate);
+  console.log('⚙️ Настройки:', window.user_settings?.reviewLimit);
+  console.log('🆔 ID пользователя:', window.currentUserId);
+  console.log('📈 Лимит:', getReviewLimit());
+  console.log('🔄 Осталось:', getReviewLimit() - window.dailyReviewCount);
+  console.log('📅 Сегодня:', new Date().toISOString().split('T')[0]);
+  console.log('========================');
+};
 
 window.isProfileEmpty = isProfileEmpty;
 
@@ -534,9 +607,9 @@ async function saveAllUserData() {
 
     daily_progress: window.dailyProgress,
 
-    last_reviewed_reset: window.lastReviewedReset,
+    last_review_reset: window.lastReviewResetDate,
 
-    today_reviewed_count: window.todayReviewedCount,
+    daily_review_count: window.dailyReviewCount,
 
     speech_cfg: speech_cfg,
 
@@ -581,9 +654,9 @@ async function saveProfileData() {
 
       daily_progress: window.dailyProgress,
 
-      last_reviewed_reset: window.lastReviewedReset,
+      last_review_reset: window.lastReviewResetDate,
 
-      today_reviewed_count: window.todayReviewedCount,
+      daily_review_count: window.dailyReviewCount,
 
       speech_cfg: speech_cfg,
 
@@ -695,9 +768,9 @@ function syncSaveProfile() {
 
       daily_progress: window.dailyProgress,
 
-      last_reviewed_reset: window.lastReviewedReset,
+      last_review_reset: window.lastReviewResetDate,
 
-      today_reviewed_count: window.todayReviewedCount,
+      daily_review_count: window.dailyReviewCount,
 
       speech_cfg: speech_cfg,
 
@@ -1042,9 +1115,9 @@ function backupProfileToLocalStorage() {
 
     daily_progress: window.dailyProgress,
 
-    last_reviewed_reset: window.lastReviewedReset,
+    last_review_reset: window.lastReviewResetDate,
 
-    today_reviewed_count: window.todayReviewedCount,
+    daily_review_count: window.dailyReviewCount,
 
     speech_cfg: speech_cfg,
 
@@ -1100,7 +1173,7 @@ function mergeProfileData(primary, secondary) {
 
   // Список полей, которые нужно мержить беря максимум
 
-  const maxFields = ['xp', 'level', 'streak', 'today_reviewed_count'];
+  const maxFields = ['xp', 'level', 'streak', 'daily_review_count'];
 
   maxFields.forEach(field => {
     const primaryValue = merged[field] || 0;
@@ -1114,11 +1187,17 @@ function mergeProfileData(primary, secondary) {
 
   const simpleFields = [
     'last_streak_date',
-
-    'last_reviewed_reset',
-
+    'last_reviewed_reset', // оставьте для обратной совместимости, если есть старые записи
+    'last_review_reset', // новое имя
     'dark_theme',
   ];
+
+  if (
+    simpleFields.includes('last_reviewed_reset') &&
+    simpleFields.includes('last_review_reset')
+  ) {
+    console.log('simpleFields содержит оба поля для совместимости');
+  }
 
   simpleFields.forEach(field => {
     if (merged[field] === undefined && secondary[field] !== undefined) {
@@ -1209,9 +1288,29 @@ function applyProfileData(data) {
 
   if (data.daily_progress) window.updateDailyProgress?.(data.daily_progress);
 
-  window.todayReviewedCount = data.today_reviewed_count ?? 0;
+  // Добавить:
+  console.log('📥 Загружаем профиль:', {
+    daily_review_count: data.daily_review_count,
+    last_review_reset: data.last_review_reset,
+  });
 
-  window.lastReviewedReset = data.last_reviewed_reset;
+  if (data.daily_review_count !== undefined)
+    window.dailyReviewCount = data.daily_review_count;
+  if (data.last_review_reset)
+    window.lastReviewResetDate = data.last_review_reset;
+
+  console.log('📊 После загрузки:', {
+    dailyReviewCount: window.dailyReviewCount,
+    lastReviewResetDate: window.lastReviewResetDate,
+  });
+
+  // Проверяем, не наступил ли новый день (сбрасываем счётчик при необходимости)
+  checkAndResetDailyCount();
+
+  console.log('🔄 После проверки сброса:', {
+    dailyReviewCount: window.dailyReviewCount,
+    lastReviewResetDate: window.lastReviewResetDate,
+  });
 
   window.speech_cfg = data.speech_cfg || {};
 
@@ -1680,7 +1779,8 @@ window.clearUserData = function () {
     lastReset: new Date().toISOString().split('T')[0],
   };
 
-  window.todayReviewedCount = 0;
+  window.dailyReviewCount = 0;
+  window.lastReviewResetDate = new Date().toISOString().split('T')[0]; // сегодняшняя дата
 
   window.currentUserId = null;
 
@@ -1875,9 +1975,7 @@ async function load() {
       console.warn('Ошибка восстановления из страховки:', e);
     }
 
-    // Сбрасываем счетчик повторений при загрузке
-
-    resetDailyReviewedCountIfNeeded();
+    // Сбрасываем счетчик повторений при загрузке - УДАЛЕНО (будет вызываться в applyProfileData)
 
     // Загрузка будет происходить через Supabase listener в auth.js
   } catch (e) {
@@ -3567,6 +3665,111 @@ setupSpeechListeners();
 
 // ============================================================
 
+function showLimitModal(limit) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+    ">
+      <div style="
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+      ">
+        <span class="material-symbols-outlined" style="color: white; font-size: 32px;">timer_off</span>
+      </div>
+      
+      <h2 style="margin: 0 0 16px 0; color: var(--text-primary); font-size: 24px;">
+        Дневной лимит достигнут! 🎯
+      </h2>
+      
+      <p style="margin: 0 0 24px 0; color: var(--text-secondary); line-height: 1.6;">
+        Ты отлично поработал сегодня! <br>
+        Выполнил все <strong>${limit}</strong> упражнений. <br><br>
+        Отдохни, закрепи материал и возвращайся завтра для новых достижений! 💪
+      </p>
+      
+      <button onclick="this.closest('.modal-overlay').remove(); document.getElementById('practice-setup').style.display='block';" style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)'" 
+         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+        Понятно, отдохну! 😌
+      </button>
+      
+      <div style="margin-top: 16px; font-size: 14px; color: var(--text-muted);">
+        Совет: можешь изменить лимит в настройках если хочешь заниматься больше
+      </div>
+    </div>
+  `;
+
+  // Добавляем стили анимации если их нет
+  if (!document.querySelector('#limit-modal-styles')) {
+    const style = document.createElement('style');
+    style.id = 'limit-modal-styles';
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { 
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to { 
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(modal);
+
+  // Автоматически закрываем через 10 секунд и возвращаем к практике
+  setTimeout(() => {
+    if (modal.parentNode) {
+      modal.remove();
+      document.getElementById('practice-setup').style.display = 'block';
+    }
+  }, 10000);
+}
+
 function toast(msg, type = '', icon = '') {
   const el = document.createElement('div');
 
@@ -3580,13 +3783,18 @@ function toast(msg, type = '', icon = '') {
 
   document.getElementById('toast-box').appendChild(el);
 
+  // Увеличиваем время для важных сообщений
+  const isImportant =
+    msg.includes('лимит') || msg.includes('Лимит') || type === 'danger';
+  const duration = isImportant ? 6000 : 2600; // 6 секунд для лимитов
+
   setTimeout(() => {
     el.style.opacity = '0';
 
     el.style.transition = 'opacity .3s';
 
     setTimeout(() => el.remove(), 320);
-  }, 2600);
+  }, duration);
 }
 
 // ============================================================
@@ -3674,7 +3882,7 @@ function renderStats() {
 
   const stLearnedEl = document.getElementById('st-learned');
 
-  if (stLearnedEl) stLearnedEl.textContent = `${learned} / ${total}`;
+  if (stLearnedEl) stLearnedEl.textContent = learned;
 
   const stLearnedBarEl = document.getElementById('st-learned-bar');
 
@@ -3819,40 +4027,29 @@ function renderStats() {
   const reviewedCountEl = document.getElementById('today-reviewed-count');
 
   if (reviewedCountEl) {
-    reviewedCountEl.textContent = window.todayReviewedCount;
+    reviewedCountEl.textContent = window.dailyReviewCount;
   }
 
   // Update cap progress bar
-
   const capProgress = document.getElementById('daily-cap-progress');
-
   if (capProgress) {
-    const limit =
-      window.user_settings?.reviewLimit &&
-      window.user_settings.reviewLimit !== 9999
-        ? window.user_settings.reviewLimit
-        : MAX_REVIEWS_PER_DAY;
-
+    const limit = getReviewLimit();
     const pct = Math.min(
       100,
-
-      Math.round((window.todayReviewedCount / limit) * 100),
+      Math.round((window.dailyReviewCount / limit) * 100),
     );
-
-    const status =
-      window.todayReviewedCount >= limit ? ' — лимит достигнут!' : '';
 
     capProgress.innerHTML = `
       <div class="daily-cap-info">
         <div class="daily-cap-count">
-          Сегодня повторено: <strong>${window.todayReviewedCount}</strong> / ${limit === 9999 ? '∞' : limit}
+          Сегодня повторено: <strong>${window.dailyReviewCount}</strong> / ${limit === 9999 ? '∞' : limit}
         </div>
-        <div class="daily-cap-status ${window.todayReviewedCount >= limit ? 'completed' : ''}">
-          ${window.todayReviewedCount >= limit ? '✓ Лимит достигнут!' : `${Math.round(pct)}%`}
+        <div class="daily-cap-status ${window.dailyReviewCount >= limit ? 'completed' : ''}">
+          ${window.dailyReviewCount >= limit ? '✓ Лимит достигнут!' : `${Math.round(pct)}%`}
         </div>
       </div>
       <div class="daily-cap-bar">
-        <div class="daily-cap-fill ${window.todayReviewedCount >= limit ? 'completed' : ''}" style="width: ${pct}%;"></div>
+        <div class="daily-cap-fill ${window.dailyReviewCount >= limit ? 'completed' : ''}" style="width: ${pct}%;"></div>
       </div>
     `;
 
@@ -6410,7 +6607,7 @@ document
 
     // Load practice settings
 
-    const current = window.user_settings?.reviewLimit || MAX_REVIEWS_PER_DAY;
+    const current = window.user_settings?.reviewLimit || 100;
 
     document.getElementById('review-limit-select').value =
       current === 9999 ? '9999' : current;
@@ -6562,11 +6759,7 @@ document
 
     window.lastProfileUpdate = Date.now();
 
-    // Update global limit if custom
-
-    if (newLimit !== 9999) {
-      window.MAX_REVIEWS_PER_DAY = newLimit;
-    }
+    // УДАЛЕНО: Обновление MAX_REVIEWS_PER_DAY - теперь используется getReviewLimit()
 
     // Save to Supabase
 
@@ -7391,7 +7584,8 @@ window.resetSession = function () {
   const startBtn = document.getElementById('start-btn');
   if (startBtn) {
     startBtn.disabled = false;
-    startBtn.textContent = 'Начать';
+    startBtn.innerHTML =
+      '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">rocket_launch</span>Начать!';
   }
 };
 
@@ -7490,6 +7684,12 @@ document.querySelectorAll('.chip[data-timed]').forEach(c =>
 document.getElementById('start-btn').addEventListener('click', () => {
   console.log('🔘 Start button clicked!');
 
+  // Проверяем, нет ли уже активной сессии
+  if (window.isSessionActive) {
+    console.log('⚠️ Session already active, ignoring click');
+    return;
+  }
+
   console.log('📊 Current practiceMode before start:', practiceMode);
 
   console.log('📚 window.words.length:', window.words.length);
@@ -7507,9 +7707,12 @@ document.getElementById('start-btn').addEventListener('click', () => {
   // Разблокируем кнопку через небольшую задержку (на случай ошибок)
 
   setTimeout(() => {
-    startBtn.disabled = false;
-
-    startBtn.textContent = 'Начать';
+    // Разблокируем только если нет активной сессии
+    if (!window.isSessionActive) {
+      startBtn.disabled = false;
+      startBtn.innerHTML =
+        '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">rocket_launch</span>Начать!';
+    }
   }, 2000);
 });
 
@@ -7768,29 +7971,9 @@ function shuffleArray(array) {
   return shuffled;
 }
 
-function resetDailyReviewedCountIfNeeded() {
-  const today = new Date().toDateString();
-
-  if (window.lastReviewedReset !== today) {
-    window.todayReviewedCount = 0;
-
-    window.lastReviewedReset = today;
-
-    window.postponedToastShown = false;
-  }
-}
-
-function updateTodayReviewedCount(increment = 1) {
-  window.todayReviewedCount += increment;
-
-  // Сохраняем профиль
-
-  window.saveProfileData?.();
-}
+// УДАЛЕНО: updateTodayReviewedCount - заменено на incrementDailyCount
 
 function getCardsToReview() {
-  resetDailyReviewedCountIfNeeded();
-
   // All cards that are due (nextReview <= now)
 
   let dueCards = window.words.filter(w => {
@@ -7805,54 +7988,10 @@ function getCardsToReview() {
     (a, b) => new Date(a.stats.nextReview) - new Date(b.stats.nextReview),
   );
 
-  // Get user limit or default
+  // УДАЛЕНО: Старая логика лимитов - теперь обрабатывается в canStartSession
+  // Просто возвращаем все карточки для повтора, лимит проверится в startSession
 
-  const userLimit =
-    window.user_settings?.reviewLimit &&
-    window.user_settings.reviewLimit !== 9999
-      ? window.user_settings.reviewLimit
-      : MAX_REVIEWS_PER_DAY;
-
-  // Remaining until cap
-
-  const remaining = userLimit - window.todayReviewedCount;
-
-  let cardsToShow = dueCards;
-
-  let postponedCount = 0;
-
-  // Apply soft cap
-
-  if (dueCards.length > remaining && remaining > 0) {
-    cardsToShow = dueCards.slice(0, remaining);
-
-    postponedCount = dueCards.length - remaining;
-  } else if (remaining <= 0) {
-    cardsToShow = [];
-
-    postponedCount = dueCards.length;
-  }
-
-  // Show notification once per session
-
-  if (postponedCount > 0 && !window.postponedToastShown) {
-    toast(
-      `Сегодня показано ${cardsToShow.length} карточек из ${dueCards.length}. ` +
-        `Остальные ${postponedCount} перенесены на завтра — не перегружайся! 😌`,
-
-      'info',
-
-      'schedule',
-    );
-
-    window.postponedToastShown = true;
-  }
-
-  // Update statistics
-
-  updateTodayReviewedCount(cardsToShow.length);
-
-  return cardsToShow;
+  return dueCards;
 }
 
 function startSession(cfg) {
@@ -7865,119 +8004,239 @@ function startSession(cfg) {
   }
 
   window.isSessionActive = true;
-  console.log('📊 Current practiceMode:', practiceMode);
 
-  console.log('⏱️ examTime:', examTime);
+  // Добавляем обработчик ошибок для всей функции
+  try {
+    console.log('📊 Current practiceMode:', practiceMode);
 
-  console.log('📝 examQuestions:', examQuestions);
+    console.log('⏱️ examTime:', examTime);
 
-  // Start tracking practice time
+    console.log('📝 examQuestions:', examQuestions);
 
-  practiceStartTime = Date.now();
+    // Start tracking practice time
 
-  // Reset postponed toast notification for new session
+    practiceStartTime = Date.now();
 
-  window.postponedToastShown = false;
+    // Reset postponed toast notification for new session
 
-  sResults = { correct: [], wrong: [] };
+    window.postponedToastShown = false;
 
-  sIdx = 0; // Reset index for new session
+    sResults = { correct: [], wrong: [] };
 
-  window.words.forEach(w => delete w._matched);
+    sIdx = 0; // Reset index for new session
 
-  // 1. Общие параметры (количество слов, фильтр)
+    window.words.forEach(w => delete w._matched);
 
-  let countVal, filterVal;
+    // 1. Общие параметры (количество слов, фильтр)
 
-  if (cfg && cfg.countVal !== undefined) {
-    countVal = cfg.countVal;
+    let countVal, filterVal;
 
-    filterVal = cfg.filterVal;
-  } else {
-    countVal =
-      document.querySelector('.chip[data-count].on')?.dataset.count || '5';
+    if (cfg && cfg.countVal !== undefined) {
+      countVal = cfg.countVal;
 
-    filterVal =
-      document.querySelector('.chip[data-filter-w].on')?.dataset.filterW ||
-      'all';
-  }
+      filterVal = cfg.filterVal;
+    } else {
+      countVal =
+        document.querySelector('.chip[data-count].on')?.dataset.count || '5';
 
-  // 2. Формируем пул слов (общий для обоих режимов)
+      filterVal =
+        document.querySelector('.chip[data-filter-w].on')?.dataset.filterW ||
+        'all';
+    }
 
-  let pool = [...window.words];
+    // 2. Формируем пул слов (общий для обоих режимов)
 
-  if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
+    let pool = [...window.words];
 
-  if (filterVal === 'due') {
-    pool = getCardsToReview(); // Use capped function
-  }
+    if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
 
-  if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
+    if (filterVal === 'due') {
+      pool = getCardsToReview(); // Use capped function
+    } else {
+      // Для остальных фильтров просто формируем пул, лимит проверится ниже
+    }
 
-  if (!pool.length) {
-    toast('Нет слов для практики', 'warning');
+    if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
 
-    return;
-  }
+    if (!pool.length) {
+      toast('Нет слов для практики', 'warning');
 
-  const totalCount =
-    countVal === 'all'
-      ? pool.length
-      : Math.min(parseInt(countVal), pool.length);
+      // Сбрасываем флаг активной сессии
+      window.isSessionActive = false;
 
-  pool = pool.sort(() => Math.random() - 0.5).slice(0, totalCount);
+      return;
+    }
 
-  // 3. Определяем режим и создаем сессию
+    const totalCount =
+      countVal === 'all'
+        ? pool.length
+        : Math.min(parseInt(countVal), pool.length);
 
-  if (practiceMode === 'exam') {
-    console.log('🎯 Starting EXAM mode');
+    pool = pool.sort(() => Math.random() - 0.5).slice(0, totalCount);
 
-    // Экзамен - используем фиксированный набор типов
+    // === НОВЫЙ БЛОК: ПРОВЕРКА ЛИМИТА ===
+    if (!canStartSession(pool.length)) {
+      // Лимит исчерпан – выходим, не запуская сессию
+      window.isSessionActive = false;
+      const startBtn = document.getElementById('start-btn');
+      if (startBtn) {
+        startBtn.disabled = false;
+        startBtn.innerHTML =
+          '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">rocket_launch</span>Начать!';
+      }
+      return;
+    }
 
-    const types = ['multi', 'type', 'builder', 'speech'];
+    // Если запрошенное количество превышает остаток, обрезаем массив
+    const limit = getReviewLimit();
+    const remaining = limit - window.dailyReviewCount;
+    if (pool.length > remaining) {
+      pool = pool.slice(0, remaining);
+    }
+    // ===================================
+
+    // УДАЛЕНО: Дополнительная проверка лимита - теперь обрабатывается в canStartSession выше
+
+    // 3. Определяем режим и создаем сессию
+
+    if (practiceMode === 'exam') {
+      console.log('🎯 Starting EXAM mode');
+
+      // Экзамен - используем фиксированный набор типов
+
+      const types = ['multi', 'type', 'builder', 'speech'];
+
+      const dirVal =
+        document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
+
+      // Создаем сессию для экзамена
+
+      session = {
+        words: pool,
+
+        exTypes: types,
+
+        dir: dirVal,
+
+        mode: 'exam',
+
+        timeLimit: examTime,
+
+        startTime: Date.now(),
+
+        questionsTotal: totalCount,
+
+        questionsAnswered: 0,
+
+        results: { correct: [], wrong: [] },
+      };
+
+      console.log('📝 Session created:', session);
+
+      // Запускаем таймер экзамена
+
+      startExamTimer(examTime);
+
+      // Сохраняем конфигурацию экзамена для повторной сессии
+
+      lastSessionConfig = {
+        mode: 'exam',
+
+        examTime,
+
+        examQuestions: countVal,
+
+        dirVal,
+      };
+
+      // Показываем экран упражнения
+
+      document.getElementById('practice-setup').style.display = 'none';
+
+      document.getElementById('practice-results').style.display = 'none';
+
+      document.getElementById('practice-ex').style.display = 'block';
+
+      console.log('🎬 Showing exercise screen');
+
+      nextExercise();
+
+      return;
+    }
+
+    // 4. Обычный режим
+
+    console.log('📚 Starting NORMAL mode');
+
+    // Получаем выбранные типы упражнений
+
+    let exTypes = [...document.querySelectorAll('.exercise-card.selected')].map(
+      c => c.dataset.ex,
+    );
+
+    if (!exTypes.length) {
+      toast('Выбери тип упражнений', 'warning');
+
+      // Сбрасываем флаг активной сессии
+      window.isSessionActive = false;
+
+      // Возвращаем кнопку в исходное состояние
+      const startBtn = document.getElementById('start-btn');
+      if (startBtn) {
+        startBtn.disabled = false;
+        startBtn.innerHTML =
+          '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">rocket_launch</span>Начать!';
+      }
+
+      return;
+    }
+
+    // Фильтруем неподдерживаемые (например, диктант без речи)
+
+    if (!speechSupported) {
+      exTypes = exTypes.filter(t => t !== 'dictation');
+
+      if (!exTypes.length) {
+        toast('Диктант недоступен без синтеза речи', 'danger');
+
+        // Сбрасываем флаг активной сессии
+        window.isSessionActive = false;
+
+        // Возвращаем кнопку в исходное состояние
+        const startBtn = document.getElementById('start-btn');
+        if (startBtn) {
+          startBtn.disabled = false;
+          startBtn.innerHTML =
+            '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">rocket_launch</span>Начать!';
+        }
+
+        return;
+      }
+    }
 
     const dirVal =
       document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
 
-    // Создаем сессию для экзамена
+    const timedVal =
+      document.querySelector('.chip[data-timed].on')?.dataset.timed || 'off';
+
+    // Создаем сессию для обычного режима
 
     session = {
       words: pool,
 
-      exTypes: types,
+      exTypes,
 
       dir: dirVal,
 
-      mode: 'exam',
+      timed: timedVal === 'on',
 
-      timeLimit: examTime,
-
-      startTime: Date.now(),
-
-      questionsTotal: totalCount,
-
-      questionsAnswered: 0,
-
-      results: { correct: [], wrong: [] },
+      mode: 'normal',
     };
 
-    console.log('📝 Session created:', session);
+    // Сохраняем конфигурацию для повторной сессии
 
-    // Запускаем таймер экзамена
-
-    startExamTimer(examTime);
-
-    // Сохраняем конфигурацию экзамена для повторной сессии
-
-    lastSessionConfig = {
-      mode: 'exam',
-
-      examTime,
-
-      examQuestions: countVal,
-
-      dirVal,
-    };
+    lastSessionConfig = { countVal, filterVal, exTypes };
 
     // Показываем экран упражнения
 
@@ -7990,73 +8249,23 @@ function startSession(cfg) {
     console.log('🎬 Showing exercise screen');
 
     nextExercise();
+  } catch (error) {
+    console.error('❌ Error in startSession:', error);
 
-    return;
-  }
+    // Сбрасываем флаг активной сессии при ошибке
+    window.isSessionActive = false;
 
-  // 4. Обычный режим
+    // Показываем ошибку пользователю
+    toast('Ошибка при запуске сессии', 'danger');
 
-  console.log('📚 Starting NORMAL mode');
-
-  // Получаем выбранные типы упражнений
-
-  let exTypes = [...document.querySelectorAll('.exercise-card.selected')].map(
-    c => c.dataset.ex,
-  );
-
-  if (!exTypes.length) {
-    toast('Выбери тип упражнений', 'warning');
-
-    return;
-  }
-
-  // Фильтруем неподдерживаемые (например, диктант без речи)
-
-  if (!speechSupported) {
-    exTypes = exTypes.filter(t => t !== 'dictation');
-
-    if (!exTypes.length) {
-      toast('Диктант недоступен без синтеза речи', 'danger');
-
-      return;
+    // Разблокируем кнопку Start
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerHTML =
+        '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">rocket_launch</span>Начать!';
     }
   }
-
-  const dirVal =
-    document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
-
-  const timedVal =
-    document.querySelector('.chip[data-timed].on')?.dataset.timed || 'off';
-
-  // Создаем сессию для обычного режима
-
-  session = {
-    words: pool,
-
-    exTypes,
-
-    dir: dirVal,
-
-    timed: timedVal === 'on',
-
-    mode: 'normal',
-  };
-
-  // Сохраняем конфигурацию для повторной сессии
-
-  lastSessionConfig = { countVal, filterVal, exTypes };
-
-  // Показываем экран упражнения
-
-  document.getElementById('practice-setup').style.display = 'none';
-
-  document.getElementById('practice-results').style.display = 'none';
-
-  document.getElementById('practice-ex').style.display = 'block';
-
-  console.log('🎬 Showing exercise screen');
-
-  nextExercise();
 }
 
 function showResults() {
@@ -8064,6 +8273,14 @@ function showResults() {
 
   // Сбрасываем флаг активной сессии
   window.isSessionActive = false;
+
+  // Разблокируем кнопку Start
+  const startBtn = document.getElementById('start-btn');
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.innerHTML =
+      '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">rocket_launch</span>Начать!';
+  }
 
   // Показываем экран результатов
 
@@ -9311,6 +9528,9 @@ function nextExercise() {
 }
 
 function recordAnswer(correct) {
+  // Увеличиваем дневной счётчик
+  incrementDailyCount();
+
   // Останавливаем и удаляем таймер если он есть
 
   if (currentExerciseTimer) {
@@ -9371,6 +9591,9 @@ function recordAnswer(correct) {
 
   // Обновляем прогресс ежедневных целей для правильных ответов
 
+  // Увеличиваем счётчик упражнений за день (для всех ответов, не только правильных)
+  // incrementDailyCount() уже вызывается в начале функции
+
   if (correct) {
     resetDailyGoalsIfNeeded(); // Ensure proper daily reset
 
@@ -9381,10 +9604,6 @@ function recordAnswer(correct) {
     window.lastProfileUpdate = Date.now();
 
     checkDailyGoalsCompletion();
-
-    // Увеличиваем счётчик повторений за день (только для повторений, не новых слов)
-
-    updateTodayReviewedCount(1);
 
     // Бонусные XP за быстрые ответы в режиме на время (только для упражнений с таймером)
 
@@ -10408,8 +10627,6 @@ function runSpeechSentenceExercise(word, onComplete) {
 
           ${!hasExample ? `<div class="speech-phonetic">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>` : ''}
 
-          <div class="speech-hint">${hasExample ? 'Прослушайте предложение, затем повторите его полностью' : 'Прослушайте слово, затем повторите его'}</div>
-
           <div class="speech-translation" id="speech-sentence-translation" style="margin-top: 0.5rem; opacity: 0.7;">
 
             ${!hasExample ? `${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}` : exampleTranslation ? `${esc(exampleTranslation)}` : ''}
@@ -10678,6 +10895,15 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
     document.getElementById('practice-ex').style.display = 'none';
 
     document.getElementById('practice-setup').style.display = 'block';
+
+    // Обновляем кнопку Start
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerHTML =
+        '<span class="material-symbols-outlined">rocket_launch</span> Начать';
+      startBtn.classList.remove('loading');
+    }
   });
 });
 
@@ -10779,9 +11005,8 @@ window.clearUserData = function () {
     lastReset: new Date().toISOString().split('T')[0], // "2026-03-05"
   };
 
-  window.todayReviewedCount = 0;
-
-  window.lastReviewedReset = new Date().toISOString().split('T')[0];
+  window.dailyReviewCount = 0;
+  window.lastReviewResetDate = new Date().toISOString().split('T')[0];
 
   // НЕ очищаем user_settings чтобы сохранить тему
   window.user_settings = {};

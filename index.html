@@ -115,62 +115,76 @@
         </div>
 
         <div class="auth-gate-subtitle">
-          Ваш личный тренер по английскому языку
+          EngLift — твой личный взлёт в английском
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-mode="login">Вход</button>
+          <button class="auth-tab" data-mode="register">Регистрация</button>
         </div>
 
         <div class="form-group">
           <label>Email</label>
 
-          <input
-            class="form-control"
-            type="email"
-            id="gate-email"
-            placeholder="you@example.com"
-            autocomplete="email"
-          />
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">mail</span>
+            <input
+              class="form-control"
+              type="email"
+              id="gate-email"
+              placeholder="your@email.com"
+              autocomplete="email"
+            />
+          </div>
         </div>
 
         <div class="form-group">
           <label>Пароль</label>
 
-          <div class="password-field-wrapper">
-            <input
-              class="form-control"
-              type="password"
-              id="gate-password"
-              placeholder="Минимум 6 символов"
-              autocomplete="current-password"
-            />
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">lock</span>
+            <div class="password-field-wrapper">
+              <input
+                class="form-control"
+                type="password"
+                id="gate-password"
+                placeholder="Минимум 6 символов"
+                autocomplete="current-password"
+              />
 
-            <button
-              type="button"
-              class="password-toggle"
-              id="gate-password-toggle"
-            >
-              <span class="material-symbols-outlined">visibility</span>
-            </button>
+              <button
+                type="button"
+                class="password-toggle"
+                id="gate-password-toggle"
+              >
+                <span class="material-symbols-outlined">visibility</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="form-group" id="gate-confirm-group" style="display: none">
           <label>Подтвердите пароль</label>
 
-          <div class="password-field-wrapper">
-            <input
-              class="form-control"
-              type="password"
-              id="gate-confirm-password"
-              placeholder="Повторите пароль"
-              autocomplete="new-password"
-            />
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">lock</span>
+            <div class="password-field-wrapper">
+              <input
+                class="form-control"
+                type="password"
+                id="gate-confirm-password"
+                placeholder="Повторите пароль"
+                autocomplete="new-password"
+              />
 
-            <button
-              type="button"
-              class="password-toggle"
-              id="gate-confirm-toggle"
-            >
-              <span class="material-symbols-outlined">visibility</span>
-            </button>
+              <button
+                type="button"
+                class="password-toggle"
+                id="gate-confirm-toggle"
+              >
+                <span class="material-symbols-outlined">visibility</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -200,14 +214,14 @@
 
           <button
             class="btn btn-secondary"
-            style="width: 100%"
+            style="width: 100%; display: none"
             id="gate-toggle-btn"
           >
             Нет аккаунта? Зарегистрироваться
           </button>
         </div>
 
-        <div style="text-align: center; margin-top: 0.75rem">
+        <div class="forgot-link">
           <button class="btn btn-link" id="forgot-password-btn">
             Забыли пароль?
           </button>
@@ -1506,8 +1520,8 @@
     <!-- Password Reset Modal -->
 
     <div class="modal-backdrop" id="reset-password-modal">
-      <div class="modal-box">
-        <h3 style="color: var(--text)">
+      <div class="auth-gate-container" style="max-width: 420px">
+        <h3 style="color: var(--text); text-align: center; margin-bottom: 1rem">
           <span
             class="material-symbols-outlined"
             style="
@@ -1523,7 +1537,9 @@
           Восстановление пароля
         </h3>
 
-        <p style="color: var(--muted); margin-bottom: 1.5rem">
+        <p
+          style="color: var(--muted); margin-bottom: 1.5rem; text-align: center"
+        >
           Введите email, на который зарегистрирован аккаунт. Мы отправим ссылку
           для сброса пароля.
         </p>
@@ -1531,22 +1547,39 @@
         <div class="form-group">
           <label style="color: var(--text); font-weight: 600">Email</label>
 
-          <input
-            type="email"
-            id="reset-email"
-            class="form-control"
-            placeholder="your@email.com"
-            autocomplete="email"
-          />
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">mail</span>
+            <input
+              type="email"
+              id="reset-email"
+              class="form-control"
+              placeholder="your@email.com"
+              autocomplete="email"
+            />
+          </div>
         </div>
 
         <div class="modal-actions">
-          <button class="btn-icon" id="send-reset-btn">
-            <span class="material-symbols-outlined">check</span>
+          <button
+            class="btn btn-primary btn-lg"
+            style="flex: 1"
+            id="send-reset-btn"
+          >
+            <span class="material-symbols-outlined" style="margin-right: 8px"
+              >send</span
+            >
+            Отправить
           </button>
 
-          <button class="btn-icon" id="cancel-reset-btn">
-            <span class="material-symbols-outlined">close</span>
+          <button
+            class="btn btn-secondary"
+            style="flex: 1"
+            id="cancel-reset-btn"
+          >
+            <span class="material-symbols-outlined" style="margin-right: 8px"
+              >close</span
+            >
+            Отмена
           </button>
         </div>
       </div>

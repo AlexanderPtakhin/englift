@@ -27,6 +27,9 @@ const userDropdown = document.getElementById('user-dropdown');
 const dropdownEmail = document.getElementById('dropdown-email');
 const dropdownLogout = document.getElementById('dropdown-logout');
 
+// Добавляем элементы табов
+const authTabs = document.querySelectorAll('.auth-tab');
+
 let isRegisterMode = false;
 let hideTimeout;
 
@@ -83,6 +86,58 @@ function clearGateForm() {
   gateConfirm.value = '';
   gateError.textContent = '';
 }
+
+// Функция обновления табов
+function updateAuthTabs(mode) {
+  authTabs.forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.dataset.mode === mode) {
+      tab.classList.add('active');
+    }
+  });
+}
+
+// Обработчики кликов по табам
+authTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const mode = tab.dataset.mode;
+    isRegisterMode = mode === 'register';
+    updateAuthTabs(mode);
+
+    // Обновляем UI в зависимости от режима
+    gateSubmit.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
+    toggleConfirmPassword(isRegisterMode);
+    gateError.textContent = '';
+    clearGateForm();
+  });
+});
+
+// Переключение видимости пароля для основного поля
+document
+  .getElementById('gate-password-toggle')
+  ?.addEventListener('click', function () {
+    const passwordInput = document.getElementById('gate-password');
+    const type =
+      passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+
+    // Меняем иконку
+    const icon = this.querySelector('.material-symbols-outlined');
+    icon.textContent = type === 'password' ? 'visibility' : 'visibility_off';
+  });
+
+// Переключение видимости для поля подтверждения (если оно существует)
+document
+  .getElementById('gate-confirm-toggle')
+  ?.addEventListener('click', function () {
+    const confirmInput = document.getElementById('gate-confirm-password');
+    const type =
+      confirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    confirmInput.setAttribute('type', type);
+
+    const icon = this.querySelector('.material-symbols-outlined');
+    icon.textContent = type === 'password' ? 'visibility' : 'visibility_off';
+  });
 
 // Обработка входа/регистрации
 async function handleAuth(email, password, confirm, isRegister) {
@@ -147,17 +202,6 @@ async function handleAuth(email, password, confirm, isRegister) {
     gateSubmit.textContent = isRegister ? 'Создать аккаунт' : 'Войти';
   }
 }
-
-// Переключение режима (вход/регистрация)
-gateToggle.addEventListener('click', () => {
-  isRegisterMode = !isRegisterMode;
-  gateSubmit.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-  gateToggle.textContent = isRegisterMode
-    ? 'Уже есть аккаунт? Войти'
-    : 'Нет аккаунта? Зарегистрироваться';
-  toggleConfirmPassword(isRegisterMode);
-  gateError.textContent = '';
-});
 
 // Обработчик кнопки отправки
 gateSubmit.addEventListener('click', () => {
