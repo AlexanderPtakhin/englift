@@ -1123,119 +1123,99 @@
 
       <div class="tab-pane" id="tab-stats">
         <div class="xp-stats-row">
-          <div style="width: 100%">
-            <div class="xp-big" id="st-level">Уровень 1</div>
-
-            <div
-              style="
-                display: flex;
-
-                align-items: center;
-
-                gap: 1rem;
-
-                margin-top: 0.5rem;
-              "
-            >
-              <div class="xp-bar-wrap" style="flex: 1">
-                <div class="xp-bar-bg">
-                  <div class="xp-bar-fill" id="xp-bar" style="width: 0%"></div>
-                </div>
+          <div class="xp-level">
+            <span class="material-symbols-outlined">workspace_premium</span>
+            <div class="xp-level-text">
+              <span class="level-num" id="st-level-num">1</span>
+              <span>уровень</span>
+            </div>
+          </div>
+          <div class="xp-progress">
+            <div class="xp-bar-wrap">
+              <div class="xp-bar-bg">
+                <div class="xp-bar-fill" id="xp-bar" style="width: 0%"></div>
               </div>
-
-              <div
-                class="xp-big"
-                id="st-xp"
-                style="font-size: 1.2rem; white-space: nowrap"
-              >
-                0/200 XP
-              </div>
+              <div class="xp-text" id="st-xp">0/200 XP</div>
             </div>
           </div>
         </div>
 
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-num" id="st-total">0</div>
-
-            <div class="stat-lbl">Всего слов</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-num" id="st-learned">0</div>
-
-            <div class="stat-lbl">Выучено</div>
-
-            <div class="stat-prog">
-              <div
-                class="stat-prog-fill"
-                id="st-learned-bar"
-                style="width: 0%"
-              ></div>
+            <div class="stat-icon">
+              <span class="material-symbols-outlined">book</span>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number" id="st-total">0</div>
+              <div class="stat-label">Всего слов</div>
             </div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-num" id="st-streak">0</div>
+            <div class="stat-icon">
+              <span class="material-symbols-outlined">check_circle</span>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number" id="st-learned">0</div>
+              <div class="stat-label">Выучено</div>
+              <div class="stat-progress">
+                <div
+                  class="stat-progress-fill"
+                  id="st-learned-bar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
 
-            <div class="stat-lbl">
-              <span
-                class="material-symbols-outlined"
-                style="
-                  vertical-align: middle;
-
-                  margin-right: 4px;
-
-                  font-size: 18px;
-                "
+          <div class="stat-card">
+            <div class="stat-icon">
+              <span class="material-symbols-outlined"
                 >local_fire_department</span
-              >Дней подряд
+              >
+            </div>
+            <div class="stat-content">
+              <div class="stat-number" id="st-streak">0</div>
+              <div class="stat-label">Дней подряд</div>
             </div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-num" id="st-week">0</div>
-
-            <div class="stat-lbl">Добавлено за неделю</div>
+            <div class="stat-icon">
+              <span class="material-symbols-outlined">add_circle</span>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number" id="st-week">0</div>
+              <div class="stat-label">Добавлено за неделю</div>
+            </div>
           </div>
 
-          <div class="stat-card srs-hl">
-            <div class="stat-num" id="st-due" style="color: var(--danger)">
-              0
+          <div class="stat-card">
+            <div class="stat-icon due">
+              <span class="material-symbols-outlined">schedule</span>
             </div>
-
-            <div class="stat-lbl">
-              <span
-                class="material-symbols-outlined"
-                style="
-                  vertical-align: middle;
-
-                  margin-right: 4px;
-
-                  font-size: 18px;
-                "
-                >schedule</span
-              >К повторению
+            <div class="stat-content">
+              <div class="stat-number" id="st-due" style="color: var(--danger)">
+                0
+              </div>
+              <div class="stat-label">К повторению</div>
             </div>
           </div>
         </div>
 
         <h3>Активность</h3>
 
-        <div class="week-chart-container">
-          <canvas id="weekChart" height="140"></canvas>
+        <div class="week-chart-container" id="week-chart-container">
+          <!-- График активности будет сгенерирован JavaScript -->
         </div>
 
         <!-- Daily Review Cap -->
 
         <div class="daily-cap-section">
-          <h3>
-            <span
-              class="material-symbols-outlined"
-              style="vertical-align: middle; margin-right: 8px"
-              >schedule</span
-            >Лимит повторений
-          </h3>
+          <div class="daily-cap-header">
+            <span class="material-symbols-outlined">schedule</span>
+            <h3>Лимит повторений</h3>
+          </div>
 
           <div id="daily-cap-progress"></div>
         </div>
@@ -1243,13 +1223,10 @@
         <!-- Ежедневные цели -->
 
         <div class="daily-goals-section">
-          <h3>
-            <span
-              class="material-symbols-outlined"
-              style="vertical-align: middle; margin-right: 8px"
-              >track_changes</span
-            >Ежедневные цели
-          </h3>
+          <div class="daily-cap-header">
+            <span class="material-symbols-outlined">track_changes</span>
+            <h3>Ежедневные цели</h3>
+          </div>
 
           <div class="goals-list" id="daily-goals-list"></div>
         </div>
@@ -1257,50 +1234,38 @@
         <!-- Уровни CEFR -->
 
         <div class="cefr-progress">
-          <h3>
-            <span
-              class="material-symbols-outlined"
-              style="vertical-align: middle; margin-right: 8px"
-              >school</span
-            >Уровни слов (CEFR)
-          </h3>
+          <div class="daily-cap-header">
+            <span class="material-symbols-outlined">school</span>
+            <h3>Уровни слов (CEFR)</h3>
+          </div>
 
           <div class="cefr-grid" id="cefr-grid"></div>
         </div>
 
         <div class="badges-section">
-          <h3>
-            <span
-              class="material-symbols-outlined"
-              style="vertical-align: middle; margin-right: 8px"
-              >emoji_events</span
-            >Бейджи
-          </h3>
+          <div class="daily-cap-header">
+            <span class="material-symbols-outlined">emoji_events</span>
+            <h3>Бейджи</h3>
+          </div>
 
           <div class="badges-grid" id="badges-grid"></div>
         </div>
 
         <div class="word-lists">
           <div class="word-list-card">
-            <h3>
-              <span
-                class="material-symbols-outlined"
-                style="vertical-align: middle; margin-right: 8px"
-                >fitness_center</span
-              >Топ-5 сложных
-            </h3>
+            <div class="daily-cap-header">
+              <span class="material-symbols-outlined">fitness_center</span>
+              <h3>Топ-5 сложных</h3>
+            </div>
 
             <ul class="wlist" id="st-hard"></ul>
           </div>
 
           <div class="word-list-card">
-            <h3>
-              <span
-                class="material-symbols-outlined"
-                style="vertical-align: middle; margin-right: 8px"
-                >star</span
-              >Топ-5 лёгких
-            </h3>
+            <div class="daily-cap-header">
+              <span class="material-symbols-outlined">star</span>
+              <h3>Топ-5 лёгких</h3>
+            </div>
 
             <ul class="wlist" id="st-easy"></ul>
           </div>

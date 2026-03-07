@@ -911,119 +911,24 @@ function renderWeekChart() {
   // Создаем красивый HTML вместо графика
 
   const html = `
-
-    <div data-week-chart style="padding: 1rem; text-align: center;">
-
-      <div style="
-
-        display: flex; 
-
-        justify-content: space-around; 
-
-        margin-bottom: 1rem; 
-
-        flex-wrap: wrap; 
-
-        gap: 0.25rem;
-
-        align-items: center;
-
-      ">
-
+    <div data-week-chart>
+      <div class="week-stats">
         ${stats
-
           .map(
             stat => `
-
-          <div style="
-
-            text-align: center; 
-
-            min-width: 55px; 
-
-            max-width: 75px;
-
-            flex: 1;
-
-          ">
-
-            <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.2rem;">
-
-              ${stat.day}
-
-            </div>
-
-            <div style="
-
-              font-size: 0.75rem; 
-
-              color: var(--muted); 
-
-              opacity: 0.7; 
-
-              margin-bottom: 0.2rem;
-
-            ">
-
-              ${stat.date}
-
-            </div>
-
-            <div style="
-
-              font-size: 1.3rem; 
-
-              font-weight: 700; 
-
-              color: ${stat.count > 0 ? 'var(--primary)' : 'var(--muted)'};
-
-              margin-top: 0.2rem;
-
-            ">
-
-              ${stat.count}
-
-            </div>
-
-          </div>
-
-        `,
+              <div class="week-stat-item">
+                <div class="week-day">${stat.day}</div>
+                <div class="week-date">${stat.date}</div>
+                <div class="week-count">${stat.count}</div>
+              </div>
+            `,
           )
-
           .join('')}
-
       </div>
-
-      <div style="
-
-        padding: 0.75rem;
-
-        background: var(--bg-secondary);
-
-        border-radius: 8px;
-
-        margin-top: 1rem;
-
-      ">
-
-        <div style="font-size: 0.95rem; color: var(--muted);">
-
-          Всего за 7 дней: 
-
-          <span style="color: var(--primary); font-weight: 700; font-size: 1.2rem;">
-
-            ${total}
-
-          </span>
-
-          слов
-
-        </div>
-
+      <div class="week-total">
+        Всего за 7 дней: <span>${total}</span> слов
       </div>
-
     </div>
-
   `;
 
   if (existingContent) {
@@ -3196,11 +3101,11 @@ function renderXP() {
 
   const stXP = document.getElementById('st-xp');
 
-  const stLvl = document.getElementById('st-level');
+  const stLvlNum = document.getElementById('st-level-num');
 
   if (stXP) stXP.textContent = xpData.xp + ' / ' + needed + ' XP';
 
-  if (stLvl) stLvl.textContent = 'Уровень ' + xpData.level;
+  if (stLvlNum) stLvlNum.textContent = xpData.level;
 }
 
 function getBadgeProgress(def) {

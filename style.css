@@ -4006,151 +4006,475 @@ html.dark .badge-learned {
 
 /* STATS */
 
+/* ============================================================ */
+/* СТАТИСТИКА - НОВЫЙ ДИЗАЙН */
+/* ============================================================ */
+
+/* Обновлённый XP блок */
+.xp-stats-row {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.xp-level {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg);
+  padding: 0.5rem 1.2rem;
+  border-radius: 40px;
+  border: 1px solid var(--border);
+}
+
+.xp-level .material-symbols-outlined {
+  font-size: 2rem;
+  color: var(--primary);
+}
+
+.xp-level-text {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.xp-level-text .level-num {
+  font-size: 1.4rem;
+  color: var(--primary);
+  margin-right: 0.2rem;
+}
+
+.xp-progress {
+  flex: 1;
+  min-width: 200px;
+}
+
+.xp-progress .xp-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.xp-progress .xp-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.xp-progress .xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.xp-progress .xp-text {
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Карточки статистики */
 .stats-grid {
   display: grid;
-
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-
-  gap: 1.2rem;
-
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
   margin-bottom: 2rem;
 }
 
 .stat-card {
   background: var(--card);
-
   border-radius: var(--radius);
-
-  padding: 1.5rem;
-
+  padding: 1.2rem 1rem;
   box-shadow: var(--shadow);
-
-  text-align: center;
-
   display: flex;
-
-  flex-direction: column;
-
   align-items: center;
+  gap: 1rem;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  border: 1px solid var(--border);
+  text-align: left;
+  flex-direction: row;
+}
 
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
   justify-content: center;
-}
-
-.stat-card .material-symbols-outlined {
-  color: #ff4500; /* Оранжево-красный цвет огня */
-}
-
-.stat-card .due-pill {
-  background: #ff4500; /* Оранжево-красный цвет огня */
-
-  color: white;
-
-  padding: 2px 6px;
-
-  border-radius: 10px;
-
-  font-size: 0.7rem;
-
-  font-weight: 700;
-
-  margin-left: 4px;
-}
-
-.stat-num {
-  font-size: 2.4rem;
-
-  font-weight: 800;
-
   color: var(--primary);
-
-  line-height: 1;
+  font-size: 1.8rem;
 }
 
-.stat-lbl {
-  font-size: 0.85rem;
-
-  color: var(--muted);
-
-  font-weight: 700;
-
-  margin-top: 0.3rem;
+.stat-icon.due {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.stat-prog {
-  margin-top: 0.8rem;
-
-  height: 8px;
-
-  background: var(--border);
-
-  border-radius: 4px;
-
-  overflow: hidden;
-
-  width: 100%;
+.stat-content {
+  flex: 1;
 }
 
-.stat-prog-fill {
-  height: 100%;
-
-  background: linear-gradient(90deg, #6c63ff, #8b85ff);
-
-  border-radius: 4px;
-
-  transition: width 0.6s ease;
-
-  min-width: 2px;
-}
-
-/* ==================== УЛУЧШЕННЫЙ ГРАФИК ==================== */
-
-h3:has(+ .week-chart-container) {
-  margin: 1.5rem 0 1rem 0;
-
-  font-size: 1.15rem;
-
+.stat-number {
+  font-size: 1.8rem;
   font-weight: 800;
-
+  line-height: 1.2;
   color: var(--text);
 }
 
-.week-chart-container {
-  background: var(--card);
-
-  border-radius: var(--radius);
-
-  padding: 1.75rem 1.75rem 1.4rem;
-
-  margin: 0 0 2rem 0;
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Адаптивность для мобильных устройств */
+.stat-progress {
+  margin-top: 0.5rem;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
 
-@media (max-width: 768px) {
-  h3:has(+ .week-chart-container) {
-    margin: 1rem 0 0.75rem 0;
+.stat-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
 
-    font-size: 1rem;
+/* График активности */
+.week-chart-container {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+}
+
+.week-stats {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.week-stat-item {
+  text-align: center;
+  min-width: 55px;
+}
+
+.week-day {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.week-date {
+  font-size: 0.7rem;
+  color: var(--muted);
+  opacity: 0.7;
+  margin-bottom: 0.2rem;
+}
+
+.week-count {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--bg);
+  padding: 0.2rem 0.4rem;
+  border-radius: 8px;
+}
+
+.week-total {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.week-total span {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+/* Лимит повторений */
+.daily-cap-section {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+}
+
+.daily-cap-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.daily-cap-header .material-symbols-outlined {
+  color: var(--warning);
+}
+
+.daily-cap-header:has(.material-symbols-outlined.track_changes)
+  .material-symbols-outlined {
+  color: var(--primary);
+}
+
+.daily-cap-header:has(.material-symbols-outlined.school)
+  .material-symbols-outlined {
+  color: var(--primary);
+}
+
+.daily-cap-header:has(.material-symbols-outlined.emoji_events)
+  .material-symbols-outlined {
+  color: #ffd700;
+}
+
+.daily-cap-header:has(.material-symbols-outlined.fitness_center)
+  .material-symbols-outlined {
+  color: var(--danger);
+}
+
+.daily-cap-header:has(.material-symbols-outlined.star)
+  .material-symbols-outlined {
+  color: var(--success);
+}
+
+.daily-cap-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.daily-cap-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.daily-cap-count {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.daily-cap-count strong {
+  color: var(--primary);
+  font-size: 1.2rem;
+}
+
+.daily-cap-status {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.daily-cap-status.completed {
+  background: linear-gradient(135deg, var(--success), #22c55e);
+  color: white;
+}
+
+.daily-cap-bar {
+  width: 100%;
+  height: 10px;
+  background: var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.daily-cap-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 5px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.daily-cap-fill.completed {
+  background: linear-gradient(90deg, var(--success), #22c55e);
+}
+
+/* Ежедневные цели */
+.goal-item {
+  transition: all 0.3s ease;
+}
+
+.goal-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.goal-progress-bar {
+  height: 6px;
+}
+
+.goal-progress-text {
+  font-weight: 700;
+}
+
+/* Уровни CEFR */
+.cefr-progress {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+}
+
+.cefr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.cefr-level {
+  text-align: center;
+  padding: 1rem 0.5rem;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.cefr-label {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--primary);
+  margin-bottom: 0.25rem;
+}
+
+.cefr-count {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+/* Топ сложных и лёгких слов */
+.word-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.word-list-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.wlist {
+  list-style: none;
+}
+
+.wlist li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.wlist li:last-child {
+  border-bottom: none;
+}
+
+.wlist li .word-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wlist li .word-info strong {
+  color: var(--text);
+}
+
+.wlist li .audio-card-btn {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wlist li .audio-card-btn:hover {
+  border-color: var(--primary);
+  transform: scale(1.1);
+}
+
+/* Адаптивность */
+@media (max-width: 830px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .week-chart-container {
-    padding: 1rem 0.75rem 1rem;
+  .xp-stats-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-    margin: 0 0 1rem 0;
+  .xp-level {
+    justify-content: center;
+  }
+
+  .word-lists {
+    grid-template-columns: 1fr;
+  }
+
+  .cefr-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 480px) {
-  h3:has(+ .week-chart-container) {
-    margin: 0.75rem 0 0.5rem 0;
-
-    font-size: 0.9rem;
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 
-  .week-chart-container {
-    padding: 0.75rem 0.5rem 0.75rem;
-
-    margin: 0 0 0.75rem 0;
+  .cefr-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -4228,8 +4552,6 @@ h3:has(+ .week-chart-container) {
   font-size: 1rem;
 
   font-weight: 800;
-
-  margin-bottom: 0.75rem;
 }
 
 .wlist {
