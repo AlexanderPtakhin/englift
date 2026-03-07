@@ -7377,7 +7377,25 @@ let session = null;
 
 let autoPron = true,
   lastSessionConfig = null,
-  currentExerciseTimer = null; // Глобальная переменная для текущего таймера
+  currentExerciseTimer = null; // Сбрасываем флаг сессии при загрузке страницы
+window.isSessionActive = false;
+
+// Добавляем функцию для принудительного сброса сессии (для отладки)
+window.resetSession = function () {
+  console.log('🔄 Принудительный сброс сессии');
+  window.isSessionActive = false;
+  sResults = { correct: [], wrong: [] };
+  sIdx = 0;
+  session = null;
+  currentExerciseTimer = null;
+  const startBtn = document.getElementById('start-btn');
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.textContent = 'Начать';
+  }
+};
+
+// Глобальные переменныеая для текущего таймера
 
 document.querySelectorAll('.chip[data-count]').forEach(c =>
   c.addEventListener('click', () => {
@@ -7840,6 +7858,13 @@ function getCardsToReview() {
 function startSession(cfg) {
   console.log('🚀 startSession called with cfg:', cfg);
 
+  // Защита от повторного запуска сессии
+  if (window.isSessionActive === true) {
+    console.log('⚠️ Session already active, ignoring startSession call');
+    return;
+  }
+
+  window.isSessionActive = true;
   console.log('📊 Current practiceMode:', practiceMode);
 
   console.log('⏱️ examTime:', examTime);
@@ -8036,6 +8061,9 @@ function startSession(cfg) {
 
 function showResults() {
   console.log('📊 showResults вызван, результаты:', sResults);
+
+  // Сбрасываем флаг активной сессии
+  window.isSessionActive = false;
 
   // Показываем экран результатов
 
@@ -8646,9 +8674,13 @@ function nextExercise() {
 
             if (fb) {
               if (isCorrect) {
-                fb.className = 'ta-feedback correct';
+                fb.className = 'feedback-panel correct';
 
-                fb.innerHTML = `✓ ${esc(answer)} ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}`;
+                fb.innerHTML = `
+                  <span class="material-symbols-outlined">check_circle</span>
+                  <span>${esc(answer)}</span>
+                  ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}
+                `;
 
                 if (speechSupported) speak(answer);
 
@@ -8660,9 +8692,13 @@ function nextExercise() {
                   nextExercise();
                 }, 1500);
               } else {
-                fb.className = 'ta-feedback incorrect';
+                fb.className = 'feedback-panel incorrect';
 
-                fb.innerHTML = `✗ ${esc(answer)} ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}`;
+                fb.innerHTML = `
+                  <span class="material-symbols-outlined">cancel</span>
+                  <span>${esc(answer)}</span>
+                  ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}
+                `;
 
                 setTimeout(() => {
                   recordAnswer(false);
@@ -8753,9 +8789,11 @@ function nextExercise() {
 
             const ok = answerVariants.some(v => v === val);
 
-            dictFb.className = 'ta-feedback ' + (ok ? 'ok' : 'err');
-
-            dictFb.textContent = ok ? 'Верно!' : 'Правильно: ' + w.en;
+            dictFb.className =
+              'feedback-panel ' + (ok ? 'correct' : 'incorrect');
+            dictFb.innerHTML = ok
+              ? '<span class="material-symbols-outlined">check_circle</span><span>Верно!</span>'
+              : `<span class="material-symbols-outlined">cancel</span><span>Правильно: ${esc(w.en)}</span>`;
 
             if (dictInput) dictInput.disabled = true;
 
@@ -8925,9 +8963,12 @@ function nextExercise() {
         const fb = document.getElementById('builder-fb');
 
         showAnswerBtn.addEventListener('click', () => {
-          fb.textContent = `✗ Правильный ответ: ${word.en}`;
+          fb.innerHTML = `
+            <span class="material-symbols-outlined">info</span>
+            <span>Правильный ответ: ${word.en}</span>
+          `;
 
-          fb.className = 'builder-feedback err';
+          fb.className = 'feedback-panel incorrect';
 
           showAnswerBtn.disabled = true;
 
@@ -8949,13 +8990,19 @@ function nextExercise() {
         const fb = document.getElementById('builder-fb');
 
         if (currentAnswer === word) {
-          fb.className = 'builder-feedback ok';
+          fb.className = 'feedback-panel correct';
 
-          fb.textContent = '✓ Отлично! Правильно!';
+          fb.innerHTML = `
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>Отлично! Правильно!</span>
+          `;
 
           document.querySelectorAll('.builder-letter').forEach(btn => {
             btn.disabled = true;
           });
+
+          // Отключаем кнопку "Показать ответ"
+          document.getElementById('builder-show-answer').disabled = true;
 
           setTimeout(() => {
             recordAnswer(true);
@@ -8965,9 +9012,12 @@ function nextExercise() {
             nextExercise();
           }, 1500);
         } else if (currentAnswer.length >= word.length) {
-          fb.className = 'builder-feedback err';
+          fb.className = 'feedback-panel incorrect';
 
-          fb.textContent = '✗ Неверно. Нажми "Очистить" и попробуй еще раз!';
+          fb.innerHTML = `
+            <span class="material-symbols-outlined">cancel</span>
+            <span>Неверно. Нажми "Очистить" и попробуй еще раз!</span>
+          `;
 
           // Активируем кнопку "Показать ответ"
 
@@ -9081,8 +9131,11 @@ function nextExercise() {
       }
 
       if (!speechRecognitionSupported) {
-        feedback.textContent =
-          'Распознавание речи не поддерживается вашим браузером.';
+        feedback.className = 'feedback-panel warning';
+        feedback.innerHTML = `
+          <span class="material-symbols-outlined">warning</span>
+          <span>Распознавание речи не поддерживается вашим браузером.</span>
+        `;
 
         if (startBtn) startBtn.disabled = true;
       }
@@ -9091,104 +9144,109 @@ function nextExercise() {
         if (recognitionActive) return;
 
         if (!speechRecognition) {
-          feedback.textContent = 'Ошибка инициализации распознавания.';
-
+          feedback.className = 'feedback-panel warning';
+          feedback.innerHTML = `
+            <span class="material-symbols-outlined">warning</span>
+            <span>Ошибка инициализации распознавания.</span>
+          `;
+          startBtn.disabled = true;
           return;
         }
 
-        // Показываем индикатор
+        // Запрашиваем разрешение на микрофон при первом клике
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then(() => {
+            // Показываем индикатор
+            indicator.style.display = 'flex';
+            startBtn.style.display = 'none';
+            feedback.textContent = '';
 
-        indicator.style.display = 'flex';
+            // Настраиваем и запускаем распознавание
+            speechRecognition.lang = 'en-US';
+            speechRecognition.start();
+            recognitionActive = true;
 
-        startBtn.style.display = 'none';
+            speechRecognition.onresult = event => {
+              const spoken = event.results[0][0].transcript
+                .trim()
+                .toLowerCase();
+              const correct = expectedWord.toLowerCase();
+              const result = checkSpeechSimilarity(spoken, correct);
 
-        feedback.textContent = '';
+              // Останавливаем индикатор
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
 
-        // Настраиваем и запускаем распознавание
+              if (result.isCorrect) {
+                feedback.className = 'feedback-panel correct';
+                feedback.innerHTML = `
+                  <span class="material-symbols-outlined">check_circle</span>
+                  <span>Верно! (Совпадение: ${result.confidence}%)</span>
+                `;
+                playSound('correct');
+                recordAnswer(true);
+                sIdx++;
+                nextExercise();
+              } else {
+                feedback.className = 'feedback-panel incorrect';
+                feedback.innerHTML = `
+                  <span class="material-symbols-outlined">cancel</span>
+                  <span>Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)</span>
+                `;
+                playSound('wrong');
+                // Даём ещё одну попытку, но можно и сразу записать ошибку
+                // Здесь дадим ещё одну попытку, для этого сбрасываем флаг
+                recognitionActive = false;
+                // Можно также добавить кнопку для повторной попытки
+              }
+            };
 
-        speechRecognition.lang = 'en-US';
+            speechRecognition.onerror = e => {
+              console.error('Speech recognition error', e);
+              indicator.style.display = 'none';
+              startBtn.style.display = 'flex';
+              let errorMessage = 'Произошла ошибка распознавания.';
+              if (e.error === 'not-allowed') {
+                errorMessage =
+                  'Доступ к микрофону заблокирован. Разрешите доступ к микрофону в настройках браузера.';
+              } else if (e.error === 'no-speech') {
+                errorMessage = 'Речь не распознана. Попробуйте ещё раз.';
+              } else if (e.error === 'audio-capture') {
+                errorMessage = 'Ошибка доступа к микрофону.';
+              } else if (e.error === 'network') {
+                errorMessage = 'Ошибка сети.';
+              }
 
-        speechRecognition.start();
+              feedback.className = 'feedback-panel warning';
+              feedback.innerHTML = `
+                <span class="material-symbols-outlined">warning</span>
+                <span>${errorMessage}</span>
+              `;
 
-        recognitionActive = true;
+              recognitionActive = false;
+            };
 
-        speechRecognition.onresult = event => {
-          const spoken = event.results[0][0].transcript.trim().toLowerCase();
-
-          const correct = expectedWord.toLowerCase();
-
-          const result = checkSpeechSimilarity(spoken, correct);
-
-          // Останавливаем индикатор
-
-          indicator.style.display = 'none';
-
-          startBtn.style.display = 'flex';
-
-          if (result.isCorrect) {
-            feedback.innerHTML = `✅ Верно! (Совпадение: ${result.confidence}%)`;
-
-            playSound('correct');
-
-            recordAnswer(true);
-
-            sIdx++;
-
-            nextExercise();
-          } else {
-            feedback.innerHTML = `❌ Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)`;
-
-            playSound('wrong');
-
-            // Даём ещё одну попытку, но можно и сразу записать ошибку
-
-            // Здесь дадим ещё одну попытку, для этого сбрасываем флаг
-
-            recognitionActive = false;
-
-            // Можно также добавить кнопку для повторной попытки
-          }
-        };
-
-        speechRecognition.onerror = e => {
-          console.error('Speech recognition error', e);
-
-          indicator.style.display = 'none';
-
-          startBtn.style.display = 'flex';
-
-          let errorMessage = 'Произошла ошибка распознавания.';
-
-          if (e.error === 'not-allowed') {
-            errorMessage =
-              'Доступ к микрофону заблокирован. Разрешите доступ к микрофону в настройках браузера.';
-          } else if (e.error === 'no-speech') {
-            errorMessage = 'Речь не распознана. Попробуйте ещё раз.';
-          } else if (e.error === 'audio-capture') {
-            errorMessage = 'Ошибка доступа к микрофону.';
-          } else if (e.error === 'network') {
-            errorMessage = 'Ошибка сети.';
-          }
-
-          feedback.textContent = errorMessage;
-
-          recognitionActive = false;
-        };
-
-        speechRecognition.onend = () => {
-          // Если результат не был получен (например, тишина)
-
-          if (recognitionActive) {
-            indicator.style.display = 'none';
-
-            startBtn.style.display = 'flex';
-
-            feedback.textContent =
-              'Не удалось распознать речь. Попробуйте ещё раз.';
-
-            recognitionActive = false;
-          }
-        };
+            speechRecognition.onend = () => {
+              // Если результат не был получен (например, тишина)
+              if (recognitionActive) {
+                indicator.style.display = 'none';
+                startBtn.style.display = 'flex';
+                feedback.textContent =
+                  'Не удалось распознать речь. Попробуйте ещё раз.';
+                recognitionActive = false;
+              }
+            };
+          })
+          .catch(err => {
+            feedback.className = 'feedback-panel warning';
+            feedback.innerHTML = `
+              <span class="material-symbols-outlined">warning</span>
+              <span>Доступ к микрофону запрещен. Разрешите доступ в настройках браузера.</span>
+            `;
+            startBtn.disabled = true;
+            console.error('Microphone access denied:', err);
+          });
       });
 
       // Если пользователь не хочет говорить, можно добавить кнопку пропуска
@@ -9221,11 +9279,9 @@ function nextExercise() {
     } else if (t === 'match') {
       // Временно используем runMatchExercise пока не реализуем полноценно
 
-      runMatchExercise(session.words.slice(sIdx, sIdx + 6), () => {
-        recordAnswer(true); // Всегда считаем правильным для match упражнения
-
+      runMatchExercise(session.words.slice(sIdx, sIdx + 6), elapsed => {
+        // Увеличиваем sIdx на 1, так как упражнение обработало все слова
         sIdx++;
-
         nextExercise();
       });
     } else if (t === 'context') {
@@ -9862,7 +9918,10 @@ async function renderRandomBankWord() {
   wrap.innerHTML = `
     <div class="word-bank-card">
       <div class="word-bank-content">
-        <div class="word-bank-label">📖 Случайное слово</div>
+        <div class="word-bank-label">
+          <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">auto_stories</span>
+          Случайное слово
+        </div>
         <div class="word-bank-en">${esc(word.en)}</div>
         <div class="word-bank-ru">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>
         ${word.phonetic ? `<div class="word-bank-phonetic">${esc(word.phonetic)}</div>` : ''}
@@ -10077,191 +10136,130 @@ function playSound(type) {
   }
 }
 
-function runMatchExercise(words6, onComplete) {
+function runMatchExercise(initialWords, onComplete) {
   const content = document.getElementById('ex-content');
-
   const btns = document.getElementById('ex-btns');
-
   btns.innerHTML = '';
-
   document.getElementById('ex-type-lbl').innerHTML =
     '<span class="material-symbols-outlined">extension</span> Найди пары';
 
-  // Перемешиваем переводы отдельно
-
-  const enWords = [...words6];
-
-  const ruWords = [...words6].sort(() => Math.random() - 0.5);
-
-  let selectedWord = null; // { el, id, side }
-
-  let matched = 0;
-
-  const total = words6.length;
-
-  let startTime = Date.now();
-
   content.innerHTML = `
-
     <div class="match-timer" id="match-timer">0.0s</div>
-
+    <div class="match-progress" id="match-progress"></div>
     <div class="match-grid" id="match-grid"></div>
-
-    <div class="match-progress" id="match-progress">0 / ${total} пар</div>
-
   `;
 
   const timerEl = document.getElementById('match-timer');
-
-  window._matchTimerInterval = setInterval(() => {
-    if (timerEl)
-      timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-  }, 100);
-
+  const progressEl = document.getElementById('match-progress');
   const grid = document.getElementById('match-grid');
 
-  function renderGrid() {
-    grid.innerHTML = '';
+  let startTime = Date.now();
+  const wordsCount = Math.min(initialWords.length, 6);
+  const currentWords = initialWords.slice(0, wordsCount);
 
-    for (let i = 0; i < total; i++) {
-      const enW = enWords[i];
+  progressEl.textContent = `Найди ${wordsCount} пар`;
 
-      const ruW = ruWords[i];
+  window._matchTimerInterval = setInterval(() => {
+    timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+  }, 100);
 
-      const enBtn = document.createElement('button');
+  const enWords = [...currentWords];
+  const ruWords = [...currentWords].sort(() => Math.random() - 0.5);
 
-      enBtn.className = 'match-btn';
+  grid.innerHTML = '';
 
-      enBtn.dataset.id = enW.id;
+  for (let i = 0; i < currentWords.length; i++) {
+    const enW = enWords[i];
+    const ruW = ruWords[i];
 
-      enBtn.dataset.side = 'en';
+    const enBtn = document.createElement('button');
+    enBtn.className = 'match-btn';
+    enBtn.dataset.id = enW.id;
+    enBtn.dataset.side = 'en';
+    enBtn.textContent = enW.en;
 
-      enBtn.textContent = enW.en;
+    const ruBtn = document.createElement('button');
+    ruBtn.className = 'match-btn';
+    ruBtn.dataset.id = ruW.id;
+    ruBtn.dataset.side = 'ru';
+    ruBtn.textContent = ruW.ru;
 
-      if (enW._matched) {
-        enBtn.classList.add('correct');
-
-        enBtn.disabled = true;
-      }
-
-      const ruBtn = document.createElement('button');
-
-      ruBtn.className = 'match-btn';
-
-      ruBtn.dataset.id = ruW.id;
-
-      ruBtn.dataset.side = 'ru';
-
-      ruBtn.textContent = ruW.ru;
-
-      if (ruW._matched) {
-        ruBtn.classList.add('correct');
-
-        ruBtn.disabled = true;
-      }
-
-      grid.appendChild(enBtn);
-
-      grid.appendChild(ruBtn);
-    }
+    grid.appendChild(enBtn);
+    grid.appendChild(ruBtn);
   }
 
-  renderGrid();
+  let matchedInRound = 0;
+  const totalInRound = currentWords.length;
+  let selectedWord = null;
 
-  grid.addEventListener('click', e => {
+  function clickHandler(e) {
     const btn = e.target.closest('.match-btn');
-
     if (!btn || btn.disabled || btn.classList.contains('correct')) return;
 
     const side = btn.dataset.side;
-
     const id = btn.dataset.id;
 
-    // Если кликнули на ту же выбранную кнопку – снимаем выбор
-
-    if (selectedWord && selectedWord.el === btn) {
-      selectedWord.el.classList.remove('selected');
-
+    // Отмена выбора при клике на ту же кнопку
+    if (selectedWord && selectedWord.element === btn) {
+      selectedWord.element.classList.remove('selected');
       selectedWord = null;
-
       return;
     }
 
+    // Первое нажатие
     if (!selectedWord) {
-      // Первое нажатие – выбираем слово
-
       btn.classList.add('selected');
-
-      selectedWord = { el: btn, id, side };
-
+      selectedWord = { id, side, element: btn };
       return;
     }
 
-    // Второе нажатие – проверяем пару
-
+    // Второе нажатие – проверка пары
     if (selectedWord.id === id && selectedWord.side !== side) {
-      // Правильная пара!
-
+      // Правильно!
       playSound('correct');
+      matchedInRound++;
 
+      // Делаем обе кнопки зелёными и неактивными
       btn.classList.add('correct');
+      btn.disabled = true;
+      selectedWord.element.classList.add('correct');
+      selectedWord.element.disabled = true;
 
-      selectedWord.el.classList.remove('selected');
-
-      selectedWord.el.classList.add('correct');
-
-      // Помечаем слово как matched
-
-      words6.find(w => w.id === id)._matched = true;
-
-      matched++;
-
-      document.getElementById('match-progress').textContent =
-        `${matched} / ${total} пар`;
-
+      // Обновляем статистику для обоих слов
       updStats(id, true);
-
-      updStreak();
-
-      sResults.correct.push(words6.find(w => w.id === id));
+      updStats(selectedWord.id, true);
+      sResults.correct.push(initialWords.find(w => w.id === id));
+      sResults.correct.push(initialWords.find(w => w.id === selectedWord.id));
 
       selectedWord = null;
 
-      if (matched === total) {
+      // Если все пары угаданы - завершаем упражнение
+      if (matchedInRound === totalInRound) {
         clearInterval(window._matchTimerInterval);
-
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        setTimeout(() => {
-          words6.forEach(w => delete w._matched);
-
-          onComplete(elapsed);
-        }, 600);
+        setTimeout(() => onComplete(elapsed), 600);
       }
     } else {
       // Ошибка
-
       playSound('wrong');
-
       btn.classList.add('wrong');
+      selectedWord.element.classList.add('wrong');
 
-      selectedWord.el.classList.add('wrong');
-
+      // Записываем ошибку для первого выбранного слова
       updStats(selectedWord.id, false);
-
-      sResults.wrong.push(words6.find(w => w.id === selectedWord.id));
+      sResults.wrong.push(initialWords.find(w => w.id === selectedWord.id));
 
       setTimeout(() => {
         btn.classList.remove('wrong');
-
         if (selectedWord) {
-          selectedWord.el.classList.remove('wrong', 'selected');
-
+          selectedWord.element.classList.remove('wrong', 'selected');
           selectedWord = null;
         }
       }, 400);
     }
-  });
+  }
+
+  grid.addEventListener('click', clickHandler);
 }
 
 // === NEW EXERCISES ===
@@ -10383,7 +10381,7 @@ function runSpeechSentenceExercise(word, onComplete) {
   // Показываем предложение, если есть пример, иначе слово
   const hasExample = word.ex && word.ex.trim().length > 0;
   const promptText = hasExample ? word.ex : word.en;
-  const expectedWord = word.en; // для проверки все еще используем слово
+  const expectedWord = promptText; // для проверки используем полный текст предложения
   const exampleTranslation =
     hasExample && word.examples && word.examples[0]
       ? word.examples[0].translation
@@ -10410,7 +10408,7 @@ function runSpeechSentenceExercise(word, onComplete) {
 
           ${!hasExample ? `<div class="speech-phonetic">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>` : ''}
 
-          <div class="speech-hint">${hasExample ? '' : 'Прослушайте слово, затем повторите его'}</div>
+          <div class="speech-hint">${hasExample ? 'Прослушайте предложение, затем повторите его полностью' : 'Прослушайте слово, затем повторите его'}</div>
 
           <div class="speech-translation" id="speech-sentence-translation" style="margin-top: 0.5rem; opacity: 0.7;">
 
@@ -10506,13 +10504,21 @@ function runSpeechSentenceExercise(word, onComplete) {
       startBtn.style.display = 'flex';
 
       if (result.isCorrect) {
-        feedback.innerHTML = `✅ Верно! (Совпадение: ${result.confidence}%)`;
+        feedback.className = 'feedback-panel correct';
+        feedback.innerHTML = `
+          <span class="material-symbols-outlined">check_circle</span>
+          <span>Верно! (Совпадение: ${result.confidence}%)</span>
+        `;
         playSound('correct');
         recordAnswer(true);
         sIdx++;
         nextExercise();
       } else {
-        feedback.innerHTML = `❌ Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)`;
+        feedback.className = 'feedback-panel incorrect';
+        feedback.innerHTML = `
+          <span class="material-symbols-outlined">cancel</span>
+          <span>Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)</span>
+        `;
         playSound('wrong');
         recordAnswer(false);
         // Даем еще одну попытку
@@ -10537,7 +10543,11 @@ function runSpeechSentenceExercise(word, onComplete) {
         errorMessage = 'Ошибка сети.';
       }
 
-      feedback.textContent = errorMessage;
+      feedback.className = 'feedback-panel warning';
+      feedback.innerHTML = `
+        <span class="material-symbols-outlined">warning</span>
+        <span>${errorMessage}</span>
+      `;
       recognitionActive = false;
     };
 
@@ -10545,8 +10555,11 @@ function runSpeechSentenceExercise(word, onComplete) {
       if (recognitionActive) {
         indicator.style.display = 'none';
         startBtn.style.display = 'flex';
-        feedback.textContent =
-          'Не удалось распознать речь. Попробуйте ещё раз.';
+        feedback.className = 'feedback-panel warning';
+        feedback.innerHTML = `
+          <span class="material-symbols-outlined">warning</span>
+          <span>Не удалось распознать речь. Попробуйте ещё раз.</span>
+        `;
         recognitionActive = false;
       }
     };
@@ -10619,6 +10632,9 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
   document.getElementById('exit-confirm').addEventListener('click', () => {
     document.body.removeChild(modal);
 
+    // Сбрасываем флаг активной сессии
+    window.isSessionActive = false;
+
     // Останавливаем все активные процессы
 
     window.words.forEach(w => delete w._matched);
@@ -10667,6 +10683,8 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 // === PWA ===
 
+// Функция initPWA() отключена - используем статический manifest.json
+/*
 function initPWA() {
   const manifest = {
     name: 'EngLift',
@@ -10713,7 +10731,7 @@ function initPWA() {
 
       const ASSETS = [self.location.href];
 
-      self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
+      self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
 
       self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
 
@@ -10728,6 +10746,7 @@ function initPWA() {
       .catch(() => {});
   }
 }
+*/
 
 // Очистка данных пользователя (при выходе или перед загрузкой нового пользователя)
 

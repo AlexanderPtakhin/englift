@@ -2723,23 +2723,14 @@ html.dark .badge-learned {
 
 .exercise-timer {
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   gap: 0.5rem;
-
-  font-size: 0.9rem;
-
-  font-weight: 700;
-
-  color: var(--primary);
-
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted);
   background: rgba(108, 99, 255, 0.1);
-
   padding: 0.5rem 1rem;
-
   border-radius: 20px;
 
   border: 1px solid var(--primary);
@@ -3165,22 +3156,17 @@ html.dark .badge-learned {
 }
 
 .card-word {
-  font-size: 2.2rem;
-
-  font-weight: 800;
-
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.3;
   color: var(--text);
-
   text-align: center;
 }
 
 .card-hint {
-  font-size: 0.8rem;
-
+  font-size: 1rem;
   color: var(--muted);
-
   margin-top: 0.5rem;
-
   font-weight: 600;
 }
 
@@ -3322,18 +3308,14 @@ html.dark .badge-learned {
 /* MULTIPLE CHOICE */
 
 .mc-question {
-  font-size: 1.5rem;
-
-  font-weight: 800;
-
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
   margin: 1rem 0 1.5rem;
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   gap: 0.75rem;
 }
 
@@ -3346,28 +3328,16 @@ html.dark .badge-learned {
 }
 
 .mc-btn {
-  padding: 1rem;
-
-  border: 2px solid var(--border);
-
-  background: var(--card);
-
-  border-radius: 12px;
-
-  cursor: pointer;
-
   font-size: 1rem;
-
-  font-weight: 700;
-
+  font-weight: 600;
+  border: 2px solid var(--border);
+  background: var(--card);
   color: var(--text);
-
-  transition: all 0.18s;
-
+  border-radius: 12px;
+  transition: all 0.2s;
+  cursor: pointer;
   text-align: center;
-
   display: flex;
-
   align-items: center;
 
   justify-content: center;
@@ -3433,25 +3403,7 @@ html.dark .badge-learned {
   flex: 1;
 }
 
-.ta-feedback {
-  text-align: center;
-
-  margin-top: 0.75rem;
-
-  font-size: 1rem;
-
-  font-weight: 700;
-
-  min-height: 1.5rem;
-}
-
-.ta-feedback.ok {
-  color: var(--success);
-}
-
-.ta-feedback.err {
-  color: var(--danger);
-}
+/* Удалены устаревшие стили - используется универсальный .feedback-panel */
 
 /* ============================================================
 
@@ -3466,15 +3418,11 @@ html.dark .badge-learned {
 }
 
 .builder-question {
-  font-size: 1.5rem;
-
-  font-weight: 600;
-
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.3;
   color: var(--text);
-
   margin-bottom: 2rem;
-
-  line-height: 1.4;
 }
 
 .builder-answer {
@@ -3616,11 +3564,10 @@ html.dark .badge-learned {
 }
 
 .builder-hint {
-  font-size: 0.9rem;
-
-  color: var(--text-secondary);
-
+  font-size: 1rem;
+  color: var(--muted);
   margin-bottom: 1rem;
+  font-weight: 600;
 }
 
 .builder-controls {
@@ -3633,29 +3580,7 @@ html.dark .badge-learned {
   margin-bottom: 1rem;
 }
 
-.builder-feedback {
-  text-align: center;
-
-  margin-top: 1rem;
-
-  font-size: 1rem;
-
-  min-height: 1.5rem;
-
-  font-weight: 500;
-}
-
-.builder-feedback.ok {
-  color: var(--success);
-
-  animation: builderSuccess 0.5s ease;
-}
-
-.builder-feedback.err {
-  color: var(--danger);
-
-  animation: builderError 0.5s ease;
-}
+/* Удалены устаревшие стили - используется универсальный .feedback-panel */
 
 @keyframes builderSuccess {
   0% {
@@ -3721,7 +3646,7 @@ html.dark .badge-learned {
 
 @media (max-width: 768px) {
   .builder-question {
-    font-size: 1.3rem;
+    font-size: 1.6rem;
   }
 
   .builder-answer {
@@ -3952,6 +3877,84 @@ html.dark .badge-learned {
 /* ============================================================ */
 /* СТАТИСТИКА - НОВЫЙ ДИЗАЙН */
 /* ============================================================ */
+
+/* Универсальный фидбек для упражнений */
+.feedback-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem auto 0;
+  padding: 0.75rem 1.5rem;
+  border-radius: 40px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid transparent;
+  width: fit-content;
+  max-width: 90%;
+  animation: feedbackPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.feedback-panel.correct {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.15),
+    rgba(34, 197, 94, 0.05)
+  );
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.feedback-panel.correct .material-symbols-outlined {
+  color: var(--success);
+  font-size: 1.5rem;
+}
+
+.feedback-panel.incorrect {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.15),
+    rgba(239, 68, 68, 0.05)
+  );
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.feedback-panel.incorrect .material-symbols-outlined {
+  color: var(--danger);
+  font-size: 1.5rem;
+}
+
+.feedback-panel.warning {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.15),
+    rgba(245, 158, 11, 0.05)
+  );
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.feedback-panel.warning .material-symbols-outlined {
+  color: var(--warning);
+  font-size: 1.5rem;
+}
+
+@keyframes feedbackPop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 
 /* Обновлённый XP блок */
 .xp-stats-row {
@@ -6204,8 +6207,6 @@ html.dark .due-soon {
 
   font-weight: 800;
 
-  margin-bottom: 1.2rem;
-
   color: var(--text);
 
   display: flex;
@@ -6542,11 +6543,11 @@ html.dark .due-soon {
 }
 
 .context-text {
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.3;
   color: var(--text);
   margin-bottom: 0.5rem;
-  line-height: 1.4;
 }
 
 .context-phonetic {
@@ -6564,15 +6565,19 @@ html.dark .due-soon {
 }
 
 .context-option-btn {
-  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
   border: 2px solid var(--border);
-  border-radius: 12px;
   background: var(--card);
   color: var(--text);
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.2s;
   cursor: pointer;
-  transition: all 0.2s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
 }
 
 .context-option-btn:hover:not(:disabled) {
@@ -7355,32 +7360,19 @@ html.dark .due-soon {
 }
 
 .match-btn {
-  padding: 0.75rem 0.6rem;
-
-  border: 2.5px solid var(--border);
-
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid var(--border);
   background: var(--card);
-
   color: var(--text);
-
-  border-radius: var(--radius);
-
-  cursor: pointer;
-
+  border-radius: 12px;
   transition: all 0.2s;
-
-  font-size: 0.9rem;
-
-  font-weight: 500;
-
+  cursor: pointer;
   text-align: center;
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
+  padding: 0.5rem;
   min-height: 3.2rem;
 
   line-height: 1.2;
@@ -7444,13 +7436,11 @@ html.dark .due-soon {
 }
 
 .match-progress {
-  text-align: center;
-
-  font-size: 0.8rem;
-
+  font-size: 1rem;
   color: var(--muted);
-
+  text-align: center;
   margin-top: 0.5rem;
+  font-weight: 600;
 }
 
 .match-timer {
@@ -7713,31 +7703,23 @@ html.dark .due-soon {
 }
 
 .speech-word {
-  font-size: 2.5rem;
-
-  font-weight: 800;
-
-  color: var(--primary);
-
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
   margin-bottom: 0.5rem;
-
-  line-height: 1.2;
-
   text-align: center;
-
   display: flex;
-
   align-items: center;
 
   justify-content: center;
 }
 
 .speech-hint {
-  font-size: 1.1rem;
-
+  font-size: 1rem;
   color: var(--muted);
-
   margin-bottom: 1rem;
+  font-weight: 600;
 }
 
 .speech-phonetic {
@@ -7930,7 +7912,7 @@ html.dark .due-soon {
 
 @media (max-width: 768px) {
   .speech-word {
-    font-size: 2rem;
+    font-size: 1.6rem;
   }
 
   .speech-hint {
@@ -9114,4 +9096,72 @@ html.dark header {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================================================
+
+   ЕДИНЫЕ СТИЛИ УПРАЖНЕНИЙ
+
+   ============================================================ */
+
+/* Единые размеры основных вопросов во всех упражнениях */
+.card-word,
+.ta-word,
+.speech-word,
+.mc-question,
+.builder-question,
+.context-text {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+/* Единые стили кнопок ответов */
+.mc-btn,
+.match-btn,
+.context-option-btn {
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mc-btn {
+  padding: 1rem;
+}
+
+.match-btn {
+  padding: 0.5rem;
+  min-height: 3.2rem;
+}
+
+.context-option-btn {
+  padding: 0.75rem 1rem;
+}
+
+.mc-btn:hover:not(:disabled),
+.match-btn:hover:not(:disabled),
+.context-option-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: rgba(108, 99, 255, 0.05);
+}
+
+/* Единые стили второстепенного текста */
+.card-hint,
+.speech-hint,
+.builder-hint,
+.match-progress,
+.timer-text,
+.exercise-timer .timer-text {
+  font-size: 1rem;
+  color: var(--muted);
 }
