@@ -216,7 +216,7 @@ dropdownLogout.addEventListener('click', async () => {
   console.log('🚪 Logout details:', {
     device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
     currentUserId: window.currentUserId,
-    hasPendingSync: pendingWordUpdates?.size > 0,
+    hasPendingSync: window.pendingWordUpdates?.size > 0,
   });
 
   // Синхронизируем слова перед выходом
@@ -463,9 +463,13 @@ async function loadUserProfile(user) {
           window.words = remoteWords || [];
           localStorage.setItem('englift_words', JSON.stringify(window.words));
           if (window.refreshUI) window.refreshUI();
+          // Вызываем onProfileFullyLoaded ПОСЛЕ загрузки слов
+          window.onProfileFullyLoaded?.();
         });
+      } else {
+        // Если слова уже загружены, вызываем сразу
+        window.onProfileFullyLoaded?.();
       }
-      window.onProfileFullyLoaded?.();
       return;
     }
 
@@ -505,10 +509,13 @@ async function loadUserProfile(user) {
           window.words = remoteWords || [];
           localStorage.setItem('englift_words', JSON.stringify(window.words));
           if (window.refreshUI) window.refreshUI();
+          // Вызываем onProfileFullyLoaded ПОСЛЕ загрузки слов
+          window.onProfileFullyLoaded?.();
         });
+      } else {
+        // Если слова уже загружены, вызываем сразу
+        window.onProfileFullyLoaded?.();
       }
-
-      window.onProfileFullyLoaded?.();
       return;
     }
 
@@ -545,10 +552,14 @@ async function loadUserProfile(user) {
         if (window.refreshUI) window.refreshUI();
 
         console.log(`✅ Синхронизация завершена: ${merged.length} слов`);
-      });
-    }
 
-    window.onProfileFullyLoaded?.();
+        // Вызываем onProfileFullyLoaded ПОСЛЕ загрузки слов
+        window.onProfileFullyLoaded?.();
+      });
+    } else {
+      // Если слова уже загружены, вызываем сразу
+      window.onProfileFullyLoaded?.();
+    }
   } catch (err) {
     console.error('Ошибка в loadUserProfile:', err);
     // Fallback – пробуем бэкап
