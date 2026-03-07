@@ -1424,134 +1424,77 @@ input[type='submit']:active {
   color: var(--primary);
 }
 
-.save-edit-btn {
-  background: var(--bg);
-
-  border: 2px solid var(--border);
-
-  border-radius: 50%;
-
-  width: 36px;
-
-  height: 36px;
-
-  padding: 0;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  color: var(--primary);
-
-  transition: all 0.2s;
-
-  flex-shrink: 0;
-}
-
-.save-edit-btn:hover {
-  background: var(--primary);
-
-  border-color: var(--primary);
-
-  color: #fff;
-
-  transform: scale(1.1);
-}
-
-.save-edit-btn .material-symbols-outlined {
-  color: var(--muted);
-
-  font-size: 18px;
-}
-
-.save-edit-btn:hover {
-  background: var(--bg-secondary);
-
-  border-color: var(--primary);
-
-  color: var(--muted);
-
-  transform: scale(1.1);
-}
-
-#del-confirm.save-edit-btn:hover {
-  background: var(--danger);
-
-  border-color: var(--danger);
-
-  color: #fff;
-
-  transform: scale(1.1);
-}
-
-#speech-modal-save.save-edit-btn:hover {
-  background: var(--bg-secondary);
-
-  border-color: var(--primary);
-
-  color: var(--muted);
-
-  transform: scale(1.1);
-}
-
+/* Общие стили для кнопок редактирования/удаления (как .btn-icon) */
+.save-edit-btn,
 .cancel-edit-btn {
   background: var(--bg);
-
   border: 2px solid var(--border);
-
   border-radius: 50%;
-
   width: 36px;
-
   height: 36px;
-
   padding: 0;
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-  color: var(--text);
-
-  transition: all 0.2s;
-
+  transition: all 0.2s ease;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
-.cancel-edit-btn:hover {
-  background: var(--bg-secondary);
-
-  border-color: var(--primary);
-
-  color: var(--muted);
-
-  transform: scale(1.1);
-}
-
-#del-cancel.cancel-edit-btn:hover {
-  background: var(--success);
-
-  border-color: var(--success);
-
-  color: #fff;
-
-  transform: scale(1.1);
-}
-
+.save-edit-btn .material-symbols-outlined,
 .cancel-edit-btn .material-symbols-outlined {
-  color: var(--muted);
-
   font-size: 18px;
-}
-
-.cancel-edit-btn:hover .material-symbols-outlined {
   color: var(--muted);
+  transition: color 0.2s ease;
 }
 
+/* Эффект при наведении — только рамка и масштаб */
+.save-edit-btn:hover,
+.cancel-edit-btn:hover {
+  border-color: var(--primary);
+  transform: scale(1.1);
+  background: var(--bg); /* фиксируем фон, чтобы не менялся */
+}
+
+/* В темной теме при наведении на круглую кнопку иконка становится белой */
+html.dark .btn-icon:hover .material-symbols-outlined,
+body.dark .btn-icon:hover .material-symbols-outlined {
+  color: #fff !important;
+}
+
+/* Единый размер круглых кнопок в модальных окнах */
+.modal-actions .btn-icon {
+  width: 40px;
+  height: 40px;
+}
+
+/* Поведение опасной круглой кнопки (btn-danger) */
+.btn-icon.btn-danger {
+  border-color: var(--danger);
+}
+
+.btn-icon.btn-danger .material-symbols-outlined {
+  color: var(--danger) !important;
+}
+
+.btn-icon.btn-danger:hover {
+  background: var(--bg); /* фон не меняется */
+  border-color: var(--danger); /* красная рамка */
+}
+
+.btn-icon.btn-danger:hover .material-symbols-outlined {
+  color: #fff !important; /* иконка становится белой */
+}
+
+/* Убираем старые переопределения для конкретных ID */
+#del-confirm.save-edit-btn:hover,
+#del-cancel.cancel-edit-btn:hover,
+#speech-modal-save.save-edit-btn:hover {
+  background: var(--bg);
+  border-color: var(--primary);
+}
+
+#del-confirm.save-edit-btn:hover .material-symbols-outlined,
 #del-cancel.cancel-edit-btn:hover .material-symbols-outlined {
   color: #fff;
 }
@@ -4445,8 +4388,252 @@ html.dark .badge-learned {
 }
 
 /* ============================================================ */
-/* ДОБАВИТЬ - НОВЫЙ ДИЗАЙН */
+/* МОДАЛЬНОЕ ОКНО НАСТРОЕК - НОВЫЙ ДИЗАЙН */
 /* ============================================================ */
+
+/* Модальное окно увеличенной ширины */
+.modal-box.modal-box--large {
+  max-width: 800px;
+  width: 95%;
+  padding: 2rem;
+}
+
+/* Заголовок модалки с кнопкой закрытия */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Сетка для двух колонок */
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .modal-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Карточки внутри колонок */
+.settings-card {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.settings-card h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 1.2rem;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.settings-card h4 .material-symbols-outlined {
+  font-size: 1.5rem;
+}
+
+/* Поля формы внутри карточек */
+.settings-card .form-group {
+  margin-bottom: 1.2rem;
+}
+
+.settings-card label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* Улучшенные ползунки */
+.range-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.range-group input[type='range'] {
+  flex: 1;
+}
+
+.range-value {
+  min-width: 50px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Кнопка теста голоса */
+#modal-test-voice-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  background: var(--card);
+  border: 2px solid var(--border);
+  color: var(--text);
+}
+
+#modal-test-voice-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Селекты */
+.settings-card select.form-control {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* Опасные действия */
+.danger-actions {
+  background: rgba(239, 68, 68, 0.05);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.danger-actions h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--danger);
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.danger-actions h4 .material-symbols-outlined {
+  color: var(--danger);
+}
+
+.danger-btn {
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.danger-btn:hover {
+  background: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+.danger-btn:hover .material-symbols-outlined {
+  color: white !important;
+}
+
+/* Дополнительное правило для конкретных опасных кнопок */
+#clear-words-btn:hover .material-symbols-outlined,
+#delete-account-btn:hover .material-symbols-outlined,
+#confirm-action:hover .material-symbols-outlined {
+  color: white !important;
+}
+
+/* Кнопки сохранения/отмены снизу */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.modal-actions .btn-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  color: var(--text);
+}
+
+.modal-actions .btn-icon:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: scale(1.05);
+}
+
+/* Анимация появления модального окна */
+.modal-backdrop.show {
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-box.show {
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 /* Кнопки экспорта */
 .io-btn {

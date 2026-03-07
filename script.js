@@ -2305,38 +2305,24 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
 
     window.words.push(newWord);
 
-    markDirty(newWord.id); // отмечаем слово как изменённое
+    // Сразу сохраняем в localStorage
+    localStorage.setItem('englift_words', JSON.stringify(window.words));
 
-    // Проверяем, авторизован ли пользователь
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      console.log('🔄 Пользователь авторизован, сохраняем слово на сервер');
-
-      // Отмечаем слово для пакетной синхронизации
-
-      markWordDirty(newWord.id);
-
-      // Также пробуем сохранить немедленно
-
+    // --- МГНОВЕННОЕ СОХРАНЕНИЕ НА СЕРВЕР (если есть интернет) ---
+    if (navigator.onLine && window.currentUserId) {
       try {
-        console.log('💾 Сохраняем слово на сервер:', newWord);
-
         await saveWordToDb(newWord);
-
-        console.log('✅ Слово сохранено на сервере');
-      } catch (error) {
-        console.error('❌ Ошибка сохранения слова на сервер:', error);
+        console.log(`✅ Слово "${normalizedEn}" мгновенно сохранено на сервер`);
+      } catch (e) {
+        console.warn(
+          `⚠️ Ошибка мгновенного сохранения "${normalizedEn}", добавляем в очередь`,
+          e,
+        );
+        markWordDirty(newWord.id); // в очередь как запасной вариант
       }
     } else {
-      console.log('❌ Пользователь не авторизован, сохраняем только локально');
-
-      // Если не авторизован — сохраняем только локально, позже синхронизируем
-
-      scheduleDelayedSync(5000); // планируем синхронизацию при подключении
+      console.log('📴 Офлайн или нет пользователя – слово в очереди');
+      markWordDirty(newWord.id);
     }
 
     // Очищаем кеш рендеринга
@@ -2362,16 +2348,6 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
     // Пересчитываем уровни CEFR и обновляем интерфейс
 
     recalculateCefrLevels();
-
-    // Сохраняем слова в localStorage
-
-    console.log(
-      '💾 Сохраняем слова в localStorage, всего слов:',
-
-      window.words.length,
-    );
-
-    localStorage.setItem('englift_words', JSON.stringify(window.words));
 
     console.log('✅ addWord завершен успешно');
 
@@ -5110,12 +5086,11 @@ function makeCard(w) {
     console.log('Closest delete-btn:', e.target.closest('.delete-btn'));
     console.log('Closest tag:', e.target.closest('.tag'));
 
-    // Игнорируем клики по кнопкам аудио, редактирования, удаления и тегам
+    // Игнорируем клики по кнопкам аудио, редактирования, удаления
     if (
       e.target.closest('.audio-btn') ||
       e.target.closest('.edit-btn') ||
-      e.target.closest('.delete-btn') ||
-      e.target.closest('.tag')
+      e.target.closest('.delete-btn')
     ) {
       console.log('Click ignored - interactive element');
       return;
@@ -5407,7 +5382,8 @@ document.getElementById('words-grid').addEventListener('click', e => {
 
   // Обработка клика по тегу (фильтрация)
   if (e.target.closest('.tag')) {
-    const tag = e.target.closest('.tag').dataset.tag;
+    const tag = e.target.closest('.tag').dataset.tag.toLowerCase();
+    console.log('🏷️ Клик по тегу:', tag);
     tagFilter = tag;
     visibleLimit = 30;
     renderWords();
@@ -5445,8 +5421,8 @@ function startEditWord(id) {
     <div class="form-group"><label>Перевод примера</label><input type="text" class="e-ex-translation form-control" value="${safeAttr(w.examples?.[0]?.translation || '')}"></div>
     <div class="form-group"><label>Теги</label><input type="text" class="e-tags form-control" value="${safeAttr(w.tags.join(', '))}"></div>
     <div class="form-actions">
-      <button class="btn btn-primary btn-sm save-edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">save</span></button>
-      <button class="btn btn-secondary btn-sm cancel-edit-btn"><span class="material-symbols-outlined">close</span></button>
+      <button class="save-edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">save</span></button>
+      <button class="cancel-edit-btn"><span class="material-symbols-outlined">close</span></button>
     </div>
   `;
 
@@ -6531,6 +6507,10 @@ document
 // Speech modal handlers
 
 document.getElementById('speech-modal-cancel').addEventListener('click', () => {
+  document.getElementById('speech-modal').classList.remove('open');
+});
+
+document.getElementById('speech-modal-close').addEventListener('click', () => {
   document.getElementById('speech-modal').classList.remove('open');
 });
 
@@ -9934,11 +9914,30 @@ async function renderRandomBankWord() {
       );
 
       window.words.unshift(newWord);
-      markDirty(newWord.id);
-      markWordDirty(newWord.id);
-      debouncedSave();
+
+      // Сразу сохраняем в localStorage
+      localStorage.setItem('englift_words', JSON.stringify(window.words));
+
       gainXP(5, 'новое слово из банка');
       addedBankWordEn.add(enLower);
+
+      // --- МГНОВЕННОЕ СОХРАНЕНИЕ НА СЕРВЕР ---
+      if (navigator.onLine && window.currentUserId) {
+        try {
+          await saveWordToDb(newWord);
+          console.log(
+            `✅ Слово из банка "${currentBankWord.en}" мгновенно сохранено`,
+          );
+        } catch (e) {
+          console.warn(
+            `⚠️ Ошибка мгновенного сохранения "${currentBankWord.en}", добавляем в очередь`,
+            e,
+          );
+          markWordDirty(newWord.id);
+        }
+      } else {
+        markWordDirty(newWord.id);
+      }
 
       // Обновляем интерфейс
       addWordToDOM(newWord);

@@ -1252,12 +1252,11 @@
         <p>Это действие нельзя отменить.</p>
 
         <div class="modal-actions">
-          <button class="cancel-edit-btn btn-icon" id="del-cancel">
-            <span class="material-symbols-outlined">undo</span>
+          <button class="btn-icon" id="del-confirm">
+            <span class="material-symbols-outlined">check</span>
           </button>
-
-          <button class="save-edit-btn btn-icon" id="del-confirm">
-            <span class="material-symbols-outlined">delete</span>
+          <button class="btn-icon" id="del-cancel">
+            <span class="material-symbols-outlined">close</span>
           </button>
         </div>
       </div>
@@ -1266,256 +1265,149 @@
     <!-- Speech Settings Modal -->
 
     <div class="modal-backdrop" id="speech-modal">
-      <div class="modal-box">
-        <h3>
-          <span
-            class="material-symbols-outlined"
-            style="vertical-align: middle; margin-right: 8px"
-            >tune</span
-          >Настройки
-        </h3>
-
-        <!-- Speech Settings Section -->
-
-        <div class="settings-section">
-          <h4 style="margin-bottom: 1rem; color: var(--primary)">
-            <span
-              class="material-symbols-outlined"
-              style="
-                font-size: 1.2rem;
-
-                vertical-align: middle;
-
-                margin-right: 4px;
-              "
-              >record_voice_over</span
-            >
-
-            Произношение
-          </h4>
-
-          <div id="no-speech-modal" class="no-speech" style="display: none">
-            Синтез речи не поддерживается браузером
-          </div>
-
-          <div class="form-group">
-            <label>Голос</label>
-
-            <select class="form-control" id="modal-voice-select">
-              <option value="">Загрузка...</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Акцент</label>
-
-            <select class="form-control" id="modal-accent-select">
-              <option value="US">🇺🇸 США</option>
-
-              <option value="UK">🇬🇧 Великобритания</option>
-
-              <option value="AU">�🇺 Австралия</option>
-
-              <option value="IN">🇮🇳 Индия</option>
-
-              <option value="CA">🇨🇦 Канада</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Скорость</label>
-
-            <div class="range-group">
-              <input
-                class="form-control"
-                type="range"
-                id="modal-speed-range"
-                min="0.5"
-                max="1.5"
-                step="0.1"
-                value="0.9"
-              />
-
-              <span class="range-value" id="modal-speed-val">0.9x</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Высота</label>
-
-            <div class="range-group">
-              <input
-                class="form-control"
-                type="range"
-                id="modal-pitch-range"
-                min="0.5"
-                max="2"
-                step="0.1"
-                value="1"
-              />
-
-              <span class="range-value" id="modal-pitch-val">1.0</span>
-            </div>
-          </div>
-
-          <div
-            style="
-              display: flex;
-
-              align-items: center;
-
-              gap: 0.5rem;
-
-              margin-top: 1.5rem;
-
-              margin-bottom: 1rem;
-            "
-          >
-            <button class="btn btn-secondary" id="modal-test-voice-btn">
-              <span class="material-symbols-outlined"
-                >sound_detection_loud_sound</span
-              >
-
-              Тест голоса
-            </button>
-          </div>
-        </div>
-
-        <!-- Practice Settings Section -->
-
-        <div
-          class="settings-section"
-          style="
-            margin-top: 2rem;
-
-            padding-top: 2rem;
-
-            border-top: 1px solid var(--border);
-          "
-        >
-          <h4 style="margin-bottom: 1rem; color: var(--primary)">
-            <span
-              class="material-symbols-outlined"
-              style="
-                font-size: 1.2rem;
-
-                vertical-align: middle;
-
-                margin-right: 4px;
-              "
-              >schedule</span
-            >
-
-            Лимит повторений
-          </h4>
-
-          <p
-            style="
-              color: var(--muted);
-
-              margin-bottom: 1.5rem;
-
-              font-size: 0.9rem;
-            "
-          >
-            Выберите, сколько карточек вы готовы повторять за один день.
-            Остальные автоматически перенесутся на завтра — так вы не
-            перегрузитесь.
-          </p>
-
-          <div class="form-group">
-            <label>Лимит в день</label>
-
-            <select id="review-limit-select" class="form-control">
-              <option value="50">50 — лёгкий режим (10–20 мин)</option>
-
-              <option value="80">80 — комфортный</option>
-
-              <option value="100" selected>
-                100 — рекомендовано (20–40 мин)
-              </option>
-
-              <option value="150">150 — интенсив</option>
-
-              <option value="200">200 — мощный режим</option>
-
-              <option value="9999">Без лимита (для энтузиастов)</option>
-            </select>
-          </div>
-
-          <small
-            id="current-limit-info"
-            style="display: block; color: var(--muted); margin-top: 0.5rem"
-          >
-            Текущий лимит: <strong>100</strong>
-          </small>
-        </div>
-
-        <div class="modal-actions">
-          <button class="save-edit-btn btn-icon" id="speech-modal-save">
-            <span class="material-symbols-outlined">save</span>
-          </button>
-
-          <button class="cancel-edit-btn btn-icon" id="speech-modal-cancel">
+      <div class="modal-box modal-box--large">
+        <div class="modal-header">
+          <h3>
+            <span class="material-symbols-outlined">tune</span>
+            Настройки
+          </h3>
+          <button class="modal-close" id="speech-modal-close">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
 
+        <div class="modal-grid">
+          <!-- Левая колонка: Произношение -->
+          <div class="modal-col">
+            <div class="settings-card">
+              <h4>
+                <span class="material-symbols-outlined">record_voice_over</span>
+                Произношение
+              </h4>
+
+              <div id="no-speech-modal" class="no-speech" style="display: none">
+                Синтез речи не поддерживается браузером
+              </div>
+
+              <div class="form-group">
+                <label>Голос</label>
+                <select class="form-control" id="modal-voice-select">
+                  <option value="">Загрузка...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Акцент</label>
+                <select class="form-control" id="modal-accent-select">
+                  <option value="US">🇺🇸 США</option>
+                  <option value="UK">🇬🇧 Великобритания</option>
+                  <option value="AU">🇦🇺 Австралия</option>
+                  <option value="IN">🇮🇳 Индия</option>
+                  <option value="CA">🇨🇦 Канада</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Скорость</label>
+                <div class="range-group">
+                  <input
+                    class="form-control"
+                    type="range"
+                    id="modal-speed-range"
+                    min="0.5"
+                    max="1.5"
+                    step="0.1"
+                    value="0.9"
+                  />
+                  <span class="range-value" id="modal-speed-val">0.9x</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Высота</label>
+                <div class="range-group">
+                  <input
+                    class="form-control"
+                    type="range"
+                    id="modal-pitch-range"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value="1"
+                  />
+                  <span class="range-value" id="modal-pitch-val">1.0</span>
+                </div>
+              </div>
+
+              <button class="btn btn-secondary" id="modal-test-voice-btn">
+                <span class="material-symbols-outlined"
+                  >sound_detection_loud_sound</span
+                >
+                Тест голоса
+              </button>
+            </div>
+          </div>
+
+          <!-- Правая колонка: Лимит повторений -->
+          <div class="modal-col">
+            <div class="settings-card">
+              <h4>
+                <span class="material-symbols-outlined">schedule</span>
+                Лимит повторений
+              </h4>
+
+              <p>
+                Выберите, сколько карточек вы готовы повторять за один день.
+                Остальные автоматически перенесутся на завтра — так вы не
+                перегрузитесь.
+              </p>
+
+              <div class="form-group">
+                <label>Лимит в день</label>
+                <select id="review-limit-select" class="form-control">
+                  <option value="50">50 — лёгкий режим (10–20 мин)</option>
+                  <option value="80">80 — комфортный</option>
+                  <option value="100" selected>
+                    100 — рекомендовано (20–40 мин)
+                  </option>
+                  <option value="150">150 — интенсив</option>
+                  <option value="200">200 — мощный режим</option>
+                  <option value="9999">Без лимита (для энтузиастов)</option>
+                </select>
+              </div>
+
+              <small id="current-limit-info">
+                Текущий лимит: <strong>100</strong>
+              </small>
+            </div>
+          </div>
+        </div>
+
         <!-- Опасные действия -->
-
         <div class="danger-actions">
-          <h4
-            style="color: var(--danger); margin-top: 2rem; margin-bottom: 1rem"
-          >
-            <span
-              class="material-symbols-outlined"
-              style="vertical-align: middle"
-              >warning</span
-            >
-
+          <h4>
+            <span class="material-symbols-outlined">warning</span>
             Опасные действия
           </h4>
 
-          <button
-            class="danger-btn"
-            id="clear-words-btn"
-            onmouseover="
-              this.style.backgroundColor = '#d32f2f';
-              this.style.borderColor = '#d32f2f';
-            "
-            onmouseout="
-              this.style.backgroundColor = '';
-              this.style.borderColor = '';
-            "
-          >
-            <span
-              class="material-symbols-outlined"
-              style="color: white !important"
-              >delete_sweep</span
-            >
-
-            Стереть все слова
+          <button class="danger-btn" id="clear-words-btn">
+            <span class="material-symbols-outlined">delete_forever</span>
+            Очистить все слова навсегда
           </button>
 
-          <button
-            class="danger-btn"
-            id="delete-account-btn"
-            onmouseover="
-              this.style.backgroundColor = '#d32f2f';
-              this.style.borderColor = '#d32f2f';
-            "
-            onmouseout="
-              this.style.backgroundColor = '';
-              this.style.borderColor = '';
-            "
-          >
-            <span
-              class="material-symbols-outlined"
-              style="color: white !important"
-              >person_off</span
-            >
-
+          <button class="danger-btn" id="delete-account-btn">
+            <span class="material-symbols-outlined">delete_forever</span>
             Удалить аккаунт
+          </button>
+        </div>
+
+        <!-- Кнопки сохранения/отмены -->
+        <div class="modal-actions">
+          <button class="btn-icon" id="speech-modal-save">
+            <span class="material-symbols-outlined">save</span>
+          </button>
+          <button class="btn-icon" id="speech-modal-cancel">
+            <span class="material-symbols-outlined">close</span>
           </button>
         </div>
       </div>
@@ -1558,28 +1450,12 @@
         ></small>
 
         <div class="modal-actions">
-          <button
-            class="danger-btn"
-            id="confirm-action"
-            onmouseover="
-              this.style.backgroundColor = '#d32f2f';
-              this.style.borderColor = '#d32f2f';
-            "
-            onmouseout="
-              this.style.backgroundColor = '';
-              this.style.borderColor = '';
-            "
-          >
-            <span
-              class="material-symbols-outlined"
-              style="color: white !important"
-              >delete</span
-            >
-
+          <button class="danger-btn" id="confirm-action">
+            <span class="material-symbols-outlined">delete</span>
             Подтвердить
           </button>
 
-          <button class="cancel-edit-btn btn-icon" id="cancel-confirm">
+          <button class="btn-icon" id="cancel-confirm">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
