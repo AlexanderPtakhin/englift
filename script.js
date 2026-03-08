@@ -967,7 +967,13 @@ function renderWeekChart() {
     if (existingContent) {
       existingContent.outerHTML = placeholderHtml;
     } else {
-      container.insertAdjacentHTML('afterbegin', placeholderHtml);
+      // Вставляем после заголовка, а не в начало контейнера
+      const header = container.querySelector('.daily-cap-header');
+      if (header) {
+        header.insertAdjacentHTML('afterend', placeholderHtml);
+      } else {
+        container.insertAdjacentHTML('beforeend', placeholderHtml);
+      }
     }
 
     return;
@@ -1058,7 +1064,13 @@ function renderWeekChart() {
   if (existingContent) {
     existingContent.outerHTML = html;
   } else {
-    container.insertAdjacentHTML('afterbegin', html);
+    // Вставляем после заголовка, а не в начало контейнера
+    const header = container.querySelector('.daily-cap-header');
+    if (header) {
+      header.insertAdjacentHTML('afterend', html);
+    } else {
+      container.insertAdjacentHTML('beforeend', html);
+    }
   }
 }
 
@@ -10937,11 +10949,8 @@ async function renderRandomBankWord() {
       <div class="word-bank-content">
 
         <div class="word-bank-label">
-
-          <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">auto_stories</span>
-
+          <span class="material-symbols-outlined">auto_stories</span>
           Рекомендуемое слово
-
         </div>
 
         <div class="word-bank-en">${esc(word.en)}</div>

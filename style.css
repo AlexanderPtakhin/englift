@@ -114,34 +114,65 @@ body.loading header {
 /* === БЛОК СЛУЧАЙНОГО СЛОВА ИЗ БАНКА === */
 
 .word-bank-card {
-  background: linear-gradient(
-    135deg,
-    var(--primary-light) 0%,
-
-    var(--primary) 100%
-  );
-
-  color: white;
-
+  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
+  box-shadow: 0 8px 25px rgba(180, 80, 40, 0.35) !important;
+  color: #fff5ee !important;
   border-radius: 20px;
-
   padding: 1.5rem 2rem;
-
   margin-bottom: 2rem;
-
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
   gap: 1.5rem;
-
-  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
-
   position: relative;
-
   transition: opacity 0.3s ease;
+}
+
+html.dark .word-bank-card {
+  background: linear-gradient(135deg, #c07030 0%, #7a3515 100%) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Внутренние элементы */
+.word-bank-card .word-bank-label,
+.word-bank-card .word-bank-ru,
+.word-bank-card .word-bank-phonetic,
+.word-bank-card .word-bank-example,
+.word-bank-card .word-bank-example-translation {
+  color: rgba(255, 245, 238, 0.85) !important;
+}
+
+.word-bank-card .word-bank-en {
+  color: #fff5ee !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.word-bank-card .word-bank-tags .tag {
+  background: rgba(255, 245, 238, 0.18) !important;
+  color: #fff5ee !important;
+}
+
+.word-bank-card .word-bank-tags .tag:hover {
+  background: rgba(255, 245, 238, 0.28) !important;
+}
+
+.word-bank-nav-btn {
+  background: rgba(255, 245, 238, 0.18) !important;
+  color: #fff5ee !important;
+}
+
+.word-bank-nav-btn:hover {
+  background: rgba(255, 245, 238, 0.32) !important;
+}
+
+.word-bank-add-btn {
+  background: rgba(255, 245, 238, 0.2) !important;
+  border-color: rgba(255, 245, 238, 0.7) !important;
+  color: #fff5ee !important;
+}
+
+.word-bank-add-btn:hover {
+  background: rgba(255, 245, 238, 0.35) !important;
 }
 
 .word-bank-content {
@@ -160,6 +191,14 @@ body.loading header {
   opacity: 0.8;
 
   margin-bottom: 0.25rem;
+}
+
+.word-bank-label .material-symbols-outlined {
+  font-size: 18px;
+
+  vertical-align: middle;
+
+  margin-right: 4px;
 }
 
 .word-bank-en {
@@ -466,59 +505,35 @@ html:not(.dark) {
 }
 
 :root {
-  --primary: #2563eb;
-
-  --primary-light: #60a5fa;
-
-  --primary-dark: #1e40af;
-
-  --bg: #f0f2ff;
-
+  --primary: #e07a5f;
+  --primary-light: #f4a261;
+  --primary-dark: #bc6c25;
+  --bg: #fef7ed;
   --card: #ffffff;
-
   --card-rgb: 255, 255, 255;
-
-  --text: #4a4a4a;
-
-  --muted: #8884aa;
-
-  --border: #e0deff;
-
+  --text: #3b2e24;
+  --muted: #8b7a6a;
+  --border: #edd9c0;
   --success: #22c55e;
-
   --danger: #ef4444;
-
   --warning: #f59e0b;
-
   --radius: 16px;
-
-  --shadow: 0 4px 20px rgba(108, 99, 255, 0.1);
-
-  --shadow-hover: 0 8px 30px rgba(108, 99, 255, 0.18);
+  --shadow: 0 4px 20px rgba(224, 122, 95, 0.1);
+  --shadow-hover: 0 8px 30px rgba(224, 122, 95, 0.18);
 }
 
 html.dark {
-  --primary: #60a5fa;
-
-  --primary-light: #93c5fd;
-
-  --bg: #13121f;
-
-  --card: #1e1c30;
-
-  --card-rgb: 30, 28, 48;
-
-  --text: #e8e6ff;
-
-  --muted: #7a78a0;
-
-  --border: #2e2c48;
-
+  --primary: #f4a261;
+  --primary-light: #e9c46a;
+  --bg: #2a2622;
+  --card: #3a332c;
+  --card-rgb: 58, 51, 44;
+  --text: #f0e9df;
+  --muted: #9e8d7c;
+  --border: #554b42;
   --danger: #ef4444;
-
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-
-  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
 
 *,
@@ -7211,19 +7226,21 @@ html.dark .due-soon {
 
   background: linear-gradient(
     135deg,
-    rgba(108, 99, 255, 0.15),
-    rgba(108, 99, 255, 0.05)
+    rgba(108, 99, 255, 0.05) 0%,
+    rgba(96, 165, 250, 0.05)
   );
 
-  box-shadow: 0 4px 20px rgba(108, 99, 255, 0.3);
+  color: var(--text);
 
   transform: translateY(-2px);
+
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
 }
 
 .badge-card.unlocked:hover {
   transform: translateY(-4px);
 
-  box-shadow: 0 8px 30px rgba(108, 99, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(108, 99, 255, 0.25);
 }
 
 /* Скрыть бейдж у кнопки "Словарь" */
@@ -7461,9 +7478,7 @@ html.dark .due-soon {
 
   font-weight: 800;
 
-  box-shadow: 0 8px 32px rgba(108, 99, 255, 0.5);
-
-  animation: lvlUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  box-shadow: var(--shadow);
 }
 
 @keyframes lvlUp {
@@ -8176,7 +8191,7 @@ html.dark .due-soon {
 
   gap: 1rem;
 
-  box-shadow: 0 4px 18px rgba(108, 99, 255, 0.35);
+  box-shadow: var(--shadow);
 }
 
 .wotd-label {
@@ -9594,19 +9609,21 @@ html.dark .daily-cap-status {
 
   background: linear-gradient(
     135deg,
-    rgba(108, 99, 255, 0.1),
-    rgba(96, 165, 250, 0.1)
+    rgba(108, 99, 255, 0.05),
+    rgba(96, 165, 250, 0.05)
   );
+
+  color: var(--text);
 
   transform: translateY(-2px);
 
-  box-shadow: 0 8px 30px rgba(108, 99, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
 }
 
 .goal-item.completed:hover {
   transform: translateY(-4px);
 
-  box-shadow: 0 12px 40px rgba(108, 99, 255, 0.5);
+  box-shadow: 0 6px 20px rgba(108, 99, 255, 0.25);
 }
 
 .goal-item.locked {
@@ -10376,4 +10393,539 @@ html.dark header {
   font-size: 1rem;
 
   color: var(--muted);
+}
+
+/* ================================================
+   STATS RESKIN — только визуал, структура та же
+   ================================================ */
+
+/* ─── XP ROW → градиентная карточка ─── */
+.xp-stats-row {
+  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
+  border-radius: 20px !important;
+  padding: 1.5rem 2rem !important;
+  margin-bottom: 1.5rem !important;
+  box-shadow: 0 8px 28px rgba(150, 60, 20, 0.3) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.xp-stats-row::after {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+/* Все тексты внутри делаем белыми */
+.xp-stats-row .xp-level,
+.xp-stats-row .xp-progress {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.xp-stats-row .xp-level .material-symbols-outlined {
+  color: #fde68a !important;
+  filter: drop-shadow(0 0 6px rgba(253, 230, 138, 0.5));
+}
+
+.xp-stats-row .xp-level-text,
+.xp-stats-row .xp-level-text .level-num {
+  color: #fff !important;
+}
+
+.xp-stats-row .xp-text {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.xp-stats-row .xp-bar-bg,
+.xp-stats-row .xp-progress .xp-bar-bg {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.xp-stats-row .xp-bar-fill,
+.xp-stats-row .xp-progress .xp-bar-fill {
+  background: linear-gradient(90deg, #fde68a, #fbbf24) !important;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+/* ─── STAT CARDS → иконки с цветными кружками ─── */
+.stat-card {
+  border-radius: 18px !important;
+  border: 1px solid var(--border) !important;
+  padding: 1.4rem 1.2rem !important;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s !important;
+  gap: 1.2rem !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--shadow-hover) !important;
+}
+
+/* Иконка — круглая с цветным фоном */
+.stat-icon {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 14px !important;
+  font-size: 1.5rem !important;
+  flex-shrink: 0;
+  background: rgba(37, 99, 235, 0.1) !important;
+  color: var(--primary) !important;
+}
+
+/* Streak — оранжевый */
+.stat-card:nth-child(3) .stat-icon {
+  background: rgba(251, 146, 60, 0.12) !important;
+  color: #fb923c !important;
+}
+.stat-card:nth-child(3) .stat-icon .material-symbols-outlined {
+  color: #fb923c !important;
+}
+
+/* К повтору — красный */
+.stat-card.due .stat-icon,
+.stat-icon.due {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.stat-number {
+  font-size: 2rem !important;
+  font-weight: 900 !important;
+  color: var(--text) !important;
+  line-height: 1 !important;
+}
+
+.stat-label {
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  margin-top: 0.2rem !important;
+  font-weight: 700 !important;
+}
+
+/* Прогресс бар в карточке изученных */
+.stat-progress {
+  height: 5px !important;
+  border-radius: 4px !important;
+  margin-top: 0.6rem !important;
+}
+
+.stat-progress-fill {
+  background: linear-gradient(90deg, var(--primary), #a78bfa) !important;
+}
+
+/* ─── SECTION HEADERS → единый стиль ─── */
+.daily-cap-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin-bottom: 1.2rem !important;
+  padding-bottom: 0.75rem !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Заголовок внутри week-chart-container с бордером для консистентности */
+.week-chart-container .daily-cap-header {
+  border-bottom: 1px solid var(--border) !important;
+  margin-bottom: 1.2rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+.daily-cap-header h3 {
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  color: var(--text) !important;
+  margin: 0 !important;
+}
+
+/* иконки заголовков */
+.daily-cap-header .material-symbols-outlined {
+  font-size: 1.2rem !important;
+  color: var(--primary) !important;
+}
+
+/* ─── WEEK CHART ─── */
+.week-chart-container {
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.week-count {
+  font-size: 1.2rem !important;
+  font-weight: 800 !important;
+  background: rgba(37, 99, 235, 0.1) !important;
+  border-radius: 10px !important;
+  padding: 0.25rem 0.5rem !important;
+  color: var(--primary) !important;
+}
+
+.week-day {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.week-total {
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  background: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  padding: 0.75rem !important;
+}
+
+/* ─── DAILY CAP ─── */
+.daily-cap-section {
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+}
+
+.daily-cap-bar {
+  height: 10px !important;
+  border-radius: 8px !important;
+}
+
+.daily-cap-fill {
+  border-radius: 8px !important;
+}
+
+.daily-cap-count strong {
+  font-size: 1.3rem !important;
+}
+
+/* ─── CEFR ─── */
+.cefr-progress {
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+}
+
+.cefr-level {
+  border-radius: 14px !important;
+  padding: 1rem 0.5rem !important;
+  border: 1.5px solid var(--border) !important;
+  transition:
+    transform 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s !important;
+}
+
+.cefr-level:hover {
+  transform: translateY(-3px) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12) !important;
+}
+
+.cefr-label {
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+  color: var(--primary) !important;
+}
+
+.cefr-count {
+  font-size: 1.6rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+/* ─── BADGES ─── */
+.badges-section {
+  background: var(--card) !important;
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ─── WORD LISTS ─── */
+.word-list-card {
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+  border: 1px solid var(--border) !important;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
+}
+
+.word-list-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover) !important;
+}
+
+.wlist li {
+  padding: 0.55rem 0 !important;
+  font-size: 0.9rem !important;
+}
+
+.wlist li .word-info strong {
+  color: var(--text) !important;
+  font-weight: 700 !important;
+}
+
+/* ─── GOALS ─── */
+.daily-goals-section {
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+}
+
+.goal-item {
+  border-radius: 14px !important;
+  border-width: 1.5px !important;
+}
+
+/* ─── Dark mode tweaks ─── */
+html.dark .xp-stats-row {
+  background: linear-gradient(135deg, #a04828 0%, #4a1f08 100%) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark .stat-card:nth-child(3) .stat-icon {
+  background: rgba(251, 146, 60, 0.15) !important;
+}
+
+html.dark .week-count {
+  background: rgba(96, 165, 250, 0.12) !important;
+}
+
+html.dark .cefr-level:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ===== XP STATS ROW — ПОЛНЫЙ ОВЕРРАЙД ===== */
+.xp-stats-row {
+  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
+  border-radius: 20px !important;
+  padding: 1.5rem 2rem !important;
+  margin-bottom: 1.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 2rem !important;
+  box-shadow: 0 8px 28px rgba(150, 60, 20, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border: none !important;
+}
+
+/* декоративный полупрозрачный круг справа */
+.xp-stats-row::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -30px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255, 220, 180, 0.07);
+  pointer-events: none;
+}
+
+/* иконка уровня */
+.xp-stats-row .xp-level .material-symbols-outlined {
+  font-size: 2.4rem !important;
+  color: #fde68a !important;
+  filter: drop-shadow(0 0 8px rgba(253, 230, 138, 0.6)) !important;
+}
+
+/* число уровня */
+.xp-stats-row .xp-level-text .level-num {
+  font-size: 2rem !important;
+  font-weight: 900 !important;
+  color: #fff5ee !important;
+}
+
+/* текст "уровень" */
+.xp-stats-row .xp-level-text span:not(.level-num) {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(255, 245, 238, 0.6) !important;
+}
+
+/* правая часть с прогрессом */
+.xp-stats-row .xp-progress {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.xp-stats-row .xp-bar-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+
+/* фон полосы прогресса */
+.xp-stats-row .xp-bar-bg {
+  width: 100% !important;
+  height: 10px !important;
+  background: rgba(255, 220, 180, 0.18) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+
+/* заливка полосы прогресса */
+.xp-stats-row .xp-bar-bg .xp-bar-fill,
+.xp-stats-row #xp-bar {
+  height: 100% !important;
+  background: linear-gradient(90deg, #fde68a, #fbbf24) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.5) !important;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* текст XP */
+.xp-stats-row .xp-text,
+.xp-stats-row #st-xp {
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: rgba(255, 245, 238, 0.7) !important;
+}
+
+/* ===== ТЁМНАЯ ТЕМА ===== */
+html.dark .xp-stats-row {
+  background: linear-gradient(135deg, #a04828 0%, #4a1f08 100%) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* всё остальное остаётся таким же, но для надёжности дублируем ключевые цвета */
+html.dark .xp-stats-row .xp-level .material-symbols-outlined {
+  color: #fde68a !important;
+  filter: drop-shadow(0 0 8px rgba(253, 230, 138, 0.6)) !important;
+}
+html.dark .xp-stats-row .xp-level-text .level-num {
+  color: #fff5ee !important;
+}
+html.dark .xp-stats-row .xp-level-text span:not(.level-num) {
+  color: rgba(255, 245, 238, 0.6) !important;
+}
+html.dark .xp-stats-row .xp-bar-bg {
+  background: rgba(255, 220, 180, 0.18) !important;
+}
+html.dark .xp-stats-row .xp-bar-bg .xp-bar-fill,
+html.dark .xp-stats-row #xp-bar {
+  background: linear-gradient(90deg, #fde68a, #fbbf24) !important;
+}
+html.dark .xp-stats-row .xp-text,
+html.dark .xp-stats-row #st-xp {
+  color: rgba(255, 245, 238, 0.7) !important;
+}
+
+/* ── XP STATS ROW — FINAL OVERRIDE ── */
+.xp-stats-row {
+  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
+  border-radius: 20px !important;
+  padding: 1.4rem 2rem !important;
+  margin-bottom: 1.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  flex-wrap: wrap !important;
+  box-shadow: 0 8px 28px rgba(150, 60, 20, 0.3) !important;
+  border: none !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Пилюля с уровнем — структуру не трогаем */
+.xp-stats-row .xp-level {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  background: rgba(255, 220, 180, 0.15) !important;
+  border: 1px solid rgba(255, 220, 180, 0.25) !important;
+  padding: 0.5rem 1.2rem !important;
+  border-radius: 40px !important;
+}
+
+/* Прогресс — flex:1 как было */
+.xp-stats-row .xp-progress {
+  flex: 1 !important;
+  min-width: 200px !important;
+  background: transparent !important;
+}
+
+/* Бар + текст в одну строку — как было в оригинале */
+.xp-stats-row .xp-progress .xp-bar-wrap {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+
+/* Трек бара */
+.xp-stats-row .xp-progress .xp-bar-bg {
+  flex: 1 !important;
+  height: 10px !important;
+  background: rgba(255, 220, 180, 0.2) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+
+/* Заливка */
+.xp-stats-row .xp-progress .xp-bar-bg .xp-bar-fill,
+.xp-stats-row .xp-progress .xp-bar-bg #xp-bar {
+  height: 100% !important;
+  background: linear-gradient(90deg, #fde68a, #fbbf24) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.45) !important;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Текст XP — рядом с баром */
+.xp-stats-row .xp-progress .xp-text,
+.xp-stats-row #st-xp {
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  color: rgba(255, 245, 238, 0.75) !important;
+  white-space: nowrap !important;
+}
+
+/* Иконка */
+.xp-stats-row .xp-level .material-symbols-outlined {
+  font-size: 2rem !important;
+  color: #fde68a !important;
+  filter: drop-shadow(0 0 8px rgba(253, 230, 138, 0.6)) !important;
+}
+
+/* Цифра уровня */
+.xp-stats-row .xp-level-text .level-num {
+  font-size: 1.4rem !important;
+  font-weight: 900 !important;
+  color: #fff5ee !important;
+  margin-right: 0.2rem !important;
+}
+
+/* Подпись */
+.xp-stats-row .xp-level-text {
+  font-weight: 700 !important;
+  color: rgba(255, 245, 238, 0.75) !important;
+}
+
+/* Mobile — как в оригинале */
+@media (max-width: 830px) {
+  .xp-stats-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .xp-stats-row .xp-level {
+    justify-content: center !important;
+  }
+  .xp-stats-row .xp-progress {
+    min-width: unset !important;
+  }
+}
+
+/* Dark */
+html.dark .xp-stats-row {
+  background: linear-gradient(135deg, #a04828 0%, #4a1f08 100%) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
 }
