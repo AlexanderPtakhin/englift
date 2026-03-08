@@ -206,8 +206,8 @@ async function handleAuth(email, password, confirm, isRegister) {
 // Обработчик кнопки отправки
 gateSubmit.addEventListener('click', () => {
   console.log('🔑 Login button clicked');
-  console.log('📧 Email:', gateEmail.value.trim());
-  console.log('🔑 Password:', gatePassword.value.trim() ? '***' : 'empty');
+  // console.log('📧 Email:', gateEmail.value.trim());
+  // console.log('🔑 Password:', gatePassword.value.trim() ? '***' : 'empty');
   console.log('📝 Mode:', isRegisterMode ? 'register' : 'login');
 
   handleAuth(
