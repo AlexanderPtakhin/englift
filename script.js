@@ -5506,25 +5506,9 @@ function sortWords(list, sortBy) {
 }
 
 function getCachedCard(word) {
-  // Создаем хеш от всего содержимого слова для корректного кеширования
-
-  const contentHash = `${word.id}_${word.en}_${word.ru}_${word.ex}_${word.tags.join('_')}_${word.stats.learned}_${word.stats.streak}_${word.stats.nextReview}_${word.stats.shown}_${word.stats.correct}`;
-
-  if (renderCache.has(contentHash)) {
-    const cachedElement = renderCache.get(contentHash);
-    return cachedElement.cloneNode(true); // быстрый глубокий клон
-  }
-
+  // НЕ используем кеш для карточек с обработчиками событий - они теряются при cloneNode
+  // Всегда создаем новую карточку чтобы сохранить обработчики клика
   const card = makeCard(word);
-  renderCache.set(contentHash, card); // сохраняем сам элемент, не outerHTML
-
-  // Ограничиваем размер кеша
-
-  if (renderCache.size > CONSTANTS.LIMITS.MAX_CACHE_SIZE) {
-    const firstKey = renderCache.keys().next().value;
-
-    renderCache.delete(firstKey);
-  }
 
   return card;
 }
@@ -5639,18 +5623,6 @@ function makeCard(w) {
   // Добавляем обработчик клика для раскрытия
 
   card.addEventListener('click', e => {
-    console.log('Card clicked, target:', e.target);
-
-    console.log('Target classes:', e.target.className);
-
-    console.log('Closest audio-btn:', e.target.closest('.audio-btn'));
-
-    console.log('Closest edit-btn:', e.target.closest('.edit-btn'));
-
-    console.log('Closest delete-btn:', e.target.closest('.delete-btn'));
-
-    console.log('Closest tag:', e.target.closest('.tag'));
-
     // Игнорируем клики по кнопкам аудио, редактирования, удаления
 
     if (
@@ -5658,16 +5630,10 @@ function makeCard(w) {
       e.target.closest('.edit-btn') ||
       e.target.closest('.delete-btn')
     ) {
-      console.log('Click ignored - interactive element');
-
       return;
     }
 
-    console.log('Toggling expanded class');
-
     card.classList.toggle('expanded');
-
-    console.log('Card classes after toggle:', card.className);
 
     updateExpandedContent(card);
   });
@@ -5676,35 +5642,17 @@ function makeCard(w) {
 }
 
 function updateExpandedContent(card) {
-  console.log('updateExpandedContent called for card:', card.dataset.id);
-
-  console.log('Card classes:', card.className);
-
-  console.log('Has expanded class:', card.classList.contains('expanded'));
-
   if (!card.classList.contains('expanded')) {
-    console.log('Card is not expanded, removing extra content');
-
     const extra = card.querySelector('.word-card-extra');
-
     if (extra) {
-      console.log('Removing extra content');
-
       extra.remove();
     }
-
     return;
   }
 
   if (card.querySelector('.word-card-extra')) {
-    console.log('Extra content already exists, returning');
-
     return;
   }
-
-  console.log('Card dataset examples (raw):', card.dataset.examples);
-
-  console.log('Card dataset tags (raw):', card.dataset.tags);
 
   // Декодируем HTML-сущности перед парсингом JSON
 
@@ -5723,15 +5671,9 @@ function updateExpandedContent(card) {
   try {
     const decodedExamples = decodeHtmlEntities(card.dataset.examples || '[]');
 
-    console.log('Decoded examples:', decodedExamples);
-
     examples = JSON.parse(decodedExamples);
-
-    console.log('Parsed examples:', examples);
   } catch (e) {
     console.error('Ошибка парсинга examples для карточки', card.dataset.id, e);
-
-    console.error('dataset.examples:', card.dataset.examples);
 
     examples = [];
   }
@@ -5739,15 +5681,9 @@ function updateExpandedContent(card) {
   try {
     const decodedTags = decodeHtmlEntities(card.dataset.tags || '[]');
 
-    console.log('Decoded tags:', decodedTags);
-
     tags = JSON.parse(decodedTags);
-
-    console.log('Parsed tags:', tags);
   } catch (e) {
     console.error('Ошибка парсинга tags для карточки', card.dataset.id, e);
-
-    console.error('dataset.tags:', card.dataset.tags);
 
     tags = [];
   }
@@ -5755,8 +5691,6 @@ function updateExpandedContent(card) {
   const extraDiv = document.createElement('div');
 
   extraDiv.className = 'word-card-extra';
-
-  console.log('Created extra div:', extraDiv);
 
   let examplesHtml = '';
 
@@ -5788,8 +5722,6 @@ function updateExpandedContent(card) {
       </div>
 
     `;
-
-    console.log('Examples HTML generated');
   }
 
   let tagsHtml = '';
@@ -5804,8 +5736,6 @@ function updateExpandedContent(card) {
       </div>
 
     `;
-
-    console.log('Tags HTML generated');
   }
 
   extraDiv.innerHTML = `
@@ -5832,11 +5762,7 @@ function updateExpandedContent(card) {
 
   `;
 
-  console.log('Extra div innerHTML set, appending to card');
-
   card.appendChild(extraDiv);
-
-  console.log('Extra div appended successfully');
 }
 
 // Глобальная функция для получения HTML примера
@@ -10984,7 +10910,7 @@ async function renderRandomBankWord() {
 
           <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">auto_stories</span>
 
-          Случайное слово
+          Рекомендуемое слово
 
         </div>
 
