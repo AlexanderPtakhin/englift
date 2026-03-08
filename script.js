@@ -41,8 +41,8 @@ function markWordDirty(wordId) {
   }
 }
 
-function scheduleWordSync(delay = 30000) {
-  // 30 секунд
+function scheduleWordSync(delay = 3000) {
+  // 3 секунды (было 30)
 
   if (wordSyncTimer) clearTimeout(wordSyncTimer);
 
@@ -52,7 +52,12 @@ function scheduleWordSync(delay = 30000) {
 }
 
 async function syncPendingWords() {
-  if (!navigator.onLine || pendingWordUpdates.size === 0) return;
+  if (
+    !navigator.onLine ||
+    pendingWordUpdates.size === 0 ||
+    !window.currentUserId
+  )
+    return;
 
   const wordsToSync = Array.from(pendingWordUpdates.values());
 
@@ -200,6 +205,14 @@ async function syncWordsFromServer() {
 }
 
 function mergeWordsWithServer(serverWords) {
+  // Защита от перезаписи пустыми данными
+  if (!serverWords || serverWords.length === 0) {
+    console.log(
+      '📥 Сервер вернул пустой массив слов, сохраняем локальные данные',
+    );
+    return;
+  }
+
   // Простая логика: серверные слова имеют приоритет
 
   let updatedCount = 0;
@@ -1190,11 +1203,13 @@ function restoreProfileFromLocalStorage() {
 function isProfileEmpty(profile) {
   if (!profile) return true;
 
+  // Проверяем, что у пользователя действительно нет данных
+  // Учитываем, что xp может быть 0, а level может быть 1 (начальные значения)
   return (
-    !profile.xp &&
-    !profile.level &&
+    (profile.xp === 0 || profile.xp === undefined) &&
+    (profile.level === 1 || profile.level === undefined) &&
     (!profile.badges || profile.badges.length === 0) &&
-    !profile.streak
+    (!profile.streak || profile.streak.count === 0)
   );
 }
 
@@ -1278,6 +1293,21 @@ function mergeProfileData(primary, secondary) {
 
     ...(merged.user_settings || {}),
   };
+
+  // badges - объединяем уникальные бейджи из обоих источников
+  if (merged.badges && secondary.badges) {
+    const badgeSet = new Set();
+
+    // Добавляем все бейджи из primary
+    merged.badges.forEach(badge => badgeSet.add(badge));
+
+    // Добавляем уникальные бейджи из secondary
+    secondary.badges.forEach(badge => badgeSet.add(badge));
+
+    merged.badges = Array.from(badgeSet);
+  } else if (!merged.badges && secondary.badges) {
+    merged.badges = secondary.badges;
+  }
 
   // Обновляем время обновления на самое свежее
 
@@ -12081,7 +12111,7 @@ function initPWA() {
 
 // Очистка данных пользователя (при выходе или перед загрузкой нового пользователя)
 
-window.clearUserData = function () {
+window.clearUserData = function (isExplicitLogout = false) {
   // Очищаем интервал проверки бейджей
 
   if (badgeCheckInterval) {
@@ -12122,7 +12152,25 @@ window.clearUserData = function () {
 
   // window.speech_cfg = {};
 
-  localStorage.removeItem('englift_words');
+  // Очищаем localStorage только при явном выходе
+  if (isExplicitLogout) {
+    localStorage.removeItem('englift_words');
+    localStorage.removeItem('englift_profile_backup');
+  }
+
+  // Очищаем очереди синхронизации слов
+  window.pendingWordUpdates?.clear();
+  window.dirtyWords?.clear();
+
+  // Сбрасываем таймеры синхронизации
+  if (window.wordSyncTimer) {
+    clearTimeout(window.wordSyncTimer);
+    window.wordSyncTimer = null;
+  }
+  if (window.syncTimer) {
+    clearTimeout(window.syncTimer);
+    window.syncTimer = null;
+  }
 
   renderXP();
 
@@ -12643,18 +12691,35 @@ setInterval(
     if (navigator.onLine && window.currentUserId && window.authExports) {
       try {
         // Тихо обновляем данные без показа тоста
-
         await window.authExports.loadWordsOnce(() => {});
-
         console.log('🔄 Тихая синхронизация завершена');
       } catch (e) {
         console.warn('⚠️ Ошибка тихой синхронизации:', e);
       }
     }
   },
-
   10 * 60 * 1000,
 ); // каждые 10 минут
+
+// ============================================================
+
+// ПЕРИОДИЧЕСКОЕ АВТОСОХРАНЕНИЕ
+
+// ============================================================
+
+setInterval(() => {
+  if (window.currentUserId) {
+    // Сохраняем профиль
+    window.syncSaveProfile?.();
+
+    // Синхронизируем слова, если есть изменения
+    if (window.pendingWordUpdates?.size > 0 && navigator.onLine) {
+      window.syncPendingWords?.();
+    }
+
+    console.log('💾 Автосохранение завершено');
+  }
+}, 60 * 1000); // каждую минуту
 
 // ============================================================
 

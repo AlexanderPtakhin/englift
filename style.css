@@ -3796,7 +3796,7 @@ html.dark .badge-learned {
   margin-top: 1.5rem !important;
   width: fit-content !important;
   max-width: 90% !important;
-  display: flex !important;
+  /* display убран из общего правила – теперь скрыты по умолчанию */
   align-items: center !important;
   justify-content: center !important;
   gap: 0.75rem !important;
@@ -3837,6 +3837,7 @@ html.dark .badge-learned {
   ) !important;
   border-color: var(--success) !important;
   color: var(--success) !important;
+  display: flex !important;
 }
 
 .speech-feedback.correct .material-symbols-outlined,
@@ -3865,6 +3866,7 @@ html.dark .badge-learned {
   ) !important;
   border-color: var(--danger) !important;
   color: var(--danger) !important;
+  display: flex !important;
 }
 
 .speech-feedback.incorrect .material-symbols-outlined,
@@ -3893,6 +3895,7 @@ html.dark .badge-learned {
   ) !important;
   border-color: var(--warning) !important;
   color: var(--warning) !important;
+  display: flex !important;
 }
 
 .speech-feedback.warning .material-symbols-outlined,

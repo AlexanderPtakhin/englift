@@ -1,6 +1,9 @@
 import { supabase } from './supabase.js';
 import { saveUserData } from './db.js';
 
+// Флаг для отслеживания явного выхода
+let isExplicitLogoutPending = false;
+
 // DOM элементы (оставляем те же)
 const authGate = document.getElementById('auth-gate');
 const gateEmail = document.getElementById('gate-email');
@@ -252,6 +255,7 @@ cancelResetBtn.addEventListener('click', () =>
 
 // Выход
 dropdownLogout.addEventListener('click', async () => {
+  isExplicitLogoutPending = true; // Отмечаем, что это явный выход
   console.log(
     '🚪 Начинаем выход из аккаунта...',
     'at',
@@ -356,8 +360,10 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       profileLoadPromise = null;
     });
   } else if (event === 'TOKEN_REFRESHED' && user) {
-    console.log('✅ TOKEN_REFRESHED — обновляем профиль');
-    await loadUserProfile(user);
+    console.log(
+      '✅ TOKEN_REFRESHED — профиль не перезагружаем (избегаем бага #4)',
+    );
+    // Ничего не делаем - профиль уже загружен
   } else if (event === 'SIGNED_IN') {
     console.log('SIGNED_IN пришёл — профиль уже загружен или загружается');
   }
@@ -403,7 +409,16 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
       timestamp: new Date().toISOString(),
       reason: 'User clicked logout or session expired',
+      wasExplicit: isExplicitLogoutPending,
     });
+
+    const wasExplicit = isExplicitLogoutPending;
+    isExplicitLogoutPending = false; // Сбрасываем флаг
+
+    // Сбрасываем флаги загрузки
+    profileLoaded = false;
+    wordsLoaded = false; // Сбрасываем флаг слов
+
     hideEmailNotVerified();
     showAuthGate();
     document.body.classList.remove('authenticated');
@@ -417,7 +432,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       .querySelectorAll('.modal-backdrop.open')
       .forEach(m => m.classList.remove('open'));
 
-    window.clearUserData?.();
+    window.clearUserData?.(wasExplicit); // Очищаем localStorage только при явном выходе
     dropdownEmail.textContent = '';
     userAvatar.innerHTML =
       '<span class="material-symbols-outlined">person</span>';
