@@ -326,6 +326,9 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
   });
 
+  // Сохраняем токен доступа для использования в syncSaveProfile
+  window.currentAccessToken = session?.access_token || null;
+
   const user = session?.user;
 
   // === ЗАПУСК ПРОФИЛЯ ===
@@ -616,19 +619,13 @@ async function loadUserProfile(user) {
   }
 }
 
-// Инициализация при загрузке страницы
+// Немедленная проверка сессии при загрузке, чтобы скрыть auth-gate
 (async () => {
-  console.log(' Начинаем инициализацию auth...');
-
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  console.log(' getSession вернул:', session ? session.user.id : 'null');
-
   if (session?.user && session.user.email_confirmed_at) {
-    console.log(' Есть активная сессия при старте - ждем onAuthStateChange');
-    // Не загружаем профиль здесь - onAuthStateChange сделает это
-  } else {
-    console.log(' Нет активной сессии при старте');
+    document.body.classList.add('authenticated');
+    hideAuthGate(); // скрываем auth-gate сразу
   }
 })();

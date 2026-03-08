@@ -802,9 +802,7 @@ function syncSaveProfile() {
 
         apikey: supabase.supabaseKey,
 
-        // TODO: В идеале использовать токен сессии вместо anon-ключа
-        // Но в beforeunload нельзя использовать await для getSession()
-        Authorization: `Bearer ${supabase.supabaseKey}`,
+        Authorization: `Bearer ${window.currentAccessToken || supabase.supabaseKey}`,
       },
 
       body: JSON.stringify(profileData),
@@ -1226,13 +1224,6 @@ function mergeProfileData(primary, secondary) {
   // Список полей, которые не нужно глубоко мержить
 
   const simpleFields = ['last_streak_date', 'last_review_reset', 'dark_theme'];
-
-  if (
-    simpleFields.includes('last_reviewed_reset') &&
-    simpleFields.includes('last_review_reset')
-  ) {
-    console.log('simpleFields содержит оба поля для совместимости');
-  }
 
   simpleFields.forEach(field => {
     if (merged[field] === undefined && secondary[field] !== undefined) {
@@ -2532,17 +2523,12 @@ async function updWord(id, data) {
 }
 
 function updStats(id, correct) {
-  console.log('🔄 updStats вызван:', { id, correct });
-
   const w = window.words.find(w => w.id === id);
 
   if (!w) {
     console.log('❌ Слово не найдено для updStats:', id);
-
     return;
   }
-
-  console.log('📊 Обновляем статистику слова:', w.en, 'было:', w.stats);
 
   w.stats.shown++;
 
@@ -2602,15 +2588,11 @@ function updStats(id, correct) {
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
 
-  console.log('📊 Статистика обновлена:', w.en, 'стало:', w.stats);
-
   markDirty(id);
 
   // Отмечаем слово для пакетной синхронизации
 
   markWordDirty(id);
-
-  console.log('🔄 updStats завершен, слово отмечено для синхронизации');
 }
 
 const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
@@ -3120,6 +3102,18 @@ function startBadgeAutoCheck() {
     autoCheckBadges();
   }, 30000); // 30 секунд
 }
+
+// Добавить обработчик visibilitychange для экономии ресурсов
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (badgeCheckInterval) {
+      clearInterval(badgeCheckInterval);
+      badgeCheckInterval = null;
+    }
+  } else {
+    startBadgeAutoCheck();
+  }
+});
 
 function showXPToast(msg) {
   const el = document.createElement('div');
@@ -3930,30 +3924,70 @@ function updateDueBadge() {
   const count = due > 99 ? '99+' : due;
 
   if (desktopBadge) {
-    desktopBadge.textContent = count;
-
-    desktopBadge.style.display = due > 0 ? 'inline-block' : 'none';
+    if (due > 0) {
+      desktopBadge.textContent = count;
+      desktopBadge.style.display = 'inline-block';
+    } else {
+      desktopBadge.textContent = '';
+      desktopBadge.style.display = 'none';
+    }
   }
 
   if (mobileBadge) {
-    mobileBadge.textContent = count;
-
-    mobileBadge.style.display = due > 0 ? 'inline-block' : 'none';
+    if (due > 0) {
+      mobileBadge.textContent = count;
+      mobileBadge.style.display = 'inline-block';
+    } else {
+      mobileBadge.textContent = '';
+      mobileBadge.style.display = 'none';
+    }
   }
 }
 
 // Render stats function
 
 function renderStats() {
-  const total = window.words.length;
-
-  // SRS: due count
-
   const now = new Date();
+  const weekAgo = new Date(Date.now() - 7 * 86400000);
+  let dueCount = 0;
+  let learnedCount = 0;
+  let thisWeekCount = 0;
+  const wordsWithStats = [];
 
-  const dueCount = window.words.filter(
-    w => new Date(w.stats.nextReview || now) <= now,
-  ).length;
+  // Sparkline данные по дням (собираем на случай если понадобятся в будущем)
+  const dayCounts = new Map();
+
+  // Один проход по всем словам для сбора всех статистик
+  for (const w of window.words) {
+    // Due count
+    if (new Date(w.stats.nextReview || now) <= now) dueCount++;
+
+    // Learned count
+    if (w.stats.learned) learnedCount++;
+
+    // This week count
+    if (new Date(w.createdAt) > weekAgo) thisWeekCount++;
+
+    // Words with stats for hard/easy analysis
+    if (w.stats && w.stats.shown > 0) wordsWithStats.push(w);
+
+    // Sparkline данные по дням
+    const createdDate = new Date(w.createdAt).toDateString();
+    dayCounts.set(createdDate, (dayCounts.get(createdDate) || 0) + 1);
+  }
+
+  const total = window.words.length;
+  const learned = learnedCount;
+  const pct = total ? Math.round((learned / total) * 100) : 0;
+  const thisWeek = thisWeekCount;
+
+  const stats = {
+    total,
+    learned,
+    pct,
+    dueCount,
+    thisWeek,
+  };
 
   const stDueEl = document.getElementById('st-due');
 
@@ -3962,28 +3996,6 @@ function renderStats() {
   const pillEl = document.getElementById('due-pill');
 
   if (pillEl) pillEl.textContent = dueCount;
-
-  const learned = window.words.filter(w => w.stats.learned).length;
-
-  const pct = total ? Math.round((learned / total) * 100) : 0;
-
-  const weekAgo = new Date(Date.now() - 7 * 86400000);
-
-  const thisWeek = window.words.filter(
-    w => new Date(w.createdAt) > weekAgo,
-  ).length;
-
-  const stats = {
-    total,
-
-    learned,
-
-    pct,
-
-    dueCount,
-
-    thisWeek,
-  };
 
   const stTotalEl = document.getElementById('st-total');
 
@@ -4008,34 +4020,6 @@ function renderStats() {
   const stWeekEl = document.getElementById('st-week');
 
   if (stWeekEl) stWeekEl.textContent = thisWeek;
-
-  // Sparkline
-
-  const days = [],
-    labels = [];
-
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-
-    d.setDate(d.getDate() - i);
-
-    const ds = d.toDateString();
-
-    days.push(
-      window.words.filter(w => new Date(w.createdAt).toDateString() === ds)
-        .length,
-    );
-
-    labels.push(['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()]);
-  }
-
-  // Старый sparkline код удалён - теперь используем Chart.js
-
-  // График отрисовывается через renderWeekChart()
-
-  // Топ легких и сложных слов
-
-  const wordsWithStats = window.words.filter(w => w.stats && w.stats.shown > 0);
 
   // Сложные слова (самый низкий процент правильных ответов)
 
@@ -4207,40 +4191,41 @@ function renderStats() {
     `;
 
     // Временная отладка видимости
+    if (DEBUG) {
+      const styles = window.getComputedStyle(capProgress);
 
-    const styles = window.getComputedStyle(capProgress);
+      const parent = capProgress.parentElement;
 
-    const parent = capProgress.parentElement;
+      const tabPane = capProgress.closest('.tab-pane');
 
-    const tabPane = capProgress.closest('.tab-pane');
+      const tabPaneStyles = tabPane ? window.getComputedStyle(tabPane) : null;
 
-    const tabPaneStyles = tabPane ? window.getComputedStyle(tabPane) : null;
+      console.log('🔍 Видимость бара:', {
+        display: styles.display,
 
-    console.log('🔍 Видимость бара:', {
-      display: styles.display,
+        visibility: styles.visibility,
 
-      visibility: styles.visibility,
+        opacity: styles.opacity,
 
-      opacity: styles.opacity,
+        offsetHeight: capProgress.offsetHeight,
 
-      offsetHeight: capProgress.offsetHeight,
+        offsetWidth: capProgress.offsetWidth,
 
-      offsetWidth: capProgress.offsetWidth,
+        parentDisplay: parent
+          ? window.getComputedStyle(parent).display
+          : 'no parent',
 
-      parentDisplay: parent
-        ? window.getComputedStyle(parent).display
-        : 'no parent',
+        parentVisible: parent ? parent.offsetParent !== null : 'no parent',
 
-      parentVisible: parent ? parent.offsetParent !== null : 'no parent',
+        tabPaneId: tabPane ? tabPane.id : 'no tab-pane',
 
-      tabPaneId: tabPane ? tabPane.id : 'no tab-pane',
+        tabPaneDisplay: tabPaneStyles ? tabPaneStyles.display : 'no tab-pane',
 
-      tabPaneDisplay: tabPaneStyles ? tabPaneStyles.display : 'no tab-pane',
-
-      tabPaneActive: tabPane
-        ? tabPane.classList.contains('active')
-        : 'no tab-pane',
-    });
+        tabPaneActive: tabPane
+          ? tabPane.classList.contains('active')
+          : 'no tab-pane',
+      });
+    }
   } else {
     console.log('❌ Элемент daily-cap-progress не найден');
   }
@@ -5521,27 +5506,17 @@ function sortWords(list, sortBy) {
 }
 
 function getCachedCard(word) {
-  // ВРЕМЕННО ОТКЛЮЧАЕМ КЕШ ДЛЯ ОТЛАДКИ
-
   // Создаем хеш от всего содержимого слова для корректного кеширования
 
   const contentHash = `${word.id}_${word.en}_${word.ru}_${word.ex}_${word.tags.join('_')}_${word.stats.learned}_${word.stats.streak}_${word.stats.nextReview}_${word.stats.shown}_${word.stats.correct}`;
 
-  // if (renderCache.has(contentHash)) {
-
-  //   const cachedHTML = renderCache.get(contentHash);
-
-  //   const tempDiv = document.createElement('div');
-
-  //   tempDiv.innerHTML = cachedHTML;
-
-  //   return tempDiv.firstElementChild;
-
-  // }
+  if (renderCache.has(contentHash)) {
+    const cachedElement = renderCache.get(contentHash);
+    return cachedElement.cloneNode(true); // быстрый глубокий клон
+  }
 
   const card = makeCard(word);
-
-  renderCache.set(contentHash, card.outerHTML);
+  renderCache.set(contentHash, card); // сохраняем сам элемент, не outerHTML
 
   // Ограничиваем размер кеша
 
@@ -8513,9 +8488,9 @@ function formatTime(seconds) {
 
 function finishExam() {
   // Добавить в начало:
-  if (window._matchTimerInterval) {
-    clearInterval(window._matchTimerInterval);
-    window._matchTimerInterval = null;
+  if (window._matchTimerCancel) {
+    window._matchTimerCancel();
+    window._matchTimerCancel = null;
   }
 
   // Останавливаем все таймеры
@@ -8884,9 +8859,9 @@ function showResults() {
   console.log('📊 showResults вызван, результаты:', sResults);
 
   // Добавить в начало:
-  if (window._matchTimerInterval) {
-    clearInterval(window._matchTimerInterval);
-    window._matchTimerInterval = null;
+  if (window._matchTimerCancel) {
+    window._matchTimerCancel();
+    window._matchTimerCancel = null;
   }
 
   // Сбрасываем флаг активной сессии
@@ -9525,64 +9500,42 @@ function nextExercise() {
 
       const answer = isRUEN ? w.en : w.ru;
 
-      if (autoPron && !isRUEN && speechSupported)
-        setTimeout(() => speak(w.en), 300);
+      // Отключаем автоозвучку в упражнении "Напиши перевод"
+      // if (autoPron && !isRUEN && speechSupported)
+      //   setTimeout(() => speak(w.en), 300);
 
       if (exContent) {
         exContent.innerHTML = `
 
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 4rem;">
 
+            <div class="ta-word" style="text-align: center;">
 
-          <div class="ta-word">
+              ${esc(question)}
 
-
-
-            ${esc(question)}
-
-
-
-            ${!isRUEN && speechSupported ? `<button class="btn-icon btn-audio" id="ta-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
-
-
-
-          </div>
-
-
-
-          <div class="ta-row">
-
-
+            </div>
 
             <input type="text" class="form-control" id="ta-input" placeholder="${isRUEN ? 'Напиши по-английски...' : 'Введи перевод...'}" autocomplete="off" autocorrect="off" spellcheck="false">
 
-
-
-            <button class="btn-icon" id="ta-submit"><span class="material-symbols-outlined">send</span></button>
-
-
+            <button class="btn-icon" id="ta-submit"><span class="material-symbols-outlined">check</span></button>
 
           </div>
 
-
-
           <div class="ta-feedback" id="ta-fb"></div>
-
-
 
         `;
       }
 
-      if (!isRUEN && speechSupported) {
-        const taAudioBtn = document.getElementById('ta-audio-btn');
-
-        if (taAudioBtn) {
-          taAudioBtn.addEventListener('click', e => {
-            e.stopPropagation();
-
-            speakBtn(w.en, e.currentTarget);
-          });
-        }
-      }
+      // Убираем обработчик аудио кнопки - кнопки больше нет
+      // if (!isRUEN && speechSupported) {
+      //   const taAudioBtn = document.getElementById('ta-audio-btn');
+      //   if (taAudioBtn) {
+      //     taAudioBtn.addEventListener('click', e => {
+      //       e.stopPropagation();
+      //       speakBtn(w.en, e.currentTarget);
+      //     });
+      //   }
+      // }
 
       const input = document.getElementById('ta-input');
 
@@ -9619,8 +9572,6 @@ function nextExercise() {
 
                   <span>${esc(answer)}</span>
 
-                  ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}
-
                 `;
 
                 if (speechSupported) speak(answer);
@@ -9640,8 +9591,6 @@ function nextExercise() {
                   <span class="material-symbols-outlined">cancel</span>
 
                   <span>${esc(answer)}</span>
-
-                  ${!isRUEN && w.ex ? `<div class="ta-ex">${esc(w.ex)}</div>` : ''}
 
                 `;
 
@@ -9676,80 +9625,34 @@ function nextExercise() {
       if (exContent) {
         exContent.innerHTML = `
 
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 4rem;">
 
-
-          <div class="flashcard-scene" id="dict-scene">
-
-
-
-            <div class="flashcard-inner" id="dict-inner">
-
-
-
-              <div class="card-face front">
-
-
-
-                <div class="card-word">${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</div>
-
-
-
-                <div class="card-hint" style="font-size:.7rem;opacity:.5">RU · Прослушай и напиши по-английски</div>
-
-
-
-              </div>
-
-
-
-            </div>
-
-
-
-          </div>
-
-
-
-          <div class="ta-row" style="margin-top:1rem">
-
-
+            <button class="btn-icon btn-secondary" id="dict-replay"><span class="material-symbols-outlined">volume_up</span></button>
 
             <input type="text" id="dict-input" placeholder="Напиши слово по-английски..." autocomplete="off" autocorrect="off" spellcheck="false">
 
-
-
             <button class="btn-icon" id="dict-submit"><span class="material-symbols-outlined">check</span></button>
-
-
 
           </div>
 
-
-
           <div class="ta-feedback" id="dict-fb"></div>
-
-
 
         `;
       }
 
       setTimeout(() => speak(w.en), 200);
 
-      if (exBtns) {
-        exBtns.innerHTML = `<button class="btn-icon btn-secondary" id="dict-replay"><span class="material-symbols-outlined">volume_up</span></button>`;
-
-        const dictReplay = document.getElementById('dict-replay');
-
-        if (dictReplay) {
-          dictReplay.onclick = () => speak(w.en);
-        }
-      }
-
       const dictInput = document.getElementById('dict-input');
 
       const dictSubmit = document.getElementById('dict-submit');
 
       const dictFb = document.getElementById('dict-fb');
+
+      const dictReplay = document.getElementById('dict-replay');
+
+      if (dictReplay) {
+        dictReplay.onclick = () => speak(w.en);
+      }
 
       if (dictInput) {
         dictInput.focus();
@@ -9840,15 +9743,7 @@ function nextExercise() {
 
 
 
-            <button class="btn-icon" id="builder-clear"><span class="material-symbols-outlined">clear</span></button>
-
-
-
             <button class="btn-icon" id="builder-hint-btn"><span class="material-symbols-outlined">lightbulb</span></button>
-
-
-
-            <button class="btn-icon" id="builder-show-answer" disabled><span class="material-symbols-outlined">visibility</span></button>
 
 
 
@@ -9856,7 +9751,7 @@ function nextExercise() {
 
 
 
-          <div class="builder-feedback" id="builder-fb"></div>
+          <div class="builder-feedback" id="builder-fb" style="display: none;"></div>
 
 
 
@@ -9868,6 +9763,16 @@ function nextExercise() {
       const lettersContainer = document.getElementById('builder-letters');
 
       const answerContainer = document.getElementById('builder-answer');
+
+      // Создаем пустые ячейки-заглушки по количеству букв
+      answerContainer.innerHTML = '';
+      for (let i = 0; i < word.length; i++) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'builder-answer-letter placeholder';
+        placeholder.textContent = '';
+        placeholder.dataset.index = i;
+        answerContainer.appendChild(placeholder);
+      }
 
       shuffled.forEach((letter, index) => {
         const letterBtn = document.createElement('button');
@@ -9887,15 +9792,63 @@ function nextExercise() {
             return; // Если уже скрыта, игнорируем клик
           }
 
-          const answerLetter = document.createElement('span');
+          // Находим первую пустую заглушку
+          const firstPlaceholder = answerContainer.querySelector(
+            '.builder-answer-letter.placeholder',
+          );
+          if (!firstPlaceholder) return; // Нет свободных мест
 
-          answerLetter.className = 'builder-answer-letter';
+          // Заменяем заглушку на букву
+          firstPlaceholder.classList.remove('placeholder');
+          firstPlaceholder.textContent = letter.toUpperCase();
+          firstPlaceholder.style.cursor = 'pointer';
+          firstPlaceholder.style.transition = 'all 0.2s ease';
+          firstPlaceholder.title = 'Нажмите, чтобы убрать букву';
+          firstPlaceholder.dataset.originalIndex = index;
+          firstPlaceholder.dataset.letter = letter.toLowerCase();
 
-          answerLetter.textContent = letter.toUpperCase();
+          // Добавляем обработчик клика для удаления буквы
+          firstPlaceholder.addEventListener('click', () => {
+            // Находим соответствующую кнопку буквы и делаем её видимой
+            const allLetterBtns = document.querySelectorAll('.builder-letter');
+            const originalBtn = Array.from(allLetterBtns).find(
+              btn =>
+                btn.dataset.letter === letter.toLowerCase() &&
+                btn.style.visibility === 'hidden',
+            );
+            if (originalBtn) {
+              originalBtn.style.visibility = 'visible';
+            }
 
-          answerLetter.dataset.originalIndex = index;
+            // Возвращаем ячейку в состояние заглушки
+            firstPlaceholder.classList.add('placeholder');
+            firstPlaceholder.textContent = '';
+            firstPlaceholder.style.cursor = 'default';
+            firstPlaceholder.title = '';
+            delete firstPlaceholder.dataset.originalIndex;
+            delete firstPlaceholder.dataset.letter;
 
-          answerContainer.appendChild(answerLetter);
+            // Скрываем фидбек если был
+            const fb = document.getElementById('builder-fb');
+            if (fb) {
+              fb.style.display = 'none';
+              fb.textContent = '';
+              fb.className = 'builder-feedback'; // Убираем классы correct/incorrect
+            }
+
+            // Проверяем ответ
+            checkBuilderAnswer();
+          });
+
+          // Hover эффект
+          firstPlaceholder.addEventListener('mouseenter', () => {
+            firstPlaceholder.style.background = 'var(--border)';
+            firstPlaceholder.style.borderRadius = '4px';
+          });
+
+          firstPlaceholder.addEventListener('mouseleave', () => {
+            firstPlaceholder.style.background = 'transparent';
+          });
 
           letterBtn.style.visibility = 'hidden';
 
@@ -9907,21 +9860,7 @@ function nextExercise() {
         lettersContainer.appendChild(letterBtn);
       });
 
-      // Очистка ответа
-
-      document.getElementById('builder-clear').addEventListener('click', () => {
-        answerContainer.innerHTML = '';
-
-        document.querySelectorAll('.builder-letter').forEach(btn => {
-          btn.style.visibility = 'visible';
-        });
-
-        document.getElementById('builder-fb').textContent = '';
-
-        // Сбрасываем кнопку "Показать ответ" в неактивное состояние
-
-        document.getElementById('builder-show-answer').disabled = true;
-      });
+      // Очистка ответа теперь через клик по буквам в ответе
 
       // Подсказка
 
@@ -9932,60 +9871,42 @@ function nextExercise() {
         .addEventListener('click', () => {
           const currentAnswer = answerContainer.textContent.toLowerCase();
 
-          const nextLetter = word[currentAnswer.length];
-
-          if (nextLetter) {
-            // Находим кнопку с нужной буквой
-
-            const targetBtn = Array.from(
-              document.querySelectorAll('.builder-letter'),
-            ).find(
-              btn =>
-                btn.dataset.letter === nextLetter &&
-                btn.style.visibility !== 'hidden',
-            );
-
-            if (targetBtn) {
-              targetBtn.classList.add('builder-hint-pulse');
-
-              setTimeout(() => {
-                targetBtn.classList.remove('builder-hint-pulse');
-              }, 2000);
+          // Проверяем есть ли ошибки в уже набранных буквах
+          let hasError = false;
+          for (
+            let i = 0;
+            i < Math.min(currentAnswer.length, word.length);
+            i++
+          ) {
+            if (currentAnswer[i] !== word[i]) {
+              hasError = true;
+              break;
             }
           }
+
+          // Если есть ошибка или ответ уже полный, подсказка не нужна
+          if (hasError || currentAnswer.length >= word.length) return;
+
+          // Показываем следующую правильную букву
+          const nextLetter = word[currentAnswer.length];
+
+          // Находим кнопку с нужной буквой
+          const targetBtn = Array.from(
+            document.querySelectorAll('.builder-letter'),
+          ).find(
+            btn =>
+              btn.dataset.letter === nextLetter &&
+              btn.style.visibility !== 'hidden',
+          );
+
+          if (targetBtn) {
+            targetBtn.classList.add('builder-hint-pulse');
+
+            setTimeout(() => {
+              targetBtn.classList.remove('builder-hint-pulse');
+            }, 2000);
+          }
         });
-
-      // Показать ответ
-
-      function setupShowAnswerButton(word) {
-        const showAnswerBtn = document.getElementById('builder-show-answer');
-
-        const fb = document.getElementById('builder-fb');
-
-        showAnswerBtn.addEventListener('click', () => {
-          fb.innerHTML = `
-
-            <span class="material-symbols-outlined">info</span>
-
-            <span>Правильный ответ: ${word.en}</span>
-
-          `;
-
-          fb.className = 'feedback-panel incorrect';
-
-          showAnswerBtn.disabled = true;
-
-          setTimeout(() => {
-            recordAnswer(false);
-
-            sIdx++;
-
-            nextExercise();
-          }, 2000);
-        });
-      }
-
-      setupShowAnswerButton(w);
 
       function checkBuilderAnswer() {
         const currentAnswer = answerContainer.textContent.toLowerCase();
@@ -9993,23 +9914,17 @@ function nextExercise() {
         const fb = document.getElementById('builder-fb');
 
         if (currentAnswer === word) {
+          fb.style.display = 'block';
           fb.className = 'feedback-panel correct';
 
-          fb.innerHTML = `
+          fb.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Отлично! ${w.en} — ${parseAnswerVariants(w.ru).join(', ') || w.ru}</span>`;
 
-            <span class="material-symbols-outlined">check_circle</span>
-
-            <span>Отлично! Правильно!</span>
-
-          `;
+          // Озвучиваем слово после правильного ответа
+          speak(w.en);
 
           document.querySelectorAll('.builder-letter').forEach(btn => {
             btn.disabled = true;
           });
-
-          // Отключаем кнопку "Показать ответ"
-
-          document.getElementById('builder-show-answer').disabled = true;
 
           setTimeout(() => {
             recordAnswer(true);
@@ -10017,23 +9932,17 @@ function nextExercise() {
             sIdx++;
 
             nextExercise();
-          }, 1500);
+          }, 2000);
         } else if (currentAnswer.length >= word.length) {
+          fb.style.display = 'block';
           fb.className = 'feedback-panel incorrect';
 
-          fb.innerHTML = `
-
-            <span class="material-symbols-outlined">cancel</span>
-
-            <span>Неверно. Нажми "Очистить" и попробуй еще раз!</span>
-
-          `;
-
-          // Активируем кнопку "Показать ответ"
-
-          document.getElementById('builder-show-answer').disabled = false;
+          fb.innerHTML = `<span class="material-symbols-outlined">refresh</span><span>Попробуйте ещё раз!</span>`;
         } else {
+          // Скрываем фидбек при неполном ответе
+          fb.style.display = 'none';
           fb.textContent = '';
+          fb.className = 'builder-feedback'; // Убираем классы correct/incorrect
         }
       }
     } else if (t === 'speech') {
@@ -10072,7 +9981,7 @@ function nextExercise() {
                 <span class="material-symbols-outlined">graphic_eq</span> Говорите...
               </div>
             </div>
-            <div class="speech-feedback" id="speech-feedback"></div>
+            <div class="speech-feedback" id="speech-feedback" style="display: none;"></div>
           </div>
         `;
       }
@@ -10097,6 +10006,7 @@ function nextExercise() {
       }
 
       if (!speechRecognitionSupported) {
+        feedback.style.display = 'block';
         feedback.className = 'feedback-panel warning';
         feedback.innerHTML =
           '<span class="material-symbols-outlined">warning</span><span>Распознавание речи не поддерживается вашим браузером.</span>';
@@ -10137,6 +10047,7 @@ function nextExercise() {
           recognitionActive = true;
           indicator.style.display = 'flex';
           startBtn.style.display = 'none';
+          feedback.style.display = 'none';
           feedback.textContent = '';
         };
 
@@ -10151,6 +10062,7 @@ function nextExercise() {
           const result = checkSpeechSimilarity(spoken, correct);
 
           if (result.isCorrect) {
+            feedback.style.display = 'block';
             feedback.className = 'feedback-panel correct';
             feedback.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Верно! (Совпадение: ${result.confidence}%)</span>`;
             playSound('correct');
@@ -10158,6 +10070,7 @@ function nextExercise() {
             sIdx++;
             nextExercise();
           } else {
+            feedback.style.display = 'block';
             feedback.className = 'feedback-panel incorrect';
             feedback.innerHTML = `<span class="material-symbols-outlined">cancel</span><span>Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)</span>`;
             playSound('wrong');
@@ -10179,7 +10092,10 @@ function nextExercise() {
           else if (e.error === 'audio-capture')
             errorMessage = 'Ошибка микрофона.';
           else if (e.error === 'network') errorMessage = 'Ошибка сети.';
+          else if (e.error === 'aborted')
+            errorMessage = 'Превышено время ожидания. Попробуйте ещё раз.';
 
+          feedback.style.display = 'block';
           feedback.className = 'feedback-panel warning';
           feedback.innerHTML = `<span class="material-symbols-outlined">warning</span><span>${errorMessage}</span>`;
           currentRecognition = null;
@@ -10233,26 +10149,43 @@ function nextExercise() {
       }
     } else if (t === 'match') {
       // Временно используем runMatchExercise пока не реализуем полноценно
+      try {
+        runMatchExercise(session.words.slice(sIdx, sIdx + 6), elapsed => {
+          // Увеличиваем sIdx на 1, так как упражнение обработало все слова
 
-      runMatchExercise(session.words.slice(sIdx, sIdx + 6), elapsed => {
-        // Увеличиваем sIdx на 1, так как упражнение обработало все слова
+          sIdx++;
 
+          nextExercise();
+        });
+      } catch (error) {
+        console.error('Error in match exercise:', error);
         sIdx++;
-
         nextExercise();
-      });
+      }
     } else if (t === 'context') {
-      runContextExercise(w, () => {
-        sIdx++;
+      try {
+        runContextExercise(w, () => {
+          sIdx++;
 
+          nextExercise();
+        });
+      } catch (error) {
+        console.error('Error in context exercise:', error);
+        sIdx++;
         nextExercise();
-      });
+      }
     } else if (t === 'speech-sentence') {
-      runSpeechSentenceExercise(w, () => {
-        sIdx++;
+      try {
+        runSpeechSentenceExercise(w, () => {
+          sIdx++;
 
+          nextExercise();
+        });
+      } catch (error) {
+        console.error('Error in speech-sentence exercise:', error);
+        sIdx++;
         nextExercise();
-      });
+      }
     }
   } catch (error) {
     console.error('Error in nextExercise:', error);
@@ -11354,9 +11287,17 @@ function runMatchExercise(initialWords, onComplete) {
 
   progressEl.textContent = `Найди ${wordsCount} пар`;
 
-  window._matchTimerInterval = setInterval(() => {
+  let timerRunning = true;
+  function updateTimer() {
+    if (!timerRunning) return;
     timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-  }, 100);
+    requestAnimationFrame(updateTimer);
+  }
+  requestAnimationFrame(updateTimer);
+  // Сохраняем функцию для остановки
+  window._matchTimerCancel = () => {
+    timerRunning = false;
+  };
 
   const enWords = [...currentWords];
 
@@ -11463,7 +11404,10 @@ function runMatchExercise(initialWords, onComplete) {
       // Если все пары угаданы - завершаем упражнение
 
       if (matchedInRound === totalInRound) {
-        clearInterval(window._matchTimerInterval);
+        if (window._matchTimerCancel) {
+          window._matchTimerCancel();
+          window._matchTimerCancel = null;
+        }
 
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -11503,134 +11447,116 @@ function runMatchExercise(initialWords, onComplete) {
 
 function runContextExercise(word, onComplete) {
   const content = document.getElementById('ex-content');
-
   const btns = document.getElementById('ex-btns');
-
   const exTypeLbl = document.getElementById('ex-type-lbl');
-
   const exCounter = document.getElementById('ex-counter');
 
   if (exTypeLbl) {
     exTypeLbl.innerHTML =
       '<span class="material-symbols-outlined">psychology</span> Контекстная догадка';
   }
-
   if (exCounter) {
     exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
   }
 
-  // Создаем варианты ответов
-
+  // Варианты ответов
   const options = [word];
-
   const otherWords = session.words.filter(
     w => w.id !== word.id && w.en !== word.en,
   );
-
-  // Добавляем 3 случайных варианта
-
   for (let i = 0; i < 3 && i < otherWords.length; i++) {
     const randomIndex = Math.floor(Math.random() * otherWords.length);
-
     options.push(otherWords[randomIndex]);
-
     otherWords.splice(randomIndex, 1);
   }
-
-  // Перемешиваем варианты
-
   const shuffledOptions = options.sort(() => Math.random() - 0.5);
 
-  // Берем пример из слова или создаем заглушку
-
   const example = word.ex || `I want to _____ my goals.`;
-
   const exampleWithBlank = example.replace(word.en, '_____');
+  const exampleTranslation = word.examples?.[0]?.translation || '';
 
   content.innerHTML = `
-
     <div class="context-exercise">
-
       <div class="context-sentence">
-
-        <div class="context-text">${exampleWithBlank}</div>
-
-        ${word.phonetic ? `<div class="context-phonetic">${word.phonetic}</div>` : ''}
-
+        <div class="context-text" onclick="this.nextElementSibling.style.display='block'; this.style.background='transparent'; this.onmouseover=null; this.onmouseout=null;" style="cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s;" title="Нажмите для перевода" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">
+          ${exampleWithBlank}
+        </div>
+        <div class="context-translation" id="context-translation" style="display: none; margin-top: 0.5rem; color: var(--muted); padding: 0.5rem; background: var(--card); border-radius: 8px;">
+          ${esc(exampleTranslation)}
+        </div>
       </div>
-
       <div class="context-options" id="context-options"></div>
-
+      <div class="speech-feedback" id="context-feedback" style="display: none;"></div>
     </div>
-
   `;
 
   const optionsContainer = document.getElementById('context-options');
+  const feedback = document.getElementById('context-feedback');
 
   shuffledOptions.forEach(option => {
     const btn = document.createElement('button');
-
     btn.className = 'context-option-btn';
-
     btn.textContent = option.en;
-
     btn.dataset.wordId = option.id;
 
     btn.addEventListener('click', () => {
       const isCorrect = option.id === word.id;
 
+      // Блокируем все кнопки
+      document
+        .querySelectorAll('.context-option-btn')
+        .forEach(b => (b.disabled = true));
+
+      // Показываем фидбек
+      feedback.style.display = 'block';
+      feedback.className = `feedback-panel ${isCorrect ? 'correct' : 'incorrect'}`;
+      feedback.innerHTML = `
+        <span class="material-symbols-outlined">${isCorrect ? 'check_circle' : 'cancel'}</span>
+        <div>
+          <strong>${isCorrect ? 'Верно!' : 'Неверно.'}</strong><br>
+          ${word.en} — ${parseAnswerVariants(word.ru).join(', ') || word.ru}
+          ${word.phonetic ? `<br><small>/${word.phonetic}/</small>` : ''}
+        </div>
+      `;
+
+      playSound(isCorrect ? 'correct' : 'wrong');
+      recordAnswer(isCorrect);
+
+      // Если правильно, показываем полный пример
       if (isCorrect) {
-        btn.classList.add('correct');
-
-        playSound('correct');
-
-        toast(
-          `✅ Верно! ${word.en} - ${parseAnswerVariants(word.ru).join(', ') || word.ru}`,
-
-          'success',
-        );
-
-        recordAnswer(true);
-
-        // Показываем полный пример
-
         const contextText = document.querySelector('.context-text');
-
-        if (contextText) {
-          contextText.textContent = example;
-        }
-
-        setTimeout(onComplete, 1500);
-      } else {
-        btn.classList.add('wrong');
-
-        playSound('wrong');
-
-        toast(`❌ Неверно. Правильный ответ: ${word.en}`, 'error');
-
-        recordAnswer(false);
-
-        setTimeout(onComplete, 2000);
+        if (contextText) contextText.textContent = example;
       }
 
-      // Блокируем все кнопки
-
-      document
-
-        .querySelectorAll('.context-option-btn')
-
-        .forEach(b => (b.disabled = true));
+      // Убираем автоматический переход
+      // Вместо этого показываем кнопку "Далее"
+      if (btns) {
+        btns.innerHTML = `<button class="btn-icon" id="context-next"><span class="material-symbols-outlined">arrow_forward</span></button>`;
+        document
+          .getElementById('context-next')
+          .addEventListener('click', () => {
+            onComplete();
+          });
+      } else {
+        // Если нет контейнера для кнопок, создадим простую кнопку под фидбеком
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn btn-primary';
+        nextBtn.innerHTML =
+          '<span class="material-symbols-outlined">arrow_forward</span> Далее';
+        nextBtn.style.marginTop = '1rem';
+        nextBtn.addEventListener('click', () => onComplete());
+        feedback.parentNode.appendChild(nextBtn);
+      }
     });
 
     optionsContainer.appendChild(btn);
   });
 
+  // Кнопка пропуска (только до ответа)
   if (btns) {
     btns.innerHTML = `<button class="btn-icon" id="context-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
-
     document.getElementById('context-skip')?.addEventListener('click', () => {
       recordAnswer(false);
-
       onComplete();
     });
   }
@@ -11760,7 +11686,7 @@ function runSpeechSentenceExercise(word, onComplete) {
 
 
 
-        <div class="speech-feedback" id="speech-sentence-feedback"></div>
+        <div class="speech-feedback" id="speech-sentence-feedback" style="display: none;"></div>
 
 
 
@@ -11782,8 +11708,6 @@ function runSpeechSentenceExercise(word, onComplete) {
   const feedback = document.getElementById('speech-sentence-feedback');
 
   const translationEl = document.getElementById('speech-sentence-translation');
-
-  let recognitionActive = false;
 
   // Автоматическая озвучка при запуске упражнения
 
@@ -11847,6 +11771,7 @@ function runSpeechSentenceExercise(word, onComplete) {
       recognitionActive = true;
       indicator.style.display = 'flex';
       startBtn.style.display = 'none';
+      feedback.style.display = 'none';
       feedback.textContent = '';
     };
 
@@ -11861,6 +11786,7 @@ function runSpeechSentenceExercise(word, onComplete) {
       const result = checkSpeechSimilarity(spoken, correct);
 
       if (result.isCorrect) {
+        feedback.style.display = 'block';
         feedback.className = 'feedback-panel correct';
         feedback.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Верно! (Совпадение: ${result.confidence}%)</span>`;
         playSound('correct');
@@ -11868,6 +11794,7 @@ function runSpeechSentenceExercise(word, onComplete) {
         sIdx++;
         nextExercise();
       } else {
+        feedback.style.display = 'block';
         feedback.className = 'feedback-panel incorrect';
         feedback.innerHTML = `<span class="material-symbols-outlined">cancel</span><span>Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)</span>`;
         playSound('wrong');
@@ -11888,7 +11815,10 @@ function runSpeechSentenceExercise(word, onComplete) {
         errorMessage = 'Речь не распознана. Попробуйте ещё раз.';
       else if (e.error === 'audio-capture') errorMessage = 'Ошибка микрофона.';
       else if (e.error === 'network') errorMessage = 'Ошибка сети.';
+      else if (e.error === 'aborted')
+        errorMessage = 'Превышено время ожидания. Попробуйте ещё раз.';
 
+      feedback.style.display = 'block';
       feedback.className = 'feedback-panel warning';
       feedback.innerHTML = `<span class="material-symbols-outlined">warning</span><span>${errorMessage}</span>`;
       currentRecognition = null;
@@ -11899,6 +11829,7 @@ function runSpeechSentenceExercise(word, onComplete) {
       if (recognitionActive) {
         indicator.style.display = 'none';
         startBtn.style.display = 'flex';
+        feedback.style.display = 'block';
         feedback.className = 'feedback-panel warning';
         feedback.innerHTML =
           '<span class="material-symbols-outlined">warning</span><span>Не удалось распознать речь. Попробуйте ещё раз.</span>';
@@ -11911,6 +11842,7 @@ function runSpeechSentenceExercise(word, onComplete) {
       rec.start();
     } catch (err) {
       console.error('SpeechRecognition start failed:', err);
+      feedback.style.display = 'block';
       feedback.className = 'feedback-panel warning';
       feedback.innerHTML =
         '<span class="material-symbols-outlined">warning</span><span>Не удалось запустить распознавание.</span>';
@@ -11948,9 +11880,9 @@ function runSpeechSentenceExercise(word, onComplete) {
 
 document.getElementById('ex-exit-btn').addEventListener('click', () => {
   // Добавить в начало обработчика:
-  if (window._matchTimerInterval) {
-    clearInterval(window._matchTimerInterval);
-    window._matchTimerInterval = null;
+  if (window._matchTimerCancel) {
+    window._matchTimerCancel();
+    window._matchTimerCancel = null;
   }
 
   // Показываем модалку подтверждения
@@ -12034,9 +11966,10 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
     window.words.forEach(w => delete w._matched);
 
-    clearInterval(window._matchTimerInterval);
-
-    window._matchTimerInterval = null; // Очищаем ссылку
+    if (window._matchTimerCancel) {
+      window._matchTimerCancel();
+      window._matchTimerCancel = null; // Очищаем ссылку
+    }
 
     // Останавливаем таймер упражнения если активен
 
@@ -12056,12 +11989,13 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
     // Останавливаем Speech Recognition если активно
 
-    if (speechRecognition && speechRecognitionSupported) {
+    if (currentRecognition) {
       try {
-        speechRecognition.stop();
+        currentRecognition.abort();
       } catch (e) {
         console.log('Speech recognition already stopped');
       }
+      currentRecognition = null;
     }
 
     // Останавливаем синтез речи если активен

@@ -3077,15 +3077,13 @@ html.dark .badge-learned {
 }
 
 .btn-icon.btn-secondary:hover {
-  background: var(--primary);
-
   border-color: var(--primary);
 
-  color: #fff;
+  color: var(--primary);
 }
 
 .btn-icon.btn-secondary:hover .material-symbols-outlined {
-  color: #fff;
+  color: var(--primary);
 }
 
 .builder-controls .btn-icon {
@@ -3640,8 +3638,6 @@ html.dark .badge-learned {
 }
 
 .builder-answer {
-  min-height: 3rem;
-
   border: 2px dashed var(--border);
 
   border-radius: var(--radius);
@@ -3652,7 +3648,10 @@ html.dark .badge-learned {
 
   justify-content: center;
 
-  gap: 0.5rem;
+  flex-wrap: wrap; /* разрешаем перенос на новую строку */
+  gap: 0.5rem; /* отступы между буквами */
+  max-width: 100%;
+  box-sizing: border-box;
 
   margin-bottom: 2rem;
 
@@ -3685,6 +3684,21 @@ html.dark .badge-learned {
   text-align: center;
 
   animation: builderLetterAdd 0.3s ease;
+}
+
+/* Стили для пустых ячеек-заглушек */
+.builder-answer-letter.placeholder {
+  border: 2px dashed var(--border);
+  opacity: 0.5;
+  cursor: default;
+  background: transparent;
+  color: transparent;
+}
+
+.builder-answer-letter.placeholder:empty::before {
+  content: '?';
+  opacity: 0.3;
+  color: var(--muted);
 }
 
 @keyframes builderLetterAdd {
@@ -3799,6 +3813,187 @@ html.dark .badge-learned {
 
 /* Удалены устаревшие стили - используется универсальный .feedback-panel */
 
+/* Унификация всех фидбеков упражнений */
+.speech-feedback,
+.builder-feedback,
+.ta-feedback,
+#speech-feedback,
+#speech-sentence-feedback,
+#context-feedback,
+#builder-fb,
+#dict-fb {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-top: 1.5rem !important;
+  width: fit-content !important;
+  max-width: 90% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.75rem !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 40px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  border: 2px solid transparent !important;
+  animation: feedbackPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  text-align: center !important;
+}
+
+/* Универсальные стили для иконок и состояний всех фидбеков */
+.speech-feedback .material-symbols-outlined,
+.builder-feedback .material-symbols-outlined,
+.ta-feedback .material-symbols-outlined,
+#speech-feedback .material-symbols-outlined,
+#speech-sentence-feedback .material-symbols-outlined,
+#context-feedback .material-symbols-outlined,
+#builder-fb .material-symbols-outlined,
+#dict-fb .material-symbols-outlined {
+  font-size: 1.5rem !important;
+}
+
+.speech-feedback.correct,
+.builder-feedback.correct,
+.ta-feedback.correct,
+#speech-feedback.correct,
+#speech-sentence-feedback.correct,
+#context-feedback.correct,
+#builder-fb.correct,
+#dict-fb.correct {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.15),
+    rgba(34, 197, 94, 0.05)
+  ) !important;
+  border-color: var(--success) !important;
+  color: var(--success) !important;
+}
+
+.speech-feedback.correct .material-symbols-outlined,
+.builder-feedback.correct .material-symbols-outlined,
+.ta-feedback.correct .material-symbols-outlined,
+#speech-feedback.correct .material-symbols-outlined,
+#speech-sentence-feedback.correct .material-symbols-outlined,
+#context-feedback.correct .material-symbols-outlined,
+#builder-fb.correct .material-symbols-outlined,
+#dict-fb.correct .material-symbols-outlined {
+  color: var(--success) !important;
+}
+
+.speech-feedback.incorrect,
+.builder-feedback.incorrect,
+.ta-feedback.incorrect,
+#speech-feedback.incorrect,
+#speech-sentence-feedback.incorrect,
+#context-feedback.incorrect,
+#builder-fb.incorrect,
+#dict-fb.incorrect {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.15),
+    rgba(239, 68, 68, 0.05)
+  ) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+
+.speech-feedback.incorrect .material-symbols-outlined,
+.builder-feedback.incorrect .material-symbols-outlined,
+.ta-feedback.incorrect .material-symbols-outlined,
+#speech-feedback.incorrect .material-symbols-outlined,
+#speech-sentence-feedback.incorrect .material-symbols-outlined,
+#context-feedback.incorrect .material-symbols-outlined,
+#builder-fb.incorrect .material-symbols-outlined,
+#dict-fb.incorrect .material-symbols-outlined {
+  color: var(--danger) !important;
+}
+
+.speech-feedback.warning,
+.builder-feedback.warning,
+.ta-feedback.warning,
+#speech-feedback.warning,
+#speech-sentence-feedback.warning,
+#context-feedback.warning,
+#builder-fb.warning,
+#dict-fb.warning {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.15),
+    rgba(245, 158, 11, 0.05)
+  ) !important;
+  border-color: var(--warning) !important;
+  color: var(--warning) !important;
+}
+
+.speech-feedback.warning .material-symbols-outlined,
+.builder-feedback.warning .material-symbols-outlined,
+.ta-feedback.warning .material-symbols-outlined,
+#speech-feedback.warning .material-symbols-outlined,
+#speech-sentence-feedback.warning .material-symbols-outlined,
+#context-feedback.warning .material-symbols-outlined,
+#builder-fb.warning .material-symbols-outlined,
+#dict-fb.warning .material-symbols-outlined {
+  color: var(--warning) !important;
+}
+
+/* Специальные стили для фидбека в упражнении "Собери слово" */
+.builder-feedback,
+#builder-fb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem auto 0;
+  padding: 0.75rem 1.5rem;
+  border-radius: 40px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid transparent;
+  width: fit-content;
+  max-width: 90%;
+  animation: feedbackPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.builder-feedback .material-symbols-outlined,
+#builder-fb .material-symbols-outlined {
+  font-size: 1.5rem;
+}
+
+.builder-feedback.correct,
+#builder-fb.correct {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.15),
+    rgba(34, 197, 94, 0.05)
+  );
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.builder-feedback.correct .material-symbols-outlined,
+#builder-fb.correct .material-symbols-outlined {
+  color: var(--success);
+}
+
+.builder-feedback.incorrect,
+#builder-fb.incorrect {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.15),
+    rgba(239, 68, 68, 0.05)
+  );
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.builder-feedback.incorrect .material-symbols-outlined,
+#builder-fb.incorrect .material-symbols-outlined {
+  color: var(--danger);
+}
+
 @keyframes builderSuccess {
   0% {
     transform: scale(0.8);
@@ -3867,7 +4062,7 @@ html.dark .badge-learned {
   }
 
   .builder-answer {
-    min-height: 2.5rem;
+    min-height: 2.5rem; /* адаптивная высота для планшетов */
 
     padding: 0.75rem;
   }
@@ -3892,6 +4087,15 @@ html.dark .badge-learned {
     gap: 0.5rem;
 
     padding: 0.75rem;
+  }
+}
+
+/* Дополнительная адаптивность для очень маленьких экранов */
+@media (max-width: 480px) {
+  .builder-answer-letter {
+    font-size: 1.4rem; /* уменьшаем шрифт на маленьких экранах */
+    min-width: 2.5rem;
+    padding: 0.4rem 0.5rem;
   }
 }
 
@@ -7065,6 +7269,33 @@ html.dark .due-soon {
   box-shadow: none;
 }
 
+/* Скрываем бейдж практики полностью когда нет текста */
+.nav-btn[data-tab='practice'] .badge:empty,
+.nav-btn[data-tab='practice'] .badge:not(:empty):not([style*='inline-block']),
+.mobile-nav-btn[data-tab='practice'] .badge:empty,
+.mobile-nav-btn[data-tab='practice']
+  .badge:not(:empty):not([style*='inline-block']) {
+  display: none !important;
+}
+
+/* Дополнительное правило для скрытия бейджа с display none */
+.nav-btn[data-tab='practice'] .badge[style*='display: none'],
+.mobile-nav-btn[data-tab='practice'] .badge[style*='display: none'] {
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: none !important;
+}
+
+/* Самое прямое правило - убираем бордер если бейдж скрыт или пуст */
+.nav-btn[data-tab='practice'] .badge[style*='display: none'],
+.nav-btn[data-tab='practice'] .badge:empty,
+.mobile-nav-btn[data-tab='practice'] .badge[style*='display: none'],
+.mobile-nav-btn[data-tab='practice'] .badge:empty {
+  border: none !important;
+  background: transparent !important;
+}
+
 .badge-card.locked {
   opacity: 0.5;
 
@@ -10059,21 +10290,14 @@ html.dark header {
 }
 
 .mobile-nav-btn .badge {
-  top: 0.2rem;
-
-  right: 30%;
-
   background: var(--primary);
-
-  color: white;
-
-  font-size: 0.7rem;
-
+  color: #fff;
   min-width: 18px;
-
   height: 18px;
-
-  line-height: 18px;
+  font-size: 0.7rem;
+  top: 0.5rem;
+  right: 22%;
+  text-align: center;
 }
 
 @keyframes fadeIn {
