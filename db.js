@@ -72,22 +72,6 @@ export async function deleteWordFromDb(wordId) {
   if (error) throw error;
 }
 
-// Сохранить несколько слов (batch)
-export async function batchSaveWords(wordsArray) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user || wordsArray.length === 0) return;
-  const wordsWithUser = wordsArray.map(w => ({
-    ...w,
-    user_id: user.id,
-    updatedAt: new Date().toISOString(),
-  }));
-  // Убираем onConflict - пусть Supabase сам решает конфликты
-  const { error } = await supabase.from('user_words').upsert(wordsWithUser);
-  if (error) throw error;
-}
-
 // Сохранить данные пользователя (профиль)
 export async function saveUserData(uid, data) {
   const { error } = await supabase

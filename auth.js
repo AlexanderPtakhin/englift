@@ -255,41 +255,29 @@ cancelResetBtn.addEventListener('click', () =>
 
 // Выход
 dropdownLogout.addEventListener('click', async () => {
-  isExplicitLogoutPending = true; // Отмечаем, что это явный выход
-  console.log(
-    '🚪 Начинаем выход из аккаунта...',
-    'at',
-    new Date().toISOString(),
-  );
-  console.log('🚪 Logout details:', {
-    device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
-    currentUserId: window.currentUserId,
-    hasPendingSync: window.pendingWordUpdates?.size > 0,
-  });
+  isExplicitLogoutPending = true;
 
-  // Синхронизируем слова перед выходом
+  console.log('🚪 Начинаем выход...');
+
+  // 1. Синхронизируем слова
   if (window.currentUserId && navigator.onLine) {
-    console.log('🔄 Синхронизируем слова перед выходом...');
     try {
       await window.syncPendingWords?.();
-      console.log('✅ Синхронизация слов завершена');
-    } catch (e) {
-      console.error('❌ Ошибка синхронизации при выходе:', e);
-    }
+    } catch (e) {}
   }
 
-  window.currentUserId = null; // Очищаем ID пользователя
-  profileLoaded = false; // Сбрасываем флаг загрузки профиля
-  isProfileLoading = false; // Сбрасываем флаг загрузки
-  lastLoadedUserId = null; // Сбрасываем ID последнего загруженного пользователя
+  // 2. Синхронизируем профиль ПРЯМО СЕЙЧАС
+  if (window.currentUserId && navigator.onLine) {
+    console.log('💾 Принудительно сохраняем профиль перед выходом...');
+    await window.syncProfileToServer?.(true);
+  }
 
-  console.log(
-    '🚪 Вызываем supabase.auth.signOut()...',
-    'at',
-    new Date().toISOString(),
-  );
+  window.currentUserId = null;
+  profileLoaded = false;
+  isProfileLoading = false;
+  lastLoadedUserId = null;
+
   await supabase.auth.signOut();
-  console.log('🚪 Выход из аккаунта завершён', 'at', new Date().toISOString());
 });
 
 // Меню пользователя
@@ -509,6 +497,14 @@ async function loadUserProfile(user) {
     // Загружаем локальный бэкап
     const localBackup = window.restoreProfileFromLocalStorage?.() || null;
 
+    // Защита: если PROFILE_BACKUP_KEY ещё не определён (редкий race), пропускаем
+    if (typeof PROFILE_BACKUP_KEY === 'undefined') {
+      console.warn(
+        'PROFILE_BACKUP_KEY ещё не инициализирован — пропускаем бэкап',
+      );
+      const localBackup = null;
+    }
+
     // Если сервер вернул ошибку (кроме отсутствия)
     if (error && error.code !== 'PGRST116') {
       console.error('Ошибка загрузки профиля:', error);
@@ -556,8 +552,8 @@ async function loadUserProfile(user) {
             completed: false,
             lastReset: new Date().toISOString().split('T')[0],
           },
-          today_reviewed_count: 0,
-          last_reviewed_reset: new Date().toISOString().split('T')[0],
+          daily_review_count: 0, // ← было today_reviewed_count
+          last_review_reset: new Date().toISOString().split('T')[0], // ← было last_reviewed_reset
           speech_cfg: {},
           user_settings: {},
           dark_theme: false,

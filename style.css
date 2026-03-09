@@ -4646,6 +4646,53 @@ html.dark .badge-learned {
   min-width: 55px;
 }
 
+/* Для маленьких экранов - делаем элементы компактнее */
+@media (max-width: 600px) {
+  .week-stats {
+    gap: 0.3rem;
+  }
+
+  .week-stat-item {
+    min-width: 48px;
+  }
+
+  .week-day {
+    font-size: 0.7rem;
+  }
+
+  .week-date {
+    font-size: 0.6rem;
+  }
+
+  .week-count {
+    font-size: 1.1rem;
+    padding: 0.15rem 0.3rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .week-stats {
+    gap: 0.2rem;
+  }
+
+  .week-stat-item {
+    min-width: 40px;
+  }
+
+  .week-day {
+    font-size: 0.65rem;
+  }
+
+  .week-date {
+    font-size: 0.55rem;
+  }
+
+  .week-count {
+    font-size: 1rem;
+    padding: 0.1rem 0.2rem;
+  }
+}
+
 .week-day {
   font-size: 0.8rem;
 
@@ -10928,4 +10975,251 @@ html.dark .xp-stats-row #st-xp {
 html.dark .xp-stats-row {
   background: linear-gradient(135deg, #a04828 0%, #4a1f08 100%) !important;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── TAB ADD — Layout ── */
+#tab-add {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.add-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  .add-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Карточки ── */
+.add-layout .add-card {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 1.5rem !important;
+  margin: 0 !important;
+}
+
+/* ── Форма — поля на всю ширину ── */
+#single-form .form-group {
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+#single-form .form-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+#single-form .form-control {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Строка EN + кнопка автозаполнения */
+#single-form .form-group > div[style*='flex'] {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#single-form .form-group > div[style*='flex'] .form-control {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Кнопка сабмита */
+#single-form button[type='submit'] {
+  width: 100% !important;
+  margin-top: 0.5rem !important;
+  justify-content: center !important;
+}
+
+/* ── IO кнопки — одна колонка ── */
+.io-btn-group {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.6rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.io-btn {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding: 0.85rem 1.1rem !important;
+  gap: 0.75rem !important;
+  border-radius: 14px !important;
+}
+
+.io-btn-main {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  flex: 1 !important;
+}
+
+.io-btn-sub {
+  font-size: 0.75rem !important;
+  color: var(--muted) !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+/* Дроп-зона на всю ширину */
+.io-drop-zone {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Кнопка импорта */
+#import-file-btn {
+  width: 100% !important;
+  text-align: center !important;
+  display: block !important;
+  margin-top: 0.75rem !important;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  #tab-add {
+    padding: 0 0.75rem !important;
+  }
+
+  .add-layout .add-card {
+    padding: 1.2rem !important;
+  }
+}
+
+/* ── CHIPS — мягкая версия ── */
+.chip {
+  padding: 0.55rem 1.1rem !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--card) !important;
+  border-radius: 30px !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: var(--muted) !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+}
+
+.chip:hover:not(.on) {
+  border-color: #e07a5f !important;
+  color: #e07a5f !important;
+  background: rgba(224, 122, 95, 0.06) !important;
+}
+
+.chip.on {
+  background: rgba(224, 122, 95, 0.12) !important;
+  border-color: #e07a5f !important;
+  color: #c85c3a !important;
+  box-shadow: none !important;
+}
+
+html.dark .chip.on {
+  background: rgba(244, 162, 97, 0.15) !important;
+  border-color: #f4a261 !important;
+  color: #f4a261 !important;
+}
+
+/* ── EXERCISE CARDS — мягкая версия ── */
+.exercise-card {
+  background: var(--card) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: 16px !important;
+  padding: 1.1rem 0.5rem !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+}
+
+.exercise-card:hover:not(.selected) {
+  border-color: #e07a5f !important;
+  background: rgba(224, 122, 95, 0.05) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(150, 60, 20, 0.08) !important;
+}
+
+.exercise-card.selected {
+  border-color: #e07a5f !important;
+  background: rgba(224, 122, 95, 0.1) !important;
+  box-shadow: 0 4px 14px rgba(150, 60, 20, 0.12) !important;
+  transform: translateY(-2px) !important;
+}
+
+.exercise-card .exercise-icon .material-symbols-outlined {
+  font-size: 2rem !important;
+  color: var(--muted) !important;
+  transition: color 0.18s !important;
+}
+
+.exercise-card:hover .exercise-icon .material-symbols-outlined,
+.exercise-card.selected .exercise-icon .material-symbols-outlined {
+  color: #e07a5f !important;
+}
+
+.exercise-card .exercise-name {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: var(--muted) !important;
+}
+
+.exercise-card.selected .exercise-name {
+  color: #c85c3a !important;
+}
+
+html.dark .exercise-card.selected {
+  border-color: #f4a261 !important;
+  background: rgba(244, 162, 97, 0.1) !important;
+}
+
+html.dark .exercise-card:hover .exercise-icon .material-symbols-outlined,
+html.dark .exercise-card.selected .exercise-icon .material-symbols-outlined {
+  color: #f4a261 !important;
+}
+
+html.dark .exercise-card.selected .exercise-name {
+  color: #f4a261 !important;
+}
+
+/* ── Кнопка Начать ── */
+#start-btn {
+  background: var(--primary) !important;
+  border: none !important;
+  color: #fff5ee !important;
+  box-shadow: 0 4px 14px rgba(224, 122, 95, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+#start-btn:hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.06) !important;
+  box-shadow: 0 8px 20px rgba(224, 122, 95, 0.3) !important;
 }

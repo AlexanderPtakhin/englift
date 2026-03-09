@@ -1,15 +1,24 @@
 import { supabase } from './supabase.js';
 
-import {
-  saveWordToDb,
-  deleteWordFromDb,
-  saveUserData,
-  batchSaveWords,
-} from './db.js';
+import { saveWordToDb, deleteWordFromDb, saveUserData } from './db.js';
 
 import { getCompleteWordData } from './api.js';
 
 import './auth.js';
+
+// =============================================
+// КОНСТАНТЫ (в самом верху, чтобы auth.js их видел)
+// =============================================
+const PROFILE_BACKUP_KEY = 'englift_profile_backup';
+
+// Debug flag - должен быть определен до использования в функциях
+const DEBUG =
+  location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+// Conditional debug logging
+const debugLog = (...args) => {
+  if (DEBUG) console.log(...args);
+};
 
 // File import variables
 
@@ -18,6 +27,7 @@ let fileParsed = [];
 // Инициализация глобальных переменных
 
 window.words = [];
+window.profileFullyLoaded = false;
 
 // Intersection Observer для бесконечной прокрутки
 
@@ -164,46 +174,6 @@ async function syncPendingWords() {
   console.log(`✅ Синхронизировано ${wordsToSync.length} операций`);
 }
 
-// Загрузка только измененных слов
-
-async function syncWordsFromServer() {
-  const lastSync = window.lastWordsSync || '1970-01-01T00:00:00Z';
-
-  console.log(`🔄 Загружаем слова, измененные после ${lastSync}`);
-
-  try {
-    console.log('🔍 Начинаем запрос к Supabase...');
-
-    const { data, error } = await supabase
-
-      .from('user_words')
-
-      .select('*')
-
-      .gt('updatedAt', lastSync)
-
-      .order('updatedAt', { ascending: false });
-
-    console.log('📊 Получен ответ от Supabase:', { data, error });
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      console.log(`📥 Получено ${data.length} измененных слов`);
-
-      mergeWordsWithServer(data);
-
-      window.lastWordsSync = new Date().toISOString();
-    } else {
-      console.log('📥 Нет измененных слов для загрузки');
-    }
-  } catch (e) {
-    console.error('❌ Ошибка загрузки измененных слов', e);
-  }
-
-  console.log('✅ syncWordsFromServer завершена');
-}
-
 function mergeWordsWithServer(serverWords) {
   // Защита от перезаписи пустыми данными
   if (!serverWords || serverWords.length === 0) {
@@ -244,27 +214,58 @@ function mergeWordsWithServer(serverWords) {
   }
 }
 
-// Debounce функция для сохранения профиля при частых изменениях
+// =============================================
+// ПРОФИЛЬ — ТОЧНО ТАКАЯ ЖЕ СИСТЕМА, КАК СЛОВА (ФИНАЛЬНАЯ ВЕРСИЯ)
+// =============================================
 
-let profileSaveTimeout = null;
+let profileDirty = false;
+let profileSyncTimer = null;
 
-function debouncedSaveProfile() {
-  return new Promise((resolve, reject) => {
-    if (profileSaveTimeout) {
-      clearTimeout(profileSaveTimeout);
-    }
+window.markProfileDirty = function () {
+  if (!window.currentUserId) return;
+  profileDirty = true;
+  scheduleProfileSync();
+};
 
-    profileSaveTimeout = setTimeout(async () => {
-      try {
-        await window.saveProfileData();
-
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    }, 5000); // 5 секунд задержки
-  });
+function scheduleProfileSync(delay = 2500) {
+  if (profileSyncTimer) clearTimeout(profileSyncTimer);
+  profileSyncTimer = setTimeout(syncProfileToServer, delay);
 }
+
+async function syncProfileToServer(force = false) {
+  if (!window.currentUserId || !navigator.onLine) return;
+  if (!force && !profileDirty) return;
+  if (!force && !window.profileFullyLoaded) return;
+
+  console.log('💾 [PROFILE] Синхронизируем профиль...');
+
+  const profileData = {
+    xp: xpData.xp || 0,
+    level: xpData.level || 1,
+    badges: xpData.badges || [],
+    streak: streak.count || 0,
+    last_streak_date: streak.lastDate || null,
+    speech_cfg: speech_cfg || {},
+    daily_progress: window.dailyProgress || {},
+    daily_review_count: window.dailyReviewCount || 0,
+    last_review_reset: window.lastReviewResetDate || null,
+    dark_theme: document.documentElement.classList.contains('dark'),
+    user_settings: window.user_settings || {},
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    await saveUserData(window.currentUserId, profileData);
+    profileDirty = false;
+    backupProfileToLocalStorage(); // ← ДОБАВЬ ЭТО
+    console.log('✅ [PROFILE] Профиль сохранён:', profileData);
+  } catch (e) {
+    console.error('❌ [PROFILE] Ошибка:', e);
+  }
+}
+
+// Делаем доступной из auth.js
+window.syncProfileToServer = syncProfileToServer;
 
 // Синхронизация слов с сервером (унифицированная функция)
 
@@ -492,14 +493,8 @@ function incrementDailyCount() {
 
   console.log(`📈 Счетчик упражнений увеличен до ${window.dailyReviewCount}`);
 
-  console.log(`🔄 Дата сброса: ${window.lastReviewResetDate}`);
-
-  console.log(`💾 Вызываем сохранение профиля...`);
-
-  // Сохраняем сразу после увеличения счетчика
-
   if (window.currentUserId) {
-    debouncedSaveProfile(window.currentUserId);
+    window.markProfileDirty(); // ← вместо debouncedSaveProfile
   }
 }
 
@@ -532,8 +527,6 @@ function refreshUI() {
 // Делаем функции доступными глобально
 
 window.refreshUI = refreshUI;
-
-window.markDirty = markDirty;
 
 window.markWordDirty = markWordDirty;
 
@@ -669,70 +662,15 @@ async function saveAllUserData() {
   });
 }
 
-// Простая функция сохранения всего профиля
-
+// НОВАЯ saveProfileData — только помечает dirty
 async function saveProfileData() {
-  if (!window.currentUserId) {
-    console.log('❌ Нет currentUserId, не сохраняем профиль');
+  window.markProfileDirty();
+}
 
-    return;
-  }
-
-  // 1. Сначала сохраняем в localStorage
-
-  backupProfileToLocalStorage();
-
-  try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      console.log('❌ Нет пользователя, не сохраняем профиль');
-
-      return;
-    }
-
-    const profileData = {
-      xp: xpData.xp,
-
-      level: xpData.level,
-
-      badges: xpData.badges,
-
-      streak: streak.count,
-
-      last_streak_date: streak.lastDate,
-
-      daily_progress: window.dailyProgress,
-
-      last_review_reset: window.lastReviewResetDate,
-
-      daily_review_count: window.dailyReviewCount,
-
-      speech_cfg: speech_cfg,
-
-      user_settings: window.user_settings,
-
-      dark_theme: document.documentElement.classList.contains('dark'),
-
-      updated_at: new Date().toISOString(),
-    };
-
-    console.log('💾 Сохраняем профиль на сервер:', profileData);
-
-    await saveUserData(user.id, profileData);
-
-    console.log('✅ Профиль сохранён успешно');
-
-    // Сбрасываем счетчик попыток при успехе
-
-    retryAttempts = 0;
-  } catch (error) {
-    console.error('❌ Ошибка сохранения профиля:', error);
-
-    // Планируем повторную попытку
-
-    scheduleRetrySave();
-  }
+// syncSaveProfile — тоже через очередь
+function syncSaveProfile() {
+  if (!window.currentUserId || !window.profileFullyLoaded) return;
+  window.markProfileDirty();
 }
 
 // Retry механизм
@@ -767,68 +705,15 @@ function scheduleRetrySave() {
 
 window.saveProfileData = saveProfileData;
 
-window.debouncedSaveProfile = debouncedSaveProfile;
+// debouncedSaveProfile removed - use markProfileDirty instead
 
 // Сохранение через Beacon при закрытии - удалено, используется unified обработчик в конце файла
 
 // Синхронное сохранение профиля при закрытии страницы
 
 function syncSaveProfile() {
-  if (!window.currentUserId) return;
-
-  try {
-    const profileData = {
-      xp: xpData.xp,
-
-      level: xpData.level,
-
-      badges: xpData.badges,
-
-      streak: streak.count,
-
-      last_streak_date: streak.lastDate,
-
-      daily_progress: window.dailyProgress,
-
-      last_review_reset: window.lastReviewResetDate,
-
-      daily_review_count: window.dailyReviewCount,
-
-      speech_cfg: speech_cfg,
-
-      user_settings: window.user_settings,
-
-      dark_theme: document.documentElement.classList.contains('dark'),
-
-      updated_at: new Date().toISOString(),
-    };
-
-    // Используем fetch с keepalive для надежной отправки
-
-    const url = `${supabase.supabaseUrl}/rest/v1/profiles?id=eq.${window.currentUserId}`;
-
-    fetch(url, {
-      method: 'PATCH',
-
-      headers: {
-        'Content-Type': 'application/json',
-
-        apikey: supabase.supabaseKey,
-
-        Authorization: `Bearer ${window.currentAccessToken || supabase.supabaseKey}`,
-      },
-
-      body: JSON.stringify(profileData),
-
-      keepalive: true, // Аналог sendBeacon но с поддержкой CORS
-    }).catch(error => {
-      console.error('Ошибка сохранения профиля при закрытии:', error);
-    });
-
-    console.log('📡 Профиль сохранен через fetch с keepalive');
-  } catch (error) {
-    console.error('Ошибка сохранения через beacon:', error);
-  }
+  if (!window.currentUserId || !window.profileFullyLoaded) return;
+  window.markProfileDirty(); // тоже через очередь
 }
 
 // Экспортируем глобально
@@ -892,21 +777,6 @@ async function safeSaveStats(changes) {
     console.error('Ошибка сохранения статистики:', err);
   }
 }
-
-// ============================================================
-
-// DEBUG CONFIGURATION
-
-// ============================================================
-
-const DEBUG =
-  location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-
-// Conditional debug logging
-
-const debugLog = (...args) => {
-  if (DEBUG) console.log(...args);
-};
 
 // ============================================================
 
@@ -1160,7 +1030,7 @@ const CONSTANTS = {
 
 // ============================================================
 
-const PROFILE_BACKUP_KEY = 'englift_profile_backup';
+// PROFILE_BACKUP_KEY уже объявлена вверху файла
 
 function backupProfileToLocalStorage() {
   if (!window.currentUserId) return;
@@ -1197,17 +1067,19 @@ function backupProfileToLocalStorage() {
 }
 
 function restoreProfileFromLocalStorage() {
-  const backup = localStorage.getItem(PROFILE_BACKUP_KEY);
+  if (typeof PROFILE_BACKUP_KEY === 'undefined') {
+    console.warn('PROFILE_BACKUP_KEY ещё не инициализирован');
+    return null;
+  }
 
+  const backup = localStorage.getItem(PROFILE_BACKUP_KEY);
   if (!backup) return null;
 
   try {
     return JSON.parse(backup);
   } catch (e) {
     console.error('Ошибка парсинга бэкапа профиля:', e);
-
     localStorage.removeItem(PROFILE_BACKUP_KEY);
-
     return null;
   }
 }
@@ -1238,19 +1110,34 @@ function mergeProfileData(primary, secondary) {
 
   // Список полей, которые нужно мержить беря максимум
 
-  const maxFields = ['xp', 'level', 'streak', 'daily_review_count'];
-
+  const maxFields = ['xp', 'level', 'streak'];
   maxFields.forEach(field => {
     const primaryValue = merged[field] || 0;
-
     const secondaryValue = secondary[field] || 0;
-
     merged[field] = Math.max(primaryValue, secondaryValue);
   });
 
+  // dailyreviewcount — отдельно с учётом даты сброса:
+  if (primary.last_review_reset !== secondary.last_review_reset) {
+    const primaryDate = new Date(primary.last_review_reset || 0);
+    const secondaryDate = new Date(secondary.last_review_reset || 0);
+    if (primaryDate >= secondaryDate) {
+      merged.daily_review_count = primary.daily_review_count || 0;
+      merged.last_review_reset = primary.last_review_reset;
+    } else {
+      merged.daily_review_count = secondary.daily_review_count || 0;
+      merged.last_review_reset = secondary.last_review_reset;
+    }
+  } else {
+    merged.daily_review_count = Math.max(
+      primary.daily_review_count || 0,
+      secondary.daily_review_count || 0,
+    );
+  }
+
   // Список полей, которые не нужно глубоко мержить
 
-  const simpleFields = ['last_streak_date', 'last_review_reset', 'dark_theme'];
+  const simpleFields = ['last_streak_date', 'dark_theme'];
 
   simpleFields.forEach(field => {
     if (merged[field] === undefined && secondary[field] !== undefined) {
@@ -1340,55 +1227,39 @@ function mergeProfileData(primary, secondary) {
 // Экспортируем функции глобально для использования в auth.js
 
 function applyProfileData(data) {
+  console.log('applyProfileData вызван с:', data);
+  if (!data) return;
+
   window.updateXpData?.({
-    xp: data.xp || 0,
-
-    level: data.level || 1,
-
-    badges: data.badges || [],
+    xp: data.xp ?? 0,
+    level: data.level ?? 1,
+    badges: data.badges ?? [],
   });
 
   window.updateStreak?.({
-    count: data.streak || 0,
-
-    lastDate: data.last_streak_date || null,
+    count: data.streak ?? 0,
+    lastDate: data.last_streak_date ?? null,
   });
 
-  if (data.daily_progress) window.updateDailyProgress?.(data.daily_progress);
+  if (data.daily_progress) {
+    window.updateDailyProgress?.(data.daily_progress);
+  }
 
-  // Добавить:
-
-  console.log('📥 Загружаем профиль:', {
-    daily_review_count: data.daily_review_count,
-
-    last_review_reset: data.last_review_reset,
-  });
-
-  if (data.daily_review_count !== undefined)
+  if (data.daily_review_count !== undefined) {
     window.dailyReviewCount = data.daily_review_count;
-
-  if (data.last_review_reset)
+  }
+  if (data.last_review_reset) {
     window.lastReviewResetDate = data.last_review_reset;
+  }
 
-  console.log('📊 После загрузки:', {
-    dailyReviewCount: window.dailyReviewCount,
+  if (data.speech_cfg) {
+    window.speech_cfg = { ...speech_cfg, ...data.speech_cfg };
+    speech_cfg = window.speech_cfg;
+  }
 
-    lastReviewResetDate: window.lastReviewResetDate,
-  });
-
-  // Проверяем, не наступил ли новый день (сбрасываем счётчик при необходимости)
-
-  checkAndResetDailyCount();
-
-  console.log('🔄 После проверки сброса:', {
-    dailyReviewCount: window.dailyReviewCount,
-
-    lastReviewResetDate: window.lastReviewResetDate,
-  });
-
-  window.speech_cfg = data.speech_cfg || {};
-
-  window.user_settings = data.user_settings || {};
+  if (data.user_settings) {
+    window.user_settings = data.user_settings;
+  }
 
   window.lastProfileUpdate = data.updated_at
     ? new Date(data.updated_at).getTime()
@@ -2499,10 +2370,6 @@ async function delWord(id) {
 
   window.words = window.words.filter(w => w.id !== id);
 
-  // Очищаем от других очередей
-
-  dirtyWords.delete(id);
-
   // Сохраняем в localStorage
 
   debouncedSave();
@@ -2516,6 +2383,8 @@ async function delWord(id) {
   recalculateCefrLevels();
 
   refreshUI();
+
+  window.markProfileDirty?.(); // ← ДОБАВЬ ЭТО
 
   // Если есть интернет, пробуем сразу удалить (опционально)
 
@@ -2542,8 +2411,6 @@ async function updWord(id, data) {
   if (w) {
     Object.assign(w, data, { updatedAt: new Date().toISOString() }); // добавляем updatedAt
 
-    markDirty(id);
-
     // Отмечаем слово для пакетной синхронизации вместо немедленного сохранения
 
     markWordDirty(id);
@@ -2562,6 +2429,8 @@ async function updWord(id, data) {
 
     refreshUI();
   }
+
+  window.markProfileDirty?.(); // ← ДОБАВЬ ЭТО
 }
 
 function updStats(id, correct) {
@@ -2629,8 +2498,6 @@ function updStats(id, correct) {
 
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
-
-  markDirty(id);
 
   // Отмечаем слово для пакетной синхронизации
 
@@ -3056,11 +2923,9 @@ function gainXP(amount, reason = '') {
 
   showXPToast('+' + amount + ' XP' + (reason ? ' · ' + reason : ''));
 
-  // Сохраняем профиль через debounce
-
-  console.log('💾 Вызываем debouncedSaveProfile из gainXP');
-
-  window.debouncedSaveProfile?.();
+  // Сохраняем профиль через dirty flag
+  console.log('💾 Вызываем markProfileDirty из gainXP');
+  window.markProfileDirty?.();
 
   // Проверяем бейджи
 
@@ -3428,7 +3293,7 @@ function updStreak() {
 
   saveStreak();
 
-  window.debouncedSaveProfile?.();
+  window.markProfileDirty?.();
 
   console.log('✅ updStreak завершен');
 }
@@ -5082,9 +4947,8 @@ window.applyTheme = function (themeName) {
     JSON.stringify(window.user_settings),
   );
 
-  // Сохраняем в профиль с дебаунсом
-
-  debouncedSaveProfile();
+  // Сохраняем в профиль через dirty flag
+  window.markProfileDirty?.();
 };
 
 window.applyDark = function (on) {
@@ -5247,10 +5111,6 @@ async function syncAfterReconnect() {
 
       refreshUI();
     });
-
-    if (dirtyWords.size > 0) {
-      await performSync();
-    }
   } catch (e) {
     console.warn('Ошибка автосинхронизации:', e);
   }
@@ -6653,18 +6513,6 @@ const suggestionsContainer = document.getElementById(
   'autocomplete-suggestions',
 );
 
-// Debounce функция
-
-function debounce(fn, delay) {
-  let timer;
-
-  return (...args) => {
-    clearTimeout(timer);
-
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
-
 // Фильтрация и отображение подсказок
 
 const showSuggestions = debounce(query => {
@@ -7017,9 +6865,15 @@ function showPreview() {
             existing => existing.en.toLowerCase() === w.en.toLowerCase(),
           )
         ) {
-          window.words.push(
-            mkWord(w.en, w.ru, w.ex, w.tags || [], w.phonetic || null),
+          const newWord = mkWord(
+            w.en,
+            w.ru,
+            w.ex,
+            w.tags || [],
+            w.phonetic || null,
           );
+          window.words.push(newWord);
+          markWordDirty(newWord.id); // добавляем в очередь синхронизации
 
           added++;
 
@@ -7036,6 +6890,8 @@ function showPreview() {
       // Сохраняем изменения
 
       debouncedSave();
+
+      window.markProfileDirty?.(); // ← ДОБАВЬ ЭТО
 
       // Скрываем предпросмотр и кнопку
 
@@ -7413,161 +7269,35 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
         console.log('🗑️ Начинаем стирание всех слов...');
 
         // 1. Очищаем локальные слова
-
         window.words = [];
-
         localStorage.removeItem('englift_words');
+        renderCache.clear();
 
         // 2. Удаляем слова с сервера
-
         if (window.currentUserId) {
-          console.log(
-            '🗑️ Удаляем слова с сервера для user_id:',
+          const { error, count } = await supabase
+            .from('user_words')
+            .delete({ count: 'exact' })
+            .eq('user_id', window.currentUserId);
 
-            window.currentUserId,
-          );
-
-          try {
-            // Сначала пробуем массовое удаление через Supabase client
-
-            const { error, count } = await supabase
-
-              .from('user_words')
-
-              .delete({ count: 'exact' })
-
-              .eq('user_id', window.currentUserId);
-
-            console.log('🗑️ Результат массового удаления слов:', {
-              error,
-
-              count,
-            });
-
-            if (!error) {
-              console.log(`✅ Удалено ${count} слов с сервера`);
-
-              toast(`✅ Удалено ${count} слов с сервера`, 'success');
-            } else {
-              throw error;
-            }
-          } catch (supabaseError) {
-            console.warn(
-              '⚠️ Supabase client не смог удалить, пробуем REST API',
-            );
-
-            console.warn('Ошибка Supabase:', supabaseError.message);
-
-            // Пробуем через REST API с правильными заголовками
-
-            try {
-              const response = await fetch(
-                `${supabase.supabaseUrl}/rest/v1/user_words?user_id=eq.${window.currentUserId}`,
-
-                {
-                  method: 'DELETE',
-
-                  headers: {
-                    apikey: supabase.supabaseKey,
-
-                    Authorization: `Bearer ${supabase.supabaseKey}`,
-
-                    'Content-Type': 'application/json',
-
-                    Prefer: 'return=minimal',
-                  },
-                },
-              );
-
-              if (response.ok) {
-                console.log('✅ Удалено через REST API');
-
-                toast('✅ Все слова удалены через REST API', 'success');
-              } else {
-                const errorText = await response.text();
-
-                console.error(
-                  '❌ REST API ошибка:',
-
-                  response.status,
-
-                  errorText,
-                );
-
-                throw new Error(`REST API: ${response.status} - ${errorText}`);
-              }
-            } catch (restError) {
-              console.warn('⚠️ REST API тоже не смог, пробуем по одному');
-
-              toast('Пробуем удалить по одному слову...', 'warning');
-
-              // Удаляем по одному слову
-
-              const wordsToDelete = [...window.words];
-
-              let deletedCount = 0;
-
-              for (const word of wordsToDelete) {
-                try {
-                  const { error: singleError } = await supabase
-
-                    .from('user_words')
-
-                    .delete()
-
-                    .eq('id', word.id);
-
-                  if (singleError) {
-                    console.error(
-                      `❌ Ошибка удаления слова "${word.en}":`,
-
-                      singleError.message,
-                    );
-                  } else {
-                    deletedCount++;
-
-                    console.log(`✅ Слово "${word.en}" удалено`);
-                  }
-                } catch (e) {
-                  console.error(
-                    `❌ Исключение при удалении слова "${word.en}":`,
-
-                    e,
-                  );
-                }
-              }
-
-              console.log(`✅ Удалено ${deletedCount} слов по одному`);
-
-              toast(`✅ Удалено ${deletedCount} слов по одному`, 'success');
-            }
+          if (error) {
+            console.error('❌ Ошибка удаления слов с сервера:', error);
+            toast('Ошибка при удалении слов с сервера', 'danger');
+            return;
           }
-        } else {
-          console.log('❌ Нет currentUserId для удаления слов с сервера');
-
-          toast('Ошибка: нет ID пользователя', 'danger');
-
-          return;
+          console.log(`✅ Удалено ${count} слов с сервера`);
         }
 
-        // 3. Очищаем очереди синхронизации
-
+        // 3. Очищаем очередь синхронизации
         pendingWordUpdates.clear();
 
-        dirtyWords.clear();
-
         // 4. Обновляем интерфейс
-
         refreshUI();
-
-        // 5. Показываем успех
+        window.markProfileDirty?.(); // пометить профиль как изменённый (изменилось общее кол-во слов)
 
         toast('✅ Все слова успешно стерты!', 'success');
-
-        console.log('✅ Все слова стерты успешно');
       } catch (error) {
         console.error('❌ Ошибка при стирании слов:', error);
-
         toast('Ошибка при стирании слов', 'danger');
       }
     },
@@ -8853,6 +8583,10 @@ function showResults() {
 
   document.getElementById('practice-results').style.display = 'block';
 
+  // Сбрасываем display для results-card если он был скрыт
+  const resultsCard = document.querySelector('.results-card');
+  if (resultsCard) resultsCard.style.display = '';
+
   const resTotal = sResults.correct.length + sResults.wrong.length;
 
   const resCorrect = sResults.correct.length;
@@ -8985,15 +8719,30 @@ function showResults() {
   refreshUI();
 
   // Немедленно сохраняем статистику после завершения практики
-
-  console.log('💾 Вызываем debouncedSaveProfile из showResults');
-
-  window.debouncedSaveProfile?.();
-
+  console.log('💾 Вызываем markProfileDirty из showResults');
+  window.markProfileDirty?.();
   console.log('✅ showResults завершен');
 }
 
+function cleanupExercise() {
+  if (currentExerciseTimer) {
+    clearInterval(currentExerciseTimer);
+    currentExerciseTimer = null;
+  }
+  if (currentRecognition) {
+    try {
+      currentRecognition.stop();
+    } catch (e) {}
+    currentRecognition = null;
+  }
+  window._matchTimerCancel?.();
+  window._matchTimerCancel = null;
+  // Убираем DOM-таймер если остался
+  document.getElementById('exercise-timer')?.remove();
+}
+
 function nextExercise() {
+  cleanupExercise(); // ← ДОБАВЬ В САМОЕ НАЧАЛО
   // Защита от многократного вызова
 
   if (window.nextExerciseRunning) {
@@ -10284,10 +10033,6 @@ function recordAnswer(correct) {
   // sIdx++;
 
   // nextExercise();
-
-  // Планируем быструю синхронизацию после практики (10 секунд)
-
-  scheduleDelayedSync(10000);
 }
 
 function finishExam() {
@@ -12118,78 +11863,58 @@ function initPWA() {
 
 */
 
-// Очистка данных пользователя (при выходе или перед загрузкой нового пользователя)
-
 window.clearUserData = function (isExplicitLogout = false) {
-  // Очищаем интервал проверки бейджей
+  console.log('🧹 clearUserData вызван, explicit:', isExplicitLogout);
+
+  window.profileFullyLoaded = false;
 
   if (badgeCheckInterval) {
     clearInterval(badgeCheckInterval);
-
     badgeCheckInterval = null;
   }
 
-  // Сбрасываем все пользовательские данные КРОМЕ ТЕМЫ
-
   window.words = [];
+  window.pendingWordUpdates?.clear();
 
-  xpData = { xp: 0, level: 1, badges: [] };
+  if (window.wordSyncTimer) clearTimeout(window.wordSyncTimer);
+  if (profileSyncTimer) clearTimeout(profileSyncTimer);
 
-  streak = { count: 0, lastDate: null };
-
-  window.dailyProgress = {
-    add_new: 0,
-
-    review: 0,
-
-    practice_time: 0,
-
-    completed: false,
-
-    lastReset: new Date().toISOString().split('T')[0], // "2026-03-05"
-  };
-
-  window.dailyReviewCount = 0;
-
-  window.lastReviewResetDate = new Date().toISOString().split('T')[0];
-
-  // НЕ очищаем user_settings чтобы сохранить тему
-
-  window.user_settings = {};
-
-  // НЕ обнуляем speech_cfg чтобы сохранить настройки голосов
-
-  // window.speech_cfg = {};
-
-  // Очищаем localStorage только при явном выходе
   if (isExplicitLogout) {
+    xpData = { xp: 0, level: 1, badges: [] };
+    streak = { count: 0, lastDate: null };
+    window.dailyProgress = {
+      add_new: 0,
+      practice_time: 0,
+      review: 0,
+      completed: false,
+      lastReset: new Date().toISOString().split('T')[0],
+    };
+    window.dailyReviewCount = 0;
+    window.lastReviewResetDate = new Date().toISOString().split('T')[0];
+
     localStorage.removeItem('englift_words');
     localStorage.removeItem('englift_profile_backup');
-  }
-
-  // Очищаем очереди синхронизации слов
-  window.pendingWordUpdates?.clear();
-  window.dirtyWords?.clear();
-
-  // Сбрасываем таймеры синхронизации
-  if (window.wordSyncTimer) {
-    clearTimeout(window.wordSyncTimer);
-    window.wordSyncTimer = null;
-  }
-  if (window.syncTimer) {
-    clearTimeout(window.syncTimer);
-    window.syncTimer = null;
+    localStorage.removeItem('englift_lastknown_progress');
   }
 
   renderXP();
-
   renderBadges();
-
   updateDueBadge();
-
-  // НЕ сбрасываем тему - оставляем текущую
-
   switchTab('words');
+
+  // Сбрасываем экран практики
+  const exerciseScreen = document.getElementById('practice-ex');
+  const startScreen = document.getElementById('practice-setup');
+
+  if (exerciseScreen) exerciseScreen.style.display = 'none';
+  if (startScreen) startScreen.style.display = '';
+
+  // Скрываем карточку результатов
+  const resultsCard = document.querySelector('.results-card');
+  if (resultsCard) resultsCard.style.display = 'none';
+
+  // Сбрасываем флаги сессии
+  window.isSessionActive = false;
 };
 
 // Глобальные функции для доступа из других модулей
@@ -12232,52 +11957,6 @@ window.loadUserSettings = function (data) {
 
 // ============================================================
 
-// DIRTY WORDS TRACKING & DELAYED SYNC
-
-// ============================================================
-
-let dirtyWords = new Set(); // id изменённых слов
-
-let syncTimer = null;
-
-function markDirty(id) {
-  dirtyWords.add(id);
-}
-
-function scheduleDelayedSync(delay = 300000) {
-  // 5 минут по умолчанию
-
-  if (syncTimer) clearTimeout(syncTimer);
-
-  syncTimer = setTimeout(() => {
-    performSync();
-  }, delay);
-}
-
-async function performSync() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!navigator.onLine || !user || dirtyWords.size === 0) return;
-
-  const wordsToSync = window.words.filter(w => dirtyWords.has(w.id));
-
-  try {
-    await batchSaveWords(wordsToSync);
-
-    dirtyWords.clear();
-
-    updateSyncIndicator('synced');
-  } catch (e) {
-    console.error('Ошибка синхронизации:', e);
-
-    // повторим позже
-
-    scheduleDelayedSync(60000);
-  }
-}
-
 // ============================================================
 
 // INITIALIZATION
@@ -12298,18 +11977,16 @@ document.addEventListener('visibilitychange', () => {
 
     save(true);
 
-    // Немедленно сохраняем слова
-
-    if (dirtyWords.size > 0) {
-      performSync();
+    // ← ДОБАВЬ ЭТО: флашим незаконченные слова и профиль при сворачивании
+    if (
+      pendingWordUpdates.size > 0 &&
+      navigator.onLine &&
+      window.currentUserId
+    ) {
+      syncPendingWords();
     }
-
-    // Немедленно сохраняем статистику
-
     if (window.currentUserId) {
-      window.saveProfileData?.();
-
-      console.log('💾 Немедленно сохраняем профиль при скрытии страницы');
+      syncProfileToServer(true);
     }
 
     // Дополнительно сохраняем в localStorage как страховку
@@ -12349,6 +12026,8 @@ document.addEventListener('visibilitychange', () => {
 // Глобальный хук — вызывается из auth.js когда ВСЁ готово
 
 window.onProfileFullyLoaded = async function () {
+  window.profileFullyLoaded = true; // ← добавь эту строку
+  console.log('✅ profileFullyLoaded = true');
   console.log('🚀 onProfileFullyLoaded — убираем loading и применяем тему');
 
   console.log('🔍 user_settings:', window.user_settings);
@@ -12387,12 +12066,23 @@ window.onProfileFullyLoaded = async function () {
 
   console.log('🚀 Начинаем инициализацию приложения...');
 
-  try {
-    await syncWordsFromServer();
-
-    console.log('🔄 Синхронизация слов завершена');
-  } catch (e) {
-    console.error('❌ Ошибка синхронизации слов:', e);
+  // ✅ Оставь только это:
+  if (window.authExports?.loadWordsOnce && window.currentUserId) {
+    try {
+      const {
+        data: { user },
+      } = await window.authExports.auth.getUser();
+      if (!user) return;
+      await new Promise(resolve => {
+        window.authExports.loadWordsOnce(remoteWords => {
+          window.words = remoteWords;
+          localStorage.setItem('englift_words', JSON.stringify(window.words));
+          resolve();
+        });
+      });
+    } catch (e) {
+      console.error('onProfileFullyLoaded', e);
+    }
   }
 
   // Скрываем индикатор загрузки только после завершения синхронизации
@@ -12413,37 +12103,7 @@ window.onProfileFullyLoaded = async function () {
     console.warn('⚠️ Индикатор загрузки не найден');
   }
 
-  // Загружаем слова перед рендерингом, только если пользователь авторизован
-
-  if (window.authExports?.loadWordsOnce && window.currentUserId) {
-    try {
-      // Дополнительная проверка активной сессии
-
-      const {
-        data: { user },
-      } = await window.authExports.auth.getUser();
-
-      if (!user) {
-        console.log('⚠️ Сессия недействительна, пропускаем загрузку слов');
-
-        return;
-      }
-
-      await new Promise(resolve => {
-        window.authExports.loadWordsOnce(remoteWords => {
-          window.words = remoteWords || [];
-
-          localStorage.setItem('englift_words', JSON.stringify(window.words));
-
-          resolve();
-        });
-      });
-
-      console.log('🔄 Слова загружены в onProfileFullyLoaded');
-    } catch (e) {
-      console.error('❌ Ошибка загрузки слов в onProfileFullyLoaded:', e);
-    }
-  } else if (!window.currentUserId) {
+  if (!window.currentUserId) {
     console.log('⚠️ Пользователь не авторизован, пропускаем загрузку слов');
   }
 
