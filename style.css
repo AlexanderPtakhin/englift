@@ -454,6 +454,32 @@ html.dark .word-bank-card {
   font-size: 20px;
 }
 
+/* Кнопки озвучки примеров */
+.example-audio-btn {
+  background: none;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.example-audio-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--primary);
+  transform: scale(1.1);
+}
+
+.example-audio-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
 /* Опасные кнопки */
 
 .danger-actions {

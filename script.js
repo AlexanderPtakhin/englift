@@ -6306,14 +6306,13 @@ function makeCard(w) {
   `;
 
   // Добавляем обработчик клика для раскрытия
-
   card.addEventListener('click', e => {
-    // Игнорируем клики по кнопкам аудио, редактирования, удаления
-
+    // Игнорируем клики по кнопкам аудио, редактирования, удаления и примеров
     if (
       e.target.closest('.audio-btn') ||
       e.target.closest('.edit-btn') ||
-      e.target.closest('.delete-btn')
+      e.target.closest('.delete-btn') ||
+      e.target.closest('.example-audio-btn')
     ) {
       return;
     }
@@ -6405,7 +6404,27 @@ function updateExpandedContent(card) {
 
 
 
-            <p>${esc(ex.text)}</p>
+            <div style="display: flex; align-items: center; gap: 8px;">
+
+
+
+              <p style="margin: 0; flex: 1;">${esc(ex.text)}</p>
+
+
+
+              <button class="example-audio-btn" data-example-index="${examples.indexOf(ex)}" title="Прослушать предложение">
+
+
+
+                <span class="material-symbols-outlined" style="font-size: 16px;">volume_up</span>
+
+
+
+              </button>
+
+
+
+            </div>
 
 
 
@@ -6776,6 +6795,37 @@ document.getElementById('words-grid').addEventListener('click', e => {
 
     if (word) {
       window.speakWord(word);
+    }
+
+    return;
+  }
+
+  // Обработка аудио-кнопок примеров
+  if (e.target.closest('.example-audio-btn')) {
+    const btn = e.target.closest('.example-audio-btn');
+    const card = btn.closest('.word-card');
+    const exampleIndex = parseInt(btn.dataset.exampleIndex);
+
+    if (card && exampleIndex >= 0) {
+      const wordId = card.dataset.id;
+      const word = window.words.find(w => w.id === wordId);
+
+      if (word && word.examplesAudio && word.examplesAudio[exampleIndex]) {
+        // Проигрываем аудио файла примера
+        const audio = new Audio(`audio/${word.examplesAudio[exampleIndex]}`);
+        audio
+          .play()
+          .catch(err =>
+            console.log('Ошибка воспроизведения аудио примера:', err),
+          );
+      } else if (word && word.examples && word.examples[exampleIndex]) {
+        // Если нет аудио, произносим через TTS
+        const utterance = new SpeechSynthesisUtterance(
+          word.examples[exampleIndex].text,
+        );
+        utterance.lang = 'en-US';
+        speechSynthesis.speak(utterance);
+      }
     }
 
     return;
