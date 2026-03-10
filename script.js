@@ -15,6 +15,59 @@ const PROFILE_BACKUP_KEY = 'englift_profile_backup';
 const DEBUG =
   location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
+// =============================================
+// ПРЕДГЕНЕРИРОВАННОЕ АУДИО ИЗ ПАПКИ /audio/
+// =============================================
+function playAudio(filename) {
+  if (!filename) return console.warn('Нет файла аудио');
+
+  const audio = new Audio(`/audio/${filename}`);
+  audio.volume = 1.0;
+
+  audio.play().catch(err => {
+    console.warn('Браузер заблокировал автозвук:', err);
+    window.toast?.('Нажми ещё раз на динамик', 'info');
+  });
+}
+
+// Глобальные функции для всего сайта
+window.speakWord = function (wordObj) {
+  // Поддерживаем разные форматы входных данных
+  let audioFile = null;
+
+  if (typeof wordObj === 'string') {
+    // Если передана строка, ищем слово в словаре
+    const word = window.words.find(w => w.en === wordObj || w.id === wordObj);
+    if (word) {
+      audioFile = word.audio;
+    }
+  } else if (wordObj && wordObj.en) {
+    // Если передан объект слова
+    audioFile = wordObj.audio;
+  } else if (wordObj && wordObj.word) {
+    // Если передан объект с полем word (для упражнений)
+    const word = window.words.find(
+      w => w.en === wordObj.word || w.id === wordObj.word,
+    );
+    if (word) {
+      audioFile = word.audio;
+    }
+  }
+
+  if (!audioFile) {
+    console.warn('Аудио файл не найден для:', wordObj);
+    return;
+  }
+
+  playAudio(audioFile);
+};
+
+window.playExampleAudio = function (wordObj) {
+  if (!wordObj || !wordObj.examplesAudio || !wordObj.examplesAudio.length)
+    return;
+  playAudio(wordObj.examplesAudio[0]);
+};
+
 // Conditional debug logging
 const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
@@ -23,6 +76,8 @@ const debugLog = (...args) => {
 // File import variables
 
 let fileParsed = [];
+
+let lastFetchedWordData = null; // данные последнего автозаполнения
 
 // Инициализация глобальных переменных
 
@@ -245,7 +300,6 @@ async function syncProfileToServer(force = false) {
     badges: xpData.badges || [],
     streak: streak.count || 0,
     last_streak_date: streak.lastDate || null,
-    speech_cfg: speech_cfg || {},
     daily_progress: window.dailyProgress || {},
     daily_review_count: window.dailyReviewCount || 0,
     last_review_reset: window.lastReviewResetDate || null,
@@ -314,24 +368,6 @@ function scheduleDelayedSync(delay = 30000) {
 // Инициализация переменных ДО их использования
 
 let streak = { count: 0, lastDate: null };
-
-let speech_cfg = { voiceURI: '', rate: 0.9, pitch: 1.0, accent: 'US' };
-
-window.speech_cfg = speech_cfg; // делаем видимым снаружи
-
-// Загружаем настройки голосов из localStorage
-
-const savedSpeechCfg = localStorage.getItem('englift_speech');
-
-if (savedSpeechCfg) {
-  try {
-    window.speech_cfg = { ...speech_cfg, ...JSON.parse(savedSpeechCfg) };
-
-    speech_cfg = window.speech_cfg;
-  } catch (error) {
-    console.error('Error loading speech config from localStorage:', error);
-  }
-}
 
 let xpData = { xp: 0, level: 1, badges: [] };
 
@@ -653,8 +689,6 @@ async function saveAllUserData() {
     last_review_reset: window.lastReviewResetDate,
 
     daily_review_count: window.dailyReviewCount,
-
-    speech_cfg: speech_cfg,
 
     user_settings: window.user_settings,
 
@@ -1024,6 +1058,8 @@ const CONSTANTS = {
   },
 };
 
+const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
+
 // ============================================================
 
 // ПРОФИЛЬ: БЭКАП И МЕРЖ
@@ -1051,8 +1087,6 @@ function backupProfileToLocalStorage() {
     last_review_reset: window.lastReviewResetDate,
 
     daily_review_count: window.dailyReviewCount,
-
-    speech_cfg: speech_cfg,
 
     user_settings: window.user_settings,
 
@@ -1179,17 +1213,9 @@ function mergeProfileData(primary, secondary) {
     merged.daily_progress = secondary.daily_progress;
   }
 
-  // speech_cfg и user_settings – поверхностное слияние (приоритет у primary)
-
-  merged.speech_cfg = {
-    ...(secondary.speech_cfg || {}),
-
-    ...(merged.speech_cfg || {}),
-  };
-
+  // user_settings – поверхностное слияние (приоритет у primary)
   merged.user_settings = {
     ...(secondary.user_settings || {}),
-
     ...(merged.user_settings || {}),
   };
 
@@ -1250,11 +1276,6 @@ function applyProfileData(data) {
   }
   if (data.last_review_reset) {
     window.lastReviewResetDate = data.last_review_reset;
-  }
-
-  if (data.speech_cfg) {
-    window.speech_cfg = { ...speech_cfg, ...data.speech_cfg };
-    speech_cfg = window.speech_cfg;
   }
 
   if (data.user_settings) {
@@ -2067,9 +2088,7 @@ function save(silent = false) {
 
 window.save = save;
 
-// Делаем speak глобальным для доступа из HTML
-
-window.speak = speak;
+// Делаем speak глобальным для доступа из HTML - УДАЛЕНО, теперь используем window.speakWord
 
 async function saveXP() {
   try {
@@ -2111,14 +2130,6 @@ async function saveStreak() {
   saveAllUserData();
 }
 
-async function saveSpeech() {
-  const key = await getSpeechKey();
-
-  localStorage.setItem(key, JSON.stringify(speech_cfg));
-
-  window.saveProfileData?.();
-}
-
 // Fallback для генерации UUID в старых браузерах
 
 function generateId() {
@@ -2137,7 +2148,16 @@ function generateId() {
   });
 }
 
-function mkWord(en, ru, ex, tags, phonetic = null, examples = null) {
+function mkWord(
+  en,
+  ru,
+  ex,
+  tags,
+  phonetic = null,
+  examples = null,
+  audio = null,
+  examplesAudio = null,
+) {
   // Если передан массив examples в новом формате – используем его
 
   let examplesArray = examples;
@@ -2167,6 +2187,9 @@ function mkWord(en, ru, ex, tags, phonetic = null, examples = null) {
 
     examples: examplesArray,
 
+    audio: audio, // новое поле
+    examplesAudio: examplesAudio, // новое поле
+
     createdAt: new Date().toISOString(),
 
     updatedAt: new Date().toISOString(), // добавляем updatedAt
@@ -2191,7 +2214,16 @@ function mkWord(en, ru, ex, tags, phonetic = null, examples = null) {
   };
 }
 
-async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
+async function addWord(
+  en,
+  ru,
+  ex,
+  tags,
+  phonetic = null,
+  examples = null,
+  audio = null,
+  examplesAudio = null,
+) {
   console.log('🔄 addWord вызван с параметрами:', {
     en,
 
@@ -2260,19 +2292,21 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
 
   const normalizedTags = tags;
 
-  // Проверка на дубликаты
+  // Проверка дубликата: одинаковое en и совпадающий хотя бы один вариант перевода
+  const isDuplicate = window.words.some(w => {
+    if (w.en.toLowerCase() !== normalizedEn.toLowerCase()) return false;
+    const existingRuVariants = parseAnswerVariants(w.ru);
+    const newRuVariants = parseAnswerVariants(normalizedRu);
+    // Если хотя бы один вариант совпадает – считаем дубликатом
+    return newRuVariants.some(v => existingRuVariants.includes(v));
+  });
 
-  if (
-    window.words.some(w => w.en.toLowerCase() === normalizedEn.toLowerCase())
-  ) {
+  if (isDuplicate) {
     toast(
-      'Слово «' + esc(normalizedEn) + '» уже есть в словаре',
-
+      'Слово «' + esc(normalizedEn) + '» с таким переводом уже есть',
       'warning',
-
       'warning',
     );
-
     return false;
   }
 
@@ -2289,6 +2323,8 @@ async function addWord(en, ru, ex, tags, phonetic = null, examples = null) {
       normalizedPhonetic,
 
       examples,
+      audio, // передаем параметр
+      examplesAudio, // передаем параметр
     );
 
     window.words.push(newWord);
@@ -2503,8 +2539,6 @@ function updStats(id, correct) {
 
   markWordDirty(id);
 }
-
-const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
 const BADGES_DEF = [
   // ===== Слова в словаре =====
@@ -3304,12 +3338,6 @@ function updStreak() {
 
 // ============================================================
 
-const synth = window.speechSynthesis;
-
-let voices = [];
-
-let speechSupported = !!synth;
-
 // Оптимизированный AudioContext для звуков
 
 let audioContext = null;
@@ -3321,254 +3349,6 @@ function getAudioContext() {
 
   return audioContext;
 }
-
-function loadVoices() {
-  voices = synth ? synth.getVoices() : [];
-
-  const accentSelect =
-    document.getElementById('modal-accent-select') ||
-    document.getElementById('accent-select');
-
-  const sel =
-    document.getElementById('modal-voice-select') ||
-    document.getElementById('voice-select');
-
-  const selectedAccent = accentSelect ? accentSelect.value : 'US';
-
-  // Фильтруем голоса по акценту
-
-  let filteredVoices = voices;
-
-  if (selectedAccent === 'US') {
-    filteredVoices = voices.filter(
-      v => v.lang.startsWith('en-US') || v.lang.startsWith('en_'),
-    );
-  } else if (selectedAccent === 'UK') {
-    filteredVoices = voices.filter(
-      v => v.lang.startsWith('en-GB') || v.lang.startsWith('en_GB'),
-    );
-  }
-
-  // Если нет голосов для выбранного акцента, используем все английские
-
-  if (filteredVoices.length === 0) {
-    filteredVoices = voices.filter(v => v.lang.startsWith('en'));
-  }
-
-  // Если все еще нет голосов, используем все доступные
-
-  if (filteredVoices.length === 0) {
-    filteredVoices = voices;
-  }
-
-  sel.innerHTML = '';
-
-  filteredVoices.forEach(v => {
-    const opt = document.createElement('option');
-
-    opt.value = v.voiceURI;
-
-    opt.textContent = `${v.name} (${v.lang})`;
-
-    if (v.voiceURI === speech_cfg.voiceURI) opt.selected = true;
-
-    sel.appendChild(opt);
-  });
-
-  if (!sel.value && sel.options.length) {
-    speech_cfg.voiceURI = sel.options[0].value;
-
-    window.lastProfileUpdate = Date.now(); // Оптимистичное обновление
-
-    saveSpeech();
-  }
-}
-
-if (synth) {
-  synth.onvoiceschanged = loadVoices;
-
-  loadVoices();
-} else {
-  document.getElementById('no-speech-banner').style.display = 'block';
-
-  const noSpeechStats = document.getElementById('no-speech-stats');
-
-  const noSpeechModal = document.getElementById('no-speech-modal');
-
-  const speechControls = document.getElementById('speech-controls');
-
-  const speechModalControls = document.getElementById('speech-modal-controls');
-
-  if (noSpeechStats) noSpeechStats.style.display = 'block';
-
-  if (noSpeechModal) noSpeechModal.style.display = 'block';
-
-  if (speechControls) speechControls.style.display = 'none';
-
-  if (speechModalControls) speechModalControls.style.display = 'none';
-}
-
-function speak(text, onEnd) {
-  if (!speechSupported || !text) return;
-
-  synth.cancel();
-
-  const utt = new SpeechSynthesisUtterance(text);
-
-  utt.lang = 'en-US';
-
-  const voice = voices.find(v => v.voiceURI === speech_cfg.voiceURI);
-
-  if (voice) utt.voice = voice;
-
-  utt.rate = speech_cfg.rate;
-
-  utt.pitch = speech_cfg.pitch;
-
-  if (onEnd) utt.onend = onEnd;
-
-  synth.speak(utt);
-}
-
-function speakBtn(text, btn) {
-  if (!speechSupported) return;
-
-  const wasActive = btn.classList.contains('speaking');
-
-  if (wasActive) {
-    synth.cancel();
-
-    btn.classList.remove('speaking');
-
-    btn.innerHTML =
-      '<span class="material-symbols-outlined">sound_detection_loud_sound</span>';
-
-    return;
-  }
-
-  btn.classList.add('speaking');
-
-  btn.innerHTML =
-    '<div class="audio-wave"><span></span><span></span><span></span><span></span><span></span></div>';
-
-  speak(text, () => {
-    btn.classList.remove('speaking');
-
-    btn.innerHTML =
-      '<span class="material-symbols-outlined">sound_detection_loud_sound</span>';
-  });
-}
-
-// Speech settings UI
-
-function setupSpeechListeners() {
-  const accentSelect =
-    document.getElementById('modal-accent-select') ||
-    document.getElementById('accent-select');
-
-  const voiceSelect =
-    document.getElementById('modal-voice-select') ||
-    document.getElementById('voice-select');
-
-  const speedRange =
-    document.getElementById('modal-speed-range') ||
-    document.getElementById('speed-range');
-
-  const pitchRange =
-    document.getElementById('modal-pitch-range') ||
-    document.getElementById('pitch-range');
-
-  const speedVal =
-    document.getElementById('modal-speed-val') ||
-    document.getElementById('speed-val');
-
-  const pitchVal =
-    document.getElementById('modal-pitch-val') ||
-    document.getElementById('pitch-val');
-
-  const testBtn =
-    document.getElementById('modal-test-voice-btn') ||
-    document.getElementById('test-voice-btn');
-
-  if (accentSelect) {
-    accentSelect.addEventListener('change', e => {
-      speech_cfg.accent = e.target.value;
-
-      window.lastProfileUpdate = Date.now(); // Оптимистичное обновление
-
-      saveSpeech();
-
-      loadVoices(); // Перезагружаем голоса для нового акцента
-    });
-  }
-
-  if (voiceSelect) {
-    voiceSelect.addEventListener('change', e => {
-      speech_cfg.voiceURI = e.target.value;
-
-      window.lastProfileUpdate = Date.now(); // Оптимистичное обновление
-
-      saveSpeech();
-    });
-  }
-
-  if (speedRange) {
-    speedRange.addEventListener('input', e => {
-      speech_cfg.rate = +e.target.value;
-
-      if (speedVal) speedVal.textContent = e.target.value + 'x';
-
-      window.lastProfileUpdate = Date.now(); // Оптимистичное обновление
-
-      saveSpeech();
-    });
-  }
-
-  if (pitchRange) {
-    pitchRange.addEventListener('input', e => {
-      speech_cfg.pitch = +e.target.value;
-
-      if (pitchVal) pitchVal.textContent = (+e.target.value).toFixed(1);
-
-      window.lastProfileUpdate = Date.now(); // Оптимистичное обновление
-
-      saveSpeech();
-    });
-  }
-
-  if (testBtn) {
-    testBtn.addEventListener('click', function () {
-      const btn = this;
-
-      const orig = btn.innerHTML;
-
-      btn.disabled = true;
-
-      btn.innerHTML =
-        '<span class="material-symbols-outlined">graphic_eq</span> Играет...';
-
-      speak('Test pronunciation. This is how your voice sounds.', () => {
-        btn.innerHTML = orig;
-
-        btn.disabled = false;
-      });
-    });
-  }
-
-  // Set initial values
-
-  if (speedRange) speedRange.value = speech_cfg.rate;
-
-  if (speedVal) speedVal.textContent = speech_cfg.rate + 'x';
-
-  if (pitchRange) pitchRange.value = speech_cfg.pitch;
-
-  if (pitchVal) pitchVal.textContent = speech_cfg.pitch.toFixed(1);
-}
-
-// Initialize listeners when DOM is ready
-
-setupSpeechListeners();
 
 // ============================================================
 
@@ -3976,7 +3756,7 @@ function renderStats() {
 
 
 
-        <button class="btn-audio audio-card-btn" onclick="speak(&quot;${esc(w.en)}&quot;)" title="Произнести">
+        <button class="btn-audio audio-card-btn" onclick="window.speakWord(&quot;${w.id}&quot;)" title="Произнести">
 
 
 
@@ -4018,7 +3798,7 @@ function renderStats() {
 
 
 
-        <button class="btn-audio audio-card-btn" onclick="speak(&quot;${esc(w.en)}&quot;)" title="Произнести">
+        <button class="btn-audio audio-card-btn" onclick="window.speakWord(&quot;${w.id}&quot;)" title="Произнести">
 
 
 
@@ -5491,10 +5271,10 @@ function makeCard(w) {
       <div class="word-actions">
 
         ${
-          speechSupported
+          true
             ? `
 
-          <button class="audio-btn" data-word="${safeAttr(w.en)}" title="Прослушать">
+          <button class="audio-btn" data-word="${w.id}" title="Прослушать">
 
             <span class="material-symbols-outlined">volume_up</span>
 
@@ -5866,8 +5646,12 @@ document.getElementById('words-grid').addEventListener('click', e => {
 
   if (e.target.closest('.audio-btn')) {
     const btn = e.target.closest('.audio-btn');
+    const wordId = btn.dataset.word;
+    const word = window.words.find(w => w.id === wordId);
 
-    speakBtn(btn.dataset.word, btn);
+    if (word) {
+      window.speakWord(word);
+    }
 
     return;
   }
@@ -6255,6 +6039,9 @@ document.getElementById('auto-fill-btn').addEventListener('click', async () => {
 
     console.log(`Received data from ${source}:`, data);
 
+    // Сохраняем полные данные для последующего использования
+    lastFetchedWordData = data;
+
     // Заполняем поля полученными данными
 
     const ruInput = document.getElementById('f-ru');
@@ -6394,9 +6181,22 @@ document.getElementById('single-form').addEventListener('submit', e => {
 
   const examples = ex ? [{ text: ex, translation: exTranslation }] : [];
 
+  // Извлекаем аудио из сохранённых данных автозаполнения
+  const audio = lastFetchedWordData?.audio || null;
+  const examplesAudio = lastFetchedWordData?.examplesAudio || null;
+
   // Добавляем слово с валидацией
 
-  const success = addWord(en, ru, ex, tags, phonetic, examples);
+  const success = addWord(
+    en,
+    ru,
+    ex,
+    tags,
+    phonetic,
+    examples,
+    audio,
+    examplesAudio,
+  );
 
   if (success) {
     // Сбрасываем значения полей
@@ -6419,13 +6219,13 @@ document.getElementById('single-form').addEventListener('submit', e => {
       'f-tags',
     ];
 
-    fields.forEach(fieldId => {
-      const field = document.getElementById(fieldId);
+    fields.forEach(id => {
+      const field = document.getElementById(id);
 
-      if (field) {
-        field.classList.remove('auto-filled');
-      }
+      if (field) field.classList.remove('auto-filled');
     });
+
+    lastFetchedWordData = null; // очищаем данные автозаполнения
 
     document.getElementById('f-en').focus();
 
@@ -6681,9 +6481,12 @@ function showPreview() {
   const tableRows = fileParsed
 
     .map((w, i) => {
-      const isDuplicate = window.words.find(
-        x => x.en.toLowerCase() === w.en.toLowerCase(),
-      );
+      const isDuplicate = window.words.some(existing => {
+        if (existing.en.toLowerCase() !== w.en.toLowerCase()) return false;
+        const existingRuVariants = parseAnswerVariants(existing.ru);
+        const newRuVariants = parseAnswerVariants(w.ru);
+        return newRuVariants.some(v => existingRuVariants.includes(v));
+      });
 
       const isChecked = !isDuplicate ? 'checked' : '';
 
@@ -6860,17 +6663,24 @@ function showPreview() {
           return;
         }
 
-        if (
-          !window.words.some(
-            existing => existing.en.toLowerCase() === w.en.toLowerCase(),
-          )
-        ) {
+        // Проверка дубликатов с учетом перевода
+        const isDuplicate = window.words.some(existing => {
+          if (existing.en.toLowerCase() !== w.en.toLowerCase()) return false;
+          const existingRuVariants = parseAnswerVariants(existing.ru);
+          const newRuVariants = parseAnswerVariants(w.ru);
+          return newRuVariants.some(v => existingRuVariants.includes(v));
+        });
+
+        if (!isDuplicate) {
           const newWord = mkWord(
             w.en,
             w.ru,
             w.ex,
             w.tags || [],
             w.phonetic || null,
+            null, // examples - нет в этом контексте
+            w.audio || null, // audio
+            w.examplesAudio || null, // examplesAudio
           );
           window.words.push(newWord);
           markWordDirty(newWord.id); // добавляем в очередь синхронизации
@@ -6939,45 +6749,13 @@ function showPreview() {
 // ============================================================
 
 document
-
   .getElementById('dropdown-speech-settings')
-
   ?.addEventListener('click', () => {
     const modal = document.getElementById('speech-modal');
-
     modal.classList.add('open');
 
-    // Load voices
-
-    loadVoices();
-
-    // Set current speech settings
-
-    setTimeout(() => {
-      document.getElementById('modal-voice-select').value =
-        window.speech_cfg.voiceURI || '';
-
-      document.getElementById('modal-accent-select').value =
-        window.speech_cfg.accent || 'US';
-
-      document.getElementById('modal-speed-range').value =
-        window.speech_cfg.rate || 0.9;
-
-      document.getElementById('modal-pitch-range').value =
-        window.speech_cfg.pitch || 1.0;
-
-      document.getElementById('modal-speed-val').textContent =
-        (window.speech_cfg.rate || 0.9) + 'x';
-
-      document.getElementById('modal-pitch-val').textContent = (
-        window.speech_cfg.pitch || 1.0
-      ).toFixed(1);
-    }, 100);
-
     // Load practice settings
-
     const current = window.user_settings?.reviewLimit || 100;
-
     document.getElementById('review-limit-select').value =
       current === 9999 ? '9999' : current;
 
@@ -6985,20 +6763,15 @@ document
       `Текущий лимит: <strong>${current === 9999 ? 'Без лимита' : current}</strong>`;
 
     // Load timer settings
-
     const currentTimed = window.user_settings?.timedMode || 'off';
-
     const timedChip = document.querySelector(
       `.chip[data-timed="${currentTimed}"]`,
     );
 
     if (timedChip) {
       document
-
         .querySelectorAll('.chip[data-timed]')
-
         .forEach(chip => chip.classList.remove('on'));
-
       timedChip.classList.add('on');
     }
   });
@@ -7085,53 +6858,19 @@ document
   .getElementById('speech-modal-save')
 
   ?.addEventListener('click', async () => {
-    const voiceSelect = document.getElementById('modal-voice-select');
-
-    const accentSelect = document.getElementById('modal-accent-select');
-
-    const speedRange = document.getElementById('modal-speed-range');
-
-    const pitchRange = document.getElementById('modal-pitch-range');
-
     const limitSelect = document.getElementById('review-limit-select');
 
-    // Save speech settings
-
-    const selectedVoice = voiceSelect.value;
-
-    const selectedAccent = accentSelect.value;
-
-    const selectedSpeed = parseFloat(speedRange.value);
-
-    const selectedPitch = parseFloat(pitchRange.value);
-
-    window.speech_cfg = {
-      voiceURI: selectedVoice,
-
-      accent: selectedAccent,
-
-      rate: selectedSpeed,
-
-      pitch: selectedPitch,
-    };
-
     // Save practice settings
-
     const newLimit =
       limitSelect.value === '9999' ? 9999 : parseInt(limitSelect.value);
 
     window.user_settings = window.user_settings || {};
-
     window.user_settings.reviewLimit = newLimit;
 
     // Обновляем метку времени сразу (оптимистично)
-
     window.lastProfileUpdate = Date.now();
 
-    // УДАЛЕНО: Обновление MAX_REVIEWS_PER_DAY - теперь используется getReviewLimit()
-
     // Save to Supabase
-
     try {
       const {
         data: { user },
@@ -7139,29 +6878,21 @@ document
 
       if (user) {
         debouncedSaveUserData(user.id, {
-          speech_cfg: window.speech_cfg,
-
           user_settings: window.user_settings,
         });
       }
     } catch (error) {
-      console.error('Error saving speech settings:', error);
+      console.error('Error saving settings:', error);
     }
 
     // Update UI
-
-    localStorage.setItem('englift_speech', JSON.stringify(window.speech_cfg));
-
     document.getElementById('speech-modal').classList.remove('open');
 
     // Update statistics
-
     renderStats();
 
     // Show success toast
-
     const limitText = newLimit === 9999 ? 'Без лимита' : newLimit;
-
     toast(`Настройки сохранены! Лимит повторений: ${limitText}`, 'success');
   });
 
@@ -7365,12 +7096,8 @@ document.getElementById('delete-account-btn')?.addEventListener('click', () => {
         localStorage.clear();
 
         window.words = [];
-
         window.currentUserId = null;
-
         window.user_settings = {};
-
-        window.speech_cfg = {};
 
         // 5. Перезагружаем страницу на вход
 
@@ -7565,6 +7292,8 @@ function handleFile(file) {
                 : [],
 
               tags: w.tags || [],
+              audio: w.audio || null, // ← добавить
+              examplesAudio: w.examplesAudio || null, // ← добавить
             }));
           } else if (Array.isArray(data)) {
             fileParsed = data.map(w => ({
@@ -7583,6 +7312,8 @@ function handleFile(file) {
                 : [],
 
               tags: w.tags || [],
+              audio: w.audio || null, // ← добавить
+              examplesAudio: w.examplesAudio || null, // ← добавить
             }));
           } else {
             throw new Error('Invalid JSON format');
@@ -8479,22 +8210,6 @@ function startSession(cfg) {
       return;
     }
 
-    // Фильтруем неподдерживаемые (например, диктант без речи)
-
-    if (!speechSupported) {
-      exTypes = exTypes.filter(t => t !== 'dictation');
-
-      if (!exTypes.length) {
-        toast('Диктант недоступен без синтеза речи', 'danger');
-
-        // Сбрасываем флаг активной сессии
-
-        window.isSessionActive = false;
-
-        return;
-      }
-    }
-
     const dirVal =
       document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
 
@@ -8959,7 +8674,7 @@ function nextExercise() {
 
                   <div class="card-word">${esc(frontWord)}</div>
 
-                  ${!showRU && speechSupported ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+                  ${frontWord === w.en ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
 
                 </div>
 
@@ -8969,14 +8684,14 @@ function nextExercise() {
 
               <div class="card-face back">
 
-                <div class="card-trans">
-
-                  ${(() => {
-                    const variants = parseAnswerVariants(backWord);
-
-                    return variants.join(', ') || esc(backWord);
-                  })()}
-
+                <div style="display:flex;align-items:center;gap:.75rem;justify-content:center">
+                  <div class="card-trans">
+                    ${(() => {
+                      const variants = parseAnswerVariants(backWord);
+                      return variants.join(', ') || esc(backWord);
+                    })()}
+                  </div>
+                  ${backWord === w.en ? `<button class="btn-audio" id="fc-audio-btn-back" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
                 </div>
 
                 ${!showRU && w.ex ? `<div class="card-ex">${esc(w.ex)}</div>` : ''}
@@ -8990,8 +8705,7 @@ function nextExercise() {
         `;
       }
 
-      if (autoPron && !showRU && speechSupported)
-        setTimeout(() => speak(w.en), 300);
+      if (autoPron && !showRU) setTimeout(() => window.speakWord(w), 300);
 
       // Изначально скрываем кнопки ответа для карточек
 
@@ -9000,15 +8714,23 @@ function nextExercise() {
       }
 
       // Добавляем обработку аудио кнопки
-
-      if (!showRU && speechSupported) {
+      if (frontWord === w.en) {
         const fcAudioBtn = document.getElementById('fc-audio-btn');
-
         if (fcAudioBtn) {
           fcAudioBtn.addEventListener('click', e => {
             e.stopPropagation();
+            window.speakWord(w);
+          });
+        }
+      }
 
-            speakBtn(w.en, e.currentTarget);
+      // Добавляем обработку для кнопки на обратной стороне
+      if (backWord === w.en) {
+        const fcAudioBtnBack = document.getElementById('fc-audio-btn-back');
+        if (fcAudioBtnBack) {
+          fcAudioBtnBack.addEventListener('click', e => {
+            e.stopPropagation();
+            window.speakWord(w);
           });
         }
       }
@@ -9131,8 +8853,7 @@ function nextExercise() {
 
       options = options.sort(() => Math.random() - 0.5);
 
-      if (autoPron && !isRUEN && speechSupported)
-        setTimeout(() => speak(w.en), 300);
+      if (autoPron && !isRUEN) setTimeout(() => window.speakWord(w), 300);
 
       if (exContent) {
         exContent.innerHTML = `
@@ -9141,7 +8862,7 @@ function nextExercise() {
 
             ${esc(question)}
 
-            ${!isRUEN && speechSupported ? `<button class="btn-audio" id="mc-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+            ${!isRUEN ? `<button class="btn-audio" id="mc-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
 
           </div>
 
@@ -9154,14 +8875,13 @@ function nextExercise() {
         `;
       }
 
-      if (!isRUEN && speechSupported) {
+      if (!isRUEN) {
         const mcAudioBtn = document.getElementById('mc-audio-btn');
 
         if (mcAudioBtn) {
           mcAudioBtn.addEventListener('click', e => {
             e.stopPropagation();
-
-            speakBtn(w.en, e.currentTarget);
+            window.speakWord(w);
           });
         }
       }
@@ -9179,7 +8899,7 @@ function nextExercise() {
 
             if (!ok) b.classList.add('wrong');
 
-            if (ok && speechSupported) speak(w.en);
+            if (ok) window.speakWord(w);
 
             setTimeout(
               () => {
@@ -9291,7 +9011,7 @@ function nextExercise() {
 
                 `;
 
-                if (speechSupported) speak(answer);
+                if (true) window.speakWord(w);
 
                 setTimeout(() => {
                   recordAnswer(true);
@@ -9357,7 +9077,7 @@ function nextExercise() {
         `;
       }
 
-      setTimeout(() => speak(w.en), 200);
+      setTimeout(() => window.speakWord(w), 200);
 
       const dictInput = document.getElementById('dict-input');
 
@@ -9368,7 +9088,7 @@ function nextExercise() {
       const dictReplay = document.getElementById('dict-replay');
 
       if (dictReplay) {
-        dictReplay.onclick = () => speak(w.en);
+        dictReplay.onclick = () => window.speakWord(w);
       }
 
       if (dictInput) {
@@ -9637,7 +9357,7 @@ function nextExercise() {
           fb.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Отлично! ${w.en} — ${parseAnswerVariants(w.ru).join(', ') || w.ru}</span>`;
 
           // Озвучиваем слово после правильного ответа
-          speak(w.en);
+          window.speakWord(w);
 
           document.querySelectorAll('.builder-letter').forEach(btn => {
             btn.disabled = true;
@@ -9713,12 +9433,12 @@ function nextExercise() {
 
       // Автоматическая озвучка
       setTimeout(() => {
-        if (speechSupported) speak(expectedWord);
+        window.speakWord(w);
       }, 500);
 
       if (replayBtn) {
         replayBtn.addEventListener('click', () => {
-          if (speechSupported) speak(expectedWord);
+          window.speakWord(w);
         });
       }
 
@@ -10777,6 +10497,8 @@ async function renderRandomBankWord() {
         currentBankWord.phonetic || null,
 
         currentBankWord.examples || [],
+        currentBankWord.audio, // ← добавить
+        currentBankWord.examplesAudio, // ← добавить
       );
 
       window.words.unshift(newWord);
@@ -11420,23 +11142,27 @@ function runSpeechSentenceExercise(word, onComplete) {
   const translationEl = document.getElementById('speech-sentence-translation');
 
   // Автоматическая озвучка при запуске упражнения
-
   setTimeout(() => {
-    if (speechSupported) {
-      console.log('Автоматическая озвучка предложения:', promptText);
-
-      speak(promptText);
+    console.log('Автоматическая озвучка предложения:', promptText);
+    if (hasExample && word.examplesAudio && word.examplesAudio.length > 0) {
+      // Если есть пример с аудио - используем его
+      window.playExampleAudio(word);
+    } else {
+      // Иначе озвучиваем как обычное слово
+      window.speakWord(word);
     }
-  }, 500);
+  }, 1000);
 
   // Обработчик кнопки повторного прослушивания
-
   if (replayBtn) {
     replayBtn.addEventListener('click', () => {
-      if (speechSupported) {
-        console.log('Повторная озвучка предложения:', promptText);
-
-        speak(promptText);
+      console.log('Повторная озвучка предложения:', promptText);
+      if (hasExample && word.examplesAudio && word.examplesAudio.length > 0) {
+        // Если есть пример с аудио - используем его
+        window.playExampleAudio(word);
+      } else {
+        // Иначе озвучиваем как обычное слово
+        window.speakWord(word);
       }
     });
   }
@@ -11706,12 +11432,6 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
         console.log('Speech recognition already stopped');
       }
       currentRecognition = null;
-    }
-
-    // Останавливаем синтез речи если активен
-
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
     }
 
     document.getElementById('practice-ex').style.display = 'none';
