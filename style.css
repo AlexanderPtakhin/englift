@@ -1485,6 +1485,8 @@ input[type='submit']:active {
   border-radius: 40px;
 
   transition: all 0.25s;
+
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
 }
 
 .btn-primary:hover {
@@ -3920,8 +3922,8 @@ html.dark .badge-learned {
 #dict-fb.correct {
   background: linear-gradient(
     135deg,
-    rgba(34, 197, 94, 0.15),
-    rgba(34, 197, 94, 0.05)
+    rgba(34, 197, 94, 0.08),
+    rgba(34, 197, 94, 0.02)
   ) !important;
   border-color: var(--success) !important;
   color: var(--success) !important;
@@ -3949,8 +3951,8 @@ html.dark .badge-learned {
 #dict-fb.incorrect {
   background: linear-gradient(
     135deg,
-    rgba(239, 68, 68, 0.15),
-    rgba(239, 68, 68, 0.05)
+    rgba(239, 68, 68, 0.08),
+    rgba(239, 68, 68, 0.02)
   ) !important;
   border-color: var(--danger) !important;
   color: var(--danger) !important;
@@ -3997,24 +3999,26 @@ html.dark .badge-learned {
   color: var(--warning) !important;
 }
 
-/* Специальные стили для фидбека в упражнении "Собери слово" */
-.builder-feedback,
-#builder-fb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin: 1.5rem auto 0;
-  padding: 0.75rem 1.5rem;
-  border-radius: 40px;
-  font-size: 1rem;
-  font-weight: 600;
-  border: 2px solid transparent;
-  width: fit-content;
-  max-width: 90%;
-  animation: feedbackPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  text-align: center;
+/* Контейнер для букв и фидбека */
+.builder-letters-container {
+  position: relative;
+  min-height: 5rem; /* Минимальная высота для сохранения布局 */
+  margin-bottom: 1.5rem;
+}
+
+/* Специальные стили для фидбека в упражнении "Собери слово" - переопределяем универсальные */
+.builder-letters-container .builder-feedback,
+.builder-letters-container #builder-fb {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: var(--radius) !important;
+  padding: 1rem !important;
+  max-width: none !important;
 }
 
 .builder-feedback .material-symbols-outlined,
@@ -4026,8 +4030,8 @@ html.dark .badge-learned {
 #builder-fb.correct {
   background: linear-gradient(
     135deg,
-    rgba(34, 197, 94, 0.15),
-    rgba(34, 197, 94, 0.05)
+    rgba(74, 222, 128, 0.1) 0%,
+    rgba(74, 222, 128, 0.05) 100%
   );
   border-color: var(--success);
   color: var(--success);
@@ -5132,7 +5136,7 @@ html.dark .badge-learned {
 /* Модальное окно увеличенной ширины */
 
 .modal-box.modal-box--large {
-  max-width: 800px;
+  max-width: 600px;
 
   width: 95%;
 
@@ -5334,7 +5338,7 @@ html.dark .badge-learned {
 
   padding: 1.5rem;
 
-  margin-top: 1.5rem;
+  margin-top: 2.5rem;
 
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
@@ -6514,7 +6518,7 @@ input[type='range']:active::-moz-range-thumb {
 
   inset: 0;
 
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
 
   display: none;
 
@@ -6528,6 +6532,13 @@ input[type='range']:active::-moz-range-thumb {
 .modal-backdrop.open {
   display: flex;
 }
+
+/* Блокировка скролла когда модалка открыта */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Анимация появления модального окна */
 
 /* AUTH GATE - обязательная авторизация */
 
@@ -7691,6 +7702,13 @@ html.dark .due-soon {
   max-width: 500px;
 
   margin: 0 auto;
+}
+
+/* На узких экранах кнопки друг под другом */
+@media (max-width: 535px) {
+  .context-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .context-option-btn {

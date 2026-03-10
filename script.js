@@ -21,6 +21,39 @@ const DEBUG =
 
 // =============================================
 
+// КЭШ СЛОВАРЯ - оптимизация загрузки
+
+// =============================================
+
+let wordBankCache = null;
+
+window.WordAPI = {
+  async loadWordBank() {
+    if (wordBankCache) return wordBankCache;
+
+    const cached = localStorage.getItem('englift_dictionary_cache');
+    if (cached) {
+      wordBankCache = JSON.parse(cached);
+      return wordBankCache;
+    }
+
+    try {
+      const res = await fetch('dictionary.json');
+      wordBankCache = await res.json();
+      localStorage.setItem(
+        'englift_dictionary_cache',
+        JSON.stringify(wordBankCache),
+      );
+      return wordBankCache;
+    } catch (e) {
+      console.error('Не удалось загрузить словарь');
+      return [];
+    }
+  },
+};
+
+// =============================================
+
 // ПРЕДГЕНЕРИРОВАННОЕ АУДИО ИЗ ПАПКИ /audio/
 
 // =============================================
@@ -28,7 +61,11 @@ const DEBUG =
 function playAudio(filename) {
   if (!filename) return console.warn('Нет файла аудио');
 
-  const audio = new Audio(`/audio/${filename}`);
+  // Определяем папку в зависимости от настроек голоса
+  const voicePreference = window.user_settings?.voice || 'female';
+  const audioFolder = voicePreference === 'male' ? '/audio-male/' : '/audio/';
+
+  const audio = new Audio(`${audioFolder}${filename}`);
 
   audio.volume = 1.0;
 
@@ -2085,27 +2122,14 @@ async function checkDailyGoalsCompletion() {
   }
 }
 
-// Загрузка банка слов для автодополнения
+// Загрузка банка слов для автодополнения (теперь через кэш)
 
 window.wordBank = [];
 
-async function loadWordBank() {
-  try {
-    if (window.wordBank && window.wordBank.length > 0) {
-      return;
-    }
-
-    const response = await fetch('dictionary.json');
-
-    if (response.ok) {
-      window.wordBank = await response.json();
-    }
-  } catch (e) {
-    console.error('Ошибка загрузки словаря для подсказок:', e);
-  }
-}
-
-loadWordBank();
+// Инициализация при старте
+window.WordAPI.loadWordBank().then(bank => {
+  window.wordBank = bank;
+});
 
 async function load() {
   try {
@@ -3678,11 +3702,11 @@ function showLimitModal(limit) {
 
   midnight.setHours(24, 0, 0, 0);
 
-  const msUntilMidnight = midnight - now;
+  const diff = midnight - now;
 
-  const hours = Math.floor(msUntilMidnight / 3600000);
+  const hours = Math.floor(diff / (1000 * 60 * 60));
 
-  const minutes = Math.floor((msUntilMidnight % 3600000) / 60000);
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
   const timeUntilReset = `${hours} ч ${minutes} мин`;
 
@@ -4027,13 +4051,14 @@ function showLimitModal(limit) {
   }
 
   document.body.appendChild(modal);
+  document.body.classList.add('modal-open'); // Блокируем скролл
 
   // Автоматически закрываем через 10 секунд и возвращаем к практике
 
   setTimeout(() => {
     if (modal.parentNode) {
       modal.remove();
-
+      document.body.classList.remove('modal-open'); // Возвращаем скролл
       document.getElementById('practice-setup').style.display = 'block';
     }
   }, 10000);
@@ -5135,7 +5160,7 @@ function showiOSInstallInstructions() {
 
 
 
-      <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>📱 Установка на iPhone</strong></p>
+      <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">phone_iphone</span>Установка на iPhone</strong></p>
 
 
 
@@ -5231,7 +5256,7 @@ function showiOSInstallInstructions() {
 
 
 
-      <h3>📱 Установка на iPhone</h3>
+      <h3><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">phone_iphone</span>Установка на iPhone</h3>
 
 
 
@@ -6812,7 +6837,12 @@ document.getElementById('words-grid').addEventListener('click', e => {
 
       if (word && word.examplesAudio && word.examplesAudio[exampleIndex]) {
         // Проигрываем аудио файла примера
-        const audio = new Audio(`audio/${word.examplesAudio[exampleIndex]}`);
+        const voicePreference = window.user_settings?.voice || 'female';
+        const audioFolder =
+          voicePreference === 'male' ? '/audio-male/' : '/audio/';
+        const audio = new Audio(
+          `${audioFolder}${word.examplesAudio[exampleIndex]}`,
+        );
         audio
           .play()
           .catch(err =>
@@ -6820,11 +6850,7 @@ document.getElementById('words-grid').addEventListener('click', e => {
           );
       } else if (word && word.examples && word.examples[exampleIndex]) {
         // Если нет аудио, произносим через TTS
-        const utterance = new SpeechSynthesisUtterance(
-          word.examples[exampleIndex].text,
-        );
-        utterance.lang = 'en-US';
-        speechSynthesis.speak(utterance);
+        speakText(word.examples[exampleIndex].text);
       }
     }
 
@@ -6863,6 +6889,7 @@ document.getElementById('words-grid').addEventListener('click', e => {
     pendingDelId = id;
 
     document.getElementById('del-modal').classList.add('open');
+    document.body.classList.add('modal-open'); // Блокируем скролл
 
     return;
   }
@@ -7184,15 +7211,13 @@ document.getElementById('del-confirm').addEventListener('click', () => {
   }
 
   document.getElementById('del-modal').classList.remove('open');
+  document.body.classList.remove('modal-open'); // Возвращаем скролл
 });
 
-document
-
-  .getElementById('del-cancel')
-
-  .addEventListener('click', () =>
-    document.getElementById('del-modal').classList.remove('open'),
-  );
+document.getElementById('del-cancel').addEventListener('click', () => {
+  document.getElementById('del-modal').classList.remove('open');
+  document.body.classList.remove('modal-open'); // Возвращаем скролл
+});
 
 // ============================================================
 
@@ -8067,6 +8092,72 @@ function showPreview() {
   }
 }
 
+// Функция для получения голоса в зависимости от настроек
+function getVoice() {
+  const voicePreference = window.user_settings?.voice || 'female';
+
+  // Получаем доступные голоса
+  const voices = speechSynthesis.getVoices();
+
+  // Ищем подходящий голос
+  let targetVoice = null;
+
+  if (voicePreference === 'male') {
+    // Ищем мужской голос
+    targetVoice = voices.find(
+      voice =>
+        voice.lang.includes('en') &&
+        (voice.name.includes('Male') ||
+          voice.name.includes('male') ||
+          voice.name.includes('David') ||
+          voice.name.includes('Alex') ||
+          voice.name.includes('Daniel')),
+    );
+  } else {
+    // Ищем женский голос
+    targetVoice = voices.find(
+      voice =>
+        voice.lang.includes('en') &&
+        (voice.name.includes('Female') ||
+          voice.name.includes('female') ||
+          voice.name.includes('Samantha') ||
+          voice.name.includes('Karen') ||
+          voice.name.includes('Monica') ||
+          voice.name.includes('Zira')),
+    );
+  }
+
+  // Если не нашли конкретный, берем любой английский
+  if (!targetVoice) {
+    targetVoice = voices.find(voice => voice.lang.includes('en'));
+  }
+
+  return targetVoice;
+}
+
+// Функция для озвучки текста с учетом настроек голоса
+function speakText(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+
+  const voice = getVoice();
+  if (voice) {
+    utterance.voice = voice;
+  }
+
+  speechSynthesis.speak(utterance);
+  return utterance;
+}
+
+// Инициализация голосов при загрузке
+if (speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = () => {
+    // Голоса загружены
+  };
+}
+
+// ============================================================
+
 // IMPORT / EXPORT
 
 // ============================================================
@@ -8079,6 +8170,7 @@ document
     const modal = document.getElementById('speech-modal');
 
     modal.classList.add('open');
+    document.body.classList.add('modal-open'); // Блокируем скролл
 
     // Load practice settings
 
@@ -8089,6 +8181,10 @@ document
 
     document.getElementById('current-limit-info').innerHTML =
       `Текущий лимит: <strong>${current === 9999 ? 'Без лимита' : current}</strong>`;
+
+    // Load voice settings
+    const currentVoice = window.user_settings?.voice || 'female';
+    document.getElementById('voice-select').value = currentVoice;
 
     // Load timer settings
 
@@ -8178,12 +8274,11 @@ document
 
 // Speech modal handlers
 
-document.getElementById('speech-modal-cancel').addEventListener('click', () => {
-  document.getElementById('speech-modal').classList.remove('open');
-});
+// Кнопка закрытия удалена из HTML
 
 document.getElementById('speech-modal-close').addEventListener('click', () => {
   document.getElementById('speech-modal').classList.remove('open');
+  document.body.classList.remove('modal-open'); // Возвращаем скролл
 });
 
 document
@@ -8192,15 +8287,25 @@ document
 
   ?.addEventListener('click', async () => {
     const limitSelect = document.getElementById('review-limit-select');
+    const voiceSelect = document.getElementById('voice-select');
 
     // Save practice settings
 
     const newLimit =
       limitSelect.value === '9999' ? 9999 : parseInt(limitSelect.value);
 
+    const newVoice = voiceSelect.value;
+    const oldVoice = window.user_settings?.voice || 'female';
+
     window.user_settings = window.user_settings || {};
 
     window.user_settings.reviewLimit = newLimit;
+    window.user_settings.voice = newVoice;
+
+    // Если сменили голос, перезагружать словарь не нужно - он теперь один
+    if (oldVoice !== newVoice) {
+      console.log(`Голос изменен с ${oldVoice} на ${newVoice}`);
+    }
 
     // Обновляем метку времени сразу (оптимистично)
 
@@ -8225,6 +8330,7 @@ document
     // Update UI
 
     document.getElementById('speech-modal').classList.remove('open');
+    document.body.classList.remove('modal-open'); // Возвращаем скролл
 
     // Update statistics
 
@@ -8240,6 +8346,7 @@ document
 document.getElementById('speech-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) {
     document.getElementById('speech-modal').classList.remove('open');
+    document.body.classList.remove('modal-open'); // Возвращаем скролл
   }
 });
 
@@ -8277,6 +8384,7 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
   // Показываем модальное окно
 
   modal.classList.add('open');
+  document.body.classList.add('modal-open'); // Блокируем скролл
 
   // Функция проверки
 
@@ -8298,6 +8406,7 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
       onConfirm();
 
       modal.classList.remove('open');
+      document.body.classList.remove('modal-open'); // Возвращаем скролл
     }
   });
 
@@ -8306,11 +8415,13 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
       onConfirm();
 
       modal.classList.remove('open');
+      document.body.classList.remove('modal-open'); // Возвращаем скролл
     }
   };
 
   cancelBtn.onclick = () => {
     modal.classList.remove('open');
+    document.body.classList.remove('modal-open'); // Возвращаем скролл
   };
 
   // Закрытие по клику на фон
@@ -8318,6 +8429,7 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
   modal.addEventListener('click', e => {
     if (e.target === modal) {
       modal.classList.remove('open');
+      document.body.classList.remove('modal-open'); // Возвращаем скролл
     }
   });
 
@@ -10722,7 +10834,10 @@ function nextExercise() {
 
 
 
-            <div class="builder-letters" id="builder-letters"></div>
+            <div class="builder-letters-container">
+              <div class="builder-letters" id="builder-letters"></div>
+              <div class="builder-feedback" id="builder-fb" style="display: none;"></div>
+            </div>
 
 
 
@@ -10770,7 +10885,6 @@ function nextExercise() {
 
 
 
-          <div class="builder-feedback" id="builder-fb" style="display: none;"></div>
 
 
 
@@ -10782,6 +10896,7 @@ function nextExercise() {
       }
 
       // Создаем кнопки для букв
+      let builderProcessing = false;
 
       const lettersContainer = document.getElementById('builder-letters');
 
@@ -10815,9 +10930,12 @@ function nextExercise() {
         letterBtn.dataset.index = index;
 
         letterBtn.addEventListener('click', () => {
-          // Проверяем, что кнопка еще не нажата (видима)
+          if (builderProcessing) return;
+          builderProcessing = true;
 
+          // Проверяем, что кнопка еще не нажата (видима)
           if (letterBtn.style.visibility === 'hidden') {
+            builderProcessing = false;
             return; // Если уже скрыта, игнорируем клик
           }
 
@@ -10848,10 +10966,11 @@ function nextExercise() {
           // Добавляем обработчик клика для удаления буквы
 
           firstPlaceholder.addEventListener('click', () => {
+            if (builderProcessing) return;
+            builderProcessing = true;
+
             // Находим соответствующую кнопку буквы и делаем её видимой
-
             const allLetterBtns = document.querySelectorAll('.builder-letter');
-
             const originalBtn = Array.from(allLetterBtns).find(
               btn =>
                 btn.dataset.letter === letter.toLowerCase() &&
@@ -10863,34 +10982,27 @@ function nextExercise() {
             }
 
             // Возвращаем ячейку в состояние заглушки
-
             firstPlaceholder.classList.add('placeholder');
-
             firstPlaceholder.textContent = '';
-
             firstPlaceholder.style.cursor = 'default';
-
             firstPlaceholder.title = '';
-
             delete firstPlaceholder.dataset.originalIndex;
-
             delete firstPlaceholder.dataset.letter;
 
             // Скрываем фидбек если был
-
             const fb = document.getElementById('builder-fb');
-
             if (fb) {
               fb.style.display = 'none';
-
               fb.textContent = '';
-
               fb.className = 'builder-feedback'; // Убираем классы correct/incorrect
             }
 
             // Проверяем ответ
-
             checkBuilderAnswer();
+
+            setTimeout(() => {
+              builderProcessing = false;
+            }, 100);
           });
 
           // Hover эффект
@@ -10908,8 +11020,11 @@ function nextExercise() {
           letterBtn.style.visibility = 'hidden';
 
           // Проверяем ответ
-
           checkBuilderAnswer();
+
+          setTimeout(() => {
+            builderProcessing = false;
+          }, 100);
         });
 
         lettersContainer.appendChild(letterBtn);
@@ -10971,18 +11086,17 @@ function nextExercise() {
 
       function checkBuilderAnswer() {
         const currentAnswer = answerContainer.textContent.toLowerCase();
-
         const fb = document.getElementById('builder-fb');
+        const lettersContainer = document.getElementById('builder-letters');
 
         if (currentAnswer === word) {
+          // Скрываем буквы и показываем фидбек
+          lettersContainer.style.display = 'none';
           fb.style.display = 'block';
-
           fb.className = 'feedback-panel correct';
-
           fb.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Отлично! ${w.en} — ${parseAnswerVariants(w.ru).join(', ') || w.ru}</span>`;
 
           // Озвучиваем слово после правильного ответа
-
           window.speakWord(w);
 
           document.querySelectorAll('.builder-letter').forEach(btn => {
@@ -10991,24 +11105,20 @@ function nextExercise() {
 
           setTimeout(() => {
             recordAnswer(true);
-
             sIdx++;
-
             nextExercise();
           }, 2000);
         } else if (currentAnswer.length >= word.length) {
+          // Скрываем буквы и показываем фидбек
+          lettersContainer.style.display = 'none';
           fb.style.display = 'block';
-
           fb.className = 'feedback-panel incorrect';
-
           fb.innerHTML = `<span class="material-symbols-outlined">refresh</span><span>Попробуйте ещё раз!</span>`;
         } else {
-          // Скрываем фидбек при неполном ответе
-
+          // Показываем буквы и скрываем фидбек при неполном ответе
+          lettersContainer.style.display = 'flex';
           fb.style.display = 'none';
-
           fb.textContent = '';
-
           fb.className = 'builder-feedback'; // Убираем классы correct/incorrect
         }
       }
@@ -12487,11 +12597,7 @@ async function renderRandomBankWord() {
 
 
 
-          <button class="word-bank-nav-btn" id="bank-word-prev" title="Предыдущее"><span class="material-symbols-outlined">chevron_left</span></button>
-
-
-
-          <button class="word-bank-nav-btn" id="bank-word-next" title="Следующее"><span class="material-symbols-outlined">chevron_right</span></button>
+          <button class="word-bank-nav-btn" id="bank-word-next" title="Следующее слово"><span class="material-symbols-outlined">chevron_right</span></button>
 
 
 
@@ -12533,10 +12639,6 @@ async function renderRandomBankWord() {
 
   document.getElementById('bank-word-next')?.addEventListener('click', () => {
     renderRandomBankWord();
-  });
-
-  document.getElementById('bank-word-prev')?.addEventListener('click', () => {
-    renderRandomBankWord(); // Можно реализовать историю, но пока просто новое случайное
   });
 
   document
@@ -13015,13 +13117,18 @@ function runContextExercise(word, onComplete) {
     otherWords.splice(randomIndex, 1);
   }
 
-  const shuffledOptions = options.sort(() => Math.random() - 0.5);
-
   const example = word.ex || `I want to _____ my goals.`;
 
-  const exampleWithBlank = example.replace(word.en, '_____');
+  // Заменяем слово на пробел, нечувствительно к регистру
+  const exampleWithBlank = example.replace(new RegExp(word.en, 'i'), '_____');
 
   const exampleTranslation = word.examples?.[0]?.translation || '';
+
+  // Перемешиваем варианты
+  const shuffledOptions = options.sort(() => Math.random() - 0.5);
+
+  // Проверяем, не стоит ли верное слово на первом месте
+  const isFirstOptionCorrect = shuffledOptions[0]?.id === word.id;
 
   content.innerHTML = `
 
@@ -13031,7 +13138,7 @@ function runContextExercise(word, onComplete) {
 
         <div class="context-text" onclick="this.nextElementSibling.style.display='block'; this.style.background='transparent'; this.onmouseover=null; this.onmouseout=null;" style="cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s;" title="Нажмите для перевода" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">
 
-          ${exampleWithBlank}
+          ${isFirstOptionCorrect ? '' : exampleWithBlank}
 
         </div>
 
@@ -13114,8 +13221,10 @@ function runContextExercise(word, onComplete) {
           setTimeout(() => {
             if (word.examplesAudio && word.examplesAudio.length > 0) {
               // Проигрываем аудио файла примера
-
-              const audio = new Audio(`audio/${word.examplesAudio[0]}`);
+              const voicePreference = window.user_settings?.voice || 'female';
+              const audioFolder =
+                voicePreference === 'male' ? '/audio-male/' : '/audio/';
+              const audio = new Audio(`${audioFolder}${word.examplesAudio[0]}`);
 
               audio
 
@@ -13126,15 +13235,27 @@ function runContextExercise(word, onComplete) {
                 );
             } else {
               // Если нет аудио, произносим через TTS как запасной вариант
-
-              const utterance = new SpeechSynthesisUtterance(example);
-
-              utterance.lang = 'en-US';
-
-              speechSynthesis.speak(utterance);
+              speakText(example);
             }
           }, 500);
         }
+      } else {
+        // Если неправильно, все равно проигрываем голос предложения
+        setTimeout(() => {
+          if (word.examplesAudio && word.examplesAudio.length > 0) {
+            const voicePreference = window.user_settings?.voice || 'female';
+            const audioFolder =
+              voicePreference === 'male' ? '/audio-male/' : '/audio/';
+            const audio = new Audio(`${audioFolder}${word.examplesAudio[0]}`);
+            audio
+              .play()
+              .catch(e =>
+                console.log('Ошибка воспроизведения аудио примера:', e),
+              );
+          } else {
+            speakText(example);
+          }
+        }, 500);
       }
 
       // Убираем автоматический переход
@@ -14314,6 +14435,15 @@ window.onProfileFullyLoaded = async function () {
 
   console.log('🔍 currentUserId:', window.currentUserId);
 
+  // Сразу скрываем индикатор загрузки, даже если слова ещё грузятся
+  const loader = document.getElementById('loading-indicator');
+  if (loader) {
+    loader.style.opacity = '0';
+    setTimeout(() => {
+      loader.style.display = 'none';
+    }, 300);
+  }
+
   // Сначала убираем loading класс - разрешаем показ контента
 
   document.body.classList.remove('loading');
@@ -14371,16 +14501,15 @@ window.onProfileFullyLoaded = async function () {
   }
 
   // Скрываем индикатор загрузки только после завершения синхронизации
+  const indicator = document.getElementById('loading-indicator');
 
-  const loadingIndicator = document.getElementById('loading-indicator');
-
-  if (loadingIndicator) {
+  if (indicator) {
     console.log('🎯 Скрываем индикатор загрузки');
 
-    loadingIndicator.style.opacity = '0';
+    indicator.style.opacity = '0';
 
     setTimeout(() => {
-      loadingIndicator.style.display = 'none';
+      indicator.style.display = 'none';
 
       console.log('✅ Индикатор загрузки скрыт');
     }, 300);
@@ -14430,15 +14559,15 @@ setTimeout(() => {
 // Таймаут для скрытия индикатора загрузки (на случай проблем)
 
 setTimeout(() => {
-  const loadingIndicator = document.getElementById('loading-indicator');
+  const indicator = document.getElementById('loading-indicator');
 
-  if (loadingIndicator && loadingIndicator.style.display !== 'none') {
+  if (indicator && indicator.style.display !== 'none') {
     console.warn('⚠️ Индикатор загрузки все еще виден, скрываем принудительно');
 
-    loadingIndicator.style.opacity = '0';
+    indicator.style.opacity = '0';
 
     setTimeout(() => {
-      loadingIndicator.style.display = 'none';
+      indicator.style.display = 'none';
 
       console.log('🔒 Индикатор загрузки скрыт принудительно');
     }, 300);
@@ -14501,11 +14630,11 @@ function showManualInstallInstructions() {
 
       <div style="text-align: left; line-height: 1.6;">
 
-        <p><strong>📱 Установка на iPhone/iPad</strong></p>
+        <p><strong><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">phone_iphone</span>Установка на iPhone/iPad</strong></p>
 
         <ol style="padding-left: 1.5rem;">
 
-          <li>Нажмите кнопку <strong>«Поделиться»</strong> <span style="font-size:1.2rem;">📤</span> внизу экрана.</li>
+          <li>Нажмите кнопку <strong>«Поделиться»</strong> <span class="material-symbols-outlined" style="vertical-align: middle; margin: 0 4px;">share</span> внизу экрана.</li>
 
           <li>Прокрутите вниз и выберите <strong>«На экран «Домой»»</strong>.</li>
 
@@ -14523,7 +14652,7 @@ function showManualInstallInstructions() {
 
       <div style="text-align: left; line-height: 1.6;">
 
-        <p><strong>🤖 Установка на Android</strong></p>
+        <p><strong><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">android</span>Установка на Android</strong></p>
 
         <ol style="padding-left: 1.5rem;">
 
@@ -14560,7 +14689,7 @@ function showManualInstallInstructions() {
 
       <div class="modal-header">
 
-        <h3>📲 Установка приложения</h3>
+        <h3><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">download</span>Установка приложения</h3>
 
         <button class="modal-close" onclick="this.closest('.modal-backdrop').remove()">
 
