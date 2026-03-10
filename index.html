@@ -17,18 +17,21 @@
     <meta name="apple-mobile-web-app-title" content="EngLift" />
 
     <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+
     <link
       rel="icon"
       type="image/png"
       sizes="16x16"
       href="/icons/favicon-16x16.png"
     />
+
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
       href="/icons/favicon-32x32.png"
     />
+
     <link
       rel="apple-touch-icon"
       sizes="180x180"
@@ -54,6 +57,7 @@
     <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
 
     <!-- Убрали xlsx.js для ускорения загрузки -->
+
     <!-- Если нужен импорт Excel - добавим локально позже -->
 
     <script src="api.js"></script>
@@ -119,6 +123,7 @@
 
         <div class="auth-tabs">
           <button class="auth-tab active" data-mode="login">Вход</button>
+
           <button class="auth-tab" data-mode="register">Регистрация</button>
         </div>
 
@@ -127,6 +132,7 @@
 
           <div class="input-with-icon">
             <span class="material-symbols-outlined input-icon">mail</span>
+
             <input
               class="form-control"
               type="email"
@@ -142,6 +148,7 @@
 
           <div class="input-with-icon">
             <span class="material-symbols-outlined input-icon">lock</span>
+
             <div class="password-field-wrapper">
               <input
                 class="form-control"
@@ -167,6 +174,7 @@
 
           <div class="input-with-icon">
             <span class="material-symbols-outlined input-icon">lock</span>
+
             <div class="password-field-wrapper">
               <input
                 class="form-control"
@@ -645,106 +653,6 @@
               </button>
             </form>
           </div>
-
-          <!-- Импорт/Экспорт -->
-
-          <div class="add-card">
-            <h3>
-              <span class="material-symbols-outlined">import_export</span>
-
-              Импорт / Экспорт
-            </h3>
-
-            <div class="io-btn-group">
-              <button class="io-btn" id="io-export-json">
-                <div class="io-btn-main">
-                  <span class="material-symbols-outlined">save</span>
-
-                  <span>Сохранить бэкап (JSON)</span>
-                </div>
-
-                <span class="io-btn-sub">Полный бэкап с прогрессом</span>
-              </button>
-
-              <button class="io-btn" id="io-export-csv">
-                <div class="io-btn-main">
-                  <span class="material-symbols-outlined">description</span>
-
-                  <span>Экспорт в CSV</span>
-                </div>
-
-                <span class="io-btn-sub">Только слова и переводы</span>
-              </button>
-
-              <button class="io-btn" id="io-export-anki">
-                <div class="io-btn-main">
-                  <span class="material-symbols-outlined">style</span>
-
-                  <span>Экспорт в Anki (TSV)</span>
-                </div>
-
-                <span class="io-btn-sub">Формат для Anki</span>
-              </button>
-            </div>
-
-            <!-- Зона для перетаскивания файла -->
-
-            <div
-              class="io-drop-zone"
-              id="io-drop-zone"
-              style="margin-top: 1rem"
-            >
-              <span class="material-symbols-outlined">upload_file</span>
-
-              <p>Перетащи файл сюда или нажми для выбора</p>
-
-              <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 0.5rem">
-                Поддерживаемые форматы: JSON, CSV, Excel (.xlsx)<br />
-
-                Структура Excel: A - English, B - Русский, C - Транскрипция, D -
-                Пример, E - Теги
-              </p>
-            </div>
-
-            <!-- Скрытый input для выбора файла -->
-
-            <input
-              type="file"
-              id="io-file-input"
-              accept=".json,.csv,.xlsx"
-              style="display: none"
-            />
-
-            <!-- Блок предпросмотра (изначально скрыт) -->
-
-            <div
-              id="file-preview-wrap"
-              class="preview-wrap"
-              style="display: none; margin-top: 1rem"
-            >
-              <table class="preview-table">
-                <thead>
-                  <tr>
-                    <th>✓</th>
-
-                    <th>English</th>
-
-                    <th>Русский</th>
-
-                    <th>Пример</th>
-                  </tr>
-                </thead>
-
-                <tbody id="file-tbody"></tbody>
-              </table>
-            </div>
-
-            <!-- Кнопка подтверждения импорта (изначально скрыта) -->
-
-            <button class="btn-link" id="import-file-btn" style="display: none">
-              Импортировать
-            </button>
-          </div>
         </div>
       </div>
 
@@ -775,11 +683,13 @@
               <div class="chip-group" id="practice-mode">
                 <button class="chip on" data-mode="normal">
                   <span class="material-symbols-outlined">school</span>
+
                   Обычный
                 </button>
 
                 <button class="chip" data-mode="exam">
                   <span class="material-symbols-outlined">quiz</span>
+
                   Экзамен
                 </button>
               </div>
@@ -808,21 +718,25 @@
                 <div class="chip-group">
                   <button class="chip" data-exam-time="300">
                     <span class="material-symbols-outlined">timer</span>
+
                     5 мин
                   </button>
 
                   <button class="chip on" data-exam-time="600">
                     <span class="material-symbols-outlined">timer</span>
+
                     10 мин
                   </button>
 
                   <button class="chip" data-exam-time="1200">
                     <span class="material-symbols-outlined">timer</span>
+
                     20 мин
                   </button>
 
                   <button class="chip" data-exam-time="1800">
                     <span class="material-symbols-outlined">timer</span>
+
                     30 мин
                   </button>
                 </div>
@@ -1110,16 +1024,20 @@
         <div class="xp-stats-row">
           <div class="xp-level">
             <span class="material-symbols-outlined">workspace_premium</span>
+
             <div class="xp-level-text">
               <span class="level-num" id="st-level-num">1</span>
+
               <span>уровень</span>
             </div>
           </div>
+
           <div class="xp-progress">
             <div class="xp-bar-wrap">
               <div class="xp-bar-bg">
                 <div class="xp-bar-fill" id="xp-bar" style="width: 0%"></div>
               </div>
+
               <div class="xp-text" id="st-xp">0/200 XP</div>
             </div>
           </div>
@@ -1130,8 +1048,10 @@
             <div class="stat-icon">
               <span class="material-symbols-outlined">book</span>
             </div>
+
             <div class="stat-content">
               <div class="stat-number" id="st-total">0</div>
+
               <div class="stat-label">Всего слов</div>
             </div>
           </div>
@@ -1140,9 +1060,12 @@
             <div class="stat-icon">
               <span class="material-symbols-outlined">check_circle</span>
             </div>
+
             <div class="stat-content">
               <div class="stat-number" id="st-learned">0</div>
+
               <div class="stat-label">Выучено</div>
+
               <div class="stat-progress">
                 <div
                   class="stat-progress-fill"
@@ -1159,8 +1082,10 @@
                 >local_fire_department</span
               >
             </div>
+
             <div class="stat-content">
               <div class="stat-number" id="st-streak">0</div>
+
               <div class="stat-label">Дней подряд</div>
             </div>
           </div>
@@ -1169,8 +1094,10 @@
             <div class="stat-icon">
               <span class="material-symbols-outlined">add_circle</span>
             </div>
+
             <div class="stat-content">
               <div class="stat-number" id="st-week">0</div>
+
               <div class="stat-label">Добавлено за неделю</div>
             </div>
           </div>
@@ -1179,10 +1106,12 @@
             <div class="stat-icon due">
               <span class="material-symbols-outlined">schedule</span>
             </div>
+
             <div class="stat-content">
               <div class="stat-number" id="st-due" style="color: var(--danger)">
                 0
               </div>
+
               <div class="stat-label">К повторению</div>
             </div>
           </div>
@@ -1191,8 +1120,10 @@
         <div class="week-chart-container" id="week-chart-container">
           <div class="daily-cap-header">
             <span class="material-symbols-outlined">leaderboard </span>
+
             <h3>Активность</h3>
           </div>
+
           <!-- График активности будет сгенерирован JavaScript -->
         </div>
 
@@ -1201,6 +1132,7 @@
         <div class="daily-cap-section">
           <div class="daily-cap-header">
             <span class="material-symbols-outlined">schedule</span>
+
             <h3>Лимит повторений</h3>
           </div>
 
@@ -1212,6 +1144,7 @@
         <div class="daily-goals-section">
           <div class="daily-cap-header">
             <span class="material-symbols-outlined">track_changes</span>
+
             <h3>Ежедневные цели</h3>
           </div>
 
@@ -1223,6 +1156,7 @@
         <div class="cefr-progress">
           <div class="daily-cap-header">
             <span class="material-symbols-outlined">school</span>
+
             <h3>Уровни слов (CEFR)</h3>
           </div>
 
@@ -1232,6 +1166,7 @@
         <div class="badges-section">
           <div class="daily-cap-header">
             <span class="material-symbols-outlined">emoji_events</span>
+
             <h3>Бейджи</h3>
           </div>
 
@@ -1242,6 +1177,7 @@
           <div class="word-list-card">
             <div class="daily-cap-header">
               <span class="material-symbols-outlined">fitness_center</span>
+
               <h3>Топ-5 сложных</h3>
             </div>
 
@@ -1251,6 +1187,7 @@
           <div class="word-list-card">
             <div class="daily-cap-header">
               <span class="material-symbols-outlined">star</span>
+
               <h3>Топ-5 лёгких</h3>
             </div>
 
@@ -1270,6 +1207,7 @@
           <button class="btn-icon" id="del-confirm">
             <span class="material-symbols-outlined">check</span>
           </button>
+
           <button class="btn-icon" id="del-cancel">
             <span class="material-symbols-outlined">close</span>
           </button>
@@ -1278,13 +1216,16 @@
     </div>
 
     <!-- Speech Settings Modal — ТОЛЬКО ЛИМИТ ПОВТОРЕНИЙ (речь убрана) -->
+
     <div class="modal-backdrop" id="speech-modal">
       <div class="modal-box modal-box--large">
         <div class="modal-header">
           <h3>
             <span class="material-symbols-outlined">tune</span>
+
             Настройки
           </h3>
+
           <button class="modal-close" id="speech-modal-close">
             <span class="material-symbols-outlined">close</span>
           </button>
@@ -1292,31 +1233,44 @@
 
         <div class="modal-grid" style="grid-template-columns: 1fr">
           <!-- Только лимит повторений -->
+
           <div class="modal-col">
             <div class="settings-card">
               <h4>
                 <span class="material-symbols-outlined">settings</span>
+
                 Настройки
               </h4>
+
               <p>Выбери голос озвучки и лимит повторений.</p>
 
               <div class="form-group">
                 <label>Голос озвучки</label>
+
                 <select id="voice-select" class="form-control">
                   <option value="female">Женский голос</option>
+
                   <option value="male">Мужской голос</option>
                 </select>
               </div>
+
               <div class="form-group">
                 <label>Лимит в день</label>
+
                 <select id="review-limit-select" class="form-control">
                   <option value="50">50 — лёгкий (10–20 мин)</option>
+
                   <option value="80">80 — комфортный</option>
+
                   <option value="100" selected>100 — рекомендовано</option>
+
                   <option value="150">150 — интенсив</option>
+
                   <option value="200">200 — мощный</option>
+
                   <option value="9999">Без лимита</option>
                 </select>
+
                 <div
                   id="current-limit-info"
                   class="limit-info"
@@ -1326,9 +1280,11 @@
             </div>
           </div>
         </div>
+
         <div class="modal-actions">
           <button class="btn-primary" id="speech-modal-save">
             <span class="material-symbols-outlined">save</span>
+
             Сохранить
           </button>
         </div>
@@ -1338,12 +1294,16 @@
             <span class="material-symbols-outlined">warning</span> Опасные
             действия
           </h4>
+
           <button class="danger-btn" id="clear-words-btn">
             <span class="material-symbols-outlined">delete_forever</span>
+
             Очистить все слова навсегда
           </button>
+
           <button class="danger-btn" id="delete-account-btn">
             <span class="material-symbols-outlined">delete_forever</span>
+
             Удалить аккаунт
           </button>
         </div>
@@ -1389,6 +1349,7 @@
         <div class="modal-actions">
           <button class="danger-btn" id="confirm-action">
             <span class="material-symbols-outlined">delete</span>
+
             Подтвердить
           </button>
 
@@ -1470,6 +1431,7 @@
 
           <div class="input-with-icon">
             <span class="material-symbols-outlined input-icon">mail</span>
+
             <input
               type="email"
               id="reset-email"
@@ -1489,6 +1451,7 @@
             <span class="material-symbols-outlined" style="margin-right: 8px"
               >send</span
             >
+
             Отправить
           </button>
 
@@ -1500,6 +1463,7 @@
             <span class="material-symbols-outlined" style="margin-right: 8px"
               >close</span
             >
+
             Отмена
           </button>
         </div>
