@@ -407,6 +407,53 @@ html.dark .word-bank-card {
   opacity: 1;
 }
 
+/* Базовая кнопка озвучки (как у слайдера) */
+.word-bank-audio {
+  background: rgba(255, 245, 238, 0.18);
+  color: #fff5ee;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.word-bank-audio:hover {
+  background: rgba(255, 245, 238, 0.32);
+}
+
+/* Контейнер для слова и кнопки */
+.word-bank-en-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* На мобильных кнопка прижата к правому краю */
+@media (max-width: 768px) {
+  .word-bank-en-wrapper {
+    justify-content: space-between;
+  }
+}
+
+/* На десктопе кнопка рядом со словом */
+@media (min-width: 769px) {
+  .word-bank-en-wrapper {
+    justify-content: flex-start;
+    width: auto; /* контейнер занимает только нужную ширину */
+  }
+}
+
+.word-bank-audio .material-symbols-outlined {
+  font-size: 20px;
+}
+
 /* Опасные кнопки */
 
 .danger-actions {
@@ -4211,7 +4258,7 @@ html.dark .badge-learned {
 }
 
 #ex-btns .btn-icon:hover .material-symbols-outlined {
-  color: var(--text);
+  color: var(--primary);
 }
 
 .results-score {
@@ -8719,13 +8766,15 @@ html.dark .due-soon {
 
   cursor: pointer;
 
-  transition: background 0.2s;
+  transition: border-color 0.2s;
 
   font-weight: 600;
 
   color: var(--text);
 
   border-bottom: 1px solid var(--border);
+
+  border-left: 3px solid transparent;
 }
 
 .autocomplete-suggestions .suggestion-item:last-child {
@@ -8734,9 +8783,9 @@ html.dark .due-soon {
 
 .autocomplete-suggestions .suggestion-item:hover,
 .autocomplete-suggestions .suggestion-item.selected {
-  background: var(--primary);
+  border-left-color: var(--primary);
 
-  color: #fff;
+  background: var(--bg-hover);
 }
 
 .sync-status.success {
@@ -8872,11 +8921,9 @@ html.dark .due-soon {
 }
 
 #speech-start-btn:hover {
-  background: var(--primary);
-
   border-color: var(--primary);
 
-  color: #fff;
+  color: var(--primary);
 
   transform: scale(1.1);
 }

@@ -474,6 +474,11 @@ function checkAndResetDailyCount() {
     window.lastReviewResetDate = today;
 
     console.log('🔄 Дневной счётчик сброшен');
+
+    // Помечаем профиль как изменённый, чтобы сохранить новую дату
+    if (window.currentUserId) {
+      window.markProfileDirty();
+    }
   }
 }
 
@@ -525,6 +530,9 @@ function canStartSession(requestedCount) {
 // Увеличить счётчик на 1 (вызывается при каждом ответе)
 
 function incrementDailyCount() {
+  // Сначала проверяем, не наступил ли новый день
+  checkAndResetDailyCount();
+
   window.dailyReviewCount++;
 
   console.log(`📈 Счетчик упражнений увеличен до ${window.dailyReviewCount}`);
@@ -1282,6 +1290,9 @@ function applyProfileData(data) {
     window.user_settings = data.user_settings;
   }
 
+  // Проверяем и сбрасываем счётчик при смене дня
+  checkAndResetDailyCount();
+
   window.lastProfileUpdate = data.updated_at
     ? new Date(data.updated_at).getTime()
     : Date.now();
@@ -1460,6 +1471,66 @@ function validateEnglish(word) {
   // Проверяем на допустимые символы (буквы, дефисы, апострофы)
 
   return /^[a-zA-Z\s\-\']+$/.test(trimmed);
+}
+
+// Заполнение полей формы из объекта данных
+function fillFormWithData(data) {
+  const ruInput = document.getElementById('f-ru');
+  const phoneticInput = document.getElementById('f-phonetic');
+  const exInput = document.getElementById('f-ex');
+  const exTransInput = document.getElementById('f-ex-translation');
+  const tagsInput = document.getElementById('f-tags');
+
+  // Сбрасываем классы auto-filled у всех полей
+  [ruInput, phoneticInput, exInput, exTransInput, tagsInput].forEach(input => {
+    if (input) input.classList.remove('auto-filled');
+  });
+
+  let filledFields = 0;
+
+  if (data.ru && data.ru.trim()) {
+    ruInput.value = data.ru;
+    ruInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (data.phonetic) {
+    phoneticInput.value = data.phonetic;
+    phoneticInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (data.examples && data.examples.length > 0) {
+    const firstExample = data.examples[0];
+    exInput.value = firstExample.text || firstExample;
+    exInput.classList.add('auto-filled');
+    filledFields++;
+    if (exTransInput) {
+      exTransInput.value = firstExample.translation || '';
+      if (firstExample.translation) {
+        exTransInput.classList.add('auto-filled');
+        filledFields++;
+      }
+    }
+  }
+
+  if (data.tags && data.tags.length > 0) {
+    tagsInput.value = data.tags.slice(0, 3).join(', ');
+    tagsInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (filledFields > 0) {
+    toast(
+      `✓ Получено ${filledFields} поля! Проверьте и добавьте слово`,
+      'success',
+    );
+  } else {
+    toast(
+      '⚠ Данные не найдены. Попробуйте другое слово или введите вручную',
+      'warning',
+    );
+  }
 }
 
 // Валидация русского перевода
@@ -6039,107 +6110,24 @@ document.getElementById('auto-fill-btn').addEventListener('click', async () => {
 
     console.log(`Received data from ${source}:`, data);
 
-    // Сохраняем полные данные для последующего использования
-    lastFetchedWordData = data;
+    // Сохраняем полные данные
+    lastFetchedWordData = {
+      ru: data.ru,
+      phonetic: data.phonetic,
+      tags: data.tags,
+      audio: data.audio,
+      examples: data.examples,
+      examplesAudio: data.examplesAudio,
+    };
 
-    // Заполняем поля полученными данными
+    // Заполняем форму
+    fillFormWithData(lastFetchedWordData);
 
-    const ruInput = document.getElementById('f-ru');
-
-    const phoneticInput = document.getElementById('f-phonetic');
-
-    const exInput = document.getElementById('f-ex');
-
-    const tagsInput = document.getElementById('f-tags');
-
-    let filledFields = 0;
-
+    // Перемещаем фокус на следующее поле
     if (data.ru && data.ru.trim()) {
-      ruInput.value = data.ru;
-
-      ruInput.classList.add('auto-filled');
-
-      filledFields++;
-
-      console.log('Translation filled:', data.ru);
+      document.getElementById('f-ex').focus();
     } else {
-      console.log('No translation received');
-    }
-
-    if (data.phonetic) {
-      phoneticInput.value = data.phonetic;
-
-      phoneticInput.classList.add('auto-filled');
-
-      filledFields++;
-
-      console.log('Phonetic filled:', data.phonetic);
-    } else {
-      console.log('No phonetic received');
-    }
-
-    if (data.examples && data.examples.length > 0) {
-      exInput.value = data.examples[0].text || data.examples[0];
-
-      exInput.classList.add('auto-filled');
-
-      filledFields++;
-
-      console.log('Example filled:', data.examples[0].text || data.examples[0]);
-
-      const exTransInput = document.getElementById('f-ex-translation');
-
-      if (exTransInput) {
-        exTransInput.value = data.examples[0].translation || '';
-
-        if (data.examples[0].translation) {
-          exTransInput.classList.add('auto-filled');
-
-          filledFields++;
-
-          console.log(
-            'Example translation filled:',
-
-            data.examples[0].translation,
-          );
-        }
-      }
-    } else {
-      console.log('No examples received');
-    }
-
-    if (data.tags && data.tags.length > 0) {
-      tagsInput.value = data.tags.slice(0, 3).join(', ');
-
-      tagsInput.classList.add('auto-filled');
-
-      filledFields++;
-
-      console.log('Tags filled:', data.tags);
-    } else {
-      console.log('No tags received');
-    }
-
-    if (filledFields > 0) {
-      toast(
-        `✓ Получено ${filledFields} поля! Проверьте и добавьте слово`,
-
-        'success',
-      );
-    } else {
-      toast(
-        '⚠ Данные не найдены. Попробуйте другое слово или введите вручную',
-
-        'warning',
-      );
-    }
-
-    // Перемещаем фокус на следующее поле если перевод уже заполнен
-
-    if (data.ru && data.ru.trim()) {
-      exInput.focus();
-    } else {
-      ruInput.focus();
+      document.getElementById('f-ru').focus();
     }
   } catch (error) {
     console.error('API Error:', error);
@@ -6324,37 +6312,63 @@ const showSuggestions = debounce(query => {
 
   const lowerQuery = query.toLowerCase();
 
-  // Собираем слова из банка и из уже добавленных пользователем
+  // Собираем кандидатов из банка
+  const bankCandidates = (window.wordBank || [])
+    .filter(item => item.en.toLowerCase().startsWith(lowerQuery))
+    .map(item => ({
+      en: item.en,
+      ru: item.ru,
+      tags: item.tags || [],
+      phonetic: item.phonetic || null,
+      examples: item.examples || [],
+      examplesAudio: item.examplesAudio || [],
+      audio: item.audio,
+      source: 'bank',
+    }));
 
-  const bankWords = (window.wordBank || []).map(w => w.en);
+  // Собираем кандидатов из слов пользователя
+  const userCandidates = window.words
+    .filter(w => w.en.toLowerCase().startsWith(lowerQuery))
+    .map(w => ({
+      en: w.en,
+      ru: w.ru,
+      tags: w.tags || [],
+      phonetic: w.phonetic || null,
+      examples: w.examples || [],
+      examplesAudio: w.examplesAudio || [],
+      audio: w.audio,
+      source: 'user',
+    }));
 
-  const userWords = window.words.map(w => w.en);
+  // Объединяем и убираем дубликаты по en+ru
+  const allCandidates = [...bankCandidates, ...userCandidates];
+  const unique = [];
+  const seen = new Set();
 
-  const allWords = [...new Set([...bankWords, ...userWords])]; // убираем дубликаты
+  allCandidates.forEach(c => {
+    const key = `${c.en}|${c.ru}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(c);
+    }
+  });
 
-  // Фильтруем по началу строки
-
-  const matches = allWords
-
-    .filter(word => word.toLowerCase().startsWith(lowerQuery))
-
-    .slice(0, 10); // не больше 10
-
-  if (matches.length === 0) {
+  if (unique.length === 0) {
     suggestionsContainer.style.display = 'none';
 
     return;
   }
 
-  // Формируем HTML
-
-  suggestionsContainer.innerHTML = matches
-
-    .map(
-      (word, index) =>
-        `<div class="suggestion-item" data-index="${index}" data-word="${word}">${word}</div>`,
-    )
-
+  // Формируем HTML с дополнительной информацией
+  suggestionsContainer.innerHTML = unique
+    .map((c, index) => {
+      const tags = c.tags.slice(0, 2).join(' · ');
+      return `<div class="suggestion-item" data-index="${index}" data-word='${JSON.stringify(c)}'>
+        <strong>${c.en}</strong> 
+        <span style="color: var(--muted); font-size: 0.8rem;">${c.ru}</span>
+        ${tags ? `<span style="color: var(--primary); font-size: 0.7rem;"> (${tags})</span>` : ''}
+      </div>`;
+    })
     .join('');
 
   suggestionsContainer.style.display = 'block';
@@ -6375,15 +6389,25 @@ suggestionsContainer.addEventListener('click', e => {
 
   if (!target) return;
 
-  const selectedWord = target.dataset.word;
+  const data = JSON.parse(target.dataset.word);
+  enInput.value = data.en;
 
-  enInput.value = selectedWord;
+  // Сохраняем полные данные для последующего использования при сабмите
+  lastFetchedWordData = {
+    ru: data.ru,
+    phonetic: data.phonetic,
+    tags: data.tags,
+    audio: data.audio,
+    examples: data.examples,
+    examplesAudio: data.examplesAudio,
+  };
+
+  // Заполняем поля формы сразу из данных кандидата
+  fillFormWithData(lastFetchedWordData);
 
   suggestionsContainer.style.display = 'none';
 
-  // Автоматически запускаем автозаполнение
-
-  document.getElementById('auto-fill-btn').click();
+  // Убираем вызов auto-fill-btn – данные уже заполнены
 });
 
 // Скрываем подсказки при потере фокуса (с задержкой, чтобы успеть кликнуть)
@@ -10418,7 +10442,12 @@ async function renderRandomBankWord() {
           Рекомендуемое слово
         </div>
 
-        <div class="word-bank-en">${esc(word.en)}</div>
+        <div class="word-bank-en-wrapper">
+          <div class="word-bank-en">${esc(word.en)}</div>
+          <button class="word-bank-audio" title="Прослушать">
+            <span class="material-symbols-outlined">volume_up</span>
+          </button>
+        </div>
 
         <div class="word-bank-ru">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>
 
@@ -10450,6 +10479,14 @@ async function renderRandomBankWord() {
 
   `;
 
+  const audioBtn = wrap.querySelector('.word-bank-audio');
+  if (audioBtn) {
+    audioBtn.addEventListener('click', e => {
+      e.stopPropagation(); // предотвращаем возможные всплытия
+      window.speakWord(currentBankWord);
+    });
+  }
+
   wrap.classList.remove('fade-out');
 
   wrap.classList.add('fade-in');
@@ -10475,11 +10512,19 @@ async function renderRandomBankWord() {
 
       const enLower = currentBankWord.en.toLowerCase();
 
-      // Проверяем, нет ли уже такого слова в словаре
+      // Проверяем, нет ли уже такого слова с таким же переводом в словаре
+      const isDuplicate = window.words.some(w => {
+        if (w.en.toLowerCase() !== enLower) return false;
+        const existingRuVariants = parseAnswerVariants(w.ru);
+        const newRuVariants = parseAnswerVariants(currentBankWord.ru);
+        return newRuVariants.some(v => existingRuVariants.includes(v));
+      });
 
-      if (window.words.some(w => w.en.toLowerCase() === enLower)) {
-        toast('Это слово уже есть в вашем словаре', 'warning');
-
+      if (isDuplicate) {
+        toast(
+          'Слово «' + currentBankWord.en + '» с таким переводом уже есть',
+          'warning',
+        );
         return;
       }
 
