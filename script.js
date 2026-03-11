@@ -265,25 +265,19 @@ async function syncProfileToServer(force = false) {
 
   const profileData = {
     xp: xpData.xp || 0,
-
     level: xpData.level || 1,
-
     badges: xpData.badges || [],
-
     streak: streak.count || 0,
-
     last_streak_date: streak.lastDate || null,
-
     daily_progress: window.dailyProgress || {},
-
     daily_review_count: window.dailyReviewCount || 0,
-
     last_review_reset: window.lastReviewResetDate || null,
-
-    dark_theme: document.documentElement.classList.contains('dark'),
-
-    user_settings: window.user_settings || {},
-
+    user_settings: {
+      ...window.user_settings,
+      theme: document.documentElement.classList.contains('dark')
+        ? 'dark'
+        : 'lavender',
+    },
     updated_at: new Date().toISOString(),
   };
 
@@ -1057,6 +1051,25 @@ function parseAnswerVariants(str) {
     .map(s => s.trim().toLowerCase())
 
     .filter(s => s);
+}
+
+// Универсальная функция для HTML фидбека
+function getFeedbackHTML(word, isCorrect, confidence = null) {
+  const icon = isCorrect ? 'check_circle' : 'cancel';
+  const title = isCorrect ? 'Верно!' : 'Неверно.';
+  let extra = '';
+  if (confidence !== null) {
+    extra = `<br><small>Совпадение: ${confidence}%</small>`;
+  }
+  return `
+    <span class="material-symbols-outlined">${icon}</span>
+    <div>
+      <strong>${title}</strong><br>
+      ${word.en} — ${parseAnswerVariants(word.ru).join(', ') || word.ru}
+      ${word.phonetic ? `<br><small>/${word.phonetic}/</small>` : ''}
+      ${extra}
+    </div>
+  `;
 }
 
 const CONSTANTS = {
@@ -1984,6 +1997,17 @@ async function resetDailyGoalsIfNeeded() {
   }
 }
 
+function resetAddForm() {
+  const form = document.getElementById('single-form');
+  if (form) {
+    form.reset();
+    document
+      .querySelectorAll('.auto-filled')
+      .forEach(el => el.classList.remove('auto-filled'));
+    lastFetchedWordData = null;
+  }
+}
+
 // Check daily goals completion and give rewards
 
 async function checkDailyGoalsCompletion() {
@@ -2499,9 +2523,6 @@ async function addWord(
   if (isDuplicate) {
     toast(
       'Слово «' + esc(normalizedEn) + '» с таким переводом уже есть',
-
-      'warning',
-
       'warning',
     );
 
@@ -4062,10 +4083,6 @@ function renderStats() {
 
   const wordsWithStats = [];
 
-  // Sparkline данные по дням (собираем на случай если понадобятся в будущем)
-
-  const dayCounts = new Map();
-
   // Один проход по всем словам для сбора всех статистик
 
   for (const w of window.words) {
@@ -4084,12 +4101,6 @@ function renderStats() {
     // Words with stats for hard/easy analysis
 
     if (w.stats && w.stats.shown > 0) wordsWithStats.push(w);
-
-    // Sparkline данные по дням
-
-    const createdDate = new Date(w.createdAt).toDateString();
-
-    dayCounts.set(createdDate, (dayCounts.get(createdDate) || 0) + 1);
   }
 
   const total = window.words.length;
@@ -4886,6 +4897,21 @@ if (!document.getElementById('confetti-styles')) {
 }
 
 function switchTab(name) {
+  const currentActivePane = document.querySelector('.tab-pane.active');
+  const currentActiveTab = currentActivePane
+    ? currentActivePane.id.replace('tab-', '')
+    : null;
+
+  // Если уходим с вкладки add на другую — сбрасываем форму
+  if (currentActiveTab === 'add' && name !== 'add') {
+    resetAddForm();
+  }
+
+  // Если открываем вкладку add — сбрасываем форму (чтобы всегда была чистой)
+  if (name === 'add') {
+    resetAddForm();
+  }
+
   if (name === 'words') {
     visibleLimit = 30; // <-- сброс при переключении на слова
 
@@ -7320,22 +7346,14 @@ const suggestionsContainer = document.getElementById(
 const showSuggestions = debounce(query => {
   if (!query || query.length < 2) {
     suggestionsContainer.style.display = 'none';
-
     return;
   }
 
   const lowerQuery = query.toLowerCase();
 
-  // Исключаем слова, которые уже есть у пользователя
-  const userWordsEn = new Set(window.words.map(w => w.en.toLowerCase()));
-
-  // Собираем кандидатов только из банка, исключая уже добавленные
+  // Собираем кандидатов из банка
   const bankCandidates = (window.wordBank || [])
-    .filter(
-      item =>
-        item.en.toLowerCase().startsWith(lowerQuery) &&
-        !userWordsEn.has(item.en.toLowerCase()),
-    )
+    .filter(item => item.en.toLowerCase().startsWith(lowerQuery))
     .map(item => ({
       en: item.en,
       ru: item.ru,
@@ -7347,57 +7365,58 @@ const showSuggestions = debounce(query => {
       source: 'bank',
     }));
 
-  const allCandidates = bankCandidates; // ← только банк, без слов пользователя
+  // Множество уже добавленных слов (чтобы исключить их из подсказок)
+  const userWordsEn = new Set(window.words.map(w => w.en.toLowerCase()));
 
-  const unique = [];
+  // Оставляем только те из банка, которых ещё нет у пользователя
+  const filteredBankCandidates = bankCandidates.filter(
+    c => !userWordsEn.has(c.en.toLowerCase()),
+  );
 
-  const seen = new Set();
-
-  allCandidates.forEach(c => {
-    const key = `${c.en}|${c.ru}`;
-
-    if (!seen.has(key)) {
-      seen.add(key);
-
-      unique.push(c);
-    }
-  });
-
-  if (unique.length === 0) {
+  if (filteredBankCandidates.length === 0) {
     suggestionsContainer.style.display = 'none';
-
     return;
   }
 
-  // Формируем HTML с дополнительной информацией
-
-  suggestionsContainer.innerHTML = unique
-
+  // Формируем HTML
+  suggestionsContainer.innerHTML = filteredBankCandidates
     .map((c, index) => {
       const tags = c.tags.slice(0, 2).join(' · ');
-
-      return `<div class="suggestion-item" data-index="${index}" data-word='${JSON.stringify(c)}'>
-
+      return `<div class="suggestion-item" data-index="${index}" data-word="${encodeURIComponent(JSON.stringify(c))}">
         <strong>${c.en}</strong> 
-
         <span style="color: var(--muted); font-size: 0.8rem;">${c.ru}</span>
-
         ${tags ? `<span style="color: var(--primary); font-size: 0.7rem;"> (${tags})</span>` : ''}
-
       </div>`;
     })
-
     .join('');
 
   suggestionsContainer.style.display = 'block';
-
-  selectedSuggestionIndex = -1; // сбрасываем выделение
+  selectedSuggestionIndex = -1;
 }, 200);
 
 // Обработчик ввода
 
 enInput.addEventListener('input', e => {
-  showSuggestions(e.target.value);
+  const val = e.target.value.trim();
+
+  // Если поле en пустое — очищаем только авто-заполненные поля
+  if (val === '') {
+    document.querySelectorAll('.auto-filled').forEach(field => {
+      if (field.id !== 'f-en') {
+        field.value = '';
+        field.classList.remove('auto-filled');
+      }
+    });
+    lastFetchedWordData = null;
+    showSuggestions(val);
+    return;
+  }
+
+  // Если есть сохранённые данные автозаполнения и введённый текст не совпадает с последним выбранным словом — сбрасываем
+  if (lastFetchedWordData && val !== lastFetchedWordData.en) {
+    lastFetchedWordData = null;
+  }
+  showSuggestions(val);
 });
 
 // Обработчик клика на подсказку (через делегирование)
@@ -7407,7 +7426,7 @@ suggestionsContainer.addEventListener('click', e => {
 
   if (!target) return;
 
-  const data = JSON.parse(target.dataset.word);
+  const data = JSON.parse(decodeURIComponent(target.dataset.word));
 
   enInput.value = data.en;
 
@@ -7474,16 +7493,7 @@ enInput.addEventListener('keydown', e => {
     updateSelectedItem(items);
   } else if (e.key === 'Enter' && selectedSuggestionIndex !== -1) {
     e.preventDefault();
-
-    const selectedItem = items[selectedSuggestionIndex];
-
-    const word = selectedItem.dataset.word;
-
-    enInput.value = word;
-
-    suggestionsContainer.style.display = 'none';
-
-    document.getElementById('auto-fill-btn').click();
+    selectedItem.click(); // программно кликаем по выбранному элементу
   }
 });
 
@@ -9937,7 +9947,7 @@ function nextExercise() {
 
 
 
-          <div class="ta-feedback" id="ta-fb"></div>
+          <div class="feedback-panel" id="ta-fb"></div>
 
 
 
@@ -9991,21 +10001,11 @@ function nextExercise() {
 
             if (fb) {
               if (isCorrect) {
-                fb.className = 'feedback-panel correct';
+                fb.classList.remove('correct', 'incorrect', 'warning');
+                fb.classList.add('correct');
+                fb.style.display = 'flex';
 
-                fb.innerHTML = `
-
-
-
-                  <span class="material-symbols-outlined">check_circle</span>
-
-
-
-                  <span>${esc(answer)}</span>
-
-
-
-                `;
+                fb.innerHTML = getFeedbackHTML(w, isCorrect);
 
                 if (true) window.speakWord(w);
 
@@ -10017,21 +10017,11 @@ function nextExercise() {
                   nextExercise();
                 }, 1500);
               } else {
-                fb.className = 'feedback-panel incorrect';
+                fb.classList.remove('correct', 'incorrect', 'warning');
+                fb.classList.add('incorrect');
+                fb.style.display = 'flex';
 
-                fb.innerHTML = `
-
-
-
-                  <span class="material-symbols-outlined">cancel</span>
-
-
-
-                  <span>${esc(answer)}</span>
-
-
-
-                `;
+                fb.innerHTML = getFeedbackHTML(w, isCorrect);
 
                 setTimeout(() => {
                   recordAnswer(false);
@@ -10086,7 +10076,7 @@ function nextExercise() {
 
 
 
-          <div class="ta-feedback" id="dict-fb"></div>
+          <div class="feedback-panel" id="dict-fb"></div>
 
 
 
@@ -10118,12 +10108,11 @@ function nextExercise() {
 
             const ok = answerVariants.some(v => v === val);
 
-            dictFb.className =
-              'feedback-panel ' + (ok ? 'correct' : 'incorrect');
+            dictFb.classList.remove('correct', 'incorrect', 'warning');
+            dictFb.classList.add(ok ? 'correct' : 'incorrect');
+            dictFb.style.display = 'flex';
 
-            dictFb.innerHTML = ok
-              ? '<span class="material-symbols-outlined">check_circle</span><span>Верно!</span>'
-              : `<span class="material-symbols-outlined">cancel</span><span>Правильно: ${esc(w.en)}</span>`;
+            dictFb.innerHTML = getFeedbackHTML(w, ok);
 
             if (dictInput) dictInput.disabled = true;
 
@@ -10198,7 +10187,7 @@ function nextExercise() {
 
             <div class="builder-letters-container">
               <div class="builder-letters" id="builder-letters"></div>
-              <div class="builder-feedback" id="builder-fb" style="display: none;"></div>
+              <div class="feedback-panel" id="builder-fb" style="display: none;"></div>
             </div>
 
 
@@ -10356,7 +10345,9 @@ function nextExercise() {
             if (fb) {
               fb.style.display = 'none';
               fb.textContent = '';
-              fb.className = 'builder-feedback'; // Убираем классы correct/incorrect
+              fb.classList.remove('correct', 'incorrect', 'warning');
+              fb.style.display = 'none';
+              fb.textContent = '';
             }
 
             // Проверяем ответ
@@ -10455,8 +10446,10 @@ function nextExercise() {
           // Скрываем буквы и показываем фидбек
           lettersContainer.style.display = 'none';
           fb.style.display = 'block';
-          fb.className = 'feedback-panel correct';
-          fb.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Отлично! ${w.en} — ${parseAnswerVariants(w.ru).join(', ') || w.ru}</span>`;
+          fb.classList.remove('correct', 'incorrect', 'warning');
+          fb.classList.add('correct');
+          fb.style.display = 'block';
+          fb.innerHTML = getFeedbackHTML(w, true);
 
           // Озвучиваем слово после правильного ответа
           window.speakWord(w);
@@ -10474,14 +10467,18 @@ function nextExercise() {
           // Скрываем буквы и показываем фидбек
           lettersContainer.style.display = 'none';
           fb.style.display = 'block';
-          fb.className = 'feedback-panel incorrect';
+          fb.classList.remove('correct', 'incorrect', 'warning');
+          fb.classList.add('incorrect');
+          fb.style.display = 'block';
           fb.innerHTML = `<span class="material-symbols-outlined">refresh</span><span>Попробуйте ещё раз!</span>`;
         } else {
           // Показываем буквы и скрываем фидбек при неполном ответе
           lettersContainer.style.display = 'flex';
           fb.style.display = 'none';
           fb.textContent = '';
-          fb.className = 'builder-feedback'; // Убираем классы correct/incorrect
+          fb.classList.remove('correct', 'incorrect', 'warning');
+          fb.style.display = 'none';
+          fb.textContent = '';
         }
       }
     } else if (t === 'speech') {
@@ -10545,7 +10542,7 @@ function nextExercise() {
 
             </div>
 
-            <div class="speech-feedback" id="speech-feedback" style="display: none;"></div>
+            <div class="feedback-panel" id="speech-feedback" style="display: none;"></div>
 
           </div>
 
@@ -10575,7 +10572,9 @@ function nextExercise() {
       if (!speechRecognitionSupported) {
         feedback.style.display = 'block';
 
-        feedback.className = 'feedback-panel warning';
+        feedback.classList.remove('correct', 'incorrect', 'warning');
+        feedback.classList.add('warning');
+        feedback.style.display = 'block';
 
         feedback.innerHTML =
           '<span class="material-symbols-outlined">warning</span><span>Распознавание речи не поддерживается вашим браузером.</span>';
@@ -10653,9 +10652,15 @@ function nextExercise() {
           if (result.isCorrect) {
             feedback.style.display = 'block';
 
-            feedback.className = 'feedback-panel correct';
+            feedback.classList.remove('correct', 'incorrect', 'warning');
+            feedback.classList.add('correct');
+            feedback.style.display = 'block';
 
-            feedback.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Верно! (Совпадение: ${result.confidence}%)</span>`;
+            feedback.innerHTML = getFeedbackHTML(
+              w,
+              result.isCorrect,
+              result.confidence,
+            );
 
             playSound('correct');
 
@@ -10667,9 +10672,15 @@ function nextExercise() {
           } else {
             feedback.style.display = 'block';
 
-            feedback.className = 'feedback-panel incorrect';
+            feedback.classList.remove('correct', 'incorrect', 'warning');
+            feedback.classList.add('incorrect');
+            feedback.style.display = 'block';
 
-            feedback.innerHTML = `<span class="material-symbols-outlined">cancel</span><span>Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)</span>`;
+            feedback.innerHTML = getFeedbackHTML(
+              w,
+              result.isCorrect,
+              result.confidence,
+            );
 
             playSound('wrong');
 
@@ -10702,7 +10713,9 @@ function nextExercise() {
 
           feedback.style.display = 'block';
 
-          feedback.className = 'feedback-panel warning';
+          feedback.classList.remove('correct', 'incorrect', 'warning');
+          feedback.classList.add('warning');
+          feedback.style.display = 'block';
 
           feedback.innerHTML = `<span class="material-symbols-outlined">warning</span><span>${errorMessage}</span>`;
 
@@ -10719,7 +10732,9 @@ function nextExercise() {
 
             startBtn.style.display = 'flex';
 
-            feedback.className = 'feedback-panel warning';
+            feedback.classList.remove('correct', 'incorrect', 'warning');
+            feedback.classList.add('warning');
+            feedback.style.display = 'block';
 
             feedback.innerHTML =
               '<span class="material-symbols-outlined">warning</span><span>Не удалось распознать речь. Попробуйте ещё раз.</span>';
@@ -10735,7 +10750,9 @@ function nextExercise() {
         } catch (err) {
           console.error('SpeechRecognition start failed:', err);
 
-          feedback.className = 'feedback-panel warning';
+          feedback.classList.remove('correct', 'incorrect', 'warning');
+          feedback.classList.add('warning');
+          feedback.style.display = 'block';
 
           feedback.innerHTML =
             '<span class="material-symbols-outlined">warning</span><span>Не удалось запустить распознавание.</span>';
@@ -12481,8 +12498,14 @@ function runContextExercise(word, onComplete) {
 
   const example = word.ex || `I want to _____ my goals.`;
 
+  // Экранируем спецсимволы в слове для безопасного создания регулярного выражения
+  const escapedWord = word.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
   // Заменяем слово на пробел, нечувствительно к регистру
-  const exampleWithBlank = example.replace(new RegExp(word.en, 'i'), '_____');
+  const exampleWithBlank = example.replace(
+    new RegExp(escapedWord, 'gi'),
+    '_____',
+  );
 
   const exampleTranslation = word.examples?.[0]?.translation || '';
 
@@ -12514,7 +12537,7 @@ function runContextExercise(word, onComplete) {
 
       <div class="context-options" id="context-options"></div>
 
-      <div class="speech-feedback" id="context-feedback" style="display: none;"></div>
+      <div class="feedback-panel" id="context-feedback" style="display: none;"></div>
 
     </div>
 
@@ -12548,23 +12571,11 @@ function runContextExercise(word, onComplete) {
 
       feedback.style.display = 'block';
 
-      feedback.className = `feedback-panel ${isCorrect ? 'correct' : 'incorrect'}`;
+      feedback.classList.remove('correct', 'incorrect', 'warning');
+      feedback.classList.add(isCorrect ? 'correct' : 'incorrect');
+      feedback.style.display = 'block';
 
-      feedback.innerHTML = `
-
-        <span class="material-symbols-outlined">${isCorrect ? 'check_circle' : 'cancel'}</span>
-
-        <div>
-
-          <strong>${isCorrect ? 'Верно!' : 'Неверно.'}</strong><br>
-
-          ${word.en} — ${parseAnswerVariants(word.ru).join(', ') || word.ru}
-
-          ${word.phonetic ? `<br><small>/${word.phonetic}/</small>` : ''}
-
-        </div>
-
-      `;
+      feedback.innerHTML = getFeedbackHTML(word, isCorrect);
 
       playSound(isCorrect ? 'correct' : 'wrong');
 
@@ -12884,7 +12895,7 @@ function runSpeechSentenceExercise(word, onComplete) {
 
 
 
-        <div class="speech-feedback" id="speech-sentence-feedback" style="display: none;"></div>
+        <div class="feedback-panel" id="speech-sentence-feedback" style="display: none;"></div>
 
 
 
@@ -13026,7 +13037,11 @@ function runSpeechSentenceExercise(word, onComplete) {
 
         feedback.className = 'feedback-panel correct';
 
-        feedback.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Верно! (Совпадение: ${result.confidence}%)</span>`;
+        feedback.innerHTML = getFeedbackHTML(
+          w,
+          result.isCorrect,
+          result.confidence,
+        );
 
         playSound('correct');
 
@@ -13040,7 +13055,11 @@ function runSpeechSentenceExercise(word, onComplete) {
 
         feedback.className = 'feedback-panel incorrect';
 
-        feedback.innerHTML = `<span class="material-symbols-outlined">cancel</span><span>Неверно. Вы сказали: "${spoken}" (Совпадение: ${result.confidence}%)</span>`;
+        feedback.innerHTML = getFeedbackHTML(
+          w,
+          result.isCorrect,
+          result.confidence,
+        );
 
         playSound('wrong');
 
@@ -13089,7 +13108,9 @@ function runSpeechSentenceExercise(word, onComplete) {
 
         feedback.style.display = 'block';
 
-        feedback.className = 'feedback-panel warning';
+        feedback.classList.remove('correct', 'incorrect', 'warning');
+        feedback.classList.add('warning');
+        feedback.style.display = 'block';
 
         feedback.innerHTML =
           '<span class="material-symbols-outlined">warning</span><span>Не удалось распознать речь. Попробуйте ещё раз.</span>';
@@ -13802,7 +13823,7 @@ window.onProfileFullyLoaded = async function () {
 
   // Применяем тему из профиля или fallback (только один раз!)
 
-  let themeToApply = 'light'; // по умолчанию
+  let themeToApply = 'lavender'; // по умолчанию
 
   if (window.user_settings?.theme) {
     themeToApply = window.user_settings.theme;

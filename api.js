@@ -55,7 +55,7 @@ const EMERGENCY_WORDS = [
  * Загружает банк слов — сначала пытается из dictionary.json,
  * если не получилось — fallback на EMERGENCY_WORDS
  */
-async function loadWordBank() {
+async function loadWordBank(retries = 2) {
   if (wordBank) return wordBank;
 
   // Принудительная очистка кеша для отладки
@@ -91,18 +91,25 @@ async function loadWordBank() {
     const response = await fetch('./dictionary.json', { cache: 'no-cache' });
     if (!response.ok) {
       console.error('Failed to load dictionary:', response.status);
-      return [];
+      throw new Error(`HTTP ${response.status}`);
     }
     const data = await response.json();
     wordBank = data;
-
-    // Сохраняем в кэш
     localStorage.setItem(BANK_CACHE_KEY, JSON.stringify(wordBank));
     localStorage.setItem(BANK_VERSION_KEY, CURRENT_BANK_VERSION);
-
     return wordBank;
   } catch (error) {
     console.error('Error loading dictionary:', error);
+    if (retries > 0) {
+      console.warn(`Retrying... (${retries} left)`);
+      return loadWordBank(retries - 1);
+    }
+    if (window.toast) {
+      window.toast(
+        '⚠️ Не удалось загрузить словарь, используются базовые слова.',
+        'warning',
+      );
+    }
     wordBank = EMERGENCY_WORDS;
     return wordBank;
   }
