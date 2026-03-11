@@ -3,7 +3,7 @@
   "source": "index.html",
   "scripts": {
     "start": "parcel --open chrome",
-    "build": "parcel build index.html --public-url / --no-scope-hoist"
+    "build": "parcel build index.html --public-url / --no-scope-hoist --no-content-hash"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",

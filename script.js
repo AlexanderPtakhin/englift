@@ -2,8 +2,6 @@ import { supabase } from './supabase.js';
 
 import { saveWordToDb, deleteWordFromDb, saveUserData } from './db.js';
 
-import { getCompleteWordData } from './api.js';
-
 import './auth.js';
 
 // =============================================
@@ -26,31 +24,6 @@ const DEBUG =
 // =============================================
 
 let wordBankCache = null;
-
-window.WordAPI = {
-  async loadWordBank() {
-    if (wordBankCache) return wordBankCache;
-
-    const cached = localStorage.getItem('englift_dictionary_cache');
-    if (cached) {
-      wordBankCache = JSON.parse(cached);
-      return wordBankCache;
-    }
-
-    try {
-      const res = await fetch('dictionary.json');
-      wordBankCache = await res.json();
-      localStorage.setItem(
-        'englift_dictionary_cache',
-        JSON.stringify(wordBankCache),
-      );
-      return wordBankCache;
-    } catch (e) {
-      console.error('Не удалось загрузить словарь');
-      return [];
-    }
-  },
-};
 
 // =============================================
 
@@ -199,84 +172,13 @@ async function syncPendingWords() {
         // остаётся в очереди для повторной попытки
       }
     } else {
-      // Сохраняем или обновляем (существующая логика)
-
+      // Сохраняем или обновляем слово через saveWordToDb с upsert
       try {
-        console.log(
-          `💾 Пакетная синхронизация слова "${item.en}" с ID: ${item.id}`,
-        );
+        console.log(`💾 Синхронизация слова "${item.en}" с ID: ${item.id}`);
 
-        // Проверяем существует ли слово уже в базе
-
-        const { data: existingWord, error: checkError } = await supabase
-
-          .from('user_words')
-
-          .select('id')
-
-          .eq('id', item.id)
-
-          .single();
-
-        if (checkError) {
-          console.log(
-            `🆕 Слово новое (ошибка проверки: ${checkError.message}), сохраняем через INSERT`,
-          );
-
-          // Если ошибка при проверке, считаем слово новым и сохраняем
-
-          const { error } = await saveWordToDb(item);
-
-          if (error) {
-            console.error(`❌ Ошибка сохранения слова "${item.en}":`, error);
-          } else {
-            console.log(`✅ Слово "${item.en}" сохранено через INSERT`);
-          }
-        } else if (existingWord) {
-          console.log('🔄 Слово уже существует, обновляем только статистику');
-
-          // Обновляем только статистику и updatedAt
-
-          const { error } = await supabase
-
-            .from('user_words')
-
-            .update({
-              stats: item.stats,
-
-              updatedAt: new Date().toISOString(),
-            })
-
-            .eq('id', item.id);
-
-          if (error) {
-            console.error(
-              `❌ Ошибка обновления статистики слова "${item.en}":`,
-
-              error,
-            );
-          } else {
-            console.log(`✅ Статистика слова "${item.en}" обновлена`);
-          }
-        } else {
-          console.log('🆕 Слово новое, сохраняем через INSERT');
-
-          // Если слова нет, используем INSERT
-
-          const { error } = await saveWordToDb(item);
-
-          if (error) {
-            console.error(`❌ Ошибка сохранения слова "${item.en}":`, error);
-          } else {
-            console.log(`✅ Слово "${item.en}" сохранено через INSERT`);
-          }
-        }
-
-        // Если успешно, убираем из очереди
-
-        if (!checkError || !error) {
-          pendingWordUpdates.delete(item.id);
-        }
+        await saveWordToDb(item);
+        pendingWordUpdates.delete(item.id);
+        console.log(`✅ Слово "${item.en}" синхронизировано`);
       } catch (e) {
         console.error(`❌ Ошибка синхронизации слова "${item.en}":`, e);
       }
@@ -1137,18 +1039,6 @@ function renderWeekChart() {
 
 // ============================================================
 
-window.showApiLoading = function (show) {
-  const loadingEl = document.getElementById('api-loading');
-
-  if (loadingEl) {
-    loadingEl.style.display = show ? 'flex' : 'none';
-  }
-};
-
-// Hide loading on page load
-
-window.showApiLoading(false);
-
 // ============================================================
 
 // CONSTANTS
@@ -1212,6 +1102,18 @@ const CONSTANTS = {
 };
 
 const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
+
+// ============================================================
+
+// УТИЛИТЫ
+
+// ============================================================
+
+function formatTag(tag) {
+  // Если тег похож на уровень CEFR (буква + цифра), делаем заглавными
+  if (/^[a-c][1-2]$/i.test(tag)) return tag.toUpperCase();
+  return tag;
+}
 
 // ============================================================
 
@@ -2762,6 +2664,10 @@ async function updWord(id, data) {
     // Обновляем интерфейс
 
     refreshUI();
+
+    // Сохраняем изменения в localStorage
+
+    debouncedSave();
   }
 
   window.markProfileDirty?.(); // ← ДОБАВЬ ЭТО
@@ -6486,7 +6392,7 @@ function updateExpandedContent(card) {
 
 
 
-        ${tags.map(tag => `<span class="tag" data-tag="${esc(tag)}">${esc(tag)}</span>`).join('')}
+        ${tags.map(tag => `<span class="tag" data-tag="${esc(tag)}">${esc(formatTag(tag))}</span>`).join('')}
 
 
 
@@ -7225,100 +7131,6 @@ document.getElementById('del-cancel').addEventListener('click', () => {
 
 // ============================================================
 
-// Функция поиска слова в dictionary.json
-
-async function findWordInDictionary(word) {
-  const bank = window.wordBank;
-
-  if (!bank || bank.length === 0) return null;
-
-  return bank.find(w => w.en.toLowerCase() === word.toLowerCase()) || null;
-}
-
-// Обработчик кнопки автозаполнения
-
-document.getElementById('auto-fill-btn').addEventListener('click', async () => {
-  const enInput = document.getElementById('f-en');
-
-  const englishWord = enInput.value.trim();
-
-  if (!englishWord) {
-    toast('Сначала введите английское слово', 'warning', 'warning');
-
-    enInput.focus();
-
-    return;
-  }
-
-  // Проверяем, что это действительно английское слово
-
-  if (!validateEnglish(englishWord)) {
-    toast('Неверный формат английского слова', 'danger', 'error');
-
-    return;
-  }
-
-  try {
-    console.log('Searching for word:', englishWord);
-
-    // Сначала ищем в dictionary.json
-
-    let data = await findWordInDictionary(englishWord);
-
-    let source = 'dictionary.json';
-
-    // Если не нашли в dictionary.json, используем API
-
-    if (!data) {
-      console.log('Word not found in dictionary.json, trying API...');
-
-      data = await window.WordAPI.getCompleteWordData(englishWord);
-
-      source = 'API';
-    }
-
-    console.log(`Received data from ${source}:`, data);
-
-    // Сохраняем полные данные
-
-    lastFetchedWordData = {
-      ru: data.ru,
-
-      phonetic: data.phonetic,
-
-      tags: data.tags,
-
-      audio: data.audio,
-
-      examples: data.examples,
-
-      examplesAudio: data.examplesAudio,
-    };
-
-    // Заполняем форму
-
-    fillFormWithData(lastFetchedWordData);
-
-    // Перемещаем фокус на следующее поле
-
-    if (data.ru && data.ru.trim()) {
-      document.getElementById('f-ex').focus();
-    } else {
-      document.getElementById('f-ru').focus();
-    }
-  } catch (error) {
-    console.error('API Error:', error);
-
-    toast(
-      `Ошибка: ${error.message}. Попробуйте ввести вручную`,
-
-      'danger',
-
-      'api_error',
-    );
-  }
-});
-
 document.getElementById('single-form').addEventListener('submit', e => {
   e.preventDefault();
 
@@ -7514,57 +7326,28 @@ const showSuggestions = debounce(query => {
 
   const lowerQuery = query.toLowerCase();
 
-  // Собираем кандидатов из банка
+  // Исключаем слова, которые уже есть у пользователя
+  const userWordsEn = new Set(window.words.map(w => w.en.toLowerCase()));
 
+  // Собираем кандидатов только из банка, исключая уже добавленные
   const bankCandidates = (window.wordBank || [])
-
-    .filter(item => item.en.toLowerCase().startsWith(lowerQuery))
-
+    .filter(
+      item =>
+        item.en.toLowerCase().startsWith(lowerQuery) &&
+        !userWordsEn.has(item.en.toLowerCase()),
+    )
     .map(item => ({
       en: item.en,
-
       ru: item.ru,
-
       tags: item.tags || [],
-
       phonetic: item.phonetic || null,
-
       examples: item.examples || [],
-
       examplesAudio: item.examplesAudio || [],
-
       audio: item.audio,
-
       source: 'bank',
     }));
 
-  // Собираем кандидатов из слов пользователя
-
-  const userCandidates = window.words
-
-    .filter(w => w.en.toLowerCase().startsWith(lowerQuery))
-
-    .map(w => ({
-      en: w.en,
-
-      ru: w.ru,
-
-      tags: w.tags || [],
-
-      phonetic: w.phonetic || null,
-
-      examples: w.examples || [],
-
-      examplesAudio: w.examplesAudio || [],
-
-      audio: w.audio,
-
-      source: 'user',
-    }));
-
-  // Объединяем и убираем дубликаты по en+ru
-
-  const allCandidates = [...bankCandidates, ...userCandidates];
+  const allCandidates = bankCandidates; // ← только банк, без слов пользователя
 
   const unique = [];
 
@@ -12160,7 +11943,7 @@ async function renderRandomBankWord() {
 
 
 
-        ${word.tags?.length ? `<div class="word-bank-tags">${word.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}</div>` : ''}
+        ${word.tags?.length ? `<div class="word-bank-tags">${word.tags.map(tag => `<span class="tag">${esc(formatTag(tag))}</span>`).join('')}</div>` : ''}
 
 
 
@@ -12717,7 +12500,7 @@ function runContextExercise(word, onComplete) {
 
         <div class="context-text" onclick="this.nextElementSibling.style.display='block'; this.style.background='transparent'; this.onmouseover=null; this.onmouseout=null;" style="cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s;" title="Нажмите для перевода" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">
 
-          ${isFirstOptionCorrect ? '' : exampleWithBlank}
+          ${exampleWithBlank}
 
         </div>
 
@@ -13893,20 +13676,6 @@ window.clearUserData = function (isExplicitLogout = false) {
   window.isSessionActive = false;
 };
 
-// Глобальные функции для доступа из других модулей
-
-window.showApiLoading = function (show) {
-  const loadingEl = document.getElementById('api-loading');
-
-  if (loadingEl) {
-    loadingEl.style.display = show ? 'flex' : 'none';
-  }
-};
-
-// Hide loading on page load
-
-window.showApiLoading(false);
-
 // ============================================================
 
 // GLOBAL FUNCTIONS FOR AUTH.JS
@@ -14033,7 +13802,7 @@ window.onProfileFullyLoaded = async function () {
 
   // Применяем тему из профиля или fallback (только один раз!)
 
-  let themeToApply = 'lavender'; // по умолчанию
+  let themeToApply = 'light'; // по умолчанию
 
   if (window.user_settings?.theme) {
     themeToApply = window.user_settings.theme;

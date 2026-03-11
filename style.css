@@ -613,7 +613,7 @@ html.dark {
 *::before,
 *::after {
   box-sizing: border-box;
-
+  -webkit-tap-highlight-color: transparent;
   margin: 0;
 
   padding: 0;
@@ -11078,22 +11078,24 @@ html.dark .xp-stats-row {
 }
 
 .add-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  align-items: start;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
   width: 100%;
   box-sizing: border-box;
 }
 
 @media (max-width: 720px) {
   .add-layout {
-    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    align-items: center !important;
   }
 }
 
 /* ── Карточки ── */
 .add-layout .add-card {
+  max-width: 500px !important;
   width: 100% !important;
   box-sizing: border-box !important;
   padding: 1.5rem !important;

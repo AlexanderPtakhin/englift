@@ -23,39 +23,24 @@ export async function loadWordsOnce(callback) {
   }
 }
 
-// Сохранить одно слово (вставка или обновление)
+// Сохранить одно слово (upsert по id)
 export async function saveWordToDb(word) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+
   const wordData = {
     ...word,
     user_id: user.id,
     updatedAt: new Date().toISOString(),
   };
 
-  // Сначала пробуем вставить
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('user_words')
-    .insert(wordData)
-    .select()
-    .single();
+    .upsert(wordData, { onConflict: 'id' });
 
-  if (error) {
-    if (error.code === '23505') {
-      const { data: updateData, error: updateError } = await supabase
-        .from('user_words')
-        .update(wordData)
-        .eq('user_id', user.id)
-        .eq('en', word.en)
-        .select()
-        .single();
-      if (updateError) throw updateError;
-    } else {
-      throw error;
-    }
-  }
+  if (error) throw error;
 }
 
 // Удалить слово

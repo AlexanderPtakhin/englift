@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Нет соединения</title>
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg, #fef7ed);
+      color: var(--text, #3b2e24);
+      text-align: center;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    h1 { 
+      font-size: 2rem; 
+      margin-bottom: 1rem;
+      color: var(--primary, #ea580c);
+    }
+    p { 
+      opacity: 0.8; 
+      max-width: 400px;
+      line-height: 1.6;
+    }
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.6;
+    }
+    .retry-btn {
+      margin-top: 2rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--primary, #ea580c);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1rem;
+      transition: opacity 0.2s;
+    }
+    .retry-btn:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="icon">📴</div>
+  <h1>Вы офлайн</h1>
+  <p>Проверьте подключение к интернету и попробуйте снова.</p>
+  <button class="retry-btn" onclick="window.location.reload()">Попробовать снова</button>
+</body>
+</html>
