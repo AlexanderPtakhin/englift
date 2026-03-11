@@ -981,6 +981,8 @@ button {
 
   border-color: var(--success) !important;
 
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2) !important;
+
   transition: all 0.3s ease;
 }
 
@@ -1486,7 +1488,7 @@ input[type='submit']:active {
 
   transition: all 0.25s;
 
-  box-shadow: 0 2px 8px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
+  /* box-shadow: 0 2px 8px rgba(var(--primary-rgb, 59, 130, 246), 0.3); */
 }
 
 .btn-primary:hover {
@@ -7808,7 +7810,7 @@ html.dark .due-soon {
 
   margin-left: auto;
 
-  color: #8884aa;
+  color: var(--muted);
 }
 
 .custom-select-options {
@@ -7886,7 +7888,7 @@ html.dark .due-soon {
 
   display: block;
 
-  color: #8884aa;
+  color: var(--muted);
 }
 
 .custom-select-option:hover .material-symbols-outlined,

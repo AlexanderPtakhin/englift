@@ -1929,42 +1929,6 @@ window.updateDailyProgress = function (newDailyProgress) {
   renderStats();
 };
 
-// Clear all user data on logout
-
-window.clearUserData = function () {
-  window.words = [];
-
-  xpData = { xp: 0, level: 1, badges: [] };
-
-  streak = { count: 0, lastDate: null };
-
-  window.dailyProgress = {
-    add_new: 0,
-
-    review: 0,
-
-    practice_time: 0,
-
-    completed: false,
-
-    lastReset: new Date().toISOString().split('T')[0],
-  };
-
-  window.dailyReviewCount = 0;
-
-  window.lastReviewResetDate = new Date().toISOString().split('T')[0]; // сегодняшняя дата
-
-  window.currentUserId = null;
-
-  localStorage.removeItem(CONSTANTS.STORAGE_KEYS.WORDS);
-
-  localStorage.removeItem(PROFILE_BACKUP_KEY); // Удаляем бэкап профиля
-
-  renderCache.clear();
-
-  refreshUI();
-};
-
 // Daily goals reset function
 
 async function resetDailyGoalsIfNeeded() {
@@ -6276,6 +6240,18 @@ function makeCard(w) {
 
     card.classList.toggle('expanded');
 
+    // Обновляем текст подсказки
+    const expandHint = card.querySelector('.expand-hint');
+    const expandIcon = card.querySelector('.expand-icon');
+
+    if (card.classList.contains('expanded')) {
+      expandHint.textContent = 'Нажмите, чтобы свернуть';
+      expandIcon.textContent = 'expand_less';
+    } else {
+      expandHint.textContent = 'Нажмите, чтобы раскрыть';
+      expandIcon.textContent = 'expand_more';
+    }
+
     updateExpandedContent(card);
   });
 
@@ -6346,7 +6322,7 @@ function updateExpandedContent(card) {
 
 
 
-        <h4>Примеры</h4>
+        <h4>Пример</h4>
 
 
 

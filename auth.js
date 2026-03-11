@@ -11,7 +11,6 @@ const gatePassword = document.getElementById('gate-password');
 const gateConfirm = document.getElementById('gate-confirm-password');
 const gateConfirmGroup = document.getElementById('gate-confirm-group');
 const gateSubmit = document.getElementById('gate-submit-btn');
-const gateToggle = document.getElementById('gate-toggle-btn');
 const gateError = document.getElementById('gate-error');
 const forgotPasswordBtn = document.getElementById('forgot-password-btn');
 const resetModal = document.getElementById('reset-password-modal');
@@ -180,6 +179,7 @@ async function handleAuth(email, password, confirm, isRegister) {
           'success',
         );
       }
+      clearGateForm();
     } else {
       console.log('🔐 Signing in user...');
       const { error } = await supabase.auth.signInWithPassword({
@@ -188,9 +188,9 @@ async function handleAuth(email, password, confirm, isRegister) {
       });
       if (error) throw error;
       console.log('✅ Sign in successful');
+      clearGateForm();
+      hideAuthGate(); // ← только при логине
     }
-    clearGateForm();
-    hideAuthGate(); // Теперь правильно скроет с сбросом инлайн-стиля
   } catch (err) {
     console.log('❌ Auth error:', err);
     const msgs = {
