@@ -1389,6 +1389,32 @@ function applyProfileData(data) {
     ...(data.user_settings || {}),
   };
 
+  // Конвертация старого поля theme в новую структуру
+  if (data.user_settings?.theme) {
+    const oldTheme = data.user_settings.theme;
+    if (oldTheme === 'dark') {
+      window.user_settings.baseTheme =
+        window.user_settings.baseTheme || 'lavender';
+      window.user_settings.dark = true;
+    } else if (oldTheme === 'lavender') {
+      window.user_settings.baseTheme = 'lavender';
+      window.user_settings.dark = false;
+    } else {
+      // Если какая-то другая строка (не должно быть)
+      window.user_settings.baseTheme = 'lavender';
+      window.user_settings.dark = false;
+    }
+    delete window.user_settings.theme; // больше не нужно
+  } else {
+    // Если новых полей нет, ставим разумные значения
+    window.user_settings.baseTheme =
+      window.user_settings.baseTheme || 'lavender';
+    window.user_settings.dark = window.user_settings.dark ?? false;
+  }
+
+  // Применяем тему сразу после загрузки профиля
+  window.applyTheme(window.user_settings.baseTheme, window.user_settings.dark);
+
   // Проверяем и сбрасываем счётчик при смене дня
 
   checkAndResetDailyCount();
@@ -5601,69 +5627,35 @@ function initPWAInstall() {
 }
 
 // ============================================================
-
 // THEME MANAGEMENT
 
 // ============================================================
 
-window.applyTheme = function (themeName) {
-  console.log('applyTheme called with:', themeName);
+window.applyTheme = function (baseTheme, darkMode) {
+  console.log('applyTheme called with:', { baseTheme, darkMode });
 
-  // Поддержка обратной совместимости: если themeName это boolean
+  // Удаляем все классы тем (кроме dark)
+  const html = document.documentElement;
+  html.classList.remove('theme-ocean', 'theme-forest', 'theme-purple');
 
-  if (typeof themeName === 'boolean') {
-    themeName = themeName ? 'dark' : 'lavender';
+  // Добавляем класс базовой темы, если она не lavender (по умолчанию)
+  if (baseTheme !== 'lavender') {
+    html.classList.add(`theme-${baseTheme}`);
   }
 
-  // Убираем все классы тем
+  // Устанавливаем тёмный режим
+  window.applyDark(darkMode);
 
-  document.documentElement.classList.remove('dark', 'lavender', 'figma');
+  // Обновляем user_settings (сохранятся позже через markProfileDirty)
+  if (!window.user_settings) window.user_settings = {};
+  window.user_settings.baseTheme = baseTheme;
+  window.user_settings.dark = darkMode;
 
-  switch (themeName) {
-    case 'dark':
-      document.documentElement.classList.add('dark');
-
-      window.applyDark(true);
-
-      break;
-
-    case 'lavender':
-      // Светлая тема (уже по умолчанию)
-
-      window.applyDark(false);
-
-      break;
-
-    case 'figma':
-      // Можно добавить специальную тему Figma если нужно
-
-      window.applyDark(false);
-
-      break;
-
-    default:
-      // Fallback на светлую
-
-      window.applyDark(false);
-  }
-
-  // Обновляем user_settings
-
-  if (!window.user_settings) {
-    window.user_settings = {};
-  }
-
-  window.user_settings.theme = themeName;
-
-  // Сохраняем в localStorage для немедленного сохранения
-
+  // Сохраняем в localStorage для быстрого доступа
   localStorage.setItem(
     'englift_user_settings',
-
     JSON.stringify(window.user_settings),
   );
-
-  // Сохраняем в профиль через dirty flag
 
   window.markProfileDirty?.();
 };
@@ -5721,18 +5713,8 @@ const themeCheckbox = document.getElementById('theme-checkbox');
 if (themeCheckbox) {
   themeCheckbox.addEventListener('change', async e => {
     const on = e.target.checked;
-
-    const themeName = on ? 'dark' : 'lavender';
-
-    console.log('Theme checkbox changed, new theme:', themeName);
-
-    // Применяем тему через новую функцию
-
-    window.applyTheme(themeName);
-
-    // Сохраняем в localStorage для быстрого доступа
-
-    localStorage.setItem(CONSTANTS.STORAGE_KEYS.DARK_MODE, on);
+    const baseTheme = window.user_settings?.baseTheme || 'lavender';
+    window.applyTheme(baseTheme, on);
   });
 }
 
@@ -8010,6 +7992,10 @@ document
     const currentVoice = window.user_settings?.voice || 'female';
     document.getElementById('voice-select').value = currentVoice;
 
+    // Load theme settings
+    const baseTheme = window.user_settings?.baseTheme || 'lavender';
+    document.getElementById('theme-base-select').value = baseTheme;
+
     // Load timer settings
 
     const currentTimed = window.user_settings?.timedMode || 'off';
@@ -8112,31 +8098,26 @@ document
   ?.addEventListener('click', async () => {
     const limitSelect = document.getElementById('review-limit-select');
     const voiceSelect = document.getElementById('voice-select');
+    const themeSelect = document.getElementById('theme-base-select'); // новый элемент
 
     // Save practice settings
-
     const newLimit =
       limitSelect.value === '9999' ? 9999 : parseInt(limitSelect.value);
 
     const newVoice = voiceSelect.value;
-    const oldVoice = window.user_settings?.voice || 'female';
+    const newBaseTheme = themeSelect.value; // 'lavender', 'ocean', 'forest', 'purple'
 
     window.user_settings = window.user_settings || {};
-
     window.user_settings.reviewLimit = newLimit;
     window.user_settings.voice = newVoice;
+    window.user_settings.baseTheme = newBaseTheme;
+    // dark не меняется здесь, он остаётся как был (из чекбокса)
 
-    // Mark profile as dirty to ensure settings are saved
+    // Помечаем профиль как изменённый
     window.markProfileDirty?.();
 
-    // Если сменили голос, перезагружать словарь не нужно - он теперь один
-    if (oldVoice !== newVoice) {
-      console.log(`Голос изменен с ${oldVoice} на ${newVoice}`);
-    }
-
-    // Обновляем метку времени сразу (оптимистично)
-
-    window.lastProfileUpdate = Date.now();
+    // Применяем тему сразу (dark берётся из текущего состояния)
+    window.applyTheme(newBaseTheme, window.user_settings.dark ?? false);
 
     // Save to Supabase
 

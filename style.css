@@ -114,22 +114,34 @@ body.loading header {
 /* === БЛОК СЛУЧАЙНОГО СЛОВА ИЗ БАНКА === */
 
 .word-bank-card {
-  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
-  box-shadow: 0 8px 25px rgba(180, 80, 40, 0.35) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
+  box-shadow: 0 8px 25px rgba(var(--primary-rgb), 0.35) !important;
   color: #fff5ee !important;
   border-radius: 20px;
   padding: 1.5rem 2rem;
   margin-bottom: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
+  border: 2px solid var(--primary);
   position: relative;
-  transition: opacity 0.3s ease;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  transform: translateZ(0);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 html.dark .word-bank-card {
-  background: linear-gradient(135deg, #c07030 0%, #7a3515 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45) !important;
 }
 
@@ -139,7 +151,7 @@ html.dark .word-bank-card {
 .word-bank-card .word-bank-phonetic,
 .word-bank-card .word-bank-example,
 .word-bank-card .word-bank-example-translation {
-  color: rgba(255, 245, 238, 0.85) !important;
+  color: #fff5ee !important;
 }
 
 .word-bank-card .word-bank-en {
@@ -148,31 +160,31 @@ html.dark .word-bank-card {
 }
 
 .word-bank-card .word-bank-tags .tag {
-  background: rgba(255, 245, 238, 0.18) !important;
+  background: rgba(var(--card-rgb), 0.18) !important;
   color: #fff5ee !important;
 }
 
 .word-bank-card .word-bank-tags .tag:hover {
-  background: rgba(255, 245, 238, 0.28) !important;
+  background: rgba(var(--card-rgb), 0.28) !important;
 }
 
 .word-bank-nav-btn {
-  background: rgba(255, 245, 238, 0.18) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
   color: #fff5ee !important;
 }
 
 .word-bank-nav-btn:hover {
-  background: rgba(255, 245, 238, 0.32) !important;
+  background: rgba(255, 255, 255, 0.32) !important;
 }
 
 .word-bank-add-btn {
-  background: rgba(255, 245, 238, 0.2) !important;
-  border-color: rgba(255, 245, 238, 0.7) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
   color: #fff5ee !important;
 }
 
 .word-bank-add-btn:hover {
-  background: rgba(255, 245, 238, 0.35) !important;
+  background: rgba(255, 255, 255, 0.35) !important;
 }
 
 .word-bank-content {
@@ -281,17 +293,13 @@ html.dark .word-bank-card {
 
 .word-bank-actions {
   display: flex;
-
   flex-direction: column;
-
   gap: 0.75rem;
 }
 
 .word-bank-nav {
   display: flex;
-
   gap: 0.5rem;
-
   justify-content: center;
 }
 
@@ -378,11 +386,8 @@ html.dark .word-bank-card {
 
   .word-bank-actions {
     flex-direction: row;
-
     justify-content: space-between;
-
     align-items: center;
-
     margin-top: 1rem;
   }
 
@@ -392,7 +397,6 @@ html.dark .word-bank-card {
 
   .word-bank-add-btn {
     order: 1;
-
     padding: 0.6rem 1rem;
   }
 }
@@ -409,22 +413,23 @@ html.dark .word-bank-card {
 
 /* Базовая кнопка озвучки (как у слайдера) */
 .word-bank-audio {
-  background: rgba(255, 245, 238, 0.18);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff5ee;
   border: none;
   border-radius: 50%;
   width: 44px;
   height: 44px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: background 0.2s;
   flex-shrink: 0;
+  opacity: 1;
 }
 
 .word-bank-audio:hover {
-  background: rgba(255, 245, 238, 0.32);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 /* Контейнер для слова и кнопки */
@@ -577,10 +582,12 @@ html:not(.dark) {
     color 0.3s ease;
 }
 
+/* Тема по умолчанию: Лаванда (без класса) */
 :root {
   --primary: #e07a5f;
   --primary-light: #f4a261;
   --primary-dark: #bc6c25;
+  --primary-rgb: 224, 122, 95;
   --bg: #fef7ed;
   --card: #ffffff;
   --card-rgb: 255, 255, 255;
@@ -595,16 +602,104 @@ html:not(.dark) {
   --shadow-hover: 0 8px 30px rgba(224, 122, 95, 0.18);
 }
 
+/* Тёмная лаванда */
 html.dark {
   --primary: #f4a261;
   --primary-light: #e9c46a;
+  --primary-rgb: 244, 162, 97;
   --bg: #2a2622;
   --card: #3a332c;
   --card-rgb: 58, 51, 44;
   --text: #f0e9df;
   --muted: #9e8d7c;
   --border: #554b42;
-  --danger: #ef4444;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Тема Океан (светлая) */
+.theme-ocean {
+  --primary: #2b6c94;
+  --primary-light: #4a8bb7;
+  --primary-dark: #1a4d6b;
+  --primary-rgb: 43, 108, 148;
+  --bg: #f0f8ff;
+  --card: #ffffff;
+  --text: #1e2f3d;
+  --muted: #5f7a92;
+  --border: #c3d9eb;
+  --shadow: 0 4px 20px rgba(43, 108, 148, 0.1);
+  --shadow-hover: 0 8px 30px rgba(43, 108, 148, 0.18);
+}
+
+/* Тёмный океан */
+.dark.theme-ocean {
+  --primary: #6fa8d9;
+  --primary-light: #8fc5f0;
+  --primary-rgb: 111, 168, 217;
+  --bg: #1a2b38;
+  --card: #253544;
+  --text: #e3edf5;
+  --muted: #8aa9c2;
+  --border: #3f5565;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Тема Лес (светлая) */
+.theme-forest {
+  --primary: #2f6b3c;
+  --primary-light: #4c8c5c;
+  --primary-dark: #1f4b2a;
+  --primary-rgb: 47, 107, 60;
+  --bg: #f0f7f0;
+  --card: #ffffff;
+  --text: #1e2f1e;
+  --muted: #5a7a5a;
+  --border: #c0dbc0;
+  --shadow: 0 4px 20px rgba(47, 107, 60, 0.1);
+  --shadow-hover: 0 8px 30px rgba(47, 107, 60, 0.18);
+}
+
+/* Тёмный лес */
+.dark.theme-forest {
+  --primary: #6fb17f;
+  --primary-light: #8fcf9f;
+  --primary-rgb: 111, 177, 127;
+  --bg: #1e2b1e;
+  --card: #2a3a2a;
+  --text: #e0f0e0;
+  --muted: #8faa8f;
+  --border: #3e553e;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Тема Фиолетовая (светлая) */
+.theme-purple {
+  --primary: #9b87b8;
+  --primary-light: #b8a7d1;
+  --primary-dark: #7d6b9a;
+  --primary-rgb: 155, 135, 184;
+  --bg: #fbf8ff;
+  --card: #ffffff;
+  --text: #2d2a3a;
+  --muted: #7a6f8a;
+  --border: #e2d9f0;
+  --shadow: 0 4px 20px rgba(155, 135, 184, 0.1);
+  --shadow-hover: 0 8px 30px rgba(155, 135, 184, 0.18);
+}
+
+/* Тёмная фиолетовая */
+.dark.theme-purple {
+  --primary: #b8a7d1;
+  --primary-light: #d1c2e5;
+  --primary-rgb: 184, 167, 209;
+  --bg: #2e283b;
+  --card: #3f3850;
+  --text: #efe5ff;
+  --muted: #a697b8;
+  --border: #554a66;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
@@ -2542,23 +2637,16 @@ textarea {
 }
 
 .badge-learned {
-  background: #d1fae5;
-
-  color: #065f46;
-
+  background: var(--success);
+  color: var(--text);
   padding: 2px 8px;
-
-  border-radius: 10px;
-
-  font-size: 0.75rem;
-
+  border-radius: 12px;
   font-weight: 700;
 }
 
 html.dark .badge-learned {
-  background: #064e3b;
-
-  color: #6ee7b7;
+  background: var(--success);
+  color: var(--text);
 }
 
 .badge-tag {
@@ -10254,11 +10342,15 @@ html.dark header {
 
 /* ─── XP ROW → градиентная карточка ─── */
 .xp-stats-row {
-  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   border-radius: 20px !important;
   padding: 1.5rem 2rem !important;
   margin-bottom: 1.5rem !important;
-  box-shadow: 0 8px 28px rgba(150, 60, 20, 0.3) !important;
+  box-shadow: 0 8px 28px rgba(var(--primary-rgb), 0.3) !important;
   position: relative;
   overflow: hidden;
 }
@@ -10536,7 +10628,11 @@ html.dark header {
 
 /* ─── Dark mode tweaks ─── */
 html.dark .xp-stats-row {
-  background: linear-gradient(135deg, #a04828 0%, #4a1f08 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
 }
 
@@ -10554,14 +10650,18 @@ html.dark .cefr-level:hover {
 
 /* ===== XP STATS ROW — ПОЛНЫЙ ОВЕРРАЙД ===== */
 .xp-stats-row {
-  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   border-radius: 20px !important;
   padding: 1.5rem 2rem !important;
   margin-bottom: 1.5rem !important;
   display: flex !important;
   align-items: center !important;
   gap: 2rem !important;
-  box-shadow: 0 8px 28px rgba(150, 60, 20, 0.3) !important;
+  box-shadow: 0 8px 28px rgba(var(--primary-rgb), 0.3) !important;
   position: relative !important;
   overflow: hidden !important;
   border: none !important;
@@ -10644,36 +10744,48 @@ html.dark .cefr-level:hover {
 
 /* ===== ТЁМНАЯ ТЕМА ===== */
 html.dark .xp-stats-row {
-  background: linear-gradient(135deg, #a04828 0%, #4a1f08 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* всё остальное остаётся таким же, но для надёжности дублируем ключевые цвета */
 html.dark .xp-stats-row .xp-level .material-symbols-outlined {
-  color: #fde68a !important;
-  filter: drop-shadow(0 0 8px rgba(253, 230, 138, 0.6)) !important;
+  color: var(--primary-light) !important;
+  filter: drop-shadow(0 0 8px rgba(var(--primary-rgb), 0.6)) !important;
 }
 html.dark .xp-stats-row .xp-level-text .level-num {
-  color: #fff5ee !important;
+  color: var(--text) !important;
 }
 html.dark .xp-stats-row .xp-level-text span:not(.level-num) {
   color: rgba(255, 245, 238, 0.6) !important;
 }
 html.dark .xp-stats-row .xp-bar-bg {
-  background: rgba(255, 220, 180, 0.18) !important;
+  background: rgba(var(--card-rgb), 0.18) !important;
 }
 html.dark .xp-stats-row .xp-bar-bg .xp-bar-fill,
 html.dark .xp-stats-row #xp-bar {
-  background: linear-gradient(90deg, #fde68a, #fbbf24) !important;
+  background: linear-gradient(
+    90deg,
+    var(--primary-light),
+    var(--primary)
+  ) !important;
 }
 html.dark .xp-stats-row .xp-text,
 html.dark .xp-stats-row #st-xp {
-  color: rgba(255, 245, 238, 0.7) !important;
+  color: var(--text) !important;
 }
 
 /* ── XP STATS ROW — FINAL OVERRIDE ── */
 .xp-stats-row {
-  background: linear-gradient(135deg, #c85c3a 0%, #7a3515 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   border-radius: 20px !important;
   padding: 1.4rem 2rem !important;
   margin-bottom: 1.5rem !important;
@@ -10681,7 +10793,7 @@ html.dark .xp-stats-row #st-xp {
   align-items: center !important;
   gap: 1rem !important;
   flex-wrap: wrap !important;
-  box-shadow: 0 8px 28px rgba(150, 60, 20, 0.3) !important;
+  box-shadow: 0 8px 28px rgba(var(--primary-rgb), 0.3) !important;
   border: none !important;
   overflow: hidden !important;
   position: relative !important;
@@ -10935,22 +11047,22 @@ html.dark .xp-stats-row {
 }
 
 .chip:hover:not(.on) {
-  border-color: #e07a5f !important;
-  color: #e07a5f !important;
-  background: rgba(224, 122, 95, 0.06) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+  background: rgba(var(--primary-rgb), 0.06) !important;
 }
 
 .chip.on {
-  background: rgba(224, 122, 95, 0.12) !important;
-  border-color: #e07a5f !important;
-  color: #c85c3a !important;
+  background: rgba(var(--primary-rgb), 0.12) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-light) !important;
   box-shadow: none !important;
 }
 
 html.dark .chip.on {
-  background: rgba(244, 162, 97, 0.15) !important;
-  border-color: #f4a261 !important;
-  color: #f4a261 !important;
+  background: rgba(var(--primary-rgb), 0.15) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
 }
 
 /* ── EXERCISE CARDS — мягкая версия ── */
@@ -10976,10 +11088,10 @@ html.dark .chip.on {
 }
 
 .exercise-card.selected {
-  border-color: #e07a5f !important;
-  background: rgba(224, 122, 95, 0.1) !important;
-  box-shadow: 0 4px 14px rgba(150, 60, 20, 0.12) !important;
-  transform: translateY(-2px) !important;
+  border-color: var(--primary) !important;
+  background: rgba(var(--primary-rgb), 0.1) !important;
+  box-shadow: var(--shadow-hover) !important;
+  transform: translateY(-2px) scale(1.02);
 }
 
 .exercise-card .exercise-icon .material-symbols-outlined {
@@ -10990,7 +11102,7 @@ html.dark .chip.on {
 
 .exercise-card:hover .exercise-icon .material-symbols-outlined,
 .exercise-card.selected .exercise-icon .material-symbols-outlined {
-  color: #e07a5f !important;
+  color: var(--primary) !important;
 }
 
 .exercise-card .exercise-name {
@@ -11000,34 +11112,34 @@ html.dark .chip.on {
 }
 
 .exercise-card.selected .exercise-name {
-  color: #c85c3a !important;
+  color: var(--primary) !important;
 }
 
 html.dark .exercise-card.selected {
-  border-color: #f4a261 !important;
-  background: rgba(244, 162, 97, 0.1) !important;
+  border-color: var(--primary) !important;
+  background: rgba(var(--primary-rgb), 0.1) !important;
 }
 
 html.dark .exercise-card:hover .exercise-icon .material-symbols-outlined,
 html.dark .exercise-card.selected .exercise-icon .material-symbols-outlined {
-  color: #f4a261 !important;
+  color: var(--primary) !important;
 }
 
 html.dark .exercise-card.selected .exercise-name {
-  color: #f4a261 !important;
+  color: var(--primary) !important;
 }
 
 /* ── Кнопка Начать ── */
 #start-btn {
   background: var(--primary) !important;
   border: none !important;
-  color: #fff5ee !important;
-  box-shadow: 0 4px 14px rgba(224, 122, 95, 0.25) !important;
+  color: var(--text) !important;
+  box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.25) !important;
   transition: all 0.2s ease !important;
 }
 
 #start-btn:hover {
   transform: translateY(-2px) !important;
   filter: brightness(1.06) !important;
-  box-shadow: 0 8px 20px rgba(224, 122, 95, 0.3) !important;
+  box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.3) !important;
 }
