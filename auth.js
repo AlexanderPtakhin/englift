@@ -168,14 +168,11 @@ async function handleAuth(email, password, confirm, isRegister) {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       if (data.user) {
-        // Создаём профиль в таблице profiles
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({ id: data.user.id });
-        if (profileError)
-          console.error('Error creating profile:', profileError);
+        // Показываем блок неподтверждённого email
+        showEmailNotVerified(data.user.email);
+        // Можно также показать toast для дополнительного внимания
         window.toast?.(
-          '📧 Письмо для подтверждения отправлено на ваш email. Проверьте почту (и папку "Спам").',
+          '📧 Письмо для подтверждения отправлено. Проверьте почту (и папку "Спам").',
           'success',
         );
       }

@@ -13643,75 +13643,49 @@ window.clearUserData = function (isExplicitLogout = false) {
   console.log('🧹 clearUserData вызван, explicit:', isExplicitLogout);
 
   window.profileFullyLoaded = false;
-
   if (badgeCheckInterval) {
     clearInterval(badgeCheckInterval);
-
     badgeCheckInterval = null;
   }
-
   window.words = [];
-
   window.pendingWordUpdates?.clear();
-
   if (window.wordSyncTimer) clearTimeout(window.wordSyncTimer);
-
   if (profileSyncTimer) clearTimeout(profileSyncTimer);
 
   if (isExplicitLogout) {
+    // Сброс данных в памяти
     xpData = { xp: 0, level: 1, badges: [] };
-
     streak = { count: 0, lastDate: null };
-
     window.dailyProgress = {
       add_new: 0,
-
       practice_time: 0,
-
       review: 0,
-
       completed: false,
-
       lastReset: new Date().toISOString().split('T')[0],
     };
-
     window.dailyReviewCount = 0;
-
     window.lastReviewResetDate = new Date().toISOString().split('T')[0];
 
-    localStorage.removeItem('englift_words');
-
-    localStorage.removeItem('englift_profile_backup');
-
-    localStorage.removeItem('englift_lastknown_progress');
+    // Полная очистка localStorage от всех ключей приложения
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('englift_')) {
+        localStorage.removeItem(key);
+      }
+    });
   }
 
   renderXP();
-
   renderBadges();
-
   updateDueBadge();
-
   switchTab('words');
 
   // Сбрасываем экран практики
-
   const exerciseScreen = document.getElementById('practice-ex');
-
   const startScreen = document.getElementById('practice-setup');
-
   if (exerciseScreen) exerciseScreen.style.display = 'none';
-
   if (startScreen) startScreen.style.display = '';
-
-  // Скрываем карточку результатов
-
   const resultsCard = document.querySelector('.results-card');
-
   if (resultsCard) resultsCard.style.display = 'none';
-
-  // Сбрасываем флаги сессии
-
   window.isSessionActive = false;
 };
 
