@@ -19,6 +19,31 @@ const DEBUG =
 
 // =============================================
 
+// НЕМЕДЛЕННАЯ ИНИЦИАЛИЗАЦИЯ ТЕМЫ (чтобы не было мерцания)
+
+// =============================================
+
+(function initThemeFromStorage() {
+  const saved = JSON.parse(
+    localStorage.getItem('englift_user_settings') || '{}',
+  );
+  const baseTheme = saved.baseTheme || 'lavender';
+  const dark = saved.dark ?? false;
+
+  // Применяем классы напрямую (без вызова applyTheme, чтобы не запускать лишнюю логику)
+  const html = document.documentElement;
+  html.classList.remove('theme-ocean', 'theme-forest', 'theme-purple', 'dark');
+  if (baseTheme !== 'lavender') html.classList.add(`theme-${baseTheme}`);
+  if (dark) html.classList.add('dark');
+
+  // Записываем в глобальные настройки, чтобы потом использовать
+  window.user_settings = window.user_settings || {};
+  window.user_settings.baseTheme = baseTheme;
+  window.user_settings.dark = dark;
+})();
+
+// =============================================
+
 // КЭШ СЛОВАРЯ - оптимизация загрузки
 
 // =============================================
@@ -31,8 +56,11 @@ let wordBankCache = null;
 
 // =============================================
 
-function playAudio(filename) {
-  if (!filename) return console.warn('Нет файла аудио');
+function playAudio(filename, onEnd) {
+  if (!filename) {
+    if (onEnd) onEnd();
+    return console.warn('Нет файла аудио');
+  }
 
   // Определяем папку в зависимости от настроек голоса
   const voicePreference = window.user_settings?.voice || 'female';
@@ -42,16 +70,20 @@ function playAudio(filename) {
 
   audio.volume = 1.0;
 
+  audio.onended = () => {
+    if (onEnd) onEnd();
+  };
+
   audio.play().catch(err => {
     console.warn('Браузер заблокировал автозвук:', err);
-
     window.toast?.('Нажми ещё раз на динамик', 'info');
+    if (onEnd) onEnd(); // убираем волну в случае ошибки
   });
 }
 
 // Глобальные функции для всего сайта
 
-window.speakWord = function (wordObj) {
+window.speakWord = function (wordObj, onEnd) {
   // Поддерживаем разные форматы входных данных
 
   let audioFile = null;
@@ -82,11 +114,11 @@ window.speakWord = function (wordObj) {
 
   if (!audioFile) {
     console.warn('Аудио файл не найден для:', wordObj);
-
+    if (onEnd) onEnd(); // чтобы волна убралась даже при ошибке
     return;
   }
 
-  playAudio(audioFile);
+  playAudio(audioFile, onEnd);
 };
 
 window.playExampleAudio = function (wordObj) {
@@ -272,12 +304,7 @@ async function syncProfileToServer(force = false) {
     daily_progress: window.dailyProgress || {},
     daily_review_count: window.dailyReviewCount || 0,
     last_review_reset: window.lastReviewResetDate || null,
-    user_settings: {
-      ...window.user_settings,
-      theme: document.documentElement.classList.contains('dark')
-        ? 'dark'
-        : 'lavender',
-    },
+    user_settings: window.user_settings,
     updated_at: new Date().toISOString(),
   };
 
@@ -1306,12 +1333,11 @@ function mergeProfileData(primary, secondary) {
     merged.daily_progress = secondary.daily_progress;
   }
 
-  // user_settings – поверхностное слияние (приоритет у primary)
+  // user_settings – поверхностное слияние, приоритет у локальных (secondary)
 
   merged.user_settings = {
+    ...(primary.user_settings || {}),
     ...(secondary.user_settings || {}),
-
-    ...(merged.user_settings || {}),
   };
 
   // badges - объединяем уникальные бейджи из обоих источников
@@ -1392,18 +1418,19 @@ function applyProfileData(data) {
   // Конвертация старого поля theme в новую структуру
   if (data.user_settings?.theme) {
     const oldTheme = data.user_settings.theme;
+    // Создаём временные переменные
+    let newBaseTheme = 'lavender';
+    let newDark = false;
     if (oldTheme === 'dark') {
-      window.user_settings.baseTheme =
-        window.user_settings.baseTheme || 'lavender';
-      window.user_settings.dark = true;
+      newBaseTheme = window.user_settings?.baseTheme || 'lavender';
+      newDark = true;
     } else if (oldTheme === 'lavender') {
-      window.user_settings.baseTheme = 'lavender';
-      window.user_settings.dark = false;
-    } else {
-      // Если какая-то другая строка (не должно быть)
-      window.user_settings.baseTheme = 'lavender';
-      window.user_settings.dark = false;
+      newBaseTheme = 'lavender';
+      newDark = false;
     }
+    // Присваиваем
+    window.user_settings.baseTheme = newBaseTheme;
+    window.user_settings.dark = newDark;
     delete window.user_settings.theme; // больше не нужно
   } else {
     // Если новых полей нет, ставим разумные значения
@@ -1412,12 +1439,23 @@ function applyProfileData(data) {
     window.user_settings.dark = window.user_settings.dark ?? false;
   }
 
-  // Применяем тему сразу после загрузки профиля
-  window.applyTheme(window.user_settings.baseTheme, window.user_settings.dark);
-
   // Проверяем и сбрасываем счётчик при смене дня
 
   checkAndResetDailyCount();
+
+  // ===== ПРИМЕНЕНИЕ ТЕМЫ — ЛОКАЛЬНЫЙ ПРИОРИТЕТ (главный фикс) =====
+  const saved = JSON.parse(
+    localStorage.getItem('englift_user_settings') || '{}',
+  );
+  const finalBaseTheme =
+    saved.baseTheme || window.user_settings.baseTheme || 'lavender';
+  const finalDark = saved.dark ?? window.user_settings.dark ?? false;
+
+  console.log('🎨 Финальная тема после загрузки профиля:', {
+    finalBaseTheme,
+    finalDark,
+  });
+  window.applyTheme(finalBaseTheme, finalDark);
 
   window.lastProfileUpdate = data.updated_at
     ? new Date(data.updated_at).getTime()
@@ -5631,79 +5669,57 @@ function initPWAInstall() {
 
 // ============================================================
 
-window.applyTheme = function (baseTheme, darkMode) {
-  console.log('applyTheme called with:', { baseTheme, darkMode });
-
-  // Удаляем все классы тем (кроме dark)
+window.applyTheme = function (baseTheme = 'lavender', dark = false) {
   const html = document.documentElement;
-  html.classList.remove('theme-ocean', 'theme-forest', 'theme-purple');
 
-  // Добавляем класс базовой темы, если она не lavender (по умолчанию)
+  // Убираем все старые классы тем
+  html.classList.remove('theme-ocean', 'theme-forest', 'theme-purple', 'dark');
+
+  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию)
   if (baseTheme !== 'lavender') {
     html.classList.add(`theme-${baseTheme}`);
   }
 
-  // Устанавливаем тёмный режим
-  window.applyDark(darkMode);
-
-  // Обновляем user_settings (сохранятся позже через markProfileDirty)
-  if (!window.user_settings) window.user_settings = {};
-  window.user_settings.baseTheme = baseTheme;
-  window.user_settings.dark = darkMode;
-
-  // Сохраняем в localStorage для быстрого доступа
-  localStorage.setItem(
-    'englift_user_settings',
-    JSON.stringify(window.user_settings),
-  );
-
-  window.markProfileDirty?.();
-};
-
-window.applyDark = function (on) {
-  console.log('applyDark called with:', on);
-
-  console.log('HTML classes before:', document.documentElement.className);
-
-  // Предотвращаем мерцание путем временного скрытия документа
-
-  const originalVisibility = document.documentElement.style.visibility;
-
-  document.documentElement.style.visibility = 'hidden';
-
-  document.documentElement.classList.toggle('dark', on);
-
-  setTimeout(() => {
-    document.documentElement.style.visibility = originalVisibility || '';
-  }, 10);
-
-  // Update dropdown menu theme toggle checkbox
-
-  const themeCheckbox = document.getElementById('theme-checkbox');
-
-  if (themeCheckbox) {
-    themeCheckbox.checked = on;
-
-    console.log('Theme checkbox updated to:', on);
+  // Управляем тёмным режимом
+  if (dark) {
+    html.classList.add('dark');
   } else {
-    console.log('Theme checkbox element not found');
+    html.classList.remove('dark');
   }
 
-  // Update theme icon next to toggle
+  // Обновляем глобальные настройки
+  window.user_settings = window.user_settings || {};
+  window.user_settings.baseTheme = baseTheme;
+  window.user_settings.dark = dark;
 
+  // Сохраняем в localStorage
+  const saved = JSON.parse(
+    localStorage.getItem('englift_user_settings') || '{}',
+  );
+  saved.baseTheme = baseTheme;
+  saved.dark = dark;
+  localStorage.setItem('englift_user_settings', JSON.stringify(saved));
+
+  // Обновляем чекбокс в дропдауне (если есть)
+  const themeCheckbox = document.getElementById('theme-checkbox');
+  if (themeCheckbox) themeCheckbox.checked = dark;
+
+  // Обновляем иконку рядом с чекбоксом
   const themeIcon = document.querySelector(
     '#dropdown-theme-toggle .material-symbols-outlined',
   );
-
   if (themeIcon) {
-    const icon = on ? 'sunny' : 'dark_mode';
-
-    themeIcon.textContent = icon;
-
-    console.log('Theme icon updated to:', icon);
-  } else {
-    console.log('Theme icon element not found');
+    themeIcon.textContent = dark ? 'sunny' : 'dark_mode';
   }
+
+  // Помечаем профиль грязным для синхронизации с сервером
+  if (window.currentUserId) {
+    window.markProfileDirty();
+  }
+
+  console.log(
+    `🎨 Тема применена: ${baseTheme} ${dark ? '(тёмная)' : '(светлая)'}`,
+  );
 };
 
 // New theme toggle checkbox handler
@@ -5714,7 +5730,13 @@ if (themeCheckbox) {
   themeCheckbox.addEventListener('change', async e => {
     const on = e.target.checked;
     const baseTheme = window.user_settings?.baseTheme || 'lavender';
+    console.log('🎨 Theme checkbox changed:', { on, baseTheme });
     window.applyTheme(baseTheme, on);
+
+    // после изменения чекбокса
+    window.user_settings.dark =
+      document.documentElement.classList.contains('dark');
+    if (window.currentUserId) window.markProfileDirty();
   });
 }
 
@@ -6763,9 +6785,39 @@ document.getElementById('words-grid').addEventListener('click', e => {
 
     const word = window.words.find(w => w.id === wordId);
 
-    if (word) {
-      window.speakWord(word);
+    if (!word) return;
+
+    // Удаляем предыдущую волну, если она была
+    const existingWave = btn.parentNode.querySelector('.audio-wave');
+    if (existingWave) {
+      // Возвращаем кнопку, если была волна
+      const originalBtn = existingWave._originalBtn;
+      if (originalBtn && originalBtn.parentNode) {
+        originalBtn.style.display = '';
+      }
+      existingWave.remove();
     }
+
+    // Создаём волну и заменяем ей кнопку
+    const wave = document.createElement('div');
+    wave.className = 'audio-wave';
+    wave.innerHTML =
+      '<span></span><span></span><span></span><span></span><span></span>';
+
+    // Сохраняем ссылку на оригинальную кнопку
+    wave._originalBtn = btn;
+
+    // Скрываем кнопку и заменяем на волну
+    btn.style.display = 'none';
+    btn.parentNode.replaceChild(wave, btn);
+
+    // Проигрываем аудио и возвращаем кнопку после окончания
+    window.speakWord(word, () => {
+      if (wave.parentNode && wave._originalBtn) {
+        wave.parentNode.replaceChild(wave._originalBtn, wave);
+        wave._originalBtn.style.display = '';
+      }
+    });
 
     return;
   }
@@ -8084,72 +8136,40 @@ document
 
 // Speech modal handlers
 
+// === СОХРАНЕНИЕ ТЕМЫ ИЗ МОДАЛКИ ===
+const speechModalSave = document.getElementById('speech-modal-save');
+const themeSelect = document.getElementById('theme-base-select');
+
+if (speechModalSave && themeSelect) {
+  speechModalSave.addEventListener('click', async () => {
+    const newTheme = themeSelect.value; // lavender / ocean / forest / purple
+
+    // 1. Сначала применяем тему с текущим значением темного режима
+    window.applyTheme(newTheme, window.user_settings?.dark ?? false);
+
+    // 2. Потом обновляем настройки
+    window.user_settings.theme = newTheme;
+    window.user_settings.baseTheme = newTheme;
+
+    // 3. Сохраняем на сервер (applyTheme уже пометил профиль грязным)
+    if (window.currentUserId) {
+      console.log('🎨 Тема сохранена в профиль:', newTheme);
+    }
+
+    // 4. Закрываем модалку
+    document.getElementById('speech-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
+
+    window.toast?.('Тема сохранена!', 'success');
+  });
+}
+
 // Кнопка закрытия удалена из HTML
 
 document.getElementById('speech-modal-close').addEventListener('click', () => {
   document.getElementById('speech-modal').classList.remove('open');
   document.body.classList.remove('modal-open'); // Возвращаем скролл
 });
-
-document
-
-  .getElementById('speech-modal-save')
-
-  ?.addEventListener('click', async () => {
-    const limitSelect = document.getElementById('review-limit-select');
-    const voiceSelect = document.getElementById('voice-select');
-    const themeSelect = document.getElementById('theme-base-select'); // новый элемент
-
-    // Save practice settings
-    const newLimit =
-      limitSelect.value === '9999' ? 9999 : parseInt(limitSelect.value);
-
-    const newVoice = voiceSelect.value;
-    const newBaseTheme = themeSelect.value; // 'lavender', 'ocean', 'forest', 'purple'
-
-    window.user_settings = window.user_settings || {};
-    window.user_settings.reviewLimit = newLimit;
-    window.user_settings.voice = newVoice;
-    window.user_settings.baseTheme = newBaseTheme;
-    // dark не меняется здесь, он остаётся как был (из чекбокса)
-
-    // Помечаем профиль как изменённый
-    window.markProfileDirty?.();
-
-    // Применяем тему сразу (dark берётся из текущего состояния)
-    window.applyTheme(newBaseTheme, window.user_settings.dark ?? false);
-
-    // Save to Supabase
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        debouncedSaveUserData(user.id, {
-          user_settings: window.user_settings,
-        });
-      }
-    } catch (error) {
-      console.error('Error saving settings:', error);
-    }
-
-    // Update UI
-
-    document.getElementById('speech-modal').classList.remove('open');
-    document.body.classList.remove('modal-open'); // Возвращаем скролл
-
-    // Update statistics
-
-    renderStats();
-
-    // Show success toast
-
-    const limitText = newLimit === 9999 ? 'Без лимита' : newLimit;
-
-    toast(`Настройки сохранены! Лимит повторений: ${limitText}`, 'success');
-  });
 
 document.getElementById('speech-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) {
@@ -12070,9 +12090,38 @@ async function renderRandomBankWord() {
 
   if (audioBtn) {
     audioBtn.addEventListener('click', e => {
-      e.stopPropagation(); // предотвращаем возможные всплытия
+      e.stopPropagation(); // предотвращаем всплытие, если карточка тоже кликабельна
+      const btn = e.currentTarget;
+      const word = currentBankWord; // слово, которое сейчас показывается
 
-      window.speakWord(currentBankWord);
+      // Удаляем предыдущую волну, если она была
+      const existingWave = btn.parentNode.querySelector('.audio-wave');
+      if (existingWave) {
+        const originalBtn = existingWave._originalBtn;
+        if (originalBtn && originalBtn.parentNode) {
+          originalBtn.style.display = '';
+        }
+        existingWave.remove();
+      }
+
+      // Создаём волну
+      const wave = document.createElement('div');
+      wave.className = 'audio-wave';
+      wave.innerHTML =
+        '<span></span><span></span><span></span><span></span><span></span>';
+      wave._originalBtn = btn; // запоминаем оригинальную кнопку
+
+      // Скрываем кнопку и заменяем её на волну
+      btn.style.display = 'none';
+      btn.parentNode.replaceChild(wave, btn);
+
+      // Проигрываем аудио и по окончании возвращаем кнопку
+      window.speakWord(word, () => {
+        if (wave.parentNode && wave._originalBtn) {
+          wave.parentNode.replaceChild(wave._originalBtn, wave);
+          wave._originalBtn.style.display = ''; // возвращаем видимость
+        }
+      });
     });
   }
 
@@ -13781,11 +13830,7 @@ window.loadUserSettings = function (data) {
 
 // ============================================================
 
-// СРАЗУ применяем тему из localStorage
-
-if (localStorage.getItem('engliftDark') === 'true') {
-  document.documentElement.classList.add('dark');
-}
+// Тема теперь применяется через немедленную инициализацию в начале файла
 
 // Унифицированный обработчик visibilitychange
 
@@ -13873,25 +13918,7 @@ window.onProfileFullyLoaded = async function () {
 
   document.body.classList.add('authenticated');
 
-  // Применяем тему из профиля или fallback (только один раз!)
-
-  let themeToApply = 'lavender'; // по умолчанию
-
-  if (window.user_settings?.theme) {
-    themeToApply = window.user_settings.theme;
-
-    console.log('🎨 Применяем тему из user_settings.theme:', themeToApply);
-  } else if (window.user_settings?.dark_theme !== undefined) {
-    // Обратная совместимость со старым полем dark_theme
-
-    themeToApply = window.user_settings.dark_theme ? 'dark' : 'lavender';
-
-    console.log('🎨 Конвертируем старое поле dark_theme:', themeToApply);
-  } else {
-    console.log('🎨 Используем тему по умолчанию');
-  }
-
-  applyTheme(themeToApply);
+  // Тема уже применена в applyProfileData, не переопределяем!
 
   // Синхронизируем измененные слова с сервера
 
@@ -13959,23 +13986,22 @@ window.onProfileFullyLoaded = async function () {
   renderRandomBankWord();
 };
 
-// Если через 2 секунды Supabase не загрузил тему, оставляем localStorage fallback
-
+// Если через 2 секунды Supabase не загрузил тему
 setTimeout(() => {
-  if (document.body.classList.contains('loading')) {
-    // Если все еще в загрузке, применяем тему из localStorage
-
-    const userSettings = JSON.parse(
+  if (!window.user_settings.baseTheme) {
+    const saved = JSON.parse(
       localStorage.getItem('englift_user_settings') || '{}',
     );
+    const baseTheme = saved.baseTheme || 'lavender';
+    const isDark = saved.dark ?? false;
 
-    const theme = userSettings.theme || 'lavender';
-
-    console.log('🔄 Fallback: применяем тему из localStorage:', theme);
-
-    window.applyTheme(theme);
+    console.log('🔄 Fallback: применяем тему из localStorage:', {
+      baseTheme,
+      isDark,
+    });
+    window.applyTheme(baseTheme, isDark);
   }
-}, 2000);
+}, 800);
 
 // Таймаут для скрытия индикатора загрузки (на случай проблем)
 

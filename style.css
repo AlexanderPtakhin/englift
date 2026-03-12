@@ -3528,13 +3528,16 @@ html.dark .badge-learned {
 /* AUDIO WAVE ANIMATION */
 
 .audio-wave {
-  display: inline-flex;
-
+  display: flex;
   align-items: center;
-
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  box-sizing: border-box;
   gap: 2px;
-
-  height: 16px;
 }
 
 .audio-wave span {
@@ -9878,9 +9881,9 @@ html.dark .goal-item.locked .goal-progress-text {
 
   border-radius: 50%;
 
-  width: 40px;
+  width: 44px;
 
-  height: 40px;
+  height: 44px;
 
   display: flex;
 
@@ -10376,7 +10379,7 @@ html.dark header {
 
 .xp-stats-row .xp-level .material-symbols-outlined {
   color: #fde68a !important;
-  filter: drop-shadow(0 0 6px rgba(253, 230, 138, 0.5));
+  filter: drop-shadow(0 0 6px rgba(253, 230, 138, 0.5)) !important;
 }
 
 .xp-stats-row .xp-level-text,
@@ -10754,14 +10757,14 @@ html.dark .xp-stats-row {
 
 /* всё остальное остаётся таким же, но для надёжности дублируем ключевые цвета */
 html.dark .xp-stats-row .xp-level .material-symbols-outlined {
-  color: var(--primary-light) !important;
-  filter: drop-shadow(0 0 8px rgba(var(--primary-rgb), 0.6)) !important;
+  color: #fde68a !important;
+  filter: drop-shadow(0 0 8px rgba(253, 230, 138, 0.6)) !important;
 }
 html.dark .xp-stats-row .xp-level-text .level-num {
-  color: var(--text) !important;
+  color: #fff5ee !important;
 }
 html.dark .xp-stats-row .xp-level-text span:not(.level-num) {
-  color: rgba(255, 245, 238, 0.6) !important;
+  color: #fff5ee !important;
 }
 html.dark .xp-stats-row .xp-bar-bg {
   background: rgba(var(--card-rgb), 0.18) !important;
@@ -10891,7 +10894,11 @@ html.dark .xp-stats-row #st-xp {
 
 /* Dark */
 html.dark .xp-stats-row {
-  background: linear-gradient(135deg, #a04828 0%, #4a1f08 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
 }
 
