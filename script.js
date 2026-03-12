@@ -281,6 +281,9 @@ async function syncProfileToServer(force = false) {
     updated_at: new Date().toISOString(),
   };
 
+  // Debug: Check daily_progress before saving
+  console.log('🔍 Сохраняем daily_progress:', profileData.daily_progress);
+
   try {
     await saveUserData(window.currentUserId, profileData);
 
@@ -404,6 +407,13 @@ window.dailyProgress = {
   completed: false,
 
   lastReset: new Date().toISOString().split('T')[0], // "2026-03-05"
+};
+
+// User settings with defaults - должно быть объявлено ДО использования
+
+window.user_settings = window.user_settings || {
+  voice: 'female',
+  reviewLimit: 100,
 };
 
 // CEFR levels tracking - должно быть объявлено ДО использования
@@ -1360,6 +1370,7 @@ function applyProfileData(data) {
   });
 
   if (data.daily_progress) {
+    console.log('🔍 Применяем daily_progress:', data.daily_progress);
     window.updateDailyProgress?.(data.daily_progress);
   }
 
@@ -1371,9 +1382,12 @@ function applyProfileData(data) {
     window.lastReviewResetDate = data.last_review_reset;
   }
 
-  if (data.user_settings) {
-    window.user_settings = data.user_settings;
-  }
+  // Always ensure user_settings has default values
+  window.user_settings = {
+    voice: 'female',
+    reviewLimit: 100,
+    ...(data.user_settings || {}),
+  };
 
   // Проверяем и сбрасываем счётчик при смене дня
 
@@ -1922,9 +1936,32 @@ window.updateStreak = function (newStreak) {
 // Global function to update daily progress from Supabase
 
 window.updateDailyProgress = function (newDailyProgress) {
-  // Полностью заменяем dailyProgress данными из Supabase
+  // Принимаем данные с сервера, но оставляем локальные значения, если они больше
+  const merged = {
+    add_new: Math.max(
+      window.dailyProgress?.add_new || 0,
+      newDailyProgress.add_new || newDailyProgress.addnew || 0,
+    ),
+    review: Math.max(
+      window.dailyProgress?.review || 0,
+      newDailyProgress.review || 0,
+    ),
+    practice_time: Math.max(
+      window.dailyProgress?.practice_time || 0,
+      newDailyProgress.practice_time || newDailyProgress.practicetime || 0,
+    ),
+    completed:
+      newDailyProgress.completed || window.dailyProgress?.completed || false,
+    lastReset:
+      newDailyProgress.lastReset ||
+      newDailyProgress.last_reset ||
+      window.dailyProgress?.lastReset ||
+      new Date().toISOString().split('T')[0],
+  };
+  window.dailyProgress = merged;
 
-  window.dailyProgress = { ...newDailyProgress };
+  // Debug: Log merged daily progress
+  console.log('🔍 Объединённый daily_progress:', window.dailyProgress);
 
   renderStats();
 };
@@ -1946,6 +1983,12 @@ async function resetDailyGoalsIfNeeded() {
 
       lastReset: today,
     };
+
+    // Mark profile as dirty to ensure the reset is saved
+    window.markProfileDirty?.();
+
+    // Update UI to show reset goals immediately
+    refreshUI();
 
     // Сохраняем в Supabase для персистентности
 
@@ -1997,6 +2040,9 @@ async function checkDailyGoalsCompletion() {
 
       'все ежедневные цели выполнены <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">celebration</span>',
     );
+
+    // Update UI immediately after gaining XP
+    refreshUI();
 
     toast(
       '🎉 Все ежедневные цели выполнены! +' + totalReward + ' XP',
@@ -2563,6 +2609,12 @@ async function addWord(
     // Пересчитываем уровни CEFR и обновляем интерфейс
 
     recalculateCefrLevels();
+
+    // Debug: Check add_new value before refreshUI
+    console.log('🔍 add_new после увеличения:', window.dailyProgress.add_new);
+
+    // Update UI to show daily goals progress immediately
+    refreshUI();
 
     console.log('✅ addWord завершен успешно');
 
@@ -4416,6 +4468,9 @@ function renderDailyGoals() {
   const container = document.getElementById('daily-goals-list');
 
   if (!container) return;
+
+  // Debug: Log current daily progress values
+  console.log('🔍 Рендерим daily_goals с данными:', window.dailyProgress);
 
   let html = '';
 
@@ -8071,6 +8126,9 @@ document
     window.user_settings.reviewLimit = newLimit;
     window.user_settings.voice = newVoice;
 
+    // Mark profile as dirty to ensure settings are saved
+    window.markProfileDirty?.();
+
     // Если сменили голос, перезагружать словарь не нужно - он теперь один
     if (oldVoice !== newVoice) {
       console.log(`Голос изменен с ${oldVoice} на ${newVoice}`);
@@ -8282,74 +8340,39 @@ document.getElementById('delete-account-btn')?.addEventListener('click', () => {
     'удалить',
 
     async () => {
+      console.log('🔥 Начинаем удаление аккаунта...');
+
       try {
-        console.log('🔥 Начинаем удаление аккаунта...');
+        // Явно достаём токен из сессии
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) throw new Error('Нет активной сессии');
 
-        // 1. Удаляем профиль с сервера
+        const { data, error } = await supabase.functions.invoke(
+          'delete-account',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${session.access_token}`, // ✅ явно передаём токен
+            },
+          },
+        );
 
-        if (window.currentUserId) {
-          const { error: profileError } = await supabase
+        if (error) throw error;
 
-            .from('profiles')
+        console.log('✅ Функция вернула успех:', data);
 
-            .delete()
-
-            .eq('id', window.currentUserId);
-
-          if (profileError) {
-            console.error('❌ Ошибка удаления профиля:', profileError);
-
-            toast('Ошибка при удалении профиля', 'danger');
-
-            return;
-          }
-
-          // 2. Удаляем слова с сервера
-
-          const { error: wordsError } = await supabase
-
-            .from('user_words')
-
-            .delete()
-
-            .eq('user_id', window.currentUserId);
-
-          if (wordsError) {
-            console.error('❌ Ошибка удаления слов:', wordsError);
-
-            toast('Ошибка при удалении слов', 'danger');
-
-            return;
-          }
-
-          // 3. Выходим из аккаунта
-
-          await supabase.auth.signOut();
-        }
-
-        // 4. Очищаем все локальные данные
-
-        localStorage.clear();
-
-        window.words = [];
-
-        window.currentUserId = null;
-
-        window.user_settings = {};
-
-        // 5. Перезагружаем страницу на вход
-
-        toast('✅ Аккаунт успешно удален', 'success');
-
-        console.log('✅ Аккаунт успешно удален');
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      } catch (error) {
-        console.error('❌ Ошибка при удалении аккаунта:', error);
-
-        toast('Ошибка при удалении аккаунта', 'danger');
+        await supabase.auth.signOut();
+        window.clearUserData?.(true);
+        window.toast?.('Аккаунт удалён навсегда', 'success');
+        setTimeout(() => window.location.reload(), 800);
+      } catch (err) {
+        console.error('❌ Ошибка удаления аккаунта:', err);
+        window.toast?.(
+          'Ошибка: ' + (err.message || err.error || 'Неизвестно'),
+          'danger',
+        );
       }
     },
   );
@@ -9282,6 +9305,9 @@ function showResults() {
 
     window.dailyProgress.practice_time =
       (window.dailyProgress.practice_time || 0) + practiceMinutes;
+
+    // Mark profile as dirty to ensure practice time progress is saved
+    window.markProfileDirty?.();
 
     // Обновляем метку времени сразу (оптимистично)
 
@@ -10906,6 +10932,12 @@ function recordAnswer(correct) {
 
     window.dailyProgress.review = (window.dailyProgress.review || 0) + 1;
 
+    // Mark profile as dirty to ensure progress is saved
+    window.markProfileDirty?.();
+
+    // Update UI to show progress immediately
+    refreshUI();
+
     // Обновляем метку времени сразу (оптимистично)
 
     window.lastProfileUpdate = Date.now();
@@ -12053,6 +12085,13 @@ async function renderRandomBankWord() {
 
       localStorage.setItem('englift_words', JSON.stringify(window.words));
 
+      // === ОБНОВЛЕНИЕ ЕЖЕДНЕВНЫХ ЦЕЛЕЙ ===
+      resetDailyGoalsIfNeeded();
+      window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
+      window.markProfileDirty?.(); // Помечаем профиль как изменённый
+      checkDailyGoalsCompletion();
+      // ====================================
+
       gainXP(5, 'новое слово из банка');
 
       addedBankWordEn.add(enLower);
@@ -12082,6 +12121,9 @@ async function renderRandomBankWord() {
       // Обновляем интерфейс
 
       addWordToDOM(newWord);
+
+      // Обновляем отображение ежедневных целей
+      refreshUI();
 
       toast(`«${currentBankWord.en}» добавлено! +5 XP`, 'success');
 

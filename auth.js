@@ -300,6 +300,7 @@ userDropdown.addEventListener(
 let profileLoaded = false;
 let wordsLoaded = false; // Добавляем флаг для однократной загрузки слов
 let profileLoadPromise = null; // Добавляем промис-флаг
+let lastProfileLoadTime = 0; // Добавляем время последней загрузки
 
 // Следим за состоянием аутентификации
 supabase.auth.onAuthStateChange(async (event, session) => {
@@ -334,6 +335,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     profileLoadPromise = loadUserProfile(user).finally(() => {
       profileLoaded = true;
       profileLoadPromise = null;
+      lastProfileLoadTime = Date.now(); // Update load time
     });
   } else if (
     event === 'SIGNED_IN' &&
@@ -346,6 +348,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     profileLoadPromise = loadUserProfile(user).finally(() => {
       profileLoaded = true;
       profileLoadPromise = null;
+      lastProfileLoadTime = Date.now(); // Update load time
     });
   } else if (event === 'TOKEN_REFRESHED' && user) {
     console.log(
@@ -354,6 +357,12 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     // Ничего не делаем - профиль уже загружен
   } else if (event === 'SIGNED_IN') {
     console.log('SIGNED_IN пришёл — профиль уже загружен или загружается');
+
+    // Add frequency check to prevent excessive reloads
+    if (profileLoaded && Date.now() - lastProfileLoadTime < 5000) {
+      console.log('⏳ Пропускаем частую загрузку профиля');
+      return;
+    }
   }
 
   // === ОБНОВЛЕНИЕ UI ===
@@ -581,15 +590,30 @@ async function loadUserProfile(user) {
     const merged =
       window.mergeProfileData?.(serverProfile, localBackup || {}) ||
       serverProfile;
-    window.applyProfileData?.(merged);
 
-    // Если мерж изменил данные, сохраняем
-    if (merged.updated_at !== serverProfile.updated_at) {
-      console.log('🔄 Локальные данные новее, сохраняем на сервер');
+    // Protect against overwriting newer local data
+    const serverTime = serverProfile.updated_at
+      ? new Date(serverProfile.updated_at).getTime()
+      : 0;
+    const localTime = window.lastProfileUpdate || 0;
+
+    if (localTime > serverTime) {
+      console.log('🔄 Локальные данные новее, пропускаем загрузку профиля');
+      // Локальные данные новее — не применяем серверные данные
+      // Можно сохранить локальные на сервер
       await window.saveProfileData?.();
     } else {
-      console.log('🔄 Обновляем бэкап');
-      window.backupProfileToLocalStorage?.();
+      console.log('🔄 Применяем серверные данные');
+      window.applyProfileData?.(merged);
+
+      // Если мерж изменил данные, сохраняем
+      if (merged.updated_at !== serverProfile.updated_at) {
+        console.log('🔄 Локальные данные новее, сохраняем на сервер');
+        await window.saveProfileData?.();
+      } else {
+        console.log('🔄 Обновляем бэкап');
+        window.backupProfileToLocalStorage?.();
+      }
     }
 
     // Загружаем слова
