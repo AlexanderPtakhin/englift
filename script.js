@@ -3171,7 +3171,7 @@ function xpNeeded(lvl) {
 }
 
 function gainXP(amount, reason = '') {
-  console.log('🎯 gainXP вызван:', {
+  console.log('⭐ gainXP вызван:', {
     amount,
 
     reason,
@@ -3470,7 +3470,7 @@ function renderBadges() {
       (ok ? 'unlocked' : 'locked') +
       '">' +
       '<div class="badge-icon">' +
-      (def.icon.includes('🔥')
+      (def.icon.includes('⭐')
         ? def.icon
         : `<span class="material-symbols-outlined">${def.icon}</span>`) +
       '</div>' +
@@ -3803,7 +3803,7 @@ function showLimitModal(limit) {
 
 
 
-        Дневной лимит достигнут! 🎯
+        Дневной лимит достигнут! ⭐
 
 
 
@@ -8340,7 +8340,7 @@ document.getElementById('delete-account-btn')?.addEventListener('click', () => {
     'удалить',
 
     async () => {
-      console.log('🔥 Начинаем удаление аккаунта...');
+      console.log('🗑️ Начинаем удаление аккаунта...');
 
       try {
         // Явно достаём токен из сессии
@@ -8373,6 +8373,85 @@ document.getElementById('delete-account-btn')?.addEventListener('click', () => {
           'Ошибка: ' + (err.message || err.error || 'Неизвестно'),
           'danger',
         );
+      }
+    },
+  );
+});
+
+// Кнопка "Сбросить весь прогресс"
+document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
+  showConfirmModal(
+    'Вы уверены, что хотите сбросить ВЕСЬ прогресс? Все слова, уровень, XP, бейджи и streak будут удалены. Настройки сохранятся.',
+    'сбросить',
+    'сбросить',
+    async () => {
+      try {
+        console.log('🗑️ Начинаем сброс прогресса...');
+
+        // 1. Удаляем все слова с сервера
+        if (window.currentUserId) {
+          const { error: wordsError, count } = await supabase
+            .from('user_words')
+            .delete({ count: 'exact' })
+            .eq('user_id', window.currentUserId);
+          if (wordsError) throw wordsError;
+          console.log(`✅ Удалено ${count} слов с сервера`);
+        }
+
+        // 2. Сбрасываем профиль на сервере (сохраняем настройки)
+        if (window.currentUserId) {
+          const today = new Date().toISOString().split('T')[0];
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              xp: 0,
+              level: 1,
+              badges: [],
+              streak: 0,
+              last_streak_date: null,
+              daily_progress: {
+                add_new: 0,
+                review: 0,
+                practice_time: 0,
+                completed: false,
+                lastReset: today,
+              },
+              daily_review_count: 0,
+              last_review_reset: today,
+              // user_settings не трогаем — они сохранятся
+            })
+            .eq('id', window.currentUserId);
+          if (profileError) throw profileError;
+          console.log('✅ Профиль сброшен');
+        }
+
+        // 3. Очищаем локальные данные
+        window.words = [];
+        localStorage.removeItem('englift_words');
+        renderCache.clear();
+        pendingWordUpdates.clear();
+
+        // 4. Обновляем глобальные переменные статистики
+        xpData = { xp: 0, level: 1, badges: [] };
+        streak = { count: 0, lastDate: null };
+        window.dailyProgress = {
+          add_new: 0,
+          review: 0,
+          practice_time: 0,
+          completed: false,
+          lastReset: new Date().toISOString().split('T')[0],
+        };
+        window.dailyReviewCount = 0;
+        window.lastReviewResetDate = new Date().toISOString().split('T')[0];
+
+        // 5. Обновляем интерфейс
+        refreshUI();
+        window.markProfileDirty?.(); // чтобы сохранить изменения на сервере (если что-то пошло не так)
+
+        toast('✅ Весь прогресс успешно сброшен!', 'success');
+      } catch (error) {
+        console.error('❌ Ошибка при сбросе прогресса:', error);
+        toast('Ошибка при сбросе прогресса', 'danger');
       }
     },
   );
@@ -8973,7 +9052,7 @@ function startSession(cfg) {
     // 3. Определяем режим и создаем сессию
 
     if (practiceMode === 'exam') {
-      console.log('🎯 Starting EXAM mode');
+      console.log('📝 Starting EXAM mode');
 
       // Экзамен - используем фиксированный набор типов
 
@@ -9368,7 +9447,7 @@ function nextExercise() {
 
   window.nextExerciseRunning = true;
 
-  console.log('🎯 nextExercise called, session:', session);
+  console.log('➡️ nextExercise called, session:', session);
 
   console.log(
     '📊 sIdx:',
@@ -13865,7 +13944,7 @@ window.onProfileFullyLoaded = async function () {
   const indicator = document.getElementById('loading-indicator');
 
   if (indicator) {
-    console.log('🎯 Скрываем индикатор загрузки');
+    console.log('👁️ Скрываем индикатор загрузки');
 
     indicator.style.opacity = '0';
 

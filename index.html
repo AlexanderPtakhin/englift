@@ -486,7 +486,8 @@
           <br />
 
           <button class="btn btn-primary btn-lg" onclick="switchTab('add')">
-            ➕ Добавить слова
+            <span class="material-symbols-outlined">add</span>
+            Добавить слова
           </button>
         </div>
       </div>
@@ -1269,6 +1270,12 @@
             <span class="material-symbols-outlined">delete_forever</span>
 
             Очистить все слова навсегда
+          </button>
+
+          <!-- Новая кнопка сброса прогресса -->
+          <button class="danger-btn" id="reset-progress-btn">
+            <span class="material-symbols-outlined">restart_alt</span>
+            Сбросить весь прогресс
           </button>
 
           <button class="danger-btn" id="delete-account-btn">
