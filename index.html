@@ -270,14 +270,6 @@
       </nav>
 
       <div class="header-right">
-        <button
-          class="install-btn"
-          id="install-btn"
-          title="Установить приложение"
-        >
-          <span class="material-symbols-outlined">tablet_mac</span>
-        </button>
-
         <!-- Личный кабинет (будет виден только после авторизации) -->
 
         <div class="user-menu" id="user-menu">
@@ -296,6 +288,15 @@
               <span class="material-symbols-outlined">tune</span>
 
               <span>Настройки</span>
+            </div>
+
+            <div
+              class="dropdown-item"
+              id="dropdown-install-pwa"
+              style="display: none"
+            >
+              <span class="material-symbols-outlined">download</span>
+              <span>Приложение</span>
             </div>
 
             <div class="dropdown-item" id="dropdown-theme-toggle">
@@ -1256,6 +1257,7 @@
                   <option value="ocean">Океан</option>
                   <option value="forest">Лес</option>
                   <option value="purple">Фиолетовая</option>
+                  <option value="sunset">Закат</option>
                 </select>
               </div>
             </div>

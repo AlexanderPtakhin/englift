@@ -5134,536 +5134,6 @@ updateDueBadge = function () {
   syncBadges();
 };
 
-// Детектор устройства
-
-function detectDevice() {
-  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-
-  // iOS
-
-  if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-    return 'ios';
-  }
-
-  // Android
-
-  if (/android/i.test(userAgent)) {
-    return 'android';
-  }
-
-  // Desktop
-
-  return 'desktop';
-}
-
-// Показываем инструкцию для iOS
-
-function showiOSInstallInstructions() {
-  const instructions = `
-
-
-
-
-
-
-
-    <div style="text-align: center; line-height: 1.6;">
-
-
-
-
-
-
-
-      <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">phone_iphone</span>Установка на iPhone</strong></p>
-
-
-
-
-
-
-
-      <p style="margin-bottom: 1rem;">Чтобы добавить приложение на главный экран:</p>
-
-
-
-
-
-
-
-      <ol style="text-align: left; margin: 0 auto 1rem; padding-left: 1.5rem; max-width: 300px;">
-
-
-
-
-
-
-
-        <li>Нажмите кнопку <strong>"Поделиться" 📤</strong> (внизу)</li>
-
-
-
-
-
-
-
-        <li>Прокрутите вниз и выберите <strong>"На главный экран"</strong></li>
-
-
-
-
-
-
-
-        <li>Нажмите <strong>"Добавить"</strong> в правом верхнем углу</li>
-
-
-
-
-
-
-
-      </ol>
-
-
-
-
-
-
-
-      <p style="color: var(--muted); font-size: 0.9rem;">Приложение будет доступно на главном экране как нативное приложение!</p>
-
-
-
-
-
-
-
-    </div>
-
-
-
-
-
-
-
-  `;
-
-  // Показываем модальное окно с инструкциями
-
-  const modal = document.createElement('div');
-
-  modal.className = 'modal-overlay';
-
-  modal.innerHTML = `
-
-
-
-
-
-
-
-    <div class="modal-content">
-
-
-
-
-
-
-
-      <h3><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">phone_iphone</span>Установка на iPhone</h3>
-
-
-
-
-
-
-
-      ${instructions}
-
-
-
-
-
-
-
-      <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Понятно</button>
-
-
-
-
-
-
-
-    </div>
-
-
-
-
-
-
-
-  `;
-
-  document.body.appendChild(modal);
-
-  // Стили для модального окна
-
-  if (!document.querySelector('#install-modal-styles')) {
-    const style = document.createElement('style');
-
-    style.id = 'install-modal-styles';
-
-    style.textContent = `
-
-
-
-
-
-
-
-      .modal-overlay {
-
-
-
-
-
-
-
-        position: fixed;
-
-
-
-
-
-
-
-        top: 0;
-
-
-
-
-
-
-
-        left: 0;
-
-
-
-
-
-
-
-        right: 0;
-
-
-
-
-
-
-
-        bottom: 0;
-
-
-
-
-
-
-
-        background: rgba(0, 0, 0, 0.5);
-
-
-
-
-
-
-
-        display: flex;
-
-
-
-
-
-
-
-        align-items: center;
-
-
-
-
-
-
-
-        justify-content: center;
-
-
-
-
-
-
-
-        z-index: 10000;
-
-
-
-
-
-
-
-        padding: 1rem;
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-      .modal-content {
-
-
-
-
-
-
-
-        background: var(--card);
-
-
-
-
-
-
-
-        border-radius: var(--radius);
-
-
-
-
-
-
-
-        padding: 2rem;
-
-
-
-
-
-
-
-        max-width: 400px;
-
-
-
-
-
-
-
-        width: 100%;
-
-
-
-
-
-
-
-        box-shadow: var(--shadow-hover);
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-      .modal-content h3 {
-
-
-
-
-
-
-
-        margin-bottom: 1rem;
-
-
-
-
-
-
-
-        color: var(--text);
-
-
-
-
-
-
-
-        text-align: center;
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-      .modal-content button {
-
-
-
-
-
-
-
-        margin-top: 1.5rem;
-
-
-
-
-
-
-
-        width: 100%;
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-    `;
-
-    document.head.appendChild(style);
-  }
-}
-
-console.log('=== PWA SCRIPT LOADED ===');
-
-console.log('Device detected:', detectDevice());
-
-// Проверяем элементы сразу
-
-function initPWAInstall() {
-  const installBtn = document.getElementById('install-btn');
-
-  // Слушаем событие beforeinstallprompt
-
-  window.addEventListener('beforeinstallprompt', e => {
-    // Предотвращаем автоматическое появление промпта
-
-    e.preventDefault();
-
-    // Сохраняем событие для последующего использования
-
-    deferredPrompt = e;
-
-    // Показываем кнопку установки
-
-    if (installBtn) {
-      installBtn.style.display = 'flex';
-
-      installBtn.classList.add('visible');
-
-      console.log('PWA install prompt available, button shown');
-    }
-  });
-
-  // Обработчик клика по кнопке установки
-
-  if (installBtn) {
-    installBtn.addEventListener('click', async () => {
-      console.log('Install button clicked in initPWAInstall!');
-
-      const device = detectDevice();
-
-      if (device === 'ios') {
-        // Показываем инструкцию для iPhone
-
-        showiOSInstallInstructions();
-      } else if (device === 'android') {
-        // Пытаемся установить через PWA промпт
-
-        if (!deferredPrompt) {
-          toast('PWA установка доступна только в Chrome', 'warning');
-
-          return;
-        }
-
-        try {
-          // Показываем промпт установки
-
-          deferredPrompt.prompt();
-
-          // Ждём ответа пользователя
-
-          const { outcome } = await deferredPrompt.userChoice;
-
-          if (outcome === 'accepted') {
-            console.log('Пользователь установил PWA');
-
-            toast('Приложение успешно установлено!', 'success');
-
-            installBtn.classList.remove('visible');
-          } else {
-            console.log('Пользователь отменил установку PWA');
-          }
-
-          // Очищаем deferredPrompt
-
-          deferredPrompt = null;
-        } catch (error) {
-          console.error('Ошибка при установке PWA:', error);
-
-          toast('Ошибка установки приложения', 'error');
-        }
-      } else {
-        // Desktop - показываем общую инструкцию
-
-        toast('Установка доступна на мобильных устройствах', 'info');
-      }
-    });
-  }
-
-  // Проверяем, установлено ли уже приложение
-
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    if (installBtn) {
-      installBtn.classList.remove('visible');
-    }
-  }
-}
-
 // ============================================================
 // THEME MANAGEMENT
 
@@ -8142,25 +7612,32 @@ const themeSelect = document.getElementById('theme-base-select');
 
 if (speechModalSave && themeSelect) {
   speechModalSave.addEventListener('click', async () => {
-    const newTheme = themeSelect.value; // lavender / ocean / forest / purple
+    // 1. Читаем все значения из формы
+    const newVoice = document.getElementById('voice-select').value;
+    const newLimit = document.getElementById('review-limit-select').value;
+    const newTheme = document.getElementById('theme-base-select').value;
+    const currentDark = window.user_settings?.dark ?? false;
 
-    // 1. Сначала применяем тему с текущим значением темного режима
-    window.applyTheme(newTheme, window.user_settings?.dark ?? false);
-
-    // 2. Потом обновляем настройки
-    window.user_settings.theme = newTheme;
+    // 2. Обновляем глобальный объект настроек
+    window.user_settings = window.user_settings || {};
+    window.user_settings.voice = newVoice;
+    window.user_settings.reviewLimit =
+      newLimit === '9999' ? 9999 : parseInt(newLimit, 10);
     window.user_settings.baseTheme = newTheme;
+    // dark не трогаем — он остаётся как был
 
-    // 3. Сохраняем на сервер (applyTheme уже пометил профиль грязным)
+    // 3. Применяем тему (она уже вызовет markProfileDirty)
+    window.applyTheme(newTheme, currentDark);
+
+    // 4. Помечаем профиль грязным, чтобы голос и лимит тоже улетели на сервер
     if (window.currentUserId) {
-      console.log('🎨 Тема сохранена в профиль:', newTheme);
+      window.markProfileDirty();
     }
 
-    // 4. Закрываем модалку
+    // 5. Закрываем модалку и показываем тост
     document.getElementById('speech-modal').classList.remove('open');
     document.body.classList.remove('modal-open');
-
-    window.toast?.('Тема сохранена!', 'success');
+    window.toast?.('Настройки сохранены!', 'success');
   });
 }
 
@@ -14047,254 +13524,117 @@ window.addEventListener('offline', () => {
   toast('📴 Оффлайн режим', 'info');
 });
 
-// ====================== PWA INSTALL BUTTON (улучшенная версия) ======================
+// ====================== PWA INSTALL В МЕНЮ ПРОФИЛЯ ======================
 
 let deferredPrompt = null;
-
-const installBtn = document.getElementById('install-btn');
+const installMenuItem = document.getElementById('dropdown-install-pwa');
 
 // Определяем платформу
-
 function getPlatform() {
   const ua = navigator.userAgent;
-
   if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'ios';
-
   if (/android/i.test(ua)) return 'android';
-
   return 'desktop';
 }
 
 // Показать инструкцию по ручной установке
-
 function showManualInstallInstructions() {
   const platform = getPlatform();
-
   let instructions = '';
 
   if (platform === 'ios') {
     instructions = `
-
       <div style="text-align: left; line-height: 1.6;">
-
         <p><strong><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">phone_iphone</span>Установка на iPhone/iPad</strong></p>
-
         <ol style="padding-left: 1.5rem;">
-
           <li>Нажмите кнопку <strong>«Поделиться»</strong> <span class="material-symbols-outlined" style="vertical-align: middle; margin: 0 4px;">share</span> внизу экрана.</li>
-
           <li>Прокрутите вниз и выберите <strong>«На экран «Домой»»</strong>.</li>
-
           <li>Нажмите <strong>«Добавить»</strong> в правом верхнем углу.</li>
-
         </ol>
-
         <p style="color: var(--muted); margin-top: 1rem;">Готово! EngLift появится на главном экране как отдельное приложение.</p>
-
       </div>
-
     `;
   } else if (platform === 'android') {
     instructions = `
-
       <div style="text-align: left; line-height: 1.6;">
-
         <p><strong><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">android</span>Установка на Android</strong></p>
-
         <ol style="padding-left: 1.5rem;">
-
           <li>Нажмите на меню браузера <strong>⋮</strong> (три точки).</li>
-
           <li>Выберите <strong>«Добавить на главный экран»</strong>.</li>
-
           <li>Подтвердите установку.</li>
-
         </ol>
-
         <p style="color: var(--muted); margin-top: 1rem;">После этого EngLift будет доступен как приложение.</p>
-
       </div>
-
     `;
   } else {
     instructions = `
-
       <p>На вашем устройстве можно установить EngLift как приложение через меню браузера (обычно «Установить приложение» или «Добавить на главный экран»).</p>
-
     `;
   }
 
   // Показываем модальное окно с инструкцией
-
   const modal = document.createElement('div');
-
   modal.className = 'modal-backdrop open';
-
   modal.innerHTML = `
-
     <div class="modal-box" style="max-width: 500px;">
-
       <div class="modal-header">
-
         <h3><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">download</span>Установка приложения</h3>
-
         <button class="modal-close" onclick="this.closest('.modal-backdrop').remove()">
-
           <span class="material-symbols-outlined">close</span>
-
         </button>
-
       </div>
-
       ${instructions}
-
       <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
-
         <button class="btn btn-primary" onclick="this.closest('.modal-backdrop').remove()">Понятно</button>
-
       </div>
-
     </div>
-
   `;
-
   document.body.appendChild(modal);
 }
 
-// Обработка события установки
-
-window.addEventListener('appinstalled', () => {
-  console.log('PWA установлено!');
-
-  if (installBtn) {
-    installBtn.innerHTML =
-      '<span class="material-symbols-outlined">check_circle</span>';
-
-    installBtn.title = 'Приложение установлено';
-
-    installBtn.style.opacity = '0.7';
-
-    installBtn.style.cursor = 'default';
-
-    installBtn.style.pointerEvents = 'none';
-
-    installBtn.classList.add('installed');
-  }
-
-  deferredPrompt = null;
-
-  toast('Приложение добавлено на главный экран!', 'success', 'celebration');
-});
-
-// Обработка beforeinstallprompt
-
+// Показываем пункт меню, если PWA можно установить
 window.addEventListener('beforeinstallprompt', e => {
-  console.log('✅ beforeinstallprompt сработал — показываем кнопку PWA');
-
   e.preventDefault();
-
   deferredPrompt = e;
-
-  if (installBtn) {
-    installBtn.style.display = 'flex';
-
-    installBtn.classList.add('visible');
-
-    installBtn.classList.remove('installed'); // на случай, если была установка ранее
-
-    installBtn.dataset.mode = 'prompt'; // отмечаем, что есть промпт
+  if (installMenuItem) {
+    installMenuItem.style.display = 'flex';
   }
 });
 
-// При загрузке страницы
-
-(function initPWAButton() {
-  // Если приложение уже запущено как standalone (установлено), скрываем кнопку навсегда
-
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    console.log(
-      'Приложение запущено в режиме standalone - скрываем кнопку установки',
-    );
-
-    if (installBtn) {
-      installBtn.style.display = 'none';
-    }
-
-    return;
+// Скрываем после установки
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  if (installMenuItem) {
+    installMenuItem.style.display = 'none';
   }
+  toast('Приложение установлено!', 'success', 'celebration');
+});
 
-  // Если кнопка не появилась через beforeinstallprompt, через 1 секунду показываем её в режиме "ручной установки"
-
-  setTimeout(() => {
-    // Если кнопка ещё не видима и не скрыта принудительно, показываем с возможностью ручной установки
-
-    if (
-      installBtn &&
-      installBtn.style.display !== 'flex' &&
-      !installBtn.classList.contains('installed')
-    ) {
-      console.log(
-        'beforeinstallprompt не сработал - показываем кнопку для ручной установки',
-      );
-
-      installBtn.style.display = 'flex';
-
-      installBtn.classList.add('visible');
-
-      installBtn.dataset.mode = 'manual'; // отмечаем, что нужно показывать инструкцию
-    }
-  }, 1000);
-
-  // Обработчик клика на кнопку
-
-  if (installBtn) {
-    installBtn.addEventListener('click', async () => {
-      if (installBtn.classList.contains('installed')) {
-        // Уже установлено – ничего не делаем
-
-        return;
-      }
-
-      // Если есть сохранённое событие промпта
-
-      if (deferredPrompt) {
-        console.log('Показываем нативный промпт установки');
-
-        installBtn.style.display = 'none'; // скрываем на время
-
-        deferredPrompt.prompt();
-
-        const { outcome } = await deferredPrompt.userChoice;
-
-        console.log('PWA install outcome:', outcome);
-
-        if (outcome === 'accepted') {
-          toast('Приложение устанавливается...', 'success', 'downloading');
-        } else {
-          toast('Установка отменена', 'info');
-
-          // Можно снова показать кнопку, если пользователь передумал
-
-          setTimeout(() => {
-            if (!window.matchMedia('(display-mode: standalone)').matches) {
-              installBtn.style.display = 'flex';
-            }
-          }, 500);
-        }
-
-        deferredPrompt = null;
+// Обработчик клика по пункту меню
+if (installMenuItem) {
+  installMenuItem.addEventListener('click', async () => {
+    // Если есть нативный промпт
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        toast('Установка...', 'info', 'downloading');
       } else {
-        // Промпта нет – показываем инструкцию по ручной установке
-
-        console.log(
-          'Промпт отсутствует - показываем инструкцию по ручной установке',
-        );
-
-        showManualInstallInstructions();
+        toast('Установка отменена', 'info');
       }
-    });
-  }
-})();
+      deferredPrompt = null;
+      installMenuItem.style.display = 'none';
+    } else {
+      // Если промпта нет — показываем инструкцию для iOS/Android
+      showManualInstallInstructions();
+    }
+  });
+}
+
+// Если приложение уже запущено в режиме standalone — скрываем пункт навсегда
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  if (installMenuItem) installMenuItem.style.display = 'none';
+}
 
 // ============================================================
 

@@ -704,6 +704,35 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
 
+/* Тема Закат (светлая) */
+.theme-sunset {
+  --primary: #ff6b6b;
+  --primary-light: #ff8787;
+  --primary-dark: #e55555;
+  --primary-rgb: 255, 107, 107;
+  --bg: #fff5f5;
+  --card: #ffffff;
+  --text: #2d2d2d;
+  --muted: #8b7355;
+  --border: #ffd4d4;
+  --shadow: 0 4px 20px rgba(255, 107, 107, 0.1);
+  --shadow-hover: 0 8px 30px rgba(255, 107, 107, 0.18);
+}
+
+/* Тёмный закат */
+.dark.theme-sunset {
+  --primary: #ff8787;
+  --primary-light: #ffa8a8;
+  --primary-rgb: 255, 135, 135;
+  --bg: #2d1f1f;
+  --card: #3f2e2e;
+  --text: #ffe8e8;
+  --muted: #cc9999;
+  --border: #5c4040;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
 *,
 *::before,
 *::after {
@@ -1550,6 +1579,102 @@ body:not(.dark)
 .btn:active,
 button:active,
 input[type='button']:active,
+input[type='submit']:active {
+  transform: translateY(0);
+}
+
+/* === СТИЛЬНЫЙ ХЕДЕР: БЕЗ КРУГЛЫХ КНОПОК === */
+
+/* Убираем весь этот цирк с круглыми кнопками */
+.install-btn,
+.user-avatar {
+  all: unset; /* сбрасываем все старые стили */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  border-radius: 0; /* убираем скругление */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Иконки внутри делаем чуть крупнее и тоньше */
+.install-btn .material-symbols-outlined,
+.user-avatar .material-symbols-outlined {
+  font-size: 24px !important; /* были 20px, станет 26px */
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  transition: all 0.2s ease;
+}
+
+/* При наведении: цвет primary и легкое увеличение */
+.install-btn:hover,
+.user-avatar:hover {
+  color: var(--primary);
+  transform: scale(1.1);
+}
+
+.install-btn:hover .material-symbols-outlined,
+.user-avatar:hover .material-symbols-outlined {
+  color: var(--primary);
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* Аватар — без всяких фонов, просто иконка */
+.user-avatar {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Убираем возможные остатки старых стилей */
+.install-btn.visible,
+.install-btn.installed {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Для тёмной темы — то же самое, только цвет primary другой */
+html.dark .install-btn:hover,
+html.dark .user-avatar:hover {
+  color: var(--primary);
+}
+
+/* Прячем старую кнопку установки из хедера */
+.install-btn {
+  display: none !important;
+}
+
+/* Стиль для пункта установки в меню */
+#dropdown-install-pwa {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  color: var(--text);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+#dropdown-install-pwa:hover {
+  color: var(--primary);
+}
+
+#dropdown-install-pwa .material-symbols-outlined {
+  font-size: 20px;
+}
 input[type='submit']:active {
   transform: scale(0.97);
 }
@@ -2502,7 +2627,7 @@ textarea {
 
   border: 2px solid var(--border);
 
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); */
 }
 
 .avatar-wrapper {
@@ -3580,6 +3705,18 @@ html.dark .badge-learned {
   animation-delay: 0.4s;
 
   height: 6px;
+}
+
+/* Волна в карточках слов - выглядит как кнопка */
+.word-card .audio-wave {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.word-card .audio-wave span {
+  background: var(--primary);
 }
 
 @keyframes wave {
@@ -9823,7 +9960,7 @@ html.dark .goal-item.locked .goal-progress-text {
 
   cursor: pointer;
 
-  margin-bottom: 1rem;
+  /* margin-bottom: 0rem; */
 }
 
 .word-card:hover {
@@ -11140,7 +11277,7 @@ html.dark .exercise-card.selected .exercise-name {
 #start-btn {
   background: var(--primary) !important;
   border: none !important;
-  color: var(--text) !important;
+  color: #fff5ee !important;
   box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.25) !important;
   transition: all 0.2s ease !important;
 }
@@ -11149,4 +11286,27 @@ html.dark .exercise-card.selected .exercise-name {
   transform: translateY(-2px) !important;
   filter: brightness(1.06) !important;
   box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.3) !important;
+  color: #fff5ee !important;
+}
+
+#start-btn .material-symbols-outlined {
+  color: #fff5ee !important;
+}
+
+html
+  body:not(.dark)
+  .word-bank-card
+  .word-bank-nav-btn:hover
+  .material-symbols-outlined,
+html
+  body:not(.dark)
+  .word-bank-card
+  .word-bank-add-btn:hover
+  .material-symbols-outlined,
+html
+  body:not(.dark)
+  .word-bank-card
+  .word-bank-audio:hover
+  .material-symbols-outlined {
+  color: #fff5ee !important;
 }
