@@ -248,12 +248,6 @@
           <span class="badge" id="words-count">0</span>
         </button>
 
-        <button class="nav-btn" data-tab="add">
-          <span class="material-symbols-outlined"> add </span>
-
-          <span class="nav-text">Добавить</span>
-        </button>
-
         <button class="nav-btn" data-tab="practice">
           <span class="material-symbols-outlined"> exercise </span>
 
@@ -266,6 +260,12 @@
           <span class="material-symbols-outlined"> monitoring </span>
 
           <span class="nav-text">Статистика</span>
+        </button>
+
+        <button class="nav-btn" data-tab="idioms">
+          <span class="material-symbols-outlined">translate</span>
+          <span class="nav-text">Идиомы</span>
+          <span class="badge" id="idioms-count">0</span>
         </button>
       </nav>
 
@@ -332,12 +332,6 @@
         <span class="badge" id="mobile-words-count">0</span>
       </button>
 
-      <button class="mobile-nav-btn" data-tab="add">
-        <span class="material-symbols-outlined">add</span>
-
-        <span>Добавить</span>
-      </button>
-
       <button class="mobile-nav-btn" data-tab="practice">
         <span class="material-symbols-outlined">exercise</span>
 
@@ -350,6 +344,12 @@
         <span class="material-symbols-outlined">monitoring</span>
 
         <span>Статистика</span>
+      </button>
+
+      <button class="mobile-nav-btn" data-tab="idioms">
+        <span class="material-symbols-outlined">translate</span>
+        <span>Идиомы</span>
+        <span class="badge" id="mobile-idioms-count">0</span>
       </button>
     </nav>
 
@@ -486,141 +486,10 @@
 
           <br />
 
-          <button class="btn btn-primary btn-lg" onclick="switchTab('add')">
+          <button class="btn btn-primary btn-lg" id="empty-add-word-btn">
             <span class="material-symbols-outlined">add</span>
-            Добавить слова
+            Добавить первое слово
           </button>
-        </div>
-      </div>
-
-      <!-- TAB: ADD -->
-
-      <div class="tab-pane" id="tab-add">
-        <div class="add-layout">
-          <div class="add-card">
-            <h3
-              style="
-                display: flex;
-
-                align-items: center;
-
-                justify-content: center;
-
-                gap: 8px;
-              "
-            >
-              <span class="material-symbols-outlined" style="font-size: 1.2rem"
-                >add_circle</span
-              >
-
-              Добавить слово
-            </h3>
-
-            <form id="single-form">
-              <div class="form-group">
-                <label>Английское слово *</label>
-
-                <div style="position: relative">
-                  <div style="display: flex; gap: 0.5rem">
-                    <input
-                      class="form-control"
-                      type="text"
-                      id="f-en"
-                      required
-                      placeholder="e.g. achieve"
-                      autocomplete="off"
-                    />
-                  </div>
-
-                  <div
-                    id="autocomplete-suggestions"
-                    class="autocomplete-suggestions"
-                  ></div>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Русский перевод *</label>
-
-                <input
-                  class="form-control"
-                  type="text"
-                  id="f-ru"
-                  required
-                  placeholder="e.g. достигать"
-                  autocomplete="off"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>Транскрипция</label>
-
-                <input
-                  class="form-control"
-                  type="text"
-                  id="f-phonetic"
-                  placeholder="e.g. /əˈtʃiːv/"
-                  autocomplete="off"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>Пример</label>
-
-                <input
-                  class="form-control"
-                  type="text"
-                  id="f-ex"
-                  placeholder="I want to achieve my goals"
-                  autocomplete="off"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>Перевод примера</label>
-
-                <input
-                  class="form-control"
-                  type="text"
-                  id="f-ex-translation"
-                  placeholder="Попробуй это блюдо — оно невероятное"
-                  autocomplete="off"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>Теги через запятую</label>
-
-                <input
-                  class="form-control"
-                  type="text"
-                  id="f-tags"
-                  placeholder="verbs, important"
-                  autocomplete="off"
-                />
-              </div>
-
-              <button
-                type="submit"
-                class="btn btn-primary btn-lg"
-                style="
-                  width: 100%;
-
-                  display: flex;
-
-                  justify-content: center;
-
-                  align-items: center;
-                "
-              >
-                <span
-                  class="material-symbols-outlined"
-                  style="vertical-align: middle; margin-right: 8px"
-                  >add_circle</span
-                >Добавить слово
-              </button>
-            </form>
-          </div>
         </div>
       </div>
 
@@ -1167,7 +1036,171 @@
           </div>
         </div>
       </div>
+
+      <!-- TAB: IDIOMS -->
+      <div class="tab-pane" id="tab-idioms">
+        <div class="section-title">
+          Мои идиомы <span class="section-subtitle" id="idioms-subtitle"></span>
+        </div>
+
+        <!-- Поиск и фильтры -->
+        <div class="words-toolbar">
+          <div class="search-container">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input
+              class="form-control"
+              id="idioms-search"
+              type="text"
+              placeholder="Поиск..."
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <!-- Сетка для идиом -->
+        <div id="idioms-grid" class="words-grid"></div>
+
+        <!-- Бесконечная прокрутка -->
+        <div
+          id="idioms-load-more-trigger"
+          style="height: 1px; width: 100%; visibility: hidden"
+        ></div>
+        <div
+          id="idioms-loading-more"
+          style="display: none; text-align: center; padding: 1rem"
+        >
+          <div class="loading-spinner"></div>
+          Загружаем ещё...
+        </div>
+
+        <!-- Пустое состояние -->
+        <div
+          id="empty-idioms"
+          style="
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+          "
+        >
+          <h3>Идиом пока нет</h3>
+          <p>Добавьте первую идиому, чтобы запомнить её!</p>
+          <br />
+          <button class="btn btn-primary btn-lg" id="empty-add-idiom-btn">
+            <span class="material-symbols-outlined">add</span> Добавить идиому
+          </button>
+        </div>
+      </div>
     </main>
+
+    <!-- Плавающая кнопка добавления слова -->
+    <button class="floating-add-btn" id="floating-add-word-btn">
+      <span class="material-symbols-outlined">add</span>
+    </button>
+
+    <!-- Плавающая кнопка добавления идиомы -->
+    <button class="floating-add-btn" id="floating-add-idiom-btn">
+      <span class="material-symbols-outlined">translate</span>
+    </button>
+
+    <!-- Модальное окно добавления идиомы -->
+    <div class="modal-backdrop" id="add-idiom-modal">
+      <div class="modal-box" style="max-width: 500px">
+        <div class="modal-header">
+          <h3>Добавить идиому</h3>
+          <button class="modal-close" id="add-idiom-modal-close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <form id="add-idiom-form">
+          <div class="form-group">
+            <label>Английская идиома *</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-en"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Русский перевод *</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-ru"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Пример</label>
+            <input class="form-control" type="text" id="modal-idiom-ex" />
+          </div>
+          <div class="form-group">
+            <label>Перевод примера</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-ex-translation"
+            />
+          </div>
+          <div class="form-group">
+            <label>Теги через запятую</label>
+            <input class="form-control" type="text" id="modal-idiom-tags" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%">
+            Добавить идиому
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Модальное окно добавления слова -->
+    <div class="modal-backdrop" id="add-word-modal">
+      <div class="modal-box" style="max-width: 500px">
+        <div class="modal-header">
+          <h3>Добавить слово</h3>
+          <button class="modal-close" id="add-word-modal-close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <form id="add-word-form">
+          <div class="form-group">
+            <label>Английское слово *</label>
+            <div style="position: relative">
+              <input class="form-control" type="text" id="modal-word-en" required />
+              <div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Русский перевод *</label>
+            <input class="form-control" type="text" id="modal-word-ru" required />
+          </div>
+          <div class="form-group">
+            <label>Транскрипция</label>
+            <input class="form-control" type="text" id="modal-word-phonetic" />
+          </div>
+          <div class="form-group">
+            <label>Пример</label>
+            <input class="form-control" type="text" id="modal-word-ex" />
+          </div>
+          <div class="form-group">
+            <label>Перевод примера</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-word-ex-translation"
+            />
+          </div>
+          <div class="form-group">
+            <label>Теги через запятую</label>
+            <input class="form-control" type="text" id="modal-word-tags" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%">
+            Добавить слово
+          </button>
+        </form>
+      </div>
+    </div>
 
     <div class="modal-backdrop" id="del-modal">
       <div class="modal-box">
@@ -1460,6 +1493,5 @@
           </button>
         </div>
       </div>
-    </div>
-  </body>
+    </body>
 </html>

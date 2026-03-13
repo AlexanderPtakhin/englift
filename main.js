@@ -4,6 +4,9 @@ import {
   deleteWordFromDb,
   saveUserData,
   loadWordsOnce,
+  loadIdiomsOnce,
+  saveIdiomToDb,
+  deleteIdiomFromDb,
 } from './db.js';
 
 // Экспортируем для использования в других скриптах
@@ -13,6 +16,9 @@ window.authExports = {
   deleteWordFromDb,
   saveUserData,
   loadWordsOnce,
+  loadIdiomsOnce,
+  saveIdiomToDb,
+  deleteIdiomFromDb,
 };
 
 // Регистрация сервис-воркера для PWA

@@ -64,3 +64,60 @@ export async function saveUserData(uid, data) {
     .upsert({ id: uid, ...data, updated_at: new Date().toISOString() });
   if (error) console.error('Error saving user data:', error);
 }
+
+// Загрузить все идиомы пользователя (однократно)
+export async function loadIdiomsOnce(callback) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    callback([]);
+    return;
+  }
+  const { data, error } = await supabase
+    .from('user_idioms')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('updatedAt', { ascending: false });
+
+  if (error) {
+    console.error('Error loading idioms:', error);
+    callback([]);
+  } else {
+    callback(data);
+  }
+}
+
+// Сохранить одну идиому (upsert по id)
+export async function saveIdiomToDb(idiom) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const idiomData = {
+    ...idiom,
+    user_id: user.id,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from('user_idioms')
+    .upsert(idiomData, { onConflict: 'id' });
+
+  if (error) throw error;
+}
+
+// Удалить идиому
+export async function deleteIdiomFromDb(idiomId) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const { error } = await supabase
+    .from('user_idioms')
+    .delete()
+    .eq('id', idiomId)
+    .eq('user_id', user.id);
+  if (error) throw error;
+}

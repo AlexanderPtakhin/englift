@@ -1323,16 +1323,62 @@ nav {
   align-items: center;
 }
 
-.nav-btn .badge {
+/* ===== BADGE НА КНОПКАХ НАВИГАЦИИ (дубликат + практика) ===== */
+/* Десктоп */
+.nav-btn .badge,
+#due-count {
   position: absolute;
+  top: -7px;
+  right: 8px;
+  min-width: 19px;
+  height: 19px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  z-index: 15;
+  line-height: 1;
+}
 
-  top: -6px;
+/* Мобильный навбар — точно как у идиом */
+.mobile-nav-btn .badge,
+#mobile-due-count {
+  position: absolute;
+  top: 0.35rem; /* чуть ниже, чтобы не залезало на иконку */
+  right: 22%; /* как у #mobile-idioms-count */
+  min-width: 18px;
+  height: 18px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  z-index: 15;
+}
 
-  right: 2px;
+/* Когда due = 0 — полностью прячем (ни кружка, ни пустоты) */
+.nav-btn .badge:empty,
+#due-count:empty,
+.mobile-nav-btn .badge:empty,
+#mobile-due-count:empty {
+  display: none !important;
+}
 
-  gap: 2px;
-
-  position: relative;
+/* Дополнительно для мобильного навбара (чтобы не прыгало) */
+@media (max-width: 830px) {
+  .mobile-nav-btn .badge {
+    right: 22%; /* точно как у идиом */
+    top: 0.35rem;
+  }
 }
 
 .nav-btn:hover {
@@ -1366,34 +1412,6 @@ nav {
   font-size: 18px;
 
   color: inherit;
-}
-
-.nav-btn .badge {
-  background: var(--primary);
-
-  color: white;
-
-  width: 20px;
-
-  height: 20px;
-
-  border-radius: 50%;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 0;
-
-  min-width: 20px;
-
-  text-align: center;
-
-  font-size: 0.65rem;
-
-  margin-left: 0.1rem;
 }
 
 /* Specific centering for due-count badge */
@@ -7427,22 +7445,32 @@ html.dark .due-soon {
 
 .badge-card::before {
   content: '';
-
   position: absolute;
-
   top: 0;
-
   left: 0;
-
   right: 0;
-
   bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--primary-rgb), 0.1) 0%,
+    rgba(var(--secondary-rgb), 0.1) 100%
+  );
+  border-radius: 16px;
+  z-index: -1;
+}
 
-  background: linear-gradient(135deg, transparent, rgba(108, 99, 255, 0.05));
+/* Стили для карточек идиом */
+.word-card--idiom .word-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
 
-  opacity: 0;
-
-  transition: opacity 0.3s ease;
+.idiom-definition {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .badge-card:hover::before {
@@ -7475,42 +7503,6 @@ html.dark .due-soon {
 .nav-btn[data-tab='words'] .badge,
 .mobile-nav-btn[data-tab='words'] .badge {
   display: none !important;
-}
-
-/* Стиль бейджа "Практика" – только обводка */
-.nav-btn[data-tab='practice'] .badge,
-.mobile-nav-btn[data-tab='practice'] .badge {
-  background: transparent !important;
-  border: 2px solid var(--primary) !important;
-  color: var(--primary) !important;
-  box-shadow: none;
-}
-
-/* Скрываем бейдж практики полностью когда нет текста */
-.nav-btn[data-tab='practice'] .badge:empty,
-.nav-btn[data-tab='practice'] .badge:not(:empty):not([style*='inline-block']),
-.mobile-nav-btn[data-tab='practice'] .badge:empty,
-.mobile-nav-btn[data-tab='practice']
-  .badge:not(:empty):not([style*='inline-block']) {
-  display: none !important;
-}
-
-/* Дополнительное правило для скрытия бейджа с display none */
-.nav-btn[data-tab='practice'] .badge[style*='display: none'],
-.mobile-nav-btn[data-tab='practice'] .badge[style*='display: none'] {
-  visibility: hidden !important;
-  width: 0 !important;
-  height: 0 !important;
-  border: none !important;
-}
-
-/* Самое прямое правило - убираем бордер если бейдж скрыт или пуст */
-.nav-btn[data-tab='practice'] .badge[style*='display: none'],
-.nav-btn[data-tab='practice'] .badge:empty,
-.mobile-nav-btn[data-tab='practice'] .badge[style*='display: none'],
-.mobile-nav-btn[data-tab='practice'] .badge:empty {
-  border: none !important;
-  background: transparent !important;
 }
 
 .badge-card.locked {
@@ -11396,4 +11388,65 @@ html
   .word-bank-audio:hover
   .material-symbols-outlined {
   color: #fff5ee !important;
+}
+
+/* Плавающие кнопки — всегда на одном и том же месте */
+.floating-add-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+.floating-add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.4);
+  filter: brightness(1.05);
+}
+
+button.floating-add-btn:hover .material-symbols-outlined,
+#floating-add-word-btn:hover .material-symbols-outlined,
+#floating-add-idiom-btn:hover .material-symbols-outlined {
+  color: white !important;
+}
+
+.floating-add-btn .material-symbols-outlined {
+  font-size: 24px;
+  color: white;
+}
+
+/* На мобильных — поднимаем над нижним навбаром */
+@media (max-width: 768px) {
+  .floating-add-btn {
+    bottom: calc(2rem + 70px);
+    right: 1.5rem;
+    width: 48px;
+    height: 48px;
+  }
+
+  .floating-add-btn .material-symbols-outlined {
+    font-size: 20px;
+  }
+}
+
+/* Скрытие/показ без прыжков */
+.floating-add-btn.fab-hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
