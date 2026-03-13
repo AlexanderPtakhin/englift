@@ -32,7 +32,16 @@ const DEBUG =
 
   // Применяем классы напрямую (без вызова applyTheme, чтобы не запускать лишнюю логику)
   const html = document.documentElement;
-  html.classList.remove('theme-ocean', 'theme-forest', 'theme-purple', 'dark');
+  html.classList.remove(
+    'theme-ocean',
+    'theme-forest',
+    'theme-purple',
+    'theme-sunset',
+    'theme-sky',
+    'theme-sand',
+    'theme-graphite',
+    'dark',
+  );
   if (baseTheme !== 'lavender') html.classList.add(`theme-${baseTheme}`);
   if (dark) html.classList.add('dark');
 
@@ -5143,9 +5152,18 @@ window.applyTheme = function (baseTheme = 'lavender', dark = false) {
   const html = document.documentElement;
 
   // Убираем все старые классы тем
-  html.classList.remove('theme-ocean', 'theme-forest', 'theme-purple', 'dark');
+  html.classList.remove(
+    'theme-ocean',
+    'theme-forest',
+    'theme-purple',
+    'theme-sunset',
+    'theme-sky',
+    'theme-sand',
+    'theme-graphite',
+    'dark',
+  );
 
-  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию)
+  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию (терракота))
   if (baseTheme !== 'lavender') {
     html.classList.add(`theme-${baseTheme}`);
   }

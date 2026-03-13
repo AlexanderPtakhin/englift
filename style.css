@@ -582,7 +582,7 @@ html:not(.dark) {
     color 0.3s ease;
 }
 
-/* Тема по умолчанию: Лаванда (без класса) */
+/* Тема по умолчанию: Терракота (без класса) */
 :root {
   --primary: #e07a5f;
   --primary-light: #f4a261;
@@ -602,7 +602,7 @@ html:not(.dark) {
   --shadow-hover: 0 8px 30px rgba(224, 122, 95, 0.18);
 }
 
-/* Тёмная лаванда */
+/* Тёмная терракота */
 html.dark {
   --primary: #f4a261;
   --primary-light: #e9c46a;
@@ -675,7 +675,7 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
 
-/* Тема Фиолетовая (светлая) */
+/* Тема Лаванда (светлая) */
 .theme-purple {
   --primary: #9b87b8;
   --primary-light: #b8a7d1;
@@ -690,7 +690,7 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(155, 135, 184, 0.18);
 }
 
-/* Тёмная фиолетовая */
+/* Тёмная лаванда */
 .dark.theme-purple {
   --primary: #b8a7d1;
   --primary-light: #d1c2e5;
@@ -729,6 +729,93 @@ html.dark {
   --text: #ffe8e8;
   --muted: #cc9999;
   --border: #5c4040;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Тема Небесная (светлая) */
+.theme-sky {
+  --primary: #7fc1e0;
+  --primary-light: #a8d8f0;
+  --primary-dark: #5a9ec0;
+  --primary-rgb: 127, 193, 224;
+  --bg: #f2faff;
+  --card: #ffffff;
+  --text: #1e3b4f;
+  --muted: #5f8aa8;
+  --border: #c5e0f0;
+  --shadow: 0 4px 20px rgba(127, 193, 224, 0.1);
+  --shadow-hover: 0 8px 30px rgba(127, 193, 224, 0.18);
+}
+
+/* Тёмная небесная */
+.dark.theme-sky {
+  --primary: #a8d8f0;
+  --primary-light: #c2e6ff;
+  --primary-rgb: 168, 216, 240;
+  --bg: #1d2c38;
+  --card: #2e4352;
+  --text: #e2f0fa;
+  --muted: #8fb0c9;
+  --border: #3f5a6b;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Тема Песок (светлая) */
+.theme-sand {
+  --primary: #c4a484;
+  --primary-light: #e0c9b1;
+  --primary-dark: #a58364;
+  --primary-rgb: 196, 164, 132;
+  --bg: #fffaf2;
+  --card: #ffffff;
+  --text: #3a2e24;
+  --muted: #9b8b7a;
+  --border: #eadbc8;
+  --shadow: 0 4px 20px rgba(196, 164, 132, 0.1);
+  --shadow-hover: 0 8px 30px rgba(196, 164, 132, 0.18);
+}
+
+/* Тёмный песок */
+.dark.theme-sand {
+  --primary: #e0c9b1;
+  --primary-light: #f0e0cf;
+  --primary-rgb: 224, 201, 177;
+  --bg: #2e2823;
+  --card: #423b34;
+  --text: #f0e7dc;
+  --muted: #b8a999;
+  --border: #5e554b;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Тема Графит (светлая) */
+.theme-graphite {
+  --primary: #6b7280;
+  --primary-light: #9ca3af;
+  --primary-dark: #4b5563;
+  --primary-rgb: 107, 114, 128;
+  --bg: #f9fafb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Тёмный графит */
+.dark.theme-graphite {
+  --primary: #9ca3af;
+  --primary-light: #d1d5db;
+  --primary-rgb: 156, 163, 175;
+  --bg: #1f2937;
+  --card: #374151;
+  --text: #f9fafb;
+  --muted: #9ca3af;
+  --border: #4b5563;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
@@ -3495,13 +3582,13 @@ html.dark .badge-learned {
 .exercise-card:hover {
   border-color: var(--primary);
 
-  background: rgba(108, 99, 255, 0.05);
+  background: rgba(var(--primary-rgb), 0.05);
 }
 
 .exercise-card.selected {
   border-color: var(--primary);
 
-  background: rgba(108, 99, 255, 0.1);
+  background: rgba(var(--primary-rgb), 0.1);
 }
 
 .exercise-icon {
@@ -5780,7 +5867,7 @@ html.dark .badge-learned {
 
   border-color: var(--primary);
 
-  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 8px 16px rgba(var(--primary-rgb), 0.12);
 
   background: var(--bg);
 }
@@ -5790,11 +5877,11 @@ html.dark .badge-learned {
 
   background: linear-gradient(
     135deg,
-    rgba(37, 99, 235, 0.05),
-    rgba(96, 165, 250, 0.05)
+    rgba(var(--primary-rgb), 0.05),
+    rgba(var(--primary-rgb), 0.08)
   );
 
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.15);
 }
 
 .exercise-icon .material-symbols-outlined {
@@ -11225,10 +11312,10 @@ html.dark .chip.on {
 }
 
 .exercise-card:hover:not(.selected) {
-  border-color: #e07a5f !important;
-  background: rgba(224, 122, 95, 0.05) !important;
+  border-color: var(--primary) !important;
+  background: rgba(var(--primary-rgb), 0.05) !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(150, 60, 20, 0.08) !important;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.15) !important;
 }
 
 .exercise-card.selected {
