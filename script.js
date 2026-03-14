@@ -10,6 +10,9 @@ import {
 
 import './auth.js';
 
+// Импортируем банк идиом
+import idiomsBankData from './idioms.json';
+
 // =============================================
 
 // КОНСТАНТЫ (в самом верху, чтобы auth.js их видел)
@@ -96,6 +99,32 @@ function playAudio(filename, onEnd) {
   });
 }
 
+function playIdiomAudio(filename, onEnd) {
+  console.log('🎵 playIdiomAudio called with:', filename);
+  if (!filename) {
+    if (onEnd) onEnd();
+    return console.warn('Нет файла аудио для идиомы');
+  }
+
+  // Всегда используем папку audio-idioms для идиом
+  const audioPath = `/audio-idioms/${filename}`;
+  console.log('🎵 Audio path:', audioPath);
+  const audio = new Audio(audioPath);
+
+  audio.volume = 1.0;
+
+  audio.onended = () => {
+    console.log('🎵 Audio ended');
+    if (onEnd) onEnd();
+  };
+
+  audio.play().catch(err => {
+    console.warn('🎵 Audio play error:', err);
+    window.toast?.('Нажми ещё раз на динамик', 'info');
+    if (onEnd) onEnd(); // убираем волну в случае ошибки
+  });
+}
+
 // Глобальные функции для всего сайта
 
 window.speakWord = function (wordObj, onEnd) {
@@ -154,12 +183,14 @@ const debugLog = (...args) => {
 let fileParsed = [];
 
 let lastFetchedWordData = null; // данные последнего автозаполнения
+let lastFetchedIdiomData = null; // данные последнего автозаполнения идиомы
 
 // Инициализация глобальных переменных
 
 window.words = [];
 
 window.idioms = []; // глобальный массив идиом
+window.idiomsBank = []; // банк идиом из JSON
 
 // Функция обновления счётчика идиом
 function updateIdiomsCount() {
@@ -177,6 +208,7 @@ let idiomsIntersectionObserver = null;
 let idiomsSearchQuery = '';
 let idiomsSortBy = 'date-desc'; // можно потом добавить сортировку
 let idiomsTagFilter = '';
+let idiomsActiveFilter = 'all'; // фильтр: all, learning, learned
 
 window.profileFullyLoaded = false;
 
@@ -740,20 +772,68 @@ function loadIdiomsFromLocalStorage() {
   } else {
     window.idioms = [];
   }
+
+  // Добавим тестовую идиому для отладки
+  if (window.idioms.length === 0) {
+    const testIdiom = {
+      id: generateId(),
+      idiom: 'Test Idiom',
+      meaning: 'Тестовая идиома',
+      definition: 'Это тестовая идиома для проверки',
+      example: 'This is a test idiom example.',
+      example_translation: 'Это пример тестовой идиомы.',
+      phonetic: 'tɛst ˈaɪdiəm',
+      tags: ['тест', 'отладка'],
+      audio: '9e3049ecdac760ae41bba8d10e3410ce.mp3',
+      examplesAudio: ['8014da9fc5f5462c4c25c14718756ebd_ex1.mp3'],
+    };
+    window.idioms.push(testIdiom);
+    localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
+    console.log('🎯 Добавлена тестовая идиома:', testIdiom);
+  }
+
+  updateIdiomsCount(); // обновляем счётчик после загрузки из localStorage
 }
 
-function loadIdiomsFromLocalStorage() {
-  const saved = localStorage.getItem('englift_idioms');
-  if (saved) {
-    try {
-      window.idioms = JSON.parse(saved);
-    } catch (e) {
-      window.idioms = [];
+async function loadIdiomsBank() {
+  try {
+    // Используем импортированные данные напрямую
+    if (idiomsBankData && Array.isArray(idiomsBankData)) {
+      window.idiomsBank = idiomsBankData;
+      console.log(
+        `📚 Загружено ${idiomsBankData.length} идиом из банка через импорт`,
+      );
+      return;
     }
-  } else {
-    window.idioms = [];
+
+    // Fallback: пробуем разные пути к файлу
+    const paths = ['/idioms.json', './idioms.json', 'idioms.json'];
+    let data = null;
+
+    for (const path of paths) {
+      try {
+        const response = await fetch(path);
+        if (response.ok) {
+          data = await response.json();
+          console.log(
+            `📚 Загружено ${data.length} идиом из банка по пути: ${path}`,
+          );
+          break;
+        }
+      } catch (e) {
+        console.log(`Путь ${path} не сработал, пробуем следующий...`);
+      }
+    }
+
+    if (!data) {
+      throw new Error('Не удалось загрузить idioms.json ни по одному из путей');
+    }
+
+    window.idiomsBank = data;
+  } catch (e) {
+    console.error('Ошибка загрузки банка идиом:', e);
+    window.idiomsBank = [];
   }
-  updateIdiomsCount(); // обновляем счётчик после загрузки из localStorage
 }
 
 // Вызываем сразу после объявления window.words
@@ -1837,6 +1917,65 @@ function fillFormWithData(data) {
   }
 }
 
+function fillIdiomFormWithData(data) {
+  const meaningInput = document.getElementById('modal-idiom-ru');
+  const definitionInput = document.getElementById('modal-idiom-definition');
+  const exInput = document.getElementById('modal-idiom-ex');
+  const exTransInput = document.getElementById('modal-idiom-ex-translation');
+  const tagsInput = document.getElementById('modal-idiom-tags');
+
+  // Сбрасываем классы auto-filled
+  [meaningInput, definitionInput, exInput, exTransInput, tagsInput].forEach(
+    input => {
+      if (input) input.classList.remove('auto-filled');
+    },
+  );
+
+  let filledFields = 0;
+
+  if (data.meaning && data.meaning.trim()) {
+    meaningInput.value = data.meaning;
+    meaningInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (data.definition && data.definition.trim()) {
+    definitionInput.value = data.definition;
+    definitionInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (data.example && data.example.trim()) {
+    exInput.value = data.example;
+    exInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (data.example_translation && data.example_translation.trim()) {
+    exTransInput.value = data.example_translation;
+    exTransInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (data.tags && data.tags.length > 0) {
+    tagsInput.value = data.tags.slice(0, 5).join(', ');
+    tagsInput.classList.add('auto-filled');
+    filledFields++;
+  }
+
+  if (filledFields > 0) {
+    toast(
+      `✓ Получено ${filledFields} полей! Проверьте и добавьте идиому`,
+      'success',
+    );
+  } else {
+    toast(
+      '⚠ Данные не найдены. Попробуйте другую идиому или введите вручную',
+      'warning',
+    );
+  }
+}
+
 // Валидация русского перевода
 
 function validateRussian(translation) {
@@ -2206,9 +2345,15 @@ function resetAddForm() {
   const idiomForm = document.getElementById('add-idiom-form');
   if (idiomForm) {
     idiomForm.reset();
+    // Удаляем класс auto-filled со всех полей в форме идиомы
+    idiomForm.querySelectorAll('.auto-filled').forEach(el => {
+      el.classList.remove('auto-filled');
+    });
     idiomForm.querySelectorAll('input').forEach(input => {
+      input.classList.remove('auto-filled');
       input.value = '';
     });
+    lastFetchedIdiomData = null; // очищаем данные автозаполнения идиомы
   }
 }
 
@@ -2909,7 +3054,12 @@ async function addIdiom(
   tagsString = '',
   audio = null,
   examplesAudio = [],
+  exampleTranslation = '', // Добавляем параметр для перевода примера
 ) {
+  console.log(
+    '🎯 addIdiom called with exampleTranslation:',
+    exampleTranslation,
+  );
   // Валидация
   if (!idiom || !idiom.trim()) {
     toast('Идиома не может быть пустой', 'danger');
@@ -2935,6 +3085,11 @@ async function addIdiom(
     meaning: meaning.trim(),
     definition: definition.trim(),
     ex: ex && typeof ex === 'string' ? ex.trim() : '',
+    example: ex && typeof ex === 'string' ? ex.trim() : '', // Добавляем поле example
+    example_translation:
+      exampleTranslation && typeof exampleTranslation === 'string'
+        ? exampleTranslation.trim()
+        : '', // Сохраняем перевод примера
     examples: examples,
     phonetic: phonetic && typeof phonetic === 'string' ? phonetic.trim() : '',
     tags: tags,
@@ -5235,6 +5390,7 @@ function switchTab(name) {
   if (name === 'idioms') {
     idiomsVisibleLimit = 30;
     renderIdioms();
+    renderRandomBankIdiom(); // показываем случайную идиому из банка
   }
 
   // Управление видимостью плавающих кнопок при переключении вкладок
@@ -5802,6 +5958,49 @@ function sortWords(list, sortBy) {
 
     case 'alpha-desc':
       return sortedList.sort((a, b) => b.en.localeCompare(a.en));
+
+    case 'progress-asc':
+      return sortedList.sort(
+        (a, b) =>
+          (a.stats.shown ? a.stats.correct / a.stats.shown : 1) -
+          (b.stats.shown ? b.stats.correct / b.stats.shown : 1),
+      );
+
+    case 'progress-desc':
+      return sortedList.sort(
+        (a, b) =>
+          (b.stats.shown ? b.stats.correct / b.stats.shown : 1) -
+          (a.stats.shown ? a.stats.correct / a.stats.shown : 1),
+      );
+
+    default:
+      return sortedList;
+  }
+}
+
+function sortIdioms(list, sortBy) {
+  const sortedList = [...list];
+
+  switch (sortBy) {
+    case 'date-asc':
+      return sortedList.sort((a, b) =>
+        (a.createdAt || 0)
+          .toString()
+          .localeCompare((b.createdAt || 0).toString()),
+      );
+
+    case 'date-desc':
+      return sortedList.sort((a, b) =>
+        (b.createdAt || 0)
+          .toString()
+          .localeCompare((a.createdAt || 0).toString()),
+      );
+
+    case 'alpha-asc':
+      return sortedList.sort((a, b) => a.idiom.localeCompare(b.idiom));
+
+    case 'alpha-desc':
+      return sortedList.sort((a, b) => b.idiom.localeCompare(a.idiom));
 
     case 'progress-asc':
       return sortedList.sort(
@@ -6800,6 +6999,69 @@ document.addEventListener('click', e => {
   }
 });
 
+// Custom select functionality for idioms
+const idiomCustomSelect = document.getElementById(
+  'idiom-sort-select-container',
+);
+const idiomCustomTrigger = document.getElementById('idiom-sort-select-trigger');
+const idiomCustomOptions = document.getElementById('idiom-sort-select-options');
+const idiomCustomOptionElements = idiomCustomOptions.querySelectorAll(
+  '.custom-select-option',
+);
+
+idiomCustomTrigger.addEventListener('click', () => {
+  idiomCustomOptions.classList.toggle('open');
+});
+
+idiomCustomOptionElements.forEach(option => {
+  option.addEventListener('click', () => {
+    const value = option.dataset.value;
+    const icon = option.querySelector('.material-symbols-outlined').textContent;
+    const text = option.querySelector('span:last-child').textContent;
+
+    // Update trigger
+    idiomCustomTrigger.innerHTML = `
+      <span class="material-symbols-outlined">${icon}</span>
+      <span>${text}</span>
+      <span class="material-symbols-outlined">expand_more</span>
+    `;
+
+    // Update active state
+    idiomCustomOptionElements.forEach(opt => opt.classList.remove('active'));
+    option.classList.add('active');
+
+    // Close dropdown
+    idiomCustomOptions.classList.remove('open');
+
+    // Trigger change event
+    idiomsSortBy = value;
+    visibleLimit = 30; // <-- сброс
+    renderIdioms();
+  });
+});
+
+// Close dropdown when clicking outside for idioms
+document.addEventListener('click', e => {
+  if (!idiomCustomSelect.contains(e.target)) {
+    idiomCustomOptions.classList.remove('open');
+  }
+});
+
+// Filter pills for idioms
+document.querySelectorAll('.pill[data-target="idioms"]').forEach(pill => {
+  pill.addEventListener('click', () => {
+    // Remove active from all idioms pills
+    document
+      .querySelectorAll('.pill[data-target="idioms"]')
+      .forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+
+    idiomsActiveFilter = pill.dataset.filter;
+    visibleLimit = 30; // <-- сброс
+    renderIdioms();
+  });
+});
+
 document.getElementById('words-grid').addEventListener('click', e => {
   const tb = e.target.closest('.tag-filter-btn');
 
@@ -6824,12 +7086,63 @@ document.getElementById('idioms-grid').addEventListener('click', e => {
     const idiom = window.idioms.find(i => i.id === idiomId);
     if (!idiom) return;
 
-    // Воспроизводим идиому (пока через speakText, но нужно адаптировать)
-    // Можно использовать TTS или предзаписанный аудиофайл
+    // Удаляем предыдущую волну, если она была
+    const existingWave = btn.parentNode.querySelector('.audio-wave');
+    if (existingWave) {
+      // Возвращаем кнопку, если была волна
+      const originalBtn = existingWave._originalBtn;
+      if (originalBtn && originalBtn.parentNode) {
+        originalBtn.style.display = '';
+      }
+      existingWave.remove();
+    }
+
+    // Создаём волну и заменяем ей кнопку
+    const wave = document.createElement('div');
+    wave.className = 'audio-wave';
+    wave.innerHTML =
+      '<span></span><span></span><span></span><span></span><span></span>';
+
+    // Сохраняем ссылку на оригинальную кнопку
+    wave._originalBtn = btn;
+
+    // Скрываем кнопку и заменяем на волну
+    btn.style.display = 'none';
+    btn.parentNode.replaceChild(wave, btn);
+
+    // Воспроизводим идиому и возвращаем кнопку после окончания
     if (idiom.audio) {
-      playAudio(idiom.audio, null);
+      playIdiomAudio(idiom.audio, () => {
+        if (wave.parentNode && wave._originalBtn) {
+          wave.parentNode.replaceChild(wave._originalBtn, wave);
+          wave._originalBtn.style.display = '';
+        }
+      });
     } else {
-      speakText(idiom.idiom); // через TTS
+      speakText(idiom.idiom, () => {
+        // через TTS
+        if (wave.parentNode && wave._originalBtn) {
+          wave.parentNode.replaceChild(wave._originalBtn, wave);
+          wave._originalBtn.style.display = '';
+        }
+      });
+    }
+    return;
+  }
+
+  if (e.target.closest('.example-audio-btn')) {
+    const btn = e.target.closest('.example-audio-btn');
+    const card = btn.closest('.word-card');
+    const exampleIndex = btn.dataset.exampleIndex || 0;
+    let examplesAudio = [];
+    try {
+      examplesAudio = JSON.parse(card.dataset.examplesAudio || '[]');
+    } catch (e) {
+      console.warn('Ошибка парсинга examplesAudio', e);
+    }
+
+    if (examplesAudio.length > exampleIndex) {
+      playIdiomAudio(examplesAudio[exampleIndex]);
     }
     return;
   }
@@ -6866,6 +7179,19 @@ document.getElementById('search-input').addEventListener('input', e => {
     visibleLimit = 30; // <-- сброс
 
     renderWords();
+  }, 280);
+});
+
+// Search for idioms
+document.getElementById('idioms-search').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+
+  searchTimer = setTimeout(() => {
+    idiomsSearchQuery = e.target.value;
+
+    visibleLimit = 30; // <-- сброс
+
+    renderIdioms();
   }, 280);
 });
 
@@ -7224,23 +7550,57 @@ document
   });
 
 // Обработчик формы добавления идиомы в модальном окне
+let isSubmittingIdiom = false;
+
 document
   .getElementById('add-idiom-form')
   ?.addEventListener('submit', async e => {
     e.preventDefault();
-    const en = document.getElementById('modal-idiom-en').value.trim();
-    const ru = document.getElementById('modal-idiom-ru').value.trim();
-    const ex = document.getElementById('modal-idiom-ex').value.trim();
-    const exTranslation = document
-      .getElementById('modal-idiom-ex-translation')
-      .value.trim();
-    const tags = document.getElementById('modal-idiom-tags').value;
-    const examples = ex ? [{ text: ex, translation: exTranslation }] : [];
-    const success = await addIdiom(en, ru, examples, normalizeTags(tags));
-    if (success) {
-      closeAddIdiomModal();
-      if (document.querySelector('.tab-pane.active')?.id !== 'tab-idioms')
-        switchTab('idioms');
+    if (isSubmittingIdiom) {
+      console.log('⚠️ Форма идиомы уже отправляется, игнорируем повтор');
+      return;
+    }
+    isSubmittingIdiom = true;
+
+    try {
+      const idiom = document.getElementById('modal-idiom-en').value.trim();
+      const meaning = document.getElementById('modal-idiom-ru').value.trim();
+      const definition = document
+        .getElementById('modal-idiom-definition')
+        .value.trim();
+      const ex = document.getElementById('modal-idiom-ex').value.trim();
+      const exTranslation = document
+        .getElementById('modal-idiom-ex-translation')
+        .value.trim();
+      const tags = document.getElementById('modal-idiom-tags').value;
+
+      // Используем данные автозаполнения, если они есть
+      const audio = lastFetchedIdiomData?.audio || null;
+      const examplesAudio = lastFetchedIdiomData?.examplesAudio || [];
+
+      const success = await addIdiom(
+        idiom,
+        meaning,
+        definition,
+        ex,
+        '', // phonetic пока не добавляем, можно потом добавить поле
+        tags,
+        audio,
+        examplesAudio,
+        exTranslation,
+      );
+
+      if (success) {
+        closeAddIdiomModal();
+        if (document.querySelector('.tab-pane.active')?.id !== 'tab-idioms')
+          switchTab('idioms');
+        lastFetchedIdiomData = null; // очищаем после добавления
+      }
+    } catch (error) {
+      console.error('Ошибка при добавлении идиомы:', error);
+      toast('Ошибка добавления идиомы', 'danger');
+    } finally {
+      isSubmittingIdiom = false;
     }
   });
 
@@ -7422,6 +7782,160 @@ function updateSelectedItem(items) {
 
       // Прокрутка, если нужно
 
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+// === Автодополнение для идиом ===
+const idiomEnInput = document.getElementById('modal-idiom-en');
+const idiomSuggestionsContainer = document.createElement('div');
+idiomSuggestionsContainer.id = 'idiom-autocomplete-suggestions';
+idiomSuggestionsContainer.className = 'autocomplete-suggestions';
+idiomEnInput.parentNode.style.position = 'relative';
+idiomEnInput.parentNode.appendChild(idiomSuggestionsContainer);
+
+const showIdiomSuggestions = debounce(query => {
+  if (!query || query.length < 2) {
+    idiomSuggestionsContainer.style.display = 'none';
+    return;
+  }
+
+  const lowerQuery = query.toLowerCase();
+
+  // Ищем в банке идиом
+  const candidates = (window.idiomsBank || [])
+    .filter(item => item.idiom.toLowerCase().startsWith(lowerQuery))
+    .map(item => ({
+      idiom: item.idiom,
+      meaning: item.meaning,
+      definition: item.definition,
+      example: item.example,
+      example_translation: item.example_translation,
+      tags: item.tags || [],
+      phonetic: item.phonetic || null,
+      audio: item.audio,
+      examplesAudio: item.examplesAudio || [],
+      source: 'bank',
+    }));
+
+  // Множество уже добавленных идиом (по idiom)
+  const userIdiomsSet = new Set(window.idioms.map(i => i.idiom.toLowerCase()));
+
+  // Оставляем только те, которых ещё нет у пользователя
+  const filteredCandidates = candidates.filter(
+    c => !userIdiomsSet.has(c.idiom.toLowerCase()),
+  );
+
+  if (filteredCandidates.length === 0) {
+    idiomSuggestionsContainer.style.display = 'none';
+    return;
+  }
+
+  idiomSuggestionsContainer.innerHTML = filteredCandidates
+    .map((c, index) => {
+      const tags = c.tags.slice(0, 2).join(' · ');
+      return `<div class="suggestion-item" data-index="${index}" data-idiom="${encodeURIComponent(JSON.stringify(c))}">
+        <strong>${c.idiom}</strong> 
+        <span style="color: var(--muted); font-size: 0.8rem;">${c.meaning}</span>
+        ${tags ? `<span style="color: var(--primary); font-size: 0.7rem;"> (${tags})</span>` : ''}
+      </div>`;
+    })
+    .join('');
+
+  idiomSuggestionsContainer.style.display = 'block';
+  selectedIdiomSuggestionIndex = -1;
+}, 200);
+
+// Обработчик ввода
+idiomEnInput.addEventListener('input', e => {
+  const val = e.target.value.trim();
+  if (val === '') {
+    // Очищаем только авто-заполненные поля (кроме самого поля)
+    document.querySelectorAll('#add-idiom-form .auto-filled').forEach(field => {
+      if (field.id !== 'modal-idiom-en') {
+        field.value = '';
+        field.classList.remove('auto-filled');
+      }
+    });
+    lastFetchedIdiomData = null;
+    showIdiomSuggestions(val);
+    return;
+  }
+  if (lastFetchedIdiomData && val !== lastFetchedIdiomData.idiom) {
+    lastFetchedIdiomData = null;
+  }
+  showIdiomSuggestions(val);
+});
+
+// Обработчик клика на подсказку
+idiomSuggestionsContainer.addEventListener('click', e => {
+  const target = e.target.closest('.suggestion-item');
+  if (!target) return;
+
+  const data = JSON.parse(decodeURIComponent(target.dataset.idiom));
+  idiomEnInput.value = data.idiom;
+
+  // Сохраняем данные для последующего использования при сабмите
+  lastFetchedIdiomData = {
+    meaning: data.meaning,
+    definition: data.definition,
+    example: data.example,
+    example_translation: data.example_translation,
+    tags: data.tags,
+    phonetic: data.phonetic,
+    audio: data.audio,
+    examplesAudio: data.examplesAudio,
+  };
+
+  // Заполняем форму
+  fillIdiomFormWithData(lastFetchedIdiomData);
+  idiomSuggestionsContainer.style.display = 'none';
+});
+
+// Потеря фокуса
+idiomEnInput.addEventListener('blur', () => {
+  setTimeout(() => {
+    idiomSuggestionsContainer.style.display = 'none';
+  }, 200);
+});
+
+// Возврат фокуса
+idiomEnInput.addEventListener('focus', () => {
+  if (idiomEnInput.value.length >= 2) {
+    showIdiomSuggestions(idiomEnInput.value);
+  }
+});
+
+// Клавиатурная навигация
+let selectedIdiomSuggestionIndex = -1;
+
+idiomEnInput.addEventListener('keydown', e => {
+  const items = idiomSuggestionsContainer.querySelectorAll('.suggestion-item');
+  if (items.length === 0) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectedIdiomSuggestionIndex =
+      (selectedIdiomSuggestionIndex + 1) % items.length;
+    updateSelectedIdiomItem(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectedIdiomSuggestionIndex =
+      (selectedIdiomSuggestionIndex - 1 + items.length) % items.length;
+    updateSelectedIdiomItem(items);
+  } else if (e.key === 'Enter' && selectedIdiomSuggestionIndex !== -1) {
+    e.preventDefault();
+    items[selectedIdiomSuggestionIndex].click();
+  }
+});
+
+function updateSelectedIdiomItem(items) {
+  items.forEach((item, idx) => {
+    if (idx === selectedIdiomSuggestionIndex) {
+      item.classList.add('selected');
       item.scrollIntoView({ block: 'nearest' });
     } else {
       item.classList.remove('selected');
@@ -12140,14 +12654,180 @@ async function renderRandomBankWord() {
   }
 }
 
+let currentBankIdiom = null;
+
+async function renderRandomBankIdiom() {
+  const wrap = document.getElementById('idiom-bank-wrap');
+  if (!wrap) return;
+
+  // Плавное исчезновение
+  if (wrap.children.length > 0) {
+    wrap.classList.add('fade-out');
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  if (!window.idiomsBank || window.idiomsBank.length === 0) {
+    wrap.innerHTML =
+      '<div class="word-bank-card">Не удалось загрузить идиомы</div>';
+    return;
+  }
+
+  // Множество идиом пользователя (по полю idiom)
+  const userIdiomsSet = new Set(window.idioms.map(i => i.idiom.toLowerCase()));
+
+  // Отфильтровываем те, что уже есть у пользователя
+  const available = window.idiomsBank.filter(
+    item => !userIdiomsSet.has(item.idiom.toLowerCase()),
+  );
+
+  if (available.length === 0) {
+    // Если все идиомы уже добавлены, показываем сообщение
+    wrap.innerHTML =
+      '<div class="word-bank-card">Поздравляем! Все идиомы из банка уже в вашем словаре 🎉</div>';
+    wrap.classList.remove('fade-out');
+    wrap.classList.add('fade-in');
+    setTimeout(() => wrap.classList.remove('fade-in'), 300);
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * available.length);
+  const idiom = available[randomIndex];
+  currentBankIdiom = idiom;
+
+  wrap.innerHTML = `
+    <div class="word-bank-card">
+      <div class="word-bank-content">
+        <div class="word-bank-label">
+          <span class="material-symbols-outlined">auto_stories</span>
+          Рекомендуемая идиома
+        </div>
+        <div class="word-bank-en-wrapper">
+          <div class="word-bank-en">${esc(idiom.idiom)}</div>
+          <button class="word-bank-audio" title="Прослушать">
+            <span class="material-symbols-outlined">volume_up</span>
+          </button>
+        </div>
+        <div class="word-bank-ru">${esc(idiom.meaning)}</div>
+        ${idiom.definition ? `<div class="word-bank-definition" style="margin-top: 0.2rem; opacity: 0.8;">${esc(idiom.definition)}</div>` : ''}
+        ${idiom.phonetic ? `<div class="word-bank-phonetic">${esc(idiom.phonetic)}</div>` : ''}
+        ${idiom.example ? `<div class="word-bank-example">${esc(idiom.example)}</div>` : ''}
+        ${idiom.example_translation ? `<div class="word-bank-example-translation">${esc(idiom.example_translation)}</div>` : ''}
+        ${idiom.tags?.length ? `<div class="word-bank-tags">${idiom.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      </div>
+      <div class="word-bank-actions">
+        <div class="word-bank-nav">
+          <button class="word-bank-nav-btn" id="bank-idiom-next" title="Следующее">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+        <button class="word-bank-add-btn" id="bank-idiom-add">
+          <span class="material-symbols-outlined">add</span> Добавить
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Обработчик для аудио
+  wrap.querySelector('.word-bank-audio')?.addEventListener('click', e => {
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    const word = currentBankIdiom;
+
+    // Удаляем предыдущую волну, если она была
+    const existingWave = btn.parentNode.querySelector('.audio-wave');
+    if (existingWave) {
+      const originalBtn = existingWave._originalBtn;
+      if (originalBtn && originalBtn.parentNode) {
+        originalBtn.style.display = '';
+      }
+      existingWave.remove();
+    }
+
+    // Создаём волну
+    const wave = document.createElement('div');
+    wave.className = 'audio-wave';
+    wave.innerHTML =
+      '<span></span><span></span><span></span><span></span><span></span>';
+    wave._originalBtn = btn; // запоминаем оригинальную кнопку
+
+    // Скрываем кнопку и заменяем на волну
+    btn.style.display = 'none';
+    btn.parentNode.replaceChild(wave, btn);
+
+    // Проигрываем аудио и возвращаем кнопку после окончания
+    if (word.audio) {
+      playIdiomAudio(word.audio, () => {
+        if (wave.parentNode && wave._originalBtn) {
+          wave.parentNode.replaceChild(wave._originalBtn, wave);
+          wave._originalBtn.style.display = '';
+        }
+      });
+    } else {
+      speakText(word.idiom, () => {
+        if (wave.parentNode && wave._originalBtn) {
+          wave.parentNode.replaceChild(wave._originalBtn, wave);
+          wave._originalBtn.style.display = '';
+        }
+      });
+    }
+  });
+
+  wrap.classList.remove('fade-out');
+  wrap.classList.add('fade-in');
+  setTimeout(() => wrap.classList.remove('fade-in'), 300);
+
+  // Кнопка «Далее»
+  document.getElementById('bank-idiom-next')?.addEventListener('click', () => {
+    renderRandomBankIdiom();
+  });
+
+  // Кнопка «Добавить»
+  document
+    .getElementById('bank-idiom-add')
+    ?.addEventListener('click', async () => {
+      if (!currentBankIdiom) return;
+
+      const newIdiom = { ...currentBankIdiom, id: generateId() };
+      // убираем поля, которые не нужны при сохранении (если есть лишние)
+      delete newIdiom._id; // если есть
+
+      // Сохраняем example_translation правильно
+      if (newIdiom.example_translation) {
+        newIdiom.example_translation = newIdiom.example_translation;
+      }
+
+      console.log(
+        '🎯 Adding idiom with example_translation:',
+        newIdiom.example_translation,
+      );
+
+      const success = await addIdiom(
+        newIdiom.idiom,
+        newIdiom.meaning,
+        newIdiom.definition,
+        newIdiom.example,
+        newIdiom.phonetic || '',
+        newIdiom.tags ? newIdiom.tags.join(', ') : '',
+        newIdiom.audio,
+        newIdiom.examplesAudio,
+        newIdiom.example_translation, // Передаем перевод примера
+      );
+      if (success) {
+        toast(`«${currentBankIdiom.idiom}» добавлено!`, 'success');
+        renderRandomBankIdiom(); // показать следующую
+      }
+    });
+}
+
 // Убрали двойной вызов load() - он перетирает данные из Supabase
 
 (async () => {
   // updStreak();
-
   // updateDueBadge();
 
-  renderRandomBankWord(); // Это вызов в синхронном контексте, оставляем без await
+  await loadIdiomsBank(); // загружаем банк идиом
+  renderRandomBankWord(); // для слов
+  renderRandomBankIdiom(); // для идиом
 })();
 
 renderWords();
@@ -13677,6 +14357,10 @@ window.renderStats = renderStats;
 window.renderWords = renderWords;
 
 function renderIdioms() {
+  console.log(
+    '🎯 renderIdioms called, idioms count:',
+    window.idioms?.length || 0,
+  );
   const grid = document.getElementById('idioms-grid');
   const empty = document.getElementById('empty-idioms');
   const trigger = document.getElementById('idioms-load-more-trigger');
@@ -13692,6 +14376,13 @@ function renderIdioms() {
 
   requestAnimationFrame(() => {
     let list = window.idioms;
+
+    // Фильтр по статусу (all/learning/learned)
+    if (idiomsActiveFilter === 'learning') {
+      list = list.filter(i => !i.stats?.learned);
+    } else if (idiomsActiveFilter === 'learned') {
+      list = list.filter(i => i.stats?.learned);
+    }
 
     // Фильтр по поиску
     if (idiomsSearchQuery) {
@@ -13712,8 +14403,8 @@ function renderIdioms() {
       );
     }
 
-    // Сортировка (по умолчанию по дате создания)
-    list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    // Сортировка
+    list = sortIdioms(list, idiomsSortBy);
 
     // Обновляем счётчики
     document.getElementById('idioms-count').textContent = window.idioms.length;
@@ -13755,21 +14446,24 @@ window.renderIdioms = renderIdioms;
 
 function makeIdiomCard(i) {
   const card = document.createElement('div');
-  card.className = 'word-card word-card--idiom'; // добавим модификатор для стилей
+  card.className = 'word-card word-card--idiom';
   card.dataset.id = i.id;
 
-  // Сохраняем данные в data-атрибутах для раскрытия (если нужно)
+  // Сохраняем данные в data-атрибутах для раскрытия
   card.dataset.idiom = i.idiom;
   card.dataset.meaning = i.meaning;
   card.dataset.definition = i.definition || '';
-  card.dataset.examples = JSON.stringify(i.examples || []);
+  card.dataset.example = i.example || i.ex || ''; // Используем example или ex
+  card.dataset.exampleTranslation = i.example_translation || ''; // Используем example_translation
   card.dataset.tags = JSON.stringify(i.tags || []);
+  card.dataset.examplesAudio = JSON.stringify(i.examplesAudio || []);
 
   // Базовая разметка (свёрнутое состояние)
   card.innerHTML = `
     <div class="word-card-header">
       <div class="word-main">
-        <h3 class="word-title" style="font-size:1.2rem;">${esc(i.idiom)}</h3>
+        <h3 class="word-title">${esc(i.idiom)}</h3>
+        ${i.phonetic ? `<span class="word-phonetic">${esc(i.phonetic)}</span>` : ''}
       </div>
       <div class="word-actions">
         <button class="audio-btn" data-idiom="${i.id}" title="Прослушать">
@@ -13778,25 +14472,35 @@ function makeIdiomCard(i) {
       </div>
     </div>
     <div class="word-translation">${esc(i.meaning)}</div>
-    ${i.definition ? `<div class="idiom-definition" style="margin:0.5rem 0; color:var(--muted); font-size:0.9rem;">${esc(i.definition)}</div>` : ''}
     <div class="word-card-footer">
-      <span class="expand-hint">Нажмите, чтобы раскрыть пример</span>
+      <span class="expand-hint">Нажмите, чтобы раскрыть</span>
       <span class="material-symbols-outlined expand-icon">expand_more</span>
     </div>
   `;
 
-  // Добавляем обработчик клика для раскрытия (покажет пример, если есть)
+  // Обработчик клика для раскрытия
   card.addEventListener('click', e => {
-    if (e.target.closest('.audio-btn')) return;
+    console.log('🎯 Card clicked, target:', e.target);
+    // Игнорируем клики по всем кнопкам
+    if (
+      e.target.closest('.audio-btn') ||
+      e.target.closest('.edit-btn') ||
+      e.target.closest('.delete-btn') ||
+      e.target.closest('.example-audio-btn')
+    ) {
+      console.log('🎯 Click on button, ignoring');
+      return;
+    }
 
+    console.log('🎯 Toggling card expansion');
     card.classList.toggle('expanded');
     const expandHint = card.querySelector('.expand-hint');
     const expandIcon = card.querySelector('.expand-icon');
     if (card.classList.contains('expanded')) {
-      expandHint.textContent = 'Скрыть пример';
+      expandHint.textContent = 'Нажмите, чтобы свернуть';
       expandIcon.textContent = 'expand_less';
     } else {
-      expandHint.textContent = 'Нажмите, чтобы раскрыть пример';
+      expandHint.textContent = 'Нажмите, чтобы раскрыть';
       expandIcon.textContent = 'expand_more';
     }
     updateIdiomExpandedContent(card);
@@ -13806,6 +14510,10 @@ function makeIdiomCard(i) {
 }
 
 function updateIdiomExpandedContent(card) {
+  console.log(
+    '🎯 updateIdiomExpandedContent called, expanded:',
+    card.classList.contains('expanded'),
+  );
   if (!card.classList.contains('expanded')) {
     const extra = card.querySelector('.word-card-extra');
     if (extra) extra.remove();
@@ -13813,56 +14521,56 @@ function updateIdiomExpandedContent(card) {
   }
   if (card.querySelector('.word-card-extra')) return;
 
-  // Декодируем HTML-сущности
-  function decode(str) {
-    const div = document.createElement('div');
-    div.innerHTML = str;
-    return div.textContent || div.innerText || '';
-  }
-
-  let examples = [];
+  const definition = card.dataset.definition;
+  const example = card.dataset.example;
+  const exampleTranslation = card.dataset.exampleTranslation;
+  let examplesAudio = [];
   let tags = [];
   try {
-    examples = JSON.parse(decode(card.dataset.examples || '[]'));
-    tags = JSON.parse(decode(card.dataset.tags || '[]'));
+    examplesAudio = JSON.parse(card.dataset.examplesAudio || '[]');
+    tags = JSON.parse(card.dataset.tags || '[]');
   } catch (e) {
-    console.warn('Ошибка парсинга examples/tags', e);
+    console.warn('Ошибка парсинга данных', e);
   }
+
+  console.log('🎯 Card data:', {
+    definition,
+    example,
+    exampleTranslation,
+    examplesAudio,
+    tags,
+  });
 
   const extraDiv = document.createElement('div');
   extraDiv.className = 'word-card-extra';
 
-  let examplesHtml = '';
-  if (examples.length > 0) {
-    examplesHtml = `
-      <div class="word-examples">
-        <h4>Пример</h4>
-        ${examples
-          .map(
-            ex => `
-          <div class="example-item">
-            <p>${esc(ex.text)}</p>
-            ${ex.translation ? `<span class="example-translation">${esc(ex.translation)}</span>` : ''}
-          </div>
-        `,
-          )
-          .join('')}
+  let html = '';
+
+  if (definition) {
+    html += `<div class="idiom-definition"><strong>Определение:</strong> ${esc(definition)}</div>`;
+  }
+
+  if (example) {
+    html += `
+      <div class="idiom-example">
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+          <p style="margin:0; flex:1;">${esc(example)}</p>
+          ${examplesAudio.length ? `<button class="example-audio-btn" data-example-index="0" title="Прослушать пример"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+        </div>
+        ${exampleTranslation ? `<p class="example-translation">${esc(exampleTranslation)}</p>` : ''}
       </div>
     `;
   }
 
-  let tagsHtml = '';
-  if (tags.length > 0) {
-    tagsHtml = `
+  if (tags.length) {
+    html += `
       <div class="word-tags">
         ${tags.map(t => `<span class="tag" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}
       </div>
     `;
   }
 
-  extraDiv.innerHTML = `
-    ${examplesHtml}
-    ${tagsHtml}
+  html += `
     <div class="word-actions-extra">
       <button class="edit-btn" data-id="${card.dataset.id}" title="Редактировать">
         <span class="material-symbols-outlined">edit</span>
@@ -13873,6 +14581,8 @@ function updateIdiomExpandedContent(card) {
     </div>
   `;
 
+  console.log('🎯 Generated HTML:', html);
+  extraDiv.innerHTML = html;
   card.appendChild(extraDiv);
 }
 
@@ -13931,6 +14641,7 @@ const addIdiomBtn = document.getElementById('floating-add-idiom-btn');
 const emptyAddBtn = document.getElementById('empty-add-idiom-btn');
 
 function openAddIdiomModal() {
+  resetAddForm(); // ← добавить эту строку
   addIdiomModal.classList.add('open');
   document.body.classList.add('modal-open');
 }
@@ -13938,7 +14649,7 @@ function openAddIdiomModal() {
 function closeAddIdiomModal() {
   addIdiomModal.classList.remove('open');
   document.body.classList.remove('modal-open');
-  document.getElementById('add-idiom-form').reset();
+  resetAddForm(); // ← добавить эту строку
 }
 
 addIdiomBtn?.addEventListener('click', openAddIdiomModal);
@@ -13947,36 +14658,6 @@ addIdiomModalClose?.addEventListener('click', closeAddIdiomModal);
 addIdiomModal?.addEventListener('click', e => {
   if (e.target === addIdiomModal) closeAddIdiomModal();
 });
-
-document
-  .getElementById('add-idiom-form')
-  .addEventListener('submit', async e => {
-    e.preventDefault();
-    const idiom = document.getElementById('modal-idiom-en').value;
-    const meaning = document.getElementById('modal-idiom-ru').value;
-    const ex = document.getElementById('modal-idiom-ex').value;
-    const exTranslation = document.getElementById(
-      'modal-idiom-ex-translation',
-    ).value;
-    const tags = document.getElementById('modal-idiom-tags').value;
-    const examples = ex ? [{ text: ex, translation: exTranslation }] : [];
-
-    const success = await addIdiom(
-      idiom,
-      meaning,
-      '', // definition - пока пустое
-      ex, // передаем строку ex, а не массив examples
-      '', // phonetic - пока пустое
-      tags,
-    );
-    if (success) {
-      closeAddIdiomModal();
-      // Если мы не на вкладке идиом, можно переключиться
-      if (document.querySelector('.tab-pane.active')?.id !== 'tab-idioms') {
-        switchTab('idioms');
-      }
-    }
-  });
 
 // Обработчики для модального окна добавления слова
 const addWordModal = document.getElementById('add-word-modal');

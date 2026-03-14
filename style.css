@@ -11450,3 +11450,36 @@ button.floating-add-btn:hover .material-symbols-outlined,
     opacity 0.2s ease,
     transform 0.2s ease;
 }
+
+/* Стили для карточек идиом */
+.word-card--idiom .word-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.idiom-definition {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.idiom-example {
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.idiom-example p {
+  margin: 0;
+  font-style: italic;
+}
+
+.idiom-example .example-translation {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
