@@ -4138,7 +4138,11 @@ html.dark .badge-learned {
 
   justify-content: center;
 
-  width: 3rem;
+  min-width: 3rem;
+
+  width: auto;
+
+  padding: 0 0.75rem;
 
   height: 3rem;
 
@@ -6612,6 +6616,54 @@ input[type='range']:active::-moz-range-thumb {
   border-left-color: var(--warning);
 }
 
+/* Мобильные тосты — поднимаем над нижней навигацией */
+@media (max-width: 830px) {
+  #toast-box {
+    bottom: 80px; /* 60px нав-бар + небольшой отступ */
+    right: 1rem;
+    left: 1rem; /* растягиваем на всю ширину */
+  }
+
+  .toast {
+    max-width: 100%; /* на мобиле во всю ширину */
+    text-align: center;
+  }
+}
+
+/* Красивые бейджики на чипах практики */
+#practice-words-due,
+#practice-idioms-due {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+@media (max-width: 767px) {
+  #tab-words .words-toolbar,
+  #tab-idioms .words-toolbar {
+    flex-wrap: wrap;
+    overflow: visible;
+    align-items: center;
+  }
+
+  #tab-words .search-container,
+  #tab-idioms .search-container {
+    order: -1;
+    width: 100%;
+    margin-bottom: 0.4rem;
+  }
+}
+
 @keyframes toastIn {
   from {
     opacity: 0;
@@ -7461,8 +7513,8 @@ html.dark .due-soon {
 
 /* Стили для карточек идиом */
 .word-card--idiom .word-title {
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 900;
   line-height: 1.4;
   word-break: break-word;
 }
@@ -10132,12 +10184,11 @@ html.dark .goal-item.locked .goal-progress-text {
 
 .word-translation {
   font-size: 1.3rem;
-
   font-weight: 600;
-
   color: var(--primary);
-
   margin-bottom: 0.5rem;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .word-card-footer {
@@ -11453,8 +11504,8 @@ button.floating-add-btn:hover .material-symbols-outlined,
 
 /* Стили для карточек идиом */
 .word-card--idiom .word-title {
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 900;
   line-height: 1.4;
   word-break: break-word;
 }

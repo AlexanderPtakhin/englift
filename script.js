@@ -194,11 +194,8 @@ window.idiomsBank = []; // банк идиом из JSON
 
 // Функция обновления счётчика идиом
 function updateIdiomsCount() {
-  const count = window.idioms.length;
-  const desktopBadge = document.getElementById('idioms-count');
-  const mobileBadge = document.getElementById('mobile-idioms-count');
-  if (desktopBadge) desktopBadge.textContent = count;
-  if (mobileBadge) mobileBadge.textContent = count;
+  // Бейджи убраны из nav, updateDueBadge теперь всё обновляет
+  updateDueBadge();
 }
 
 // Infinite scroll для идиом
@@ -209,6 +206,72 @@ let idiomsSearchQuery = '';
 let idiomsSortBy = 'date-desc'; // можно потом добавить сортировку
 let idiomsTagFilter = '';
 let idiomsActiveFilter = 'all'; // фильтр: all, learning, learned
+
+// ============================================================
+// THEME MANAGEMENT
+// ============================================================
+
+window.applyTheme = function (baseTheme = 'lavender', dark = false) {
+  const html = document.documentElement;
+
+  // Убираем все старые классы тем
+  html.classList.remove(
+    'theme-ocean',
+    'theme-forest',
+    'theme-purple',
+    'theme-sunset',
+    'theme-sky',
+    'theme-sand',
+    'theme-graphite',
+    'dark',
+  );
+
+  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию (терракота))
+  if (baseTheme !== 'lavender') {
+    html.classList.add(`theme-${baseTheme}`);
+  }
+
+  // Управляем тёмным режимом
+  if (dark) {
+    html.classList.add('dark');
+  } else {
+    html.classList.remove('dark');
+  }
+
+  // Обновляем глобальные настройки
+  window.user_settings = window.user_settings || {};
+  window.user_settings.baseTheme = baseTheme;
+  window.user_settings.dark = dark;
+
+  // Сохраняем в localStorage
+  const saved = JSON.parse(
+    localStorage.getItem('englift_user_settings') || '{}',
+  );
+  saved.baseTheme = baseTheme;
+  saved.dark = dark;
+  localStorage.setItem('englift_user_settings', JSON.stringify(saved));
+
+  // Обновляем чекбокс в дропдауне (если есть)
+  const themeCheckbox = document.getElementById('theme-checkbox');
+  if (themeCheckbox) themeCheckbox.checked = dark;
+
+  // Обновляем иконку рядом с чекбоксом
+  const themeIcon = document.querySelector(
+    '#dropdown-theme-toggle .material-symbols-outlined',
+  );
+  if (themeIcon) {
+    themeIcon.textContent = dark ? 'sunny' : 'dark_mode';
+  }
+
+  // Помечаем профиль грязным для синхронизации с сервером
+  if (window.currentUserId) {
+    window.markProfileDirty();
+  }
+
+  console.log(
+    `🎨 Тема применена: ${baseTheme} ${dark ? '(тёмная)' : '(светлая)'}`,
+  );
+};
 
 window.profileFullyLoaded = false;
 
@@ -1300,7 +1363,6 @@ function getFeedbackHTML(word, isCorrect, confidence = null) {
     <div>
       <strong>${title}</strong><br>
       ${word.en} — ${parseAnswerVariants(word.ru).join(', ') || word.ru}
-      ${word.phonetic ? `<br><small>/${word.phonetic}/</small>` : ''}
       ${extra}
     </div>
   `;
@@ -1903,16 +1965,10 @@ function fillFormWithData(data) {
   }
 
   if (filledFields > 0) {
-    toast(
-      `✓ Получено ${filledFields} поля! Проверьте и добавьте слово`,
-
-      'success',
-    );
+    console.log(`✓ Получено ${filledFields} поля через автодополнение слова`);
   } else {
-    toast(
+    console.log(
       '⚠ Данные не найдены. Попробуйте другое слово или введите вручную',
-
-      'warning',
     );
   }
 }
@@ -1964,14 +2020,10 @@ function fillIdiomFormWithData(data) {
   }
 
   if (filledFields > 0) {
-    toast(
-      `✓ Получено ${filledFields} полей! Проверьте и добавьте идиому`,
-      'success',
-    );
+    console.log(`✓ Получено ${filledFields} полей через автодополнение`);
   } else {
-    toast(
+    console.log(
       '⚠ Данные не найдены. Попробуйте другую идиому или введите вручную',
-      'warning',
     );
   }
 }
@@ -4476,7 +4528,7 @@ function toast(msg, type = '', icon = '') {
   const isImportant =
     msg.includes('лимит') || msg.includes('Лимит') || type === 'danger';
 
-  const duration = isImportant ? 6000 : 2600; // 6 секунд для лимитов
+  const duration = isImportant ? 6000 : 4000; // 6 секунд для лимитов, 4 для обычных
 
   setTimeout(() => {
     el.style.opacity = '0';
@@ -4496,27 +4548,54 @@ function toast(msg, type = '', icon = '') {
 // Update due badge function
 
 function updateDueBadge() {
-  const desktopBadge = document.getElementById('due-count');
-
-  const mobileBadge = document.getElementById('mobile-due-count');
-
-  if (!desktopBadge || !mobileBadge) return;
-
   const now = new Date();
 
-  const due = window.words.filter(
-    w => new Date(w.stats.nextReview || now) <= now,
+  // Считаем due слова
+  const wordsDue = window.words.filter(
+    w => new Date(w.stats?.nextReview) <= now,
   ).length;
 
-  const count = due > 99 ? '99+' : due;
+  // Считаем due идиомы
+  const idiomsDue = window.idioms.filter(
+    i => new Date(i.stats?.nextReview || 0) <= now,
+  ).length;
 
+  const totalDue = wordsDue + idiomsDue;
+
+  // Бейдж над "Практикой" в навигации — просто точка
+  const desktopBadge = document.getElementById('due-count');
+  const mobileBadge = document.getElementById('mobile-due-count');
   if (desktopBadge) {
-    desktopBadge.textContent = count;
-    desktopBadge.style.display = due > 0 ? 'flex' : 'none';
+    desktopBadge.textContent = '·';
+    desktopBadge.style.display = totalDue > 0 ? 'flex' : 'none';
   }
   if (mobileBadge) {
-    mobileBadge.textContent = count;
-    mobileBadge.style.display = due > 0 ? 'flex' : 'none';
+    mobileBadge.textContent = '·';
+    mobileBadge.style.display = totalDue > 0 ? 'flex' : 'none';
+  }
+
+  // Счётчики на чипах внутри Практики
+  const wordsChipBadge = document.getElementById('practice-words-due');
+  const idiomsChipBadge = document.getElementById('practice-idioms-due');
+
+  if (wordsChipBadge) {
+    wordsChipBadge.textContent = wordsDue > 0 ? wordsDue : '';
+    wordsChipBadge.style.display = wordsDue > 0 ? 'inline-flex' : 'none';
+  }
+  if (idiomsChipBadge) {
+    idiomsChipBadge.textContent = idiomsDue > 0 ? idiomsDue : '';
+    idiomsChipBadge.style.display = idiomsDue > 0 ? 'inline-flex' : 'none';
+  }
+
+  // Обновляем due-pill в фильтрах практики в зависимости от режима
+  const duePill = document.getElementById('due-pill');
+  if (duePill) {
+    const currentMode =
+      document.querySelector('#practice-mode .chip.on')?.dataset.mode ||
+      'normal';
+    const pillCount = currentMode === 'idioms' ? idiomsDue : wordsDue;
+    duePill.textContent = pillCount;
+    duePill.style.display = pillCount > 0 ? 'inline' : 'none';
   }
 }
 
@@ -4581,7 +4660,12 @@ function renderStats() {
 
   const pillEl = document.getElementById('due-pill');
 
-  if (pillEl) pillEl.textContent = dueCount;
+  const currentMode =
+    document.querySelector('#practice-mode .chip.on')?.dataset.mode || 'normal';
+  if (pillEl && currentMode !== 'idioms') {
+    pillEl.textContent = dueCount;
+    pillEl.style.display = dueCount > 0 ? 'inline' : 'none';
+  }
 
   const stTotalEl = document.getElementById('st-total');
 
@@ -5474,20 +5558,8 @@ switchTab = function (name) {
 // Синхронизация бейджей между десктопной и мобильной версиями
 
 function syncBadges() {
-  // Синхронизация счетчика слов
-
-  const wordsCount = document.getElementById('words-count');
-
-  const mobileWordsCount = document.getElementById('mobile-words-count');
-
-  if (wordsCount && mobileWordsCount) {
-    mobileWordsCount.textContent = wordsCount.textContent;
-  }
-
   // Синхронизация счетчика повторений
-
   const dueCount = document.getElementById('due-count');
-
   const mobileDueCount = document.getElementById('mobile-due-count');
 
   if (dueCount && mobileDueCount) {
@@ -5509,68 +5581,6 @@ updateDueBadge = function () {
 // THEME MANAGEMENT
 
 // ============================================================
-
-window.applyTheme = function (baseTheme = 'lavender', dark = false) {
-  const html = document.documentElement;
-
-  // Убираем все старые классы тем
-  html.classList.remove(
-    'theme-ocean',
-    'theme-forest',
-    'theme-purple',
-    'theme-sunset',
-    'theme-sky',
-    'theme-sand',
-    'theme-graphite',
-    'dark',
-  );
-
-  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию (терракота))
-  if (baseTheme !== 'lavender') {
-    html.classList.add(`theme-${baseTheme}`);
-  }
-
-  // Управляем тёмным режимом
-  if (dark) {
-    html.classList.add('dark');
-  } else {
-    html.classList.remove('dark');
-  }
-
-  // Обновляем глобальные настройки
-  window.user_settings = window.user_settings || {};
-  window.user_settings.baseTheme = baseTheme;
-  window.user_settings.dark = dark;
-
-  // Сохраняем в localStorage
-  const saved = JSON.parse(
-    localStorage.getItem('englift_user_settings') || '{}',
-  );
-  saved.baseTheme = baseTheme;
-  saved.dark = dark;
-  localStorage.setItem('englift_user_settings', JSON.stringify(saved));
-
-  // Обновляем чекбокс в дропдауне (если есть)
-  const themeCheckbox = document.getElementById('theme-checkbox');
-  if (themeCheckbox) themeCheckbox.checked = dark;
-
-  // Обновляем иконку рядом с чекбоксом
-  const themeIcon = document.querySelector(
-    '#dropdown-theme-toggle .material-symbols-outlined',
-  );
-  if (themeIcon) {
-    themeIcon.textContent = dark ? 'sunny' : 'dark_mode';
-  }
-
-  // Помечаем профиль грязным для синхронизации с сервером
-  if (window.currentUserId) {
-    window.markProfileDirty();
-  }
-
-  console.log(
-    `🎨 Тема применена: ${baseTheme} ${dark ? '(тёмная)' : '(светлая)'}`,
-  );
-};
 
 // New theme toggle checkbox handler
 
@@ -5766,8 +5776,6 @@ function renderWords() {
       );
 
     list = sortWords(list, sortBy);
-
-    document.getElementById('words-count').textContent = window.words.length;
 
     updateDueBadge();
 
@@ -6077,17 +6085,10 @@ function makeCard(w) {
   card.dataset.id = w.id;
 
   // Сохраняем все данные в data-атрибутах для раскрытия
-
   card.dataset.en = w.en;
-
   card.dataset.ru = w.ru;
-
-  card.dataset.phonetic = w.phonetic || '';
-
   card.dataset.examples = JSON.stringify(w.examples || []);
-
   card.dataset.tags = JSON.stringify(w.tags || []);
-
   card.dataset.learned = w.stats.learned;
 
   // Базовая разметка (свёрнутое состояние)
@@ -6101,22 +6102,13 @@ function makeCard(w) {
 
 
       <div class="word-main">
-
-
-
+    
         <h3 class="word-title">${esc(w.en)}</h3>
-
-
-
-        ${w.phonetic ? `<span class="word-phonetic">${esc(w.phonetic)}</span>` : ''}
-
-
-
+    
       </div>
-
-
-
+    
       <div class="word-actions">
+    
 
 
 
@@ -6267,71 +6259,23 @@ function updateExpandedContent(card) {
 
   if (examples.length > 0) {
     examplesHtml = `
-
-
-
       <div class="word-examples">
-
-
-
-        <h4>Пример</h4>
-
-
-
         ${examples
-
           .map(
             ex => `
-
-
-
           <div class="example-item">
-
-
-
             <div style="display: flex; align-items: center; gap: 8px;">
-
-
-
               <p style="margin: 0; flex: 1;">${esc(ex.text)}</p>
-
-
-
               <button class="example-audio-btn" data-example-index="${examples.indexOf(ex)}" title="Прослушать предложение">
-
-
-
                 <span class="material-symbols-outlined" style="font-size: 16px;">volume_up</span>
-
-
-
               </button>
-
-
-
             </div>
-
-
-
             ${ex.translation ? `<span class="example-translation">${esc(ex.translation)}</span>` : ''}
-
-
-
           </div>
-
-
-
         `,
           )
-
           .join('')}
-
-
-
       </div>
-
-
-
     `;
   }
 
@@ -6339,36 +6283,15 @@ function updateExpandedContent(card) {
 
   if (tags.length > 0) {
     tagsHtml = `
-
-
-
       <div class="word-tags">
-
-
-
         ${tags.map(tag => `<span class="tag" data-tag="${esc(tag)}">${esc(formatTag(tag))}</span>`).join('')}
-
-
-
       </div>
-
-
-
     `;
   }
 
   extraDiv.innerHTML = `
-
-
-
     ${examplesHtml}
-
-
-
     ${tagsHtml}
-
-
-
     <div class="word-actions-extra">
 
 
@@ -7080,6 +7003,16 @@ document.getElementById('words-grid').addEventListener('click', e => {
 
 // Обработчик кликов для карточек идиом
 document.getElementById('idioms-grid').addEventListener('click', e => {
+  // Фильтр по тегу
+  const tagBtn = e.target.closest('.tag');
+  if (tagBtn && tagBtn.dataset.tag) {
+    const tag = tagBtn.dataset.tag.toLowerCase();
+    idiomsTagFilter = idiomsTagFilter === tag ? '' : tag;
+    idiomsVisibleLimit = 30;
+    renderIdioms();
+    return;
+  }
+
   if (e.target.closest('.audio-btn')) {
     const btn = e.target.closest('.audio-btn');
     const idiomId = btn.dataset.idiom;
@@ -7303,7 +7236,7 @@ function startEditIdiom(id) {
 
 // ============================================================
 
-document.getElementById('single-form')?.addEventListener('submit', e => {
+document.getElementById('single-form')?.addEventListener('submit', async e => {
   e.preventDefault();
 
   const en = document.getElementById('f-en').value.trim();
@@ -7387,7 +7320,18 @@ document.getElementById('single-form')?.addEventListener('submit', e => {
 
     document.getElementById('f-en').focus();
 
-    toast(`«${esc(en)}» добавлено!`, 'success', 'add_circle');
+    const bank =
+      window.wordBank instanceof Promise
+        ? await window.wordBank
+        : window.wordBank;
+    const remaining = bank
+      ? bank.filter(b => !window.words.find(w => w.en === b.en)).length
+      : 0;
+    toast(
+      `"${esc(en)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} слов в банке</span>`,
+      'success',
+      'add_circle',
+    );
 
     // Переключаемся на словарь чтобы показать анимацию
 
@@ -7537,6 +7481,19 @@ document
       );
 
       if (success) {
+        // Ждем загрузки wordBank если еще не загружен
+        const bank =
+          window.wordBank instanceof Promise
+            ? await window.wordBank
+            : window.wordBank;
+        const remaining = bank
+          ? bank.filter(b => !window.words.find(w => w.en === b.en)).length
+          : 0;
+        toast(
+          `"${esc(en)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} слов в банке</span>`,
+          'success',
+          'add_circle',
+        );
         closeAddWordModal();
         if (document.querySelector('.tab-pane.active')?.id !== 'tab-words')
           switchTab('words');
@@ -7591,6 +7548,16 @@ document
       );
 
       if (success) {
+        const remaining = window.idiomsBank
+          ? window.idiomsBank.filter(
+              b => !window.idioms.find(i => i.idiom === b.idiom),
+            ).length
+          : 0;
+        toast(
+          `"${esc(idiom)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} идиом в банке</span>`,
+          'success',
+          'add_circle',
+        );
         closeAddIdiomModal();
         if (document.querySelector('.tab-pane.active')?.id !== 'tab-idioms')
           switchTab('idioms');
@@ -9017,11 +8984,108 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
     c.classList.add('on');
 
     practiceMode = c.dataset.mode;
-
     console.log('✅ practiceMode updated to:', practiceMode);
 
-    // Управляем классами вместо прямых манипуляций со стилями
+    // Управляем отображением блоков в зависимости от режима
+    const exerciseGrid = document.querySelector('.exercise-grid');
+    const filterRow = document.querySelector('.setup-row:nth-of-type(5)'); // строка с фильтром слов
+    const directionRow = document.querySelector('.setup-row:nth-of-type(7)'); // строка с направлением
+    const timedRow = document.querySelector('.setup-row:nth-of-type(8)'); // строка с режимом на время
 
+    if (practiceMode === 'idioms') {
+      // Заменяем сетку упражнений на сетку для идиом
+      exerciseGrid.innerHTML = `
+        <div class="exercise-card selected" data-ex="multi" data-field="meaning">
+          <div class="exercise-icon"><span class="material-symbols-outlined">translate</span></div>
+          <div class="exercise-name">Перевод идиомы</div>
+        </div>
+        <div class="exercise-card" data-ex="idiom-builder">
+          <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
+          <div class="exercise-name">Собери идиому</div>
+        </div>
+        <div class="exercise-card" data-ex="context" data-field="example">
+          <div class="exercise-icon"><span class="material-symbols-outlined">psychology</span></div>
+          <div class="exercise-name">Контекст</div>
+        </div>
+        <div class="exercise-card" data-ex="multi" data-field="definition">
+          <div class="exercise-icon"><span class="material-symbols-outlined">menu_book</span></div>
+          <div class="exercise-name">Определение</div>
+        </div>
+        <div class="exercise-card" data-ex="match">
+          <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
+          <div class="exercise-name">Сопоставь</div>
+        </div>
+      `;
+      // Меняем заголовок фильтра
+      const filterLabel = filterRow?.querySelector('label');
+      if (filterLabel)
+        filterLabel.innerHTML =
+          '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">filter_alt</span>Идиомы для практики';
+
+      // Обновляем бейдж "К повторению" для идиом
+      updateDueBadge();
+    } else {
+      // Восстанавливаем сетку для слов
+      exerciseGrid.innerHTML = `
+        <div class="exercise-card selected" data-ex="flash">
+          <div class="exercise-icon"><span class="material-symbols-outlined">style</span></div>
+          <div class="exercise-name">Флеш-карточки</div>
+        </div>
+        <div class="exercise-card" data-ex="multi">
+          <div class="exercise-icon"><span class="material-symbols-outlined">quiz</span></div>
+          <div class="exercise-name">Множественный выбор</div>
+        </div>
+        <div class="exercise-card" data-ex="type">
+          <div class="exercise-icon"><span class="material-symbols-outlined">keyboard</span></div>
+          <div class="exercise-name">Напиши перевод</div>
+        </div>
+        <div class="exercise-card" data-ex="dictation">
+          <div class="exercise-icon"><span class="material-symbols-outlined">headphones</span></div>
+          <div class="exercise-name">Диктант</div>
+        </div>
+        <div class="exercise-card" data-ex="speech">
+          <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
+          <div class="exercise-name">Произнеси вслух</div>
+        </div>
+        <div class="exercise-card" data-ex="speech-sentence">
+          <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
+          <div class="exercise-name">Слушай и говори</div>
+        </div>
+        <div class="exercise-card" data-ex="match">
+          <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
+          <div class="exercise-name">Найди пары</div>
+        </div>
+        <div class="exercise-card" data-ex="builder">
+          <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
+          <div class="exercise-name">Собери слово</div>
+        </div>
+        <div class="exercise-card" data-ex="context">
+          <div class="exercise-icon"><span class="material-symbols-outlined">psychology</span></div>
+          <div class="exercise-name">Контекстная догадка</div>
+        </div>
+      `;
+      const filterLabel = filterRow?.querySelector('label');
+      if (filterLabel)
+        filterLabel.innerHTML =
+          '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">filter_alt</span>Слова для практики';
+
+      // Обновляем бейдж "К повторению" для слов
+      updateDueBadge();
+    }
+
+    // Обновляем классы selected для первой карточки
+    document.querySelectorAll('.exercise-card').forEach((card, index) => {
+      if (index === 0) card.classList.add('selected');
+    });
+
+    // Заново навешиваем обработчики кликов на карточки упражнений
+    document.querySelectorAll('.exercise-card').forEach(card => {
+      card.addEventListener('click', () => {
+        card.classList.toggle('selected');
+      });
+    });
+
+    // Управляем классами вместо прямых манипуляций со стилями
     if (practiceMode === 'exam') {
       document.body.classList.add('exam-mode');
     } else {
@@ -9029,12 +9093,10 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
     }
 
     // Показываем/скрываем настройки экзамена
-
     document.getElementById('exam-settings').style.display =
       practiceMode === 'exam' ? 'block' : 'none';
 
     // Обновляем статистику экзамена при переключении режима
-
     if (practiceMode === 'exam') {
       updateExamStats();
     }
@@ -9120,6 +9182,20 @@ let practiceStartTime = null;
 // Exam mode variables
 
 let practiceMode = 'normal'; // 'normal' или 'exam'
+
+// Для обычного режима (слова)
+let selectedWordExercises = [
+  'flash',
+  'multi',
+  'type',
+  'dictation',
+  'speech',
+  'match',
+  'builder',
+  'context',
+];
+// Для режима идиом
+let selectedIdiomExercises = ['multi', 'idiom-builder', 'context', 'match'];
 
 let examTime = 600; // секунд (по умолчанию 10 мин)
 
@@ -9285,10 +9361,11 @@ function shuffleArray(array) {
 
 // УДАЛЕНО: updateTodayReviewedCount - заменено на incrementDailyCount
 
-function getCardsToReview() {
+function getCardsToReview(items = null) {
   // All cards that are due (nextReview <= now)
+  const sourceItems = items || window.words;
 
-  let dueCards = window.words.filter(w => {
+  let dueCards = sourceItems.filter(w => {
     if (!w.stats || !w.stats.nextReview) return false;
 
     return new Date(w.stats.nextReview) <= new Date();
@@ -9360,22 +9437,32 @@ function startSession(cfg) {
         'all';
     }
 
-    // 2. Формируем пул слов (общий для обоих режимов)
+    // 2. Формируем пул данных (слова или идиомы)
 
-    let pool = [...window.words];
+    // Определяем источник данных (слова или идиомы)
+    let dataSource = practiceMode === 'idioms' ? window.idioms : window.words;
+    let pool = [...dataSource];
 
-    if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
-
-    if (filterVal === 'due') {
-      pool = getCardsToReview(); // Use capped function
+    if (practiceMode === 'idioms') {
+      // Для идиом используем упрощенную фильтрацию
+      if (filterVal === 'learning')
+        pool = pool.filter(item => !item.stats?.learned);
+      if (filterVal === 'due') {
+        pool = getCardsToReview(pool); // передаем массив идиом
+      }
     } else {
-      // Для остальных фильтров просто формируем пул, лимит проверится ниже
+      // Для слов сохраняем текущую логику
+      if (filterVal === 'learning') pool = pool.filter(w => !w.stats.learned);
+      if (filterVal === 'due') {
+        pool = getCardsToReview(); // Use capped function
+      }
     }
 
     if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
 
     if (!pool.length) {
-      toast('Нет слов для практики', 'warning');
+      const itemType = practiceMode === 'idioms' ? 'идиом' : 'слов';
+      toast(`Нет ${itemType} для практики`, 'warning');
 
       // Сбрасываем флаг активной сессии
 
@@ -9439,7 +9526,7 @@ function startSession(cfg) {
       // Создаем сессию для экзамена
 
       session = {
-        words: pool,
+        items: pool, // вместо words
 
         exTypes: types,
 
@@ -9531,15 +9618,12 @@ function startSession(cfg) {
     // Создаем сессию для обычного режима
 
     session = {
-      words: pool,
-
+      items: pool, // вместо words
       exTypes,
-
       dir: dirVal,
-
       timed: timedVal === 'on',
-
-      mode: 'normal',
+      mode: practiceMode, // 'normal' или 'idioms'
+      dataType: practiceMode, // 'words' или 'idioms'
     };
 
     // Сохраняем конфигурацию для повторной сессии
@@ -9695,22 +9779,26 @@ function showResults() {
 
   `;
 
+  const isIdiom = session && session.dataType === 'idioms';
+
   document.getElementById('r-correct').innerHTML = sResults.correct
-
-    .map(
-      w =>
-        `<li>${esc(w.en)} — ${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</li>`,
-    )
-
+    .map(item => {
+      if (isIdiom) {
+        return `<li>${esc(item.idiom).toLowerCase()} — ${parseAnswerVariants(item.meaning).join(', ') || esc(item.meaning)}</li>`;
+      } else {
+        return `<li>${esc(item.en)} — ${parseAnswerVariants(item.ru).join(', ') || esc(item.ru)}</li>`;
+      }
+    })
     .join('');
 
   document.getElementById('r-wrong').innerHTML = sResults.wrong
-
-    .map(
-      w =>
-        `<li>${esc(w.en)} — ${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</li>`,
-    )
-
+    .map(item => {
+      if (isIdiom) {
+        return `<li>${esc(item.idiom).toLowerCase()} — ${parseAnswerVariants(item.meaning).join(', ') || esc(item.meaning)}</li>`;
+      } else {
+        return `<li>${esc(item.en)} — ${parseAnswerVariants(item.ru).join(', ') || esc(item.ru)}</li>`;
+      }
+    })
     .join('');
 
   // Запускаем разные анимации в зависимости от процента правильных ответов
@@ -9885,13 +9973,13 @@ function nextExercise() {
       }
     }
 
-    if (sIdx >= session.words.length) {
+    if (sIdx >= session.items.length) {
       showResults();
 
       return;
     }
 
-    const w = session.words[sIdx];
+    const w = session.items[sIdx];
 
     const t =
       session.exTypes[Math.floor(Math.random() * session.exTypes.length)];
@@ -9900,11 +9988,11 @@ function nextExercise() {
 
     if (progFill) {
       progFill.style.width =
-        Math.round((sIdx / session.words.length) * 100) + '%';
+        Math.round((sIdx / session.items.length) * 100) + '%';
     }
 
     if (exCounter) {
-      exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+      exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
     }
 
     if (currentExerciseTimer) {
@@ -10000,7 +10088,7 @@ function nextExercise() {
       }
 
       if (exCounter) {
-        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
       const dir = session.dir || 'both';
@@ -10199,44 +10287,61 @@ function nextExercise() {
       }
 
       if (exCounter) {
-        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
       const dir = session.dir || 'both';
+      const isIdiom = session.dataType === 'idioms';
 
-      const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
+      // Определяем поля в зависимости от типа данных
+      let questionField, answerField, question, correctFull;
 
-      // Вопрос (красиво форматируем варианты через запятую)
+      if (isIdiom) {
+        // Для идиом используем поля idiom/meaning или idiom/definition
+        const field =
+          document.querySelector('.exercise-card.selected')?.dataset.field ||
+          'meaning';
+        questionField = field === 'definition' ? 'definition' : 'idiom';
+        answerField = field === 'definition' ? 'meaning' : 'meaning';
+        question =
+          field === 'definition' ? w.definition : w.idiom.toLowerCase();
+        correctFull = field === 'definition' ? w.meaning : w.meaning;
+      } else {
+        // Для слов используем стандартную логику
+        const isRUEN =
+          dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
+        questionField = isRUEN ? 'ru' : 'en';
+        answerField = isRUEN ? 'en' : 'ru';
+        question = isRUEN ? parseAnswerVariants(w.ru).join(', ') || w.ru : w.en;
+        correctFull = isRUEN ? w.en : w.ru;
+      }
 
-      const question = isRUEN
-        ? parseAnswerVariants(w.ru).join(', ') || w.ru
-        : w.en;
-
-      // Правильный ответ — первый вариант из строки перевода
-
-      const correctFull = isRUEN ? w.en : w.ru;
+      const isRUEN =
+        !isIdiom &&
+        (dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5));
 
       const correctVariants = parseAnswerVariants(correctFull);
 
       const correct =
         correctVariants.length > 0 ? correctVariants[0] : correctFull;
 
-      // Собираем дистракторы из других слов
+      // Собираем дистракторы из других элементов
+      let dataSource = isIdiom ? window.idioms : window.words;
+      let otherWords = dataSource.filter(x => x.id !== w.id);
 
-      let otherWords = window.words.filter(x => x.id !== w.id);
-
-      // Для каждого другого слова берём первый вариант его перевода в зависимости от направления
-
+      // Для каждого другого элемента берём первый вариант его перевода в зависимости от направления
       let distractorCandidates = otherWords
-
         .map(x => {
-          const trans = isRUEN ? x.en : x.ru;
-
+          const trans = isIdiom
+            ? answerField === 'meaning'
+              ? x.meaning
+              : x.meaning
+            : isRUEN
+              ? x.en
+              : x.ru;
           const variants = parseAnswerVariants(trans);
-
           return variants.length > 0 ? variants[0] : trans;
         })
-
         .filter(v => v !== correct); // исключаем совпадения с правильным ответом
 
       // Перемешиваем и берём до 3 дистракторов
@@ -10258,6 +10363,11 @@ function nextExercise() {
       // Формируем опции: правильный ответ + дистракторы
 
       let options = [correct, ...distractors];
+
+      // Для идиом приводим все варианты к нижнему регистру
+      if (isIdiom) {
+        options = options.map(o => o.toLowerCase());
+      }
 
       // Перемешиваем
 
@@ -10342,6 +10452,11 @@ function nextExercise() {
           }),
         );
       }
+    } else if (t === 'idiom-builder') {
+      runIdiomBuilderExercise(w, () => {
+        sIdx++;
+        nextExercise();
+      });
     } else if (t === 'type') {
       if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
 
@@ -10351,7 +10466,7 @@ function nextExercise() {
       }
 
       if (exCounter) {
-        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
       const dir = session.dir || 'both';
@@ -10504,7 +10619,7 @@ function nextExercise() {
       }
 
       if (exCounter) {
-        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
       if (exContent) {
@@ -10599,7 +10714,7 @@ function nextExercise() {
       }
 
       if (exCounter) {
-        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
       const word = w.en.toLowerCase().replace(/[^a-z]/g, ''); // только буквы
@@ -10944,7 +11059,7 @@ function nextExercise() {
       }
 
       if (exCounter) {
-        exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+        exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
       const promptWord = w.en;
@@ -10969,8 +11084,6 @@ function nextExercise() {
                 </button>
 
               </div>
-
-              ${w.phonetic ? `<div class="speech-phonetic">/${esc(w.phonetic)}/</div>` : ''}
 
               <div class="speech-translation" id="speech-translation" style="margin-top: 0.5rem; opacity: 0.7;">
 
@@ -11251,21 +11364,24 @@ function nextExercise() {
           });
       }
     } else if (t === 'match') {
-      // Временно используем runMatchExercise пока не реализуем полноценно
-
       try {
-        runMatchExercise(session.words.slice(sIdx, sIdx + 6), elapsed => {
-          // Увеличиваем sIdx на 1, так как упражнение обработало все слова
-
-          sIdx++;
-
-          nextExercise();
-        });
+        if (session.dataType === 'idioms') {
+          runIdiomMatchExercise(
+            session.items.slice(sIdx, sIdx + 6),
+            elapsed => {
+              sIdx++;
+              nextExercise();
+            },
+          );
+        } else {
+          runMatchExercise(session.items.slice(sIdx, sIdx + 6), elapsed => {
+            sIdx++;
+            nextExercise();
+          });
+        }
       } catch (error) {
         console.error('Error in match exercise:', error);
-
         sIdx++;
-
         nextExercise();
       }
     } else if (t === 'context') {
@@ -11312,6 +11428,77 @@ function nextExercise() {
   }
 }
 
+function updIdiomStats(id, correct) {
+  const i = window.idioms.find(i => i.id === id);
+  if (!i) return;
+
+  if (!i.stats) {
+    i.stats = {
+      shown: 0,
+      learned: false,
+      correct: 0,
+      wrong: 0,
+      streak: 0,
+      lastReview: null,
+      nextReview: null,
+      interval: 1,
+      easeFactor: 2.5,
+    };
+  }
+
+  i.stats.shown = (i.stats.shown || 0) + 1;
+  i.stats.lastReview = new Date().toISOString();
+  i.stats[correct ? 'correct' : 'wrong']++;
+
+  if (correct) {
+    i.stats.streak++;
+    i.stats.easeFactor = Math.max(
+      1.3,
+      Math.min(2.5, i.stats.easeFactor + 0.05),
+    );
+
+    if (i.stats.interval <= 1) {
+      i.stats.interval = 3;
+    } else if (i.stats.interval <= 3) {
+      i.stats.interval = 7;
+    } else if (i.stats.interval <= 7) {
+      i.stats.interval = 14;
+    } else if (i.stats.interval <= 14) {
+      i.stats.interval = 30;
+    } else if (i.stats.interval <= 30) {
+      i.stats.interval = 60;
+    } else {
+      // Максимальный интервал - 180 дней (6 месяцев)
+      i.stats.interval = Math.min(180, Math.round(i.stats.interval * 1.2));
+    }
+  } else {
+    i.stats.streak = 0;
+    i.stats.interval = 1;
+    i.stats.easeFactor = Math.max(1.3, i.stats.easeFactor - 0.2);
+  }
+
+  const next = new Date();
+  next.setDate(next.getDate() + i.stats.interval);
+  i.stats.nextReview = next.toISOString();
+
+  const wasLearned = i.stats.learned;
+  i.stats.learned = i.stats.streak >= 3;
+
+  if (!wasLearned && i.stats.learned) {
+    gainXP(
+      20,
+      'идиома выучена <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">star</span>',
+    );
+    autoCheckBadges(); // Автоматическая проверка бейджей
+  }
+
+  // Save idioms to localStorage
+  localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
+
+  // Update due badge
+  updateDueBadge();
+}
+
 function recordAnswer(correct) {
   // Увеличиваем дневной счётчик
 
@@ -11338,7 +11525,12 @@ function recordAnswer(correct) {
 
   playSound(correct ? 'correct' : 'wrong');
 
-  updStats(session.words[sIdx].id, correct);
+  // Используем соответствующую функцию статистики
+  if (session.dataType === 'idioms') {
+    updIdiomStats(session.items[sIdx].id, correct);
+  } else {
+    updStats(session.items[sIdx].id, correct);
+  }
 
   updStreak();
 
@@ -11348,9 +11540,9 @@ function recordAnswer(correct) {
     session.questionsAnswered++;
 
     if (correct) {
-      session.results.correct.push(session.words[sIdx]);
+      session.results.correct.push(session.items[sIdx]);
     } else {
-      session.results.wrong.push(session.words[sIdx]);
+      session.results.wrong.push(session.items[sIdx]);
     }
 
     // Проверяем, отвечены ли все вопросы
@@ -11372,8 +11564,8 @@ function recordAnswer(correct) {
 
   // Обычный режим - существующая логика
 
-  if (correct) sResults.correct.push(session.words[sIdx]);
-  else sResults.wrong.push(session.words[sIdx]);
+  if (correct) sResults.correct.push(session.items[sIdx]);
+  else sResults.wrong.push(session.items[sIdx]);
 
   // Обновляем прогресс ежедневных целей для правильных ответов
 
@@ -12407,21 +12599,6 @@ async function renderRandomBankWord() {
 
 
         <div class="word-bank-ru">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>
-
-
-
-        ${word.phonetic ? `<div class="word-bank-phonetic">${esc(word.phonetic)}</div>` : ''}
-
-
-
-        ${example ? `<div class="word-bank-example">${esc(example)}</div>` : ''}
-
-
-
-        ${exampleTranslation ? `<div class="word-bank-example-translation">${esc(exampleTranslation)}</div>` : ''}
-
-
-
         ${word.tags?.length ? `<div class="word-bank-tags">${word.tags.map(tag => `<span class="tag">${esc(formatTag(tag))}</span>`).join('')}</div>` : ''}
 
 
@@ -12608,7 +12785,18 @@ async function renderRandomBankWord() {
       // Обновляем отображение ежедневных целей
       refreshUI();
 
-      toast(`«${currentBankWord.en}» добавлено! +5 XP`, 'success');
+      const bank =
+        window.wordBank instanceof Promise
+          ? await window.wordBank
+          : window.wordBank;
+      const remaining = bank
+        ? bank.filter(b => !window.words.find(w => w.en === b.en)).length
+        : 0;
+      toast(
+        `"${esc(currentBankWord.en)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} слов в банке</span>`,
+        'success',
+        'add_circle',
+      );
 
       // Показываем следующее случайное слово
 
@@ -12702,16 +12890,12 @@ async function renderRandomBankIdiom() {
           Рекомендуемая идиома
         </div>
         <div class="word-bank-en-wrapper">
-          <div class="word-bank-en">${esc(idiom.idiom)}</div>
+          <div class="word-bank-en">${esc(idiom.idiom).toLowerCase()}</div>
           <button class="word-bank-audio" title="Прослушать">
             <span class="material-symbols-outlined">volume_up</span>
           </button>
         </div>
         <div class="word-bank-ru">${esc(idiom.meaning)}</div>
-        ${idiom.definition ? `<div class="word-bank-definition" style="margin-top: 0.2rem; opacity: 0.8;">${esc(idiom.definition)}</div>` : ''}
-        ${idiom.phonetic ? `<div class="word-bank-phonetic">${esc(idiom.phonetic)}</div>` : ''}
-        ${idiom.example ? `<div class="word-bank-example">${esc(idiom.example)}</div>` : ''}
-        ${idiom.example_translation ? `<div class="word-bank-example-translation">${esc(idiom.example_translation)}</div>` : ''}
         ${idiom.tags?.length ? `<div class="word-bank-tags">${idiom.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
       </div>
       <div class="word-bank-actions">
@@ -12813,7 +12997,16 @@ async function renderRandomBankIdiom() {
         newIdiom.example_translation, // Передаем перевод примера
       );
       if (success) {
-        toast(`«${currentBankIdiom.idiom}» добавлено!`, 'success');
+        const remaining = window.idiomsBank
+          ? window.idiomsBank.filter(
+              b => !window.idioms.find(i => i.idiom === b.idiom),
+            ).length
+          : 0;
+        toast(
+          `"${esc(currentBankIdiom.idiom)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} идиом в банке</span>`,
+          'success',
+          'add_circle',
+        );
         renderRandomBankIdiom(); // показать следующую
       }
     });
@@ -13127,220 +13320,274 @@ function runMatchExercise(initialWords, onComplete) {
   grid.addEventListener('click', clickHandler);
 }
 
+function runIdiomMatchExercise(items, onComplete) {
+  const content = document.getElementById('ex-content');
+  const btns = document.getElementById('ex-btns');
+  btns.innerHTML = '';
+  document.getElementById('ex-type-lbl').innerHTML =
+    '<span class="material-symbols-outlined">extension</span> Сопоставь идиому и перевод';
+
+  content.innerHTML = `
+    <div class="match-timer" id="match-timer">0.0s</div>
+    <div class="match-progress" id="match-progress"></div>
+    <div class="match-grid" id="match-grid"></div>
+  `;
+
+  const timerEl = document.getElementById('match-timer');
+  const progressEl = document.getElementById('match-progress');
+  const grid = document.getElementById('match-grid');
+
+  let startTime = Date.now();
+  const wordsCount = Math.min(items.length, 6);
+  const currentItems = items.slice(0, wordsCount);
+  progressEl.textContent = `Найди ${wordsCount} пар`;
+
+  let timerRunning = true;
+  function updateTimer() {
+    if (!timerRunning) return;
+    timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+    requestAnimationFrame(updateTimer);
+  }
+  requestAnimationFrame(updateTimer);
+  window._matchTimerCancel = () => {
+    timerRunning = false;
+  };
+
+  const leftItems = [...currentItems];
+  const rightItems = [...currentItems].sort(() => Math.random() - 0.5);
+
+  grid.innerHTML = '';
+  for (let i = 0; i < currentItems.length; i++) {
+    const left = leftItems[i];
+    const right = rightItems[i];
+
+    const leftBtn = document.createElement('button');
+    leftBtn.className = 'match-btn';
+    leftBtn.dataset.id = left.id;
+    leftBtn.dataset.side = 'left';
+    leftBtn.textContent = left.idiom.toLowerCase();
+
+    const rightBtn = document.createElement('button');
+    rightBtn.className = 'match-btn';
+    rightBtn.dataset.id = right.id;
+    rightBtn.dataset.side = 'right';
+    rightBtn.textContent = right.meaning;
+
+    grid.appendChild(leftBtn);
+    grid.appendChild(rightBtn);
+  }
+
+  let matchedInRound = 0;
+  const totalInRound = currentItems.length;
+  let selected = null;
+
+  function clickHandler(e) {
+    const btn = e.target.closest('.match-btn');
+    if (!btn || btn.disabled || btn.classList.contains('correct')) return;
+
+    const side = btn.dataset.side;
+    const id = btn.dataset.id;
+
+    // Отмена выбора при клике на ту же кнопку
+    if (selected && selected.element === btn) {
+      selected.element.classList.remove('selected');
+      selected = null;
+      return;
+    }
+
+    // Первое нажатие
+    if (!selected) {
+      btn.classList.add('selected');
+      selected = { id, side, element: btn };
+      return;
+    }
+
+    // Второе нажатие – проверка пары
+    if (selected.id === id && selected.side !== side) {
+      // Правильно!
+      playSound('correct');
+      matchedInRound++;
+
+      btn.classList.add('correct');
+      btn.disabled = true;
+      selected.element.classList.add('correct');
+      selected.element.disabled = true;
+
+      // Обновляем статистику для обоих
+      updIdiomStats(id, true);
+      updIdiomStats(selected.id, true);
+
+      sResults.correct.push(currentItems.find(i => i.id === id));
+      sResults.correct.push(currentItems.find(i => i.id === selected.id));
+
+      selected = null;
+
+      if (matchedInRound === totalInRound) {
+        if (window._matchTimerCancel) window._matchTimerCancel();
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        setTimeout(() => onComplete(elapsed), 600);
+      }
+    } else {
+      // Ошибка
+      playSound('wrong');
+      btn.classList.add('wrong');
+      selected.element.classList.add('wrong');
+
+      updIdiomStats(selected.id, false);
+      sResults.wrong.push(currentItems.find(i => i.id === selected.id));
+
+      setTimeout(() => {
+        btn.classList.remove('wrong');
+        if (selected) {
+          selected.element.classList.remove('wrong', 'selected');
+          selected = null;
+        }
+      }, 400);
+    }
+  }
+
+  grid.addEventListener('click', clickHandler);
+}
+
 // === NEW EXERCISES ===
 
-function runContextExercise(word, onComplete) {
+function runContextExercise(item, onComplete) {
   const content = document.getElementById('ex-content');
-
   const btns = document.getElementById('ex-btns');
-
   const exTypeLbl = document.getElementById('ex-type-lbl');
-
   const exCounter = document.getElementById('ex-counter');
+
+  const isIdiom = session.dataType === 'idioms';
 
   if (exTypeLbl) {
     exTypeLbl.innerHTML =
       '<span class="material-symbols-outlined">psychology</span> Контекстная догадка';
   }
-
   if (exCounter) {
-    exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+    exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
   }
 
   // Варианты ответов
+  const options = [item];
+  const otherItems = session.items.filter(x => x.id !== item.id);
 
-  const options = [word];
-
-  const otherWords = session.words.filter(
-    w => w.id !== word.id && w.en !== word.en,
-  );
-
-  for (let i = 0; i < 3 && i < otherWords.length; i++) {
-    const randomIndex = Math.floor(Math.random() * otherWords.length);
-
-    options.push(otherWords[randomIndex]);
-
-    otherWords.splice(randomIndex, 1);
+  for (let i = 0; i < 3 && i < otherItems.length; i++) {
+    const randomIndex = Math.floor(Math.random() * otherItems.length);
+    options.push(otherItems[randomIndex]);
+    otherItems.splice(randomIndex, 1);
   }
 
-  const example = word.ex || `I want to _____ my goals.`;
+  // Определяем текст с пропуском
+  let exampleText = '';
+  let exampleTranslation = '';
+  let correctAnswer = '';
 
-  // Экранируем спецсимволы в слове для безопасного создания регулярного выражения
-  const escapedWord = word.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (isIdiom) {
+    // Для идиом используем поле example
+    exampleText = item.example || item.ex || '';
+    exampleTranslation = item.example_translation || '';
+    correctAnswer = item.idiom;
+  } else {
+    exampleText = item.ex || '';
+    exampleTranslation = item.examples?.[0]?.translation || '';
+    correctAnswer = item.en;
+  }
 
-  // Заменяем слово на пробел, нечувствительно к регистру
-  const exampleWithBlank = example.replace(
+  // Экранируем спецсимволы для регулярки
+  const escapedWord = correctAnswer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const exampleWithBlank = exampleText.replace(
     new RegExp(escapedWord, 'gi'),
     '_____',
   );
 
-  const exampleTranslation = word.examples?.[0]?.translation || '';
-
   // Перемешиваем варианты
   const shuffledOptions = options.sort(() => Math.random() - 0.5);
 
-  // Проверяем, не стоит ли верное слово на первом месте
-  const isFirstOptionCorrect = shuffledOptions[0]?.id === word.id;
-
   content.innerHTML = `
-
     <div class="context-exercise">
-
       <div class="context-sentence">
-
         <div class="context-text" onclick="this.nextElementSibling.style.display='block'; this.style.background='transparent'; this.onmouseover=null; this.onmouseout=null;" style="cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s;" title="Нажмите для перевода" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">
-
-          ${exampleWithBlank}
-
+          ${esc(exampleWithBlank)}
         </div>
-
         <div class="context-translation" id="context-translation" style="display: none; margin-top: 0.5rem; color: var(--muted); padding: 0.5rem; background: var(--card); border-radius: 8px;">
-
           ${esc(exampleTranslation)}
-
         </div>
-
       </div>
-
       <div class="context-options" id="context-options"></div>
-
       <div class="feedback-panel" id="context-feedback" style="display: none;"></div>
-
     </div>
-
   `;
 
   const optionsContainer = document.getElementById('context-options');
-
   const feedback = document.getElementById('context-feedback');
 
   shuffledOptions.forEach(option => {
     const btn = document.createElement('button');
-
     btn.className = 'context-option-btn';
-
-    btn.textContent = option.en;
-
-    btn.dataset.wordId = option.id;
-
+    btn.textContent = (isIdiom ? option.idiom : option.en).toLowerCase();
+    btn.dataset.id = option.id;
     btn.addEventListener('click', () => {
-      const isCorrect = option.id === word.id;
-
-      // Блокируем все кнопки
+      const isCorrect = option.id === item.id;
 
       document
-
         .querySelectorAll('.context-option-btn')
-
         .forEach(b => (b.disabled = true));
 
-      // Показываем фидбек
-
       feedback.style.display = 'block';
-
       feedback.classList.remove('correct', 'incorrect', 'warning');
       feedback.classList.add(isCorrect ? 'correct' : 'incorrect');
-      feedback.style.display = 'block';
-
-      feedback.innerHTML = getFeedbackHTML(word, isCorrect);
+      feedback.innerHTML = isCorrect
+        ? `<span class="material-symbols-outlined">check_circle</span><span>Верно!</span>`
+        : `<span class="material-symbols-outlined">cancel</span><span>Неверно. Правильный ответ: ${isIdiom ? item.idiom : item.en}</span>`;
 
       playSound(isCorrect ? 'correct' : 'wrong');
 
-      recordAnswer(isCorrect);
-
-      // Если правильно, показываем полный пример и озвучиваем
-
+      // Записываем ответ
       if (isCorrect) {
-        const contextText = document.querySelector('.context-text');
-
-        if (contextText) {
-          contextText.textContent = example;
-
-          // Автоматически произносим пример через нашу аудио систему
-
-          setTimeout(() => {
-            if (word.examplesAudio && word.examplesAudio.length > 0) {
-              // Проигрываем аудио файла примера
-              const voicePreference = window.user_settings?.voice || 'female';
-              const audioFolder =
-                voicePreference === 'male' ? '/audio-male/' : '/audio/';
-              const audio = new Audio(`${audioFolder}${word.examplesAudio[0]}`);
-
-              audio
-
-                .play()
-
-                .catch(e =>
-                  console.log('Ошибка воспроизведения аудио примера:', e),
-                );
-            } else {
-              // Если нет аудио, произносим через TTS как запасной вариант
-              speakText(example);
-            }
-          }, 500);
-        }
+        recordAnswer(true);
       } else {
-        // Если неправильно, все равно проигрываем голос предложения
-        setTimeout(() => {
-          if (word.examplesAudio && word.examplesAudio.length > 0) {
-            const voicePreference = window.user_settings?.voice || 'female';
-            const audioFolder =
-              voicePreference === 'male' ? '/audio-male/' : '/audio/';
-            const audio = new Audio(`${audioFolder}${word.examplesAudio[0]}`);
-            audio
-              .play()
-              .catch(e =>
-                console.log('Ошибка воспроизведения аудио примера:', e),
-              );
-          } else {
-            speakText(example);
-          }
-        }, 500);
+        recordAnswer(false);
       }
 
-      // Убираем автоматический переход
+      // Показываем полный пример
+      const contextText = document.querySelector('.context-text');
+      if (contextText) {
+        contextText.textContent = exampleText;
+        // Озвучка
+        if (isIdiom) {
+          if (item.audio) playIdiomAudio(item.audio);
+          else speakText(item.idiom);
+        } else {
+          window.speakWord(item);
+        }
+      }
 
-      // Вместо этого показываем кнопку "Далее"
-
+      // Кнопка "Далее"
       if (btns) {
         btns.innerHTML = `<button class="btn-icon" id="context-next"><span class="material-symbols-outlined">arrow_forward</span></button>`;
-
         document
-
           .getElementById('context-next')
-
           .addEventListener('click', () => {
             onComplete();
           });
       } else {
-        // Если нет контейнера для кнопок, создадим простую кнопку под фидбеком
-
         const nextBtn = document.createElement('button');
-
         nextBtn.className = 'btn btn-primary';
-
         nextBtn.innerHTML =
           '<span class="material-symbols-outlined">arrow_forward</span> Далее';
-
         nextBtn.style.marginTop = '1rem';
-
         nextBtn.addEventListener('click', () => onComplete());
-
         feedback.parentNode.appendChild(nextBtn);
       }
     });
-
     optionsContainer.appendChild(btn);
   });
 
-  // Кнопка пропуска (только до ответа)
-
+  // Кнопка пропуска
   if (btns) {
     btns.innerHTML = `<button class="btn-icon" id="context-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
-
     document.getElementById('context-skip')?.addEventListener('click', () => {
       recordAnswer(false);
-
       onComplete();
     });
   }
@@ -13443,14 +13690,6 @@ function runSpeechSentenceExercise(word, onComplete) {
 
 
           </div>
-
-
-
-
-
-
-
-          ${!hasExample ? `<div class="speech-phonetic">${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}</div>` : ''}
 
 
 
@@ -13832,6 +14071,193 @@ function runSpeechSentenceExercise(word, onComplete) {
 
         recordAnswer(false);
 
+        onComplete();
+      });
+  }
+}
+
+function runIdiomBuilderExercise(item, onComplete) {
+  const content = document.getElementById('ex-content');
+  const btns = document.getElementById('ex-btns');
+  const exTypeLbl = document.getElementById('ex-type-lbl');
+  const exCounter = document.getElementById('ex-counter');
+
+  exTypeLbl.innerHTML =
+    '<span class="material-symbols-outlined">construction</span> Собери идиому';
+  exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
+
+  const phrase = item.idiom; // "A busy bee"
+  const words = phrase.split(' '); // ["A", "busy", "bee"]
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+
+  content.innerHTML = `
+    <div class="builder-card">
+      <div class="builder-question">${item.meaning}</div>
+      <div class="builder-answer" id="idiom-builder-answer"></div>
+      <div class="builder-letters-container">
+        <div class="builder-letters" id="idiom-builder-words"></div>
+        <div class="feedback-panel" id="idiom-builder-fb" style="display: none;"></div>
+      </div>
+    </div>
+    <div class="builder-controls">
+      <button class="btn-icon" id="idiom-builder-reset"><span class="material-symbols-outlined">refresh</span></button>
+    </div>
+  `;
+
+  const answerContainer = document.getElementById('idiom-builder-answer');
+  const wordsContainer = document.getElementById('idiom-builder-words');
+  const fb = document.getElementById('idiom-builder-fb');
+
+  // Создаём пустые ячейки для ответа
+  for (let i = 0; i < words.length; i++) {
+    const placeholder = document.createElement('span');
+    placeholder.className = 'builder-answer-letter placeholder';
+    placeholder.dataset.index = i;
+    answerContainer.appendChild(placeholder);
+  }
+
+  // Создаём кнопки для слов
+  shuffled.forEach((word, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'builder-letter';
+    btn.textContent = word;
+    btn.dataset.word = word;
+    btn.dataset.index = index;
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      const firstPlaceholder = answerContainer.querySelector(
+        '.builder-answer-letter.placeholder',
+      );
+      if (!firstPlaceholder) return;
+      firstPlaceholder.classList.remove('placeholder');
+      firstPlaceholder.textContent = word;
+      firstPlaceholder.style.cursor = 'pointer';
+      firstPlaceholder.title = 'Нажмите, чтобы убрать';
+      firstPlaceholder.dataset.word = word;
+      btn.disabled = true;
+      btn.style.visibility = 'hidden';
+
+      // Добавляем возможность убрать слово кликом на ячейку
+      firstPlaceholder.addEventListener('click', function removeHandler() {
+        if (!firstPlaceholder.classList.contains('placeholder')) {
+          // Найти соответствующую кнопку и включить её
+          const targetBtn = Array.from(wordsContainer.children).find(
+            b => b.dataset.word === word && b.disabled,
+          );
+          if (targetBtn) {
+            targetBtn.disabled = false;
+            targetBtn.style.visibility = 'visible';
+          }
+          firstPlaceholder.classList.add('placeholder');
+          firstPlaceholder.textContent = '';
+          firstPlaceholder.style.cursor = 'default';
+          firstPlaceholder.title = '';
+          delete firstPlaceholder.dataset.word;
+          firstPlaceholder.removeEventListener('click', removeHandler);
+        }
+        checkAnswer();
+      });
+
+      checkAnswer();
+    });
+    wordsContainer.appendChild(btn);
+  });
+
+  function checkAnswer() {
+    const current = Array.from(answerContainer.children)
+      .map(el => el.textContent)
+      .join(' ');
+    if (current === phrase) {
+      wordsContainer.style.display = 'none';
+      fb.style.display = 'block';
+      fb.className = 'feedback-panel correct';
+      fb.innerHTML = getFeedbackHTML({ en: phrase, ru: item.meaning }, true);
+      // Озвучиваем идиому
+      if (item.audio) playIdiomAudio(item.audio);
+      else speakText(phrase);
+      setTimeout(() => {
+        recordAnswer(true);
+        onComplete();
+      }, 1500);
+    } else if (current.length >= phrase.length) {
+      wordsContainer.style.display = 'none';
+      fb.style.display = 'block';
+      fb.className = 'feedback-panel incorrect';
+      fb.innerHTML =
+        '<span class="material-symbols-outlined">close</span><span>Неверно</span>';
+      setTimeout(() => {
+        recordAnswer(false);
+        onComplete();
+      }, 1500);
+    }
+  }
+
+  document
+    .getElementById('idiom-builder-reset')
+    .addEventListener('click', () => {
+      // Сброс
+      answerContainer.innerHTML = '';
+      for (let i = 0; i < words.length; i++) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'builder-answer-letter placeholder';
+        placeholder.dataset.index = i;
+        answerContainer.appendChild(placeholder);
+      }
+      wordsContainer.innerHTML = '';
+      shuffled.forEach((word, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'builder-letter';
+        btn.textContent = word;
+        btn.dataset.word = word;
+        btn.dataset.index = index;
+        btn.addEventListener('click', () => {
+          if (btn.disabled) return;
+          const firstPlaceholder = answerContainer.querySelector(
+            '.builder-answer-letter.placeholder',
+          );
+          if (!firstPlaceholder) return;
+          firstPlaceholder.classList.remove('placeholder');
+          firstPlaceholder.textContent = word;
+          firstPlaceholder.style.cursor = 'pointer';
+          firstPlaceholder.title = 'Нажмите, чтобы убрать';
+          firstPlaceholder.dataset.word = word;
+          btn.disabled = true;
+          btn.style.visibility = 'hidden';
+
+          firstPlaceholder.addEventListener('click', function removeHandler() {
+            if (!firstPlaceholder.classList.contains('placeholder')) {
+              const targetBtn = Array.from(wordsContainer.children).find(
+                b => b.dataset.word === word && b.disabled,
+              );
+              if (targetBtn) {
+                targetBtn.disabled = false;
+                targetBtn.style.visibility = 'visible';
+              }
+              firstPlaceholder.classList.add('placeholder');
+              firstPlaceholder.textContent = '';
+              firstPlaceholder.style.cursor = 'default';
+              firstPlaceholder.title = '';
+              delete firstPlaceholder.dataset.word;
+              firstPlaceholder.removeEventListener('click', removeHandler);
+            }
+            checkAnswer();
+          });
+
+          checkAnswer();
+        });
+        wordsContainer.appendChild(btn);
+      });
+      wordsContainer.style.display = 'flex';
+      fb.style.display = 'none';
+    });
+
+  // Кнопка пропуска
+  if (btns) {
+    btns.innerHTML = `<button class="btn-icon" id="idiom-builder-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
+    document
+      .getElementById('idiom-builder-skip')
+      ?.addEventListener('click', () => {
+        recordAnswer(false);
         onComplete();
       });
   }
@@ -14406,10 +14832,8 @@ function renderIdioms() {
     // Сортировка
     list = sortIdioms(list, idiomsSortBy);
 
-    // Обновляем счётчики
-    document.getElementById('idioms-count').textContent = window.idioms.length;
-    document.getElementById('mobile-idioms-count').textContent =
-      window.idioms.length;
+    // Обновляем счётчики - бейджи убраны из навигации
+    // updateDueBadge() вызовется ниже в renderIdioms
     document.getElementById('idioms-subtitle').textContent =
       list.length !== window.idioms.length
         ? `(${list.length} из ${window.idioms.length})`
@@ -14440,6 +14864,9 @@ function renderIdioms() {
       if (loadingMore) loadingMore.style.display = 'none';
     }
   });
+
+  // Update due badge
+  updateDueBadge();
 }
 
 window.renderIdioms = renderIdioms;
@@ -14449,12 +14876,12 @@ function makeIdiomCard(i) {
   card.className = 'word-card word-card--idiom';
   card.dataset.id = i.id;
 
-  // Сохраняем данные в data-атрибутах для раскрытия
+  // Сохраняем все данные в data-атрибутах для раскрытия
   card.dataset.idiom = i.idiom;
   card.dataset.meaning = i.meaning;
   card.dataset.definition = i.definition || '';
-  card.dataset.example = i.example || i.ex || ''; // Используем example или ex
-  card.dataset.exampleTranslation = i.example_translation || ''; // Используем example_translation
+  card.dataset.example = i.example || i.ex || '';
+  card.dataset.exampleTranslation = i.example_translation || '';
   card.dataset.tags = JSON.stringify(i.tags || []);
   card.dataset.examplesAudio = JSON.stringify(i.examplesAudio || []);
 
@@ -14462,13 +14889,13 @@ function makeIdiomCard(i) {
   card.innerHTML = `
     <div class="word-card-header">
       <div class="word-main">
-        <h3 class="word-title">${esc(i.idiom)}</h3>
-        ${i.phonetic ? `<span class="word-phonetic">${esc(i.phonetic)}</span>` : ''}
+        <h3 class="word-title">${esc(i.idiom).toLowerCase()}</h3>
       </div>
       <div class="word-actions">
         <button class="audio-btn" data-idiom="${i.id}" title="Прослушать">
           <span class="material-symbols-outlined">volume_up</span>
         </button>
+        ${i.stats?.learned ? '<span class="learned-badge" title="Выучено"><span class="material-symbols-outlined">check_circle</span></span>' : ''}
       </div>
     </div>
     <div class="word-translation">${esc(i.meaning)}</div>
@@ -14478,24 +14905,22 @@ function makeIdiomCard(i) {
     </div>
   `;
 
-  // Обработчик клика для раскрытия
+  // Обработчик клика для раскрытия/сворачивания
   card.addEventListener('click', e => {
-    console.log('🎯 Card clicked, target:', e.target);
-    // Игнорируем клики по всем кнопкам
+    // Игнорируем клики по кнопкам
     if (
       e.target.closest('.audio-btn') ||
       e.target.closest('.edit-btn') ||
       e.target.closest('.delete-btn') ||
       e.target.closest('.example-audio-btn')
     ) {
-      console.log('🎯 Click on button, ignoring');
       return;
     }
 
-    console.log('🎯 Toggling card expansion');
     card.classList.toggle('expanded');
     const expandHint = card.querySelector('.expand-hint');
     const expandIcon = card.querySelector('.expand-icon');
+
     if (card.classList.contains('expanded')) {
       expandHint.textContent = 'Нажмите, чтобы свернуть';
       expandIcon.textContent = 'expand_less';
@@ -14510,36 +14935,27 @@ function makeIdiomCard(i) {
 }
 
 function updateIdiomExpandedContent(card) {
-  console.log(
-    '🎯 updateIdiomExpandedContent called, expanded:',
-    card.classList.contains('expanded'),
-  );
   if (!card.classList.contains('expanded')) {
     const extra = card.querySelector('.word-card-extra');
     if (extra) extra.remove();
     return;
   }
+
   if (card.querySelector('.word-card-extra')) return;
 
+  // Достаём данные из data-атрибутов
   const definition = card.dataset.definition;
   const example = card.dataset.example;
   const exampleTranslation = card.dataset.exampleTranslation;
   let examplesAudio = [];
   let tags = [];
+
   try {
     examplesAudio = JSON.parse(card.dataset.examplesAudio || '[]');
     tags = JSON.parse(card.dataset.tags || '[]');
   } catch (e) {
     console.warn('Ошибка парсинга данных', e);
   }
-
-  console.log('🎯 Card data:', {
-    definition,
-    example,
-    exampleTranslation,
-    examplesAudio,
-    tags,
-  });
 
   const extraDiv = document.createElement('div');
   extraDiv.className = 'word-card-extra';
@@ -14581,7 +14997,6 @@ function updateIdiomExpandedContent(card) {
     </div>
   `;
 
-  console.log('🎯 Generated HTML:', html);
   extraDiv.innerHTML = html;
   card.appendChild(extraDiv);
 }
@@ -14829,6 +15244,9 @@ window.onProfileFullyLoaded = async function () {
   if (document.getElementById('tab-idioms')?.classList.contains('active')) {
     renderIdioms();
   }
+
+  // Update due badge for idioms
+  updateDueBadge();
 
   // Скрываем индикатор загрузки только после завершения синхронизации
   const indicator = document.getElementById('loading-indicator');

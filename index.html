@@ -240,12 +240,9 @@
       <div class="logo">Eng<span>Lift</span></div>
 
       <nav>
-        <button class="nav-btn active" data-tab="words">
-          <span class="material-symbols-outlined"> book_4 </span>
-
+        <button class="nav-btn" data-tab="words">
+          <span class="material-symbols-outlined">menu_book</span>
           <span class="nav-text">Словарь</span>
-
-          <span class="badge" id="words-count">0</span>
         </button>
 
         <button class="nav-btn" data-tab="practice">
@@ -265,7 +262,6 @@
         <button class="nav-btn" data-tab="idioms">
           <span class="material-symbols-outlined">translate</span>
           <span class="nav-text">Идиомы</span>
-          <span class="badge" id="idioms-count">0</span>
         </button>
       </nav>
 
@@ -328,8 +324,6 @@
         <span class="material-symbols-outlined">book_4</span>
 
         <span>Словарь</span>
-
-        <span class="badge" id="mobile-words-count">0</span>
       </button>
 
       <button class="mobile-nav-btn" data-tab="practice">
@@ -349,7 +343,6 @@
       <button class="mobile-nav-btn" data-tab="idioms">
         <span class="material-symbols-outlined">translate</span>
         <span>Идиомы</span>
-        <span class="badge" id="mobile-idioms-count">0</span>
       </button>
     </nav>
 
@@ -520,19 +513,12 @@
               <div class="chip-group" id="practice-mode">
                 <button class="chip on" data-mode="normal">
                   <span class="material-symbols-outlined">school</span>
-
-                  Обычный
+                  Слова<span id="practice-words-due"></span>
                 </button>
-
-                <!-- <button
-                  class="chip"
-                  data-mode="exam"
-                  style="display: none !important"
-                >
-                  <span class="material-symbols-outlined">quiz</span>
-
-                  Экзамен
-                </button> -->
+                <button class="chip" data-mode="idioms">
+                  <span class="material-symbols-outlined">translate</span>
+                  Идиомы<span id="practice-idioms-due"></span>
+                </button>
               </div>
             </div>
 
