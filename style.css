@@ -1086,6 +1086,11 @@ body.exam-mode .setup-row:nth-of-type(5) {
   display: none;
 }
 
+/* Скрываем строку с направлением для идиом */
+body.practice-idioms .setup-row:nth-of-type(7) {
+  display: none;
+}
+
 /* Скрываем строку с режимом на время */
 
 body.exam-mode .setup-row:nth-of-type(8) {
@@ -1169,6 +1174,17 @@ body.exam-mode .setup-row:nth-of-type(8) {
 
   .logo {
     font-size: 1.5rem;
+  }
+
+  /* Mobile toolbar styles */
+  .words-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-pills {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
@@ -8114,7 +8130,7 @@ html.dark .due-soon {
 .custom-select {
   position: relative;
 
-  min-width: 140px;
+  /* min-width: 140px; */
 }
 
 .custom-select-trigger {

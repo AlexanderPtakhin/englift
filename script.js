@@ -1354,6 +1354,11 @@ function parseAnswerVariants(str) {
 function getFeedbackHTML(word, isCorrect, confidence = null) {
   const icon = isCorrect ? 'check_circle' : 'cancel';
   const title = isCorrect ? 'Верно!' : 'Неверно.';
+  // ← вот эти две строки:
+  const displayWord = word.idiom ? word.idiom.toLowerCase() : word.en;
+  const displayTrans = word.idiom
+    ? parseAnswerVariants(word.meaning).join(', ') || word.meaning
+    : parseAnswerVariants(word.ru).join(', ') || word.ru;
   let extra = '';
   if (confidence !== null) {
     extra = `<br><small>Совпадение: ${confidence}%</small>`;
@@ -1362,7 +1367,7 @@ function getFeedbackHTML(word, isCorrect, confidence = null) {
     <span class="material-symbols-outlined">${icon}</span>
     <div>
       <strong>${title}</strong><br>
-      ${word.en} — ${parseAnswerVariants(word.ru).join(', ') || word.ru}
+      ${displayWord} — ${displayTrans}
       ${extra}
     </div>
   `;
@@ -1904,8 +1909,6 @@ function validateEnglish(word) {
 function fillFormWithData(data) {
   const ruInput = document.getElementById('modal-word-ru');
 
-  const phoneticInput = document.getElementById('modal-word-phonetic');
-
   const exInput = document.getElementById('modal-word-ex');
 
   const exTransInput = document.getElementById('modal-word-ex-translation');
@@ -1914,7 +1917,7 @@ function fillFormWithData(data) {
 
   // Сбрасываем классы auto-filled у всех полей
 
-  [ruInput, phoneticInput, exInput, exTransInput, tagsInput].forEach(input => {
+  [ruInput, exInput, exTransInput, tagsInput].forEach(input => {
     if (input) input.classList.remove('auto-filled');
   });
 
@@ -1924,14 +1927,6 @@ function fillFormWithData(data) {
     ruInput.value = data.ru;
 
     ruInput.classList.add('auto-filled');
-
-    filledFields++;
-  }
-
-  if (data.phonetic) {
-    phoneticInput.value = data.phonetic;
-
-    phoneticInput.classList.add('auto-filled');
 
     filledFields++;
   }
@@ -5779,10 +5774,13 @@ function renderWords() {
 
     updateDueBadge();
 
-    document.getElementById('words-subtitle').textContent =
-      list.length !== window.words.length
-        ? `(${list.length} из ${window.words.length})`
-        : `— ${window.words.length} слов`;
+    const subtitleEl = document.getElementById('words-subtitle');
+    if (subtitleEl) {
+      subtitleEl.textContent =
+        list.length !== window.words.length
+          ? `(${list.length} из ${window.words.length})`
+          : `— ${window.words.length} слов`;
+    }
 
     if (!list.length) {
       grid.innerHTML = '';
@@ -5853,7 +5851,8 @@ function addWordToDOM(word) {
 }
 
 function updateWordsCount() {
-  document.getElementById('words-count').textContent = window.words.length;
+  const el = document.getElementById('words-count');
+  if (el) el.textContent = window.words.length;
 
   updateDueBadge();
 
@@ -5881,10 +5880,13 @@ function updateWordsCount() {
       w.tags.map(t => t.toLowerCase()).includes(tagFilter),
     );
 
-  document.getElementById('words-subtitle').textContent =
-    list.length !== window.words.length
-      ? `(${list.length} из ${window.words.length})`
-      : `— ${window.words.length} слов`;
+  const subtitleEl = document.getElementById('words-subtitle');
+  if (subtitleEl) {
+    subtitleEl.textContent =
+      list.length !== window.words.length
+        ? `(${list.length} из ${window.words.length})`
+        : `— ${window.words.length} слов`;
+  }
 }
 
 function setupLoadMoreObserver(totalCount) {
@@ -6591,7 +6593,7 @@ window.addEventListener('touchmove', hideTooltipOnScroll, { passive: true });
 
 // Audio buttons on word cards
 
-document.getElementById('words-grid').addEventListener('click', e => {
+document.getElementById('words-grid')?.addEventListener('click', e => {
   // Обработка аудио-кнопок (оставляем как есть)
 
   if (e.target.closest('.audio-btn')) {
@@ -6700,6 +6702,7 @@ document.getElementById('words-grid').addEventListener('click', e => {
     const id = e.target.closest('.delete-btn').dataset.id;
 
     pendingDelId = id;
+    pendingDeleteType = 'word';
 
     document.getElementById('del-modal').classList.add('open');
     document.body.classList.add('modal-open'); // Блокируем скролл
@@ -6730,10 +6733,6 @@ function startEditWord(id) {
 
 
     <div class="form-group"><label>Русский</label><input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}"></div>
-
-
-
-    <div class="form-group"><label>Транскрипция</label><input type="text" class="e-phonetic form-control" value="${safeAttr(w.phonetic || '')}"></div>
 
 
 
@@ -6780,8 +6779,6 @@ function startEditWord(id) {
       en: card.querySelector('.e-en').value.trim(),
 
       ru: card.querySelector('.e-ru').value.trim(),
-
-      phonetic: card.querySelector('.e-phonetic').value.trim(),
 
       ex: card.querySelector('.e-ex').value.trim(),
 
@@ -6985,7 +6982,7 @@ document.querySelectorAll('.pill[data-target="idioms"]').forEach(pill => {
   });
 });
 
-document.getElementById('words-grid').addEventListener('click', e => {
+document.getElementById('words-grid')?.addEventListener('click', e => {
   const tb = e.target.closest('.tag-filter-btn');
 
   if (!tb) return;
@@ -7002,7 +6999,7 @@ document.getElementById('words-grid').addEventListener('click', e => {
 });
 
 // Обработчик кликов для карточек идиом
-document.getElementById('idioms-grid').addEventListener('click', e => {
+document.getElementById('idioms-grid')?.addEventListener('click', e => {
   // Фильтр по тегу
   const tagBtn = e.target.closest('.tag');
   if (tagBtn && tagBtn.dataset.tag) {
@@ -7132,68 +7129,11 @@ document.getElementById('del-confirm').addEventListener('click', () => {
   if (pendingDelId) {
     if (pendingDeleteType === 'word') {
       const wSnap = window.words.find(w => w.id === pendingDelId);
-
       delWord(pendingDelId);
-
       pendingDelId = null;
-
-      visibleLimit = 30; // <-- сброс
-
+      visibleLimit = 30;
       renderWords();
-
-      // Undo toast
-
-      const undoEl = document.createElement('div');
-
-      undoEl.className = 'toast warning toast-undo';
-
-      undoEl.innerHTML =
-        '<span><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px; margin-right: 4px;">delete</span> «' +
-        esc(wSnap ? wSnap.en : 'Слово') +
-        '» удалено</span>' +
-        '<button class="toast-undo-btn"><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 14px;">undo</span> Отменить</button>';
-
-      document.getElementById('toast-box').appendChild(undoEl);
-
-      let undone = false;
-
-      undoEl.querySelector('.toast-undo-btn').addEventListener('click', () => {
-        undone = true;
-
-        if (wSnap) {
-          window.words.push(wSnap);
-
-          debouncedSave();
-
-          visibleLimit = 30; // <-- сброс
-
-          renderWords();
-        }
-
-        undoEl.remove();
-
-        showXPToast(
-          '<span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">restore</span> «' +
-            wSnap.en +
-            '» восстановлено!',
-        );
-      });
-
-      setTimeout(() => {
-        if (!undone) {
-          undoEl.style.opacity = '0';
-
-          undoEl.style.transition = 'opacity .3s';
-
-          setTimeout(() => {
-            undoEl.remove();
-
-            // Показываем финальный тост что слово окончательно удалено
-
-            toast('Слово удалено', 'success', 'delete');
-          }, 320);
-        }
-      }, 5000);
+      toast(`"${esc(wSnap?.en)}" удалено`, 'success', 'delete');
     } else if (pendingDeleteType === 'idiom') {
       const iSnap = window.idioms.find(i => i.id === pendingDelId);
 
@@ -7226,8 +7166,59 @@ document.getElementById('del-cancel').addEventListener('click', () => {
 function startEditIdiom(id) {
   const i = window.idioms.find(x => x.id === id);
   if (!i) return;
-  toast('Редактирование идиом пока не реализовано', 'info');
-  // TODO: открыть модалку с предзаполненными полями
+
+  const card = document.querySelector(`.word-card[data-id="${id}"]`);
+  if (!card) return;
+
+  card.classList.add('editing');
+  card.innerHTML = `
+    <div class="form-group"><label>Идиома</label>
+      <input type="text" class="e-idiom form-control" value="${safeAttr(i.idiom)}"></div>
+    <div class="form-group"><label>Перевод</label>
+      <input type="text" class="e-meaning form-control" value="${safeAttr(i.meaning)}"></div>
+    <div class="form-group"><label>Определение</label>
+      <input type="text" class="e-definition form-control" value="${safeAttr(i.definition)}"></div>
+    <div class="form-group"><label>Пример</label>
+      <input type="text" class="e-example form-control" value="${safeAttr(i.example)}"></div>
+    <div class="form-group"><label>Перевод примера</label>
+      <input type="text" class="e-exampletranslation form-control" value="${safeAttr(i.example_translation)}"></div>
+    <div class="form-group"><label>Теги</label>
+      <input type="text" class="e-tags form-control" value="${safeAttr(i.tags.join(', '))}"></div>
+    <div class="form-actions">
+      <button class="save-edit-idiom-btn" data-id="${i.id}">
+        <span class="material-symbols-outlined">save</span>
+      </button>
+      <button class="cancel-edit-idiom-btn">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+  `;
+
+  card
+    .querySelector('.save-edit-idiom-btn')
+    .addEventListener('click', function (e) {
+      e.stopPropagation();
+      const id = this.dataset.id;
+      updIdiom(id, {
+        idiom: card.querySelector('.e-idiom').value.trim(),
+        meaning: card.querySelector('.e-meaning').value.trim(),
+        definition: card.querySelector('.e-definition').value.trim(),
+        example: card.querySelector('.e-example').value.trim(),
+        example_translation: card
+          .querySelector('.e-exampletranslation')
+          .value.trim(),
+        tags: normalizeTags(card.querySelector('.e-tags').value),
+      });
+      toast('Saved!', 'success', 'edit');
+      renderIdioms();
+    });
+
+  card
+    .querySelector('.cancel-edit-idiom-btn')
+    .addEventListener('click', function (e) {
+      e.stopPropagation();
+      renderIdioms();
+    });
 }
 
 // ============================================================
@@ -7242,8 +7233,6 @@ document.getElementById('single-form')?.addEventListener('submit', async e => {
   const en = document.getElementById('f-en').value.trim();
 
   const ru = document.getElementById('f-ru').value.trim();
-
-  const phonetic = document.getElementById('f-phonetic').value.trim();
 
   const ex = document.getElementById('f-ex').value.trim();
 
@@ -7280,8 +7269,6 @@ document.getElementById('single-form')?.addEventListener('submit', async e => {
 
     tags,
 
-    phonetic,
-
     examples,
 
     audio,
@@ -7296,19 +7283,7 @@ document.getElementById('single-form')?.addEventListener('submit', async e => {
 
     // Сбрасываем стили auto-filled
 
-    const fields = [
-      'f-en',
-
-      'f-ru',
-
-      'f-phonetic',
-
-      'f-ex',
-
-      'f-ex-translation',
-
-      'f-tags',
-    ];
+    const fields = ['f-en', 'f-ru', 'f-ex', 'f-ex-translation', 'f-tags'];
 
     fields.forEach(id => {
       const field = document.getElementById(id);
@@ -7435,9 +7410,6 @@ document
     try {
       const en = document.getElementById('modal-word-en').value.trim();
       const ru = document.getElementById('modal-word-ru').value.trim();
-      const phonetic = document
-        .getElementById('modal-word-phonetic')
-        .value.trim();
       const ex = document.getElementById('modal-word-ex').value.trim();
       const exTranslation = document
         .getElementById('modal-word-ex-translation')
@@ -7474,7 +7446,7 @@ document
         ru,
         ex,
         normalizeTags(tags),
-        phonetic,
+        null,
         examples,
         lastFetchedWordData?.audio || null,
         lastFetchedWordData?.examplesAudio || null,
@@ -8992,12 +8964,26 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
     const directionRow = document.querySelector('.setup-row:nth-of-type(7)'); // строка с направлением
     const timedRow = document.querySelector('.setup-row:nth-of-type(8)'); // строка с режимом на время
 
+    // Скрываем навсегда строку с таймером
+    if (timedRow) timedRow.style.display = 'none';
+
     if (practiceMode === 'idioms') {
+      // Добавляем класс для скрытия направления
+      document.body.classList.add('practice-idioms');
+
       // Заменяем сетку упражнений на сетку для идиом
       exerciseGrid.innerHTML = `
-        <div class="exercise-card selected" data-ex="multi" data-field="meaning">
+        <div class="exercise-card selected" data-ex="flash">
+          <div class="exercise-icon"><span class="material-symbols-outlined">style</span></div>
+          <div class="exercise-name">Флеш-карточки</div>
+        </div>
+        <div class="exercise-card" data-ex="multi" data-field="meaning">
           <div class="exercise-icon"><span class="material-symbols-outlined">translate</span></div>
           <div class="exercise-name">Перевод идиомы</div>
+        </div>
+        <div class="exercise-card" data-ex="type">
+          <div class="exercise-icon"><span class="material-symbols-outlined">keyboard</span></div>
+          <div class="exercise-name">Напиши идиому</div>
         </div>
         <div class="exercise-card" data-ex="idiom-builder">
           <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
@@ -9071,6 +9057,11 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
       // Обновляем бейдж "К повторению" для слов
       updateDueBadge();
+    }
+
+    if (practiceMode !== 'idioms') {
+      // Убираем класс practice-idioms
+      document.body.classList.remove('practice-idioms');
     }
 
     // Обновляем классы selected для первой карточки
@@ -9195,7 +9186,14 @@ let selectedWordExercises = [
   'context',
 ];
 // Для режима идиом
-let selectedIdiomExercises = ['multi', 'idiom-builder', 'context', 'match'];
+let selectedIdiomExercises = [
+  'flash',
+  'multi',
+  'type',
+  'idiom-builder',
+  'context',
+  'match',
+];
 
 let examTime = 600; // секунд (по умолчанию 10 мин)
 
@@ -9612,16 +9610,12 @@ function startSession(cfg) {
     const dirVal =
       document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
 
-    const timedVal =
-      document.querySelector('.chip[data-timed].on')?.dataset.timed || 'off';
-
     // Создаем сессию для обычного режима
 
     session = {
       items: pool, // вместо words
       exTypes,
       dir: dirVal,
-      timed: timedVal === 'on',
       mode: practiceMode, // 'normal' или 'idioms'
       dataType: practiceMode, // 'words' или 'idioms'
     };
@@ -10001,86 +9995,6 @@ function nextExercise() {
       currentExerciseTimer = null;
     }
 
-    if (session.timed) {
-      const oldTimer = headerContainer.querySelector('.exercise-timer');
-
-      if (oldTimer) {
-        oldTimer.remove();
-      }
-
-      const timerEl = document.createElement('div');
-
-      timerEl.id = 'exercise-timer';
-
-      timerEl.className = 'exercise-timer';
-
-      timerEl.innerHTML = `
-
-
-
-
-
-
-
-        <span class="material-symbols-outlined">timer</span>
-
-
-
-
-
-
-
-        <span class="timer-text">0:10</span>
-
-
-
-
-
-
-
-      `;
-
-      headerContainer.insertBefore(timerEl, headerContainer.firstChild);
-
-      let timeRemaining = 10;
-
-      session.currentTimerEl = timerEl;
-
-      currentExerciseTimer = setInterval(() => {
-        timeRemaining--;
-
-        const timerText = timerEl.querySelector('.timer-text');
-
-        if (timerText) {
-          timerText.textContent = `${timeRemaining}s`;
-        }
-
-        // Красный цвет на последних 3 секундах
-
-        if (timeRemaining <= 3) {
-          timerEl.classList.add('timer-urgent');
-        } else {
-          timerEl.classList.remove('timer-urgent');
-        }
-
-        if (timeRemaining <= 0) {
-          clearInterval(currentExerciseTimer);
-
-          currentExerciseTimer = null;
-
-          timerEl.remove();
-
-          session.currentTimerEl = null;
-
-          recordAnswer(false);
-
-          sIdx++;
-
-          nextExercise();
-        }
-      }, 1000);
-    }
-
     if (t === 'flash') {
       if (exTypeLbl) {
         exTypeLbl.innerHTML =
@@ -10091,28 +10005,36 @@ function nextExercise() {
         exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
-      const dir = session.dir || 'both';
+      const isIdiom = session.dataType === 'idioms';
 
-      const showRU = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
-
-      let frontWord, backWord;
-
-      if (showRU) {
-        // RU на лицевой стороне — разбиваем на варианты и соединяем запятой
-
-        const ruVariants = parseAnswerVariants(w.ru);
-
-        frontWord = ruVariants.length ? ruVariants.join(', ') : w.ru;
-
-        backWord = w.en; // английское слово (может быть несколько, но на обороте мы уже обработали)
+      let frontWord, backWord, showRU;
+      if (isIdiom) {
+        frontWord = w.idiom.toLowerCase();
+        backWord = w.meaning;
+        showRU = false; // ← просто фиксируем значение чтобы шаблон не упал
       } else {
-        frontWord = w.en;
+        const dir = session.dir || 'both';
 
-        // на обороте русское — тоже разбиваем и соединяем запятой
+        const showRU =
+          dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
 
-        const ruVariants = parseAnswerVariants(w.ru);
+        if (showRU) {
+          // RU на лицевой стороне — разбиваем на варианты и соединяем запятой
 
-        backWord = ruVariants.length ? ruVariants.join(', ') : w.ru;
+          const ruVariants = parseAnswerVariants(w.ru);
+
+          frontWord = ruVariants.length ? ruVariants.join(', ') : w.ru;
+
+          backWord = w.en; // английское слово (может быть несколько, но на обороте мы уже обработали)
+        } else {
+          frontWord = w.en;
+
+          // на обороте русское — тоже разбиваем и соединяем запятой
+
+          const ruVariants = parseAnswerVariants(w.ru);
+
+          backWord = ruVariants.length ? ruVariants.join(', ') : w.ru;
+        }
       }
 
       if (exContent) {
@@ -10140,7 +10062,7 @@ function nextExercise() {
 
 
 
-                  ${frontWord === w.en ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+                  ${frontWord === w.en || isIdiom ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
 
 
 
@@ -10161,26 +10083,16 @@ function nextExercise() {
 
 
                 <div style="display:flex;align-items:center;gap:.75rem;justify-content:center">
-
                   <div class="card-trans">
-
                     ${(() => {
                       const variants = parseAnswerVariants(backWord);
-
                       return variants.join(', ') || esc(backWord);
                     })()}
-
                   </div>
-
-                  ${backWord === w.en ? `<button class="btn-audio" id="fc-audio-btn-back" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
-
+                  ${backWord === w.en || (isIdiom && backWord === w.idiom) ? `<button class="btn-audio" id="fc-audio-btn-back" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
                 </div>
 
-
-
                 ${!showRU && w.ex ? `<div class="card-ex">${esc(w.ex)}</div>` : ''}
-
-
 
               </div>
 
@@ -10197,7 +10109,15 @@ function nextExercise() {
         `;
       }
 
-      if (autoPron && !showRU) setTimeout(() => window.speakWord(w), 300);
+      if (isIdiom) {
+        if (autoPron)
+          setTimeout(() => {
+            if (w.audio) playIdiomAudio(w.audio);
+            else speakText(w.idiom);
+          }, 300);
+      } else {
+        if (autoPron && !showRU) setTimeout(() => window.speakWord(w), 300);
+      }
 
       // Изначально скрываем кнопки ответа для карточек
 
@@ -10207,29 +10127,49 @@ function nextExercise() {
 
       // Добавляем обработку аудио кнопки
 
-      if (frontWord === w.en) {
+      if (isIdiom) {
+        // для идиом вешаем аудио при перевороте карточки если есть аудио
         const fcAudioBtn = document.getElementById('fc-audio-btn');
-
-        if (fcAudioBtn) {
+        if (fcAudioBtn)
           fcAudioBtn.addEventListener('click', e => {
             e.stopPropagation();
-
-            window.speakWord(w);
+            if (w.audio) playIdiomAudio(w.audio);
+            else speakText(w.idiom);
           });
-        }
-      }
 
-      // Добавляем обработку для кнопки на обратной стороне
-
-      if (backWord === w.en) {
+        // для идиом вешаем аудио и на обратной стороне
         const fcAudioBtnBack = document.getElementById('fc-audio-btn-back');
-
-        if (fcAudioBtnBack) {
+        if (fcAudioBtnBack)
           fcAudioBtnBack.addEventListener('click', e => {
             e.stopPropagation();
-
-            window.speakWord(w);
+            if (w.audio) playIdiomAudio(w.audio);
+            else speakText(w.idiom);
           });
+      } else {
+        if (frontWord === w.en) {
+          const fcAudioBtn = document.getElementById('fc-audio-btn');
+
+          if (fcAudioBtn) {
+            fcAudioBtn.addEventListener('click', e => {
+              e.stopPropagation();
+
+              window.speakWord(w);
+            });
+          }
+        }
+
+        // Добавляем обработку для кнопки на обратной стороне
+
+        if (backWord === w.en) {
+          const fcAudioBtnBack = document.getElementById('fc-audio-btn-back');
+
+          if (fcAudioBtnBack) {
+            fcAudioBtnBack.addEventListener('click', e => {
+              e.stopPropagation();
+
+              window.speakWord(w);
+            });
+          }
         }
       }
 
@@ -10281,6 +10221,36 @@ function nextExercise() {
     } else if (t === 'multi') {
       if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
 
+      // Создаём таймер всегда для multi
+      const oldTimer = headerContainer.querySelector('.exercise-timer');
+      if (oldTimer) oldTimer.remove();
+
+      const timerEl = document.createElement('div');
+      timerEl.id = 'exercise-timer';
+      timerEl.className = 'exercise-timer';
+      timerEl.innerHTML = `
+        <span class="material-symbols-outlined">timer</span>
+        <span class="timer-text">10s</span>
+      `;
+      headerContainer.insertBefore(timerEl, headerContainer.firstChild);
+
+      let timeRemaining = 10;
+      currentExerciseTimer = setInterval(() => {
+        timeRemaining--;
+        const timerText = timerEl.querySelector('.timer-text');
+        if (timerText) timerText.textContent = `${timeRemaining}s`;
+        if (timeRemaining <= 3) timerEl.classList.add('timer-urgent');
+        else timerEl.classList.remove('timer-urgent');
+        if (timeRemaining <= 0) {
+          clearInterval(currentExerciseTimer);
+          currentExerciseTimer = null;
+          timerEl.remove();
+          recordAnswer(false);
+          sIdx++;
+          nextExercise();
+        }
+      }, 1000);
+
       if (exTypeLbl) {
         exTypeLbl.innerHTML =
           '<span class="material-symbols-outlined">target</span> Выбор ответа';
@@ -10293,19 +10263,26 @@ function nextExercise() {
       const dir = session.dir || 'both';
       const isIdiom = session.dataType === 'idioms';
 
+      // Объявляем field для использования в дистракторах
+      const field = isIdiom
+        ? document.querySelector('.exercise-card.selected')?.dataset.field ||
+          'meaning'
+        : null;
+
       // Определяем поля в зависимости от типа данных
       let questionField, answerField, question, correctFull;
 
       if (isIdiom) {
         // Для идиом используем поля idiom/meaning или idiom/definition
-        const field =
-          document.querySelector('.exercise-card.selected')?.dataset.field ||
-          'meaning';
-        questionField = field === 'definition' ? 'definition' : 'idiom';
-        answerField = field === 'definition' ? 'meaning' : 'meaning';
-        question =
-          field === 'definition' ? w.definition : w.idiom.toLowerCase();
-        correctFull = field === 'definition' ? w.meaning : w.meaning;
+        if (field === 'definition') {
+          // Показываем определение → угадываем идиому
+          question = w.definition;
+          correctFull = w.idiom.toLowerCase();
+        } else {
+          // Показываем идиому → угадываем перевод (meaning)
+          question = w.idiom.toLowerCase();
+          correctFull = w.meaning;
+        }
       } else {
         // Для слов используем стандартную логику
         const isRUEN =
@@ -10333,8 +10310,8 @@ function nextExercise() {
       let distractorCandidates = otherWords
         .map(x => {
           const trans = isIdiom
-            ? answerField === 'meaning'
-              ? x.meaning
+            ? field === 'definition'
+              ? x.idiom.toLowerCase()
               : x.meaning
             : isRUEN
               ? x.en
@@ -10373,7 +10350,14 @@ function nextExercise() {
 
       options = options.sort(() => Math.random() - 0.5);
 
-      if (autoPron && !isRUEN) setTimeout(() => window.speakWord(w), 300);
+      if (autoPron && !isRUEN && !(isIdiom && field === 'definition')) {
+        if (isIdiom)
+          setTimeout(() => {
+            if (w.audio) playIdiomAudio(w.audio);
+            else speakText(w.idiom);
+          }, 300);
+        else setTimeout(() => window.speakWord(w), 300);
+      }
 
       if (exContent) {
         exContent.innerHTML = `
@@ -10411,14 +10395,16 @@ function nextExercise() {
         `;
       }
 
-      if (!isRUEN) {
+      if (!isRUEN && !(isIdiom && field === 'definition')) {
         const mcAudioBtn = document.getElementById('mc-audio-btn');
 
         if (mcAudioBtn) {
           mcAudioBtn.addEventListener('click', e => {
             e.stopPropagation();
-
-            window.speakWord(w);
+            if (isIdiom) {
+              if (w.audio) playIdiomAudio(w.audio);
+              else speakText(w.idiom);
+            } else window.speakWord(w);
           });
         }
       }
@@ -10436,7 +10422,12 @@ function nextExercise() {
 
             if (!ok) b.classList.add('wrong');
 
-            if (ok) window.speakWord(w);
+            if (ok) {
+              if (isIdiom) {
+                if (w.audio) playIdiomAudio(w.audio);
+                else speakText(w.idiom);
+              } else window.speakWord(w);
+            }
 
             setTimeout(
               () => {
@@ -10469,15 +10460,22 @@ function nextExercise() {
         exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
-      const dir = session.dir || 'both';
+      const isIdiom = session.dataType === 'idioms';
 
-      const isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
+      let question, answer;
+      let isRUEN = false; // ← добавь эту строку
+      if (isIdiom) {
+        question = w.meaning; // показываем перевод
+        answer = w.idiom.toLowerCase(); // нужно написать идиому
+      } else {
+        const dir = session.dir || 'both';
 
-      const question = isRUEN
-        ? parseAnswerVariants(w.ru).join(', ') || w.ru
-        : w.en;
+        isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5); // ← убери const
 
-      const answer = isRUEN ? w.en : w.ru;
+        question = isRUEN ? parseAnswerVariants(w.ru).join(', ') || w.ru : w.en;
+
+        answer = isRUEN ? w.en : w.ru;
+      }
 
       // Отключаем автоозвучку в упражнении "Напиши перевод"
 
@@ -10558,13 +10556,10 @@ function nextExercise() {
           const checkAnswer = () => {
             const userAnswer = input.value.trim().toLowerCase();
 
-            // Получаем массив вариантов правильного ответа
-
-            const answerVariants = parseAnswerVariants(answer);
-
-            const isCorrect = answerVariants.some(
-              variant => variant === userAnswer,
-            );
+            const isCorrect = isIdiom
+              ? userAnswer === answer ||
+                levenshteinDistance(userAnswer, answer) <= 2
+              : parseAnswerVariants(answer).some(v => v === userAnswer);
 
             if (input) input.disabled = true;
 
@@ -10578,7 +10573,10 @@ function nextExercise() {
 
                 fb.innerHTML = getFeedbackHTML(w, isCorrect);
 
-                if (true) window.speakWord(w);
+                if (isIdiom) {
+                  if (w.audio) playIdiomAudio(w.audio);
+                  else speakText(w.idiom);
+                } else window.speakWord(w);
 
                 setTimeout(() => {
                   recordAnswer(true);
@@ -14086,8 +14084,8 @@ function runIdiomBuilderExercise(item, onComplete) {
     '<span class="material-symbols-outlined">construction</span> Собери идиому';
   exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
 
-  const phrase = item.idiom; // "A busy bee"
-  const words = phrase.split(' '); // ["A", "busy", "bee"]
+  const phrase = item.idiom.toLowerCase(); // "a busy bee"
+  const words = phrase.split(' '); // ["a", "busy", "bee"]
   const shuffled = [...words].sort(() => Math.random() - 0.5);
 
   content.innerHTML = `
@@ -14100,6 +14098,9 @@ function runIdiomBuilderExercise(item, onComplete) {
       </div>
     </div>
     <div class="builder-controls">
+      <button class="btn-icon" id="idiom-builder-hint-btn">
+        <span class="material-symbols-outlined">lightbulb</span>
+      </button>
       <button class="btn-icon" id="idiom-builder-reset"><span class="material-symbols-outlined">refresh</span></button>
     </div>
   `;
@@ -14183,12 +14184,14 @@ function runIdiomBuilderExercise(item, onComplete) {
       wordsContainer.style.display = 'none';
       fb.style.display = 'block';
       fb.className = 'feedback-panel incorrect';
-      fb.innerHTML =
-        '<span class="material-symbols-outlined">close</span><span>Неверно</span>';
+      fb.innerHTML = `
+        <span class="material-symbols-outlined">close</span>
+        <div>Правильно: <strong>${phrase}</strong></div>
+      `;
       setTimeout(() => {
         recordAnswer(false);
         onComplete();
-      }, 1500);
+      }, 2000);
     }
   }
 
@@ -14249,6 +14252,29 @@ function runIdiomBuilderExercise(item, onComplete) {
       });
       wordsContainer.style.display = 'flex';
       fb.style.display = 'none';
+    });
+
+  // Логика подсказки
+  document
+    .getElementById('idiom-builder-hint-btn')
+    ?.addEventListener('click', () => {
+      const current = Array.from(answerContainer.children)
+        .map(el => el.textContent)
+        .join(' ')
+        .trim();
+      const currentWords = current ? current.split(' ') : [];
+      const nextWord = words[currentWords.length];
+      if (!nextWord) return;
+      const targetBtn = Array.from(wordsContainer.children).find(
+        b => b.dataset.word === nextWord && !b.disabled,
+      );
+      if (targetBtn) {
+        targetBtn.classList.add('builder-hint-pulse');
+        setTimeout(
+          () => targetBtn.classList.remove('builder-hint-pulse'),
+          2000,
+        );
+      }
     });
 
   // Кнопка пропуска
