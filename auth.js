@@ -550,19 +550,20 @@ async function loadUserProfile(user) {
           level: 1,
           badges: [],
           streak: 0,
-          last_streak_date: null,
-          daily_progress: {
+          laststreakdate: null, // было last_streak_date
+          dailyprogress: {
+            // было daily_progress
             add_new: 0,
             review: 0,
             practice_time: 0,
             completed: false,
             lastReset: new Date().toISOString().split('T')[0],
           },
-          daily_review_count: 0, // ← было today_reviewed_count
-          last_review_reset: new Date().toISOString().split('T')[0], // ← было last_reviewed_reset
-          speech_cfg: {},
-          user_settings: {},
-          dark_theme: false,
+          dailyreviewcount: 0, // было daily_review_count
+          lastreviewreset: new Date().toISOString().split('T')[0], // было last_review_reset
+          speechcfg: {}, // было speech_cfg
+          usersettings: {}, // было user_settings
+          darktheme: false, // было dark_theme
         });
       }
 

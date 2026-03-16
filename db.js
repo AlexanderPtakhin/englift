@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js';
 
-// Загрузить все слова пользователя (однократно)
+// ─── WORDS ───────────────────────────────────────────────
+
 export async function loadWordsOnce(callback) {
   const {
     data: { user },
@@ -9,36 +10,37 @@ export async function loadWordsOnce(callback) {
     callback([]);
     return;
   }
+
   const { data, error } = await supabase
     .from('user_words')
     .select('*')
     .eq('user_id', user.id)
-    .order('updatedAt', { ascending: false });
+    .order('updated_at', { ascending: false });
 
   if (error) {
     console.error('Error loading words:', error);
     callback([]);
-  } else {
-    callback(data);
-  }
+  } else callback(data);
 }
 
-// Сохранить одно слово (upsert по id)
 export async function saveWordToDb(word) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const wordData = {
-    ...word,
-    user_id: user.id,
-    updatedAt: new Date().toISOString(),
-  };
+  const { updatedAt, createdAt, examplesAudio, ...wordRest } = word;
 
-  const { error } = await supabase
-    .from('user_words')
-    .upsert(wordData, { onConflict: 'id' });
+  const { error } = await supabase.from('user_words').upsert(
+    {
+      ...wordRest,
+      user_id: user.id,
+      updated_at: new Date().toISOString(),
+      created_at: createdAt ?? new Date().toISOString(),
+      examples_audio: examplesAudio ?? null,
+    },
+    { onConflict: 'id' },
+  );
 
   if (error) throw error;
 }
@@ -57,15 +59,42 @@ export async function deleteWordFromDb(wordId) {
   if (error) throw error;
 }
 
-// Сохранить данные пользователя (профиль)
+// ─── PROFILES ────────────────────────────────────────────
+
 export async function saveUserData(uid, data) {
+  if (!uid) return;
+
+  const payload = { updated_at: new Date().toISOString() }; // ← обязательно!
+
+  if (data.xp !== undefined) payload.xp = data.xp;
+  if (data.level !== undefined) payload.level = data.level;
+  if (data.badges !== undefined) payload.badges = data.badges;
+  if (data.streak !== undefined) payload.streak = data.streak;
+  if (data.laststreakdate !== undefined)
+    payload.laststreakdate = data.laststreakdate;
+  if (data.dailyprogress !== undefined)
+    payload.dailyprogress = data.dailyprogress;
+  if (data.dailyreviewcount !== undefined)
+    payload.dailyreviewcount = data.dailyreviewcount;
+  if (data.lastreviewreset !== undefined)
+    payload.lastreviewreset = data.lastreviewreset;
+  if (data.usersettings !== undefined) payload.usersettings = data.usersettings;
+  if (data.speechcfg !== undefined) payload.speechcfg = data.speechcfg;
+  if (data.darktheme !== undefined) payload.darktheme = data.darktheme;
+
   const { error } = await supabase
     .from('profiles')
-    .upsert({ id: uid, ...data, updated_at: new Date().toISOString() });
-  if (error) console.error('Error saving user data:', error);
+    .update(payload)
+    .eq('id', uid);
+
+  if (error) {
+    console.error('Error saving user data:', error);
+    throw error;
+  }
 }
 
-// Загрузить все идиомы пользователя (однократно)
+// ─── IDIOMS ──────────────────────────────────────────────
+
 export async function loadIdiomsOnce(callback) {
   const {
     data: { user },
@@ -74,38 +103,61 @@ export async function loadIdiomsOnce(callback) {
     callback([]);
     return;
   }
+
   const { data, error } = await supabase
     .from('user_idioms')
     .select('*')
     .eq('user_id', user.id)
-    .order('updatedAt', { ascending: false });
+    .order('updated_at', { ascending: false });
 
   if (error) {
     console.error('Error loading idioms:', error);
     callback([]);
-  } else {
-    callback(data);
-  }
+  } else callback(data);
 }
 
-// Сохранить одну идиому (upsert по id)
 export async function saveIdiomToDb(idiom) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Вытаскиваем все camelCase поля которых нет в DB
+  const {
+    updatedAt,
+    createdAt,
+    examplesAudio,
+    example_translation, // исправлено: в DB это example_translation
+    ...idiomRest
+  } = idiom;
+
   const idiomData = {
-    ...idiom,
+    ...idiomRest,
     user_id: user.id,
-    updatedAt: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    created_at: createdAt ?? new Date().toISOString(),
+    examples_audio: examplesAudio || [], // исправлено: всегда массив
+    example_translation: example_translation ?? null, // ← маппинг
   };
+
+  // Детальное логирование для отладки
+  console.log('📤 Отправка идиомы в Supabase:', {
+    data: idiomData,
+    keys: Object.keys(idiomData),
+    examples_audio_type: Array.isArray(idiomData.examples_audio),
+    examples_audio_value: idiomData.examples_audio,
+    example_translation_type: typeof idiomData.example_translation,
+    example_translation_value: idiomData.example_translation,
+  });
 
   const { error } = await supabase
     .from('user_idioms')
     .upsert(idiomData, { onConflict: 'id' });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Ошибка сохранения идиомы в Supabase:', error);
+    throw error;
+  }
 }
 
 // Удалить идиому
@@ -114,10 +166,12 @@ export async function deleteIdiomFromDb(idiomId) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+
   const { error } = await supabase
     .from('user_idioms')
     .delete()
     .eq('id', idiomId)
     .eq('user_id', user.id);
+
   if (error) throw error;
 }

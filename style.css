@@ -597,6 +597,9 @@ html:not(.dark) {
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
   --radius: 16px;
   --shadow: 0 4px 20px rgba(224, 122, 95, 0.1);
   --shadow-hover: 0 8px 30px rgba(224, 122, 95, 0.18);
@@ -615,6 +618,9 @@ html.dark {
   --border: #554b42;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Океан (светлая) */
@@ -630,6 +636,9 @@ html.dark {
   --border: #c3d9eb;
   --shadow: 0 4px 20px rgba(43, 108, 148, 0.1);
   --shadow-hover: 0 8px 30px rgba(43, 108, 148, 0.18);
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный океан */
@@ -644,6 +653,9 @@ html.dark {
   --border: #3f5565;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Лес (светлая) */
@@ -659,6 +671,9 @@ html.dark {
   --border: #c0dbc0;
   --shadow: 0 4px 20px rgba(47, 107, 60, 0.1);
   --shadow-hover: 0 8px 30px rgba(47, 107, 60, 0.18);
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный лес */
@@ -673,6 +688,9 @@ html.dark {
   --border: #3e553e;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Лаванда (светлая) */
@@ -688,6 +706,9 @@ html.dark {
   --border: #e2d9f0;
   --shadow: 0 4px 20px rgba(155, 135, 184, 0.1);
   --shadow-hover: 0 8px 30px rgba(155, 135, 184, 0.18);
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмная лаванда */
@@ -702,6 +723,9 @@ html.dark {
   --border: #554a66;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Закат (светлая) */
@@ -717,6 +741,9 @@ html.dark {
   --border: #ffd4d4;
   --shadow: 0 4px 20px rgba(255, 107, 107, 0.1);
   --shadow-hover: 0 8px 30px rgba(255, 107, 107, 0.18);
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный закат */
@@ -731,6 +758,9 @@ html.dark {
   --border: #5c4040;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Небесная (светлая) */
@@ -746,6 +776,9 @@ html.dark {
   --border: #c5e0f0;
   --shadow: 0 4px 20px rgba(127, 193, 224, 0.1);
   --shadow-hover: 0 8px 30px rgba(127, 193, 224, 0.18);
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмная небесная */
@@ -760,6 +793,9 @@ html.dark {
   --border: #3f5a6b;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Песок (светлая) */
@@ -775,6 +811,9 @@ html.dark {
   --border: #eadbc8;
   --shadow: 0 4px 20px rgba(196, 164, 132, 0.1);
   --shadow-hover: 0 8px 30px rgba(196, 164, 132, 0.18);
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный песок */
@@ -789,6 +828,9 @@ html.dark {
   --border: #5e554b;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Графит (светлая) */
@@ -804,6 +846,9 @@ html.dark {
   --border: #e5e7eb;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
+  --idioms-color: #22c55e;
+  --idioms-color-light: #4ade80;
+  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный графит */
@@ -818,6 +863,9 @@ html.dark {
   --border: #4b5563;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --idioms-color: #2e7d32;
+  --idioms-color-light: #43a047;
+  --idioms-rgb: 46, 125, 50;
 }
 
 *,
@@ -908,6 +956,115 @@ header nav {
   gap: 0.75rem;
 }
 
+.theme-toggle-header {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.theme-toggle-header .material-symbols-outlined {
+  font-size: 24px !important;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-header:hover {
+  color: var(--primary);
+  transform: scale(1.1);
+}
+
+.theme-toggle-header:hover .material-symbols-outlined {
+  color: var(--primary);
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* Статистика - унифицированные иконки */
+.stat-icon-small {
+  font-size: 1rem !important;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  color: var(--muted);
+}
+
+.spc-nums .material-symbols-outlined {
+  font-size: 0.9rem;
+  margin-right: 0.2rem;
+  vertical-align: middle;
+  color: var(--muted);
+}
+
+/* Улучшение отображения числовых блоков в прогрессе */
+.spc-nums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem; /* увеличенный отступ между элементами */
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+/* Специальный стиль для due-чипа */
+.stat-due-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #f59e0b;
+  font-weight: 700;
+  animation: gentlePulse 2s infinite;
+}
+
+.stat-due-chip .material-symbols-outlined {
+  font-size: 0.9rem;
+  color: #f59e0b;
+}
+
+/* Анимация пульсации */
+@keyframes gentlePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* На мобильных такие же отступы как на десктопе */
+@media (max-width: 830px) {
+  .spc-nums {
+    gap: 0.75rem 1.5rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .spc-nums {
+    gap: 0.75rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .spc-nums {
+    gap: 0.75rem 1.5rem;
+  }
+}
+
 .mobile-nav-btn {
   display: flex;
 
@@ -927,11 +1084,40 @@ header nav {
 
   cursor: pointer;
 
-  transition: all 0.2s;
+  transition:
+    color 0.2s,
+    background 0.2s;
 
   position: relative;
 
   gap: 0.25rem;
+  overflow: hidden;
+}
+
+/* Ripple-эффект */
+.mobile-nav-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(var(--primary-rgb), 0.15);
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.3s,
+    height 0.3s;
+  pointer-events: none;
+}
+
+.mobile-nav-btn:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+.mobile-nav-btn.active {
+  background: rgba(var(--primary-rgb), 0.08);
 }
 
 .mobile-nav-btn .material-symbols-outlined {
@@ -1142,6 +1328,7 @@ body.exam-mode .setup-row:nth-of-type(8) {
 }
 
 .mobile-nav-btn:hover {
+  background: rgba(var(--primary-rgb), 0.04);
   box-shadow: none !important;
 }
 
@@ -4854,8 +5041,24 @@ html.dark .badge-learned {
 
 .week-stat-item {
   text-align: center;
-
   min-width: 55px;
+  background: var(--card);
+  padding: 0.5rem;
+  border-radius: 12px;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.week-stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.week-count {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--primary);
 }
 
 /* Для маленьких экранов - делаем элементы компактнее */
@@ -5249,7 +5452,9 @@ html.dark .badge-learned {
 
   justify-content: center;
 
-  color: var(--primary);
+  margin-left: 0.5rem;
+
+  color: var(--muted);
 
   cursor: pointer;
 
@@ -6630,6 +6835,16 @@ input[type='range']:active::-moz-range-thumb {
 
 .toast.warning {
   border-left-color: var(--warning);
+}
+
+.toast.xp {
+  background: var(--primary);
+  color: white;
+  border-left-color: var(--warning);
+}
+
+.toast.xp .material-symbols-outlined {
+  color: white;
 }
 
 /* Мобильные тосты — поднимаем над нижней навигацией */
@@ -9872,24 +10087,24 @@ html.dark .daily-cap-status {
 
 .goal-icon {
   font-size: 2.2rem;
-
   min-width: 48px;
-
   height: 48px;
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   color: var(--muted);
-
   transition: color 0.3s ease;
+  border-radius: 12px;
+  background: rgba(var(--primary-rgb), 0.1);
+}
+
+.goal-icon .material-symbols-outlined {
+  font-size: 1.8rem;
 }
 
 .goal-item.completed .goal-icon {
   color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.2);
 }
 
 .goal-content {
@@ -10044,25 +10259,20 @@ html.dark .goal-item.locked .goal-progress-text {
 
 .cefr-label {
   font-weight: 700;
-
   margin-bottom: 0.5rem;
-
   font-size: 1.2rem;
-
   color: var(--primary);
 }
 
 .cefr-count {
-  font-size: 1.4rem;
-
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 1;
   color: var(--text);
-
-  font-weight: bold;
 }
 
 .cefr-level small {
   color: var(--muted);
-
   font-size: 0.9rem;
 }
 
@@ -10813,6 +11023,139 @@ html.dark header {
   padding: 0.75rem !important;
 }
 
+/* Новая стилизация для столбчатой диаграммы */
+.week-chart {
+  margin-top: 1rem;
+}
+
+.week-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.week-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 40px;
+  background: var(--card);
+  border-radius: 12px;
+  padding: 0.5rem 0.25rem;
+  transition: transform 0.2s;
+}
+
+.week-stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.week-day {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.week-date {
+  font-size: 0.6rem;
+  color: var(--muted);
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+}
+
+.week-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  height: 40px;
+  margin: 0.25rem 0;
+}
+
+.week-bar {
+  width: 8px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+}
+
+.week-bar.words-bar {
+  background: linear-gradient(to top, var(--primary), var(--primary-light));
+}
+
+.week-bar.idioms-bar {
+  background: linear-gradient(
+    to top,
+    var(--idioms-color),
+    var(--idioms-color-light)
+  );
+}
+
+.week-count {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 0.1rem;
+}
+
+.week-total {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: var(--bg);
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.week-total span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text);
+}
+
+.week-total .material-symbols-outlined {
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+/* Адаптивность для новой диаграммы */
+@media (max-width: 600px) {
+  .week-stats {
+    gap: 0.3rem;
+  }
+  .week-stat-item {
+    min-width: 35px;
+    padding: 0.3rem 0.1rem;
+  }
+  .week-bar {
+    width: 6px;
+  }
+  .week-total {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+/* Стили для транскрипции */
+.word-phonetic {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  margin-top: 0.2rem;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.word-phonetic:hover {
+  opacity: 1;
+  color: var(--text);
+}
+
 /* ─── DAILY CAP ─── */
 .daily-cap-section {
   border-radius: 18px !important;
@@ -10892,7 +11235,10 @@ html.dark header {
 }
 
 .wlist li {
-  padding: 0.55rem 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0;
   font-size: 0.9rem !important;
 }
 
@@ -10932,6 +11278,279 @@ html.dark .week-count {
 
 html.dark .cefr-level:hover {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ── Progress Cards ─────────────────────────── */
+:root {
+  --progress-card-bg: var(--card);
+  --progress-card-border: 1px solid var(--border);
+  --progress-card-shadow: var(--shadow);
+  --progress-card-hover-shadow: var(--shadow-hover);
+  --progress-bar-words: var(--primary);
+  --progress-bar-idioms: var(--idioms-color);
+  --progress-bar-total-words: var(--primary);
+  --progress-bar-total-idioms: var(--idioms-color);
+}
+
+.st-progress-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.st-progress-cards .spc-card:last-child {
+  grid-column: 1 / -1;
+}
+.spc-card {
+  background: var(--progress-card-bg);
+  border: var(--progress-card-border);
+  border-radius: 16px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+.spc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--progress-card-hover-shadow);
+  border-color: var(--primary);
+}
+
+/* Увеличенные шрифты для прогресс-карточек */
+.spc-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.spc-pct {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.spc-nums span {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.stat-due-chip {
+  font-size: 0.95rem;
+}
+/* Для total карточки — лёгкий градиентный бордер */
+.spc-total {
+  border: 1.5px solid var(--primary);
+  position: relative;
+  overflow: hidden;
+}
+.spc-total::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(108, 99, 255, 0.06) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.spc-total::after {
+  content: '✨';
+  position: absolute;
+  bottom: -20px;
+  right: -10px;
+  font-size: 4rem;
+  opacity: 0.05;
+  pointer-events: none;
+  transform: rotate(-10deg);
+}
+.spc-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.spc-title {
+  flex: 1;
+}
+.spc-icon {
+  font-size: 1.1rem !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+}
+.words-icon {
+  color: var(--primary);
+}
+.idioms-icon {
+  background: rgba(var(--idioms-rgb), 0.12);
+  color: var(--idioms-color);
+}
+.total-icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+.spc-pct {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.total-pct {
+  color: #f59e0b;
+}
+
+.spc-bar-wrap {
+  height: 8px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.spc-bar-wrap.combined {
+  display: flex;
+  gap: 2px;
+}
+.spc-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+.spc-bar-fill.words {
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+.spc-bar-fill.idioms {
+  background: linear-gradient(
+    90deg,
+    var(--idioms-color),
+    var(--idioms-color-light)
+  );
+}
+
+.spc-nums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.spc-nums span:not(:last-child)::after {
+  content: '•';
+  margin: 0 0.5rem;
+  color: var(--muted);
+  opacity: 0.5;
+}
+.stat-due-chip {
+  color: #f59e0b;
+  font-weight: 700;
+  animation: gentlePulse 2s infinite;
+}
+@keyframes gentlePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+.spc-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.spc-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.spc-dot.words {
+  background: var(--primary);
+}
+.spc-dot.idioms {
+  background: var(--idioms-color);
+}
+
+/* ── Idiom difficulty row ────────────────────── */
+.idiom-difficulty-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Accuracy badge ──────────────────────────── */
+.stat-acc {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.stat-acc.good {
+  background: rgba(var(--idioms-rgb), 0.12);
+  color: var(--idioms-color);
+}
+.stat-acc.mid {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+.stat-acc.bad {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+/* ── Empty state ──────────────────────────────── */
+.stat-empty {
+  color: var(--muted);
+  font-size: 0.83rem;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+/* ── Mobile ───────────────────────────────────── */
+@media (max-width: 620px) {
+  .st-progress-cards,
+  .idiom-difficulty-row {
+    grid-template-columns: 1fr;
+  }
+  .st-progress-cards .spc-card:last-child {
+    grid-column: 1;
+  }
+
+  .spc-card {
+    padding: 1rem;
+  }
+  .spc-header {
+    flex-wrap: wrap;
+  }
+  .spc-pct {
+    margin-left: auto;
+  }
+  .spc-nums {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.75rem 1.5rem;
+  }
+  .spc-nums span:not(:last-child)::after {
+    content: '•';
+    margin-left: 0.75rem;
+    color: var(--border);
+    opacity: 0.5;
+  }
 }
 
 /* ===== XP STATS ROW — ПОЛНЫЙ ОВЕРРАЙД ===== */

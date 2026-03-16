@@ -245,6 +245,11 @@
           <span class="nav-text">Словарь</span>
         </button>
 
+        <button class="nav-btn" data-tab="idioms">
+          <span class="material-symbols-outlined">theater_comedy</span>
+          <span class="nav-text">Идиомы</span>
+        </button>
+
         <button class="nav-btn" data-tab="practice">
           <span class="material-symbols-outlined"> exercise </span>
 
@@ -258,14 +263,14 @@
 
           <span class="nav-text">Статистика</span>
         </button>
-
-        <button class="nav-btn" data-tab="idioms">
-          <span class="material-symbols-outlined">translate</span>
-          <span class="nav-text">Идиомы</span>
-        </button>
       </nav>
 
       <div class="header-right">
+        <!-- Кнопка переключения темы -->
+        <button class="theme-toggle-header" id="theme-toggle-header" title="Переключить тему">
+          <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+        </button>
+        
         <!-- Личный кабинет (будет виден только после авторизации) -->
 
         <div class="user-menu" id="user-menu">
@@ -295,16 +300,6 @@
               <span>Приложение</span>
             </div>
 
-            <div class="dropdown-item" id="dropdown-theme-toggle">
-              <span class="material-symbols-outlined">sunny</span>
-
-              <label class="theme-toggle">
-                <input type="checkbox" id="theme-checkbox" />
-
-                <span class="theme-slider"></span>
-              </label>
-            </div>
-
             <div class="dropdown-divider"></div>
 
             <div class="dropdown-item" id="dropdown-logout">
@@ -321,9 +316,14 @@
 
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
       <button class="mobile-nav-btn active" data-tab="words">
-        <span class="material-symbols-outlined">book_4</span>
+        <span class="material-symbols-outlined">menu_book</span>
 
         <span>Словарь</span>
+      </button>
+
+      <button class="mobile-nav-btn" data-tab="idioms">
+        <span class="material-symbols-outlined">theater_comedy</span>
+        <span>Идиомы</span>
       </button>
 
       <button class="mobile-nav-btn" data-tab="practice">
@@ -338,11 +338,6 @@
         <span class="material-symbols-outlined">monitoring</span>
 
         <span>Статистика</span>
-      </button>
-
-      <button class="mobile-nav-btn" data-tab="idioms">
-        <span class="material-symbols-outlined">translate</span>
-        <span>Идиомы</span>
       </button>
     </nav>
 
@@ -516,7 +511,7 @@
                   Слова<span id="practice-words-due"></span>
                 </button>
                 <button class="chip" data-mode="idioms">
-                  <span class="material-symbols-outlined">translate</span>
+                  <span class="material-symbols-outlined">theater_comedy</span>
                   Идиомы<span id="practice-idioms-due"></span>
                 </button>
               </div>
@@ -870,39 +865,10 @@
           </div>
         </div>
 
+        <!-- Прогресс карточки -->
+        <div id="st-progress-cards" class="st-progress-cards"></div>
+
         <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <span class="material-symbols-outlined">book</span>
-            </div>
-
-            <div class="stat-content">
-              <div class="stat-number" id="st-total">0</div>
-
-              <div class="stat-label">Всего слов</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">
-              <span class="material-symbols-outlined">check_circle</span>
-            </div>
-
-            <div class="stat-content">
-              <div class="stat-number" id="st-learned">0</div>
-
-              <div class="stat-label">Выучено</div>
-
-              <div class="stat-progress">
-                <div
-                  class="stat-progress-fill"
-                  id="st-learned-bar"
-                  style="width: 0%"
-                ></div>
-              </div>
-            </div>
-          </div>
-
           <div class="stat-card">
             <div class="stat-icon">
               <span class="material-symbols-outlined"
@@ -998,6 +964,24 @@
           </div>
 
           <div class="badges-grid" id="badges-grid"></div>
+        </div>
+
+        <!-- Сложные/лёгкие ИДИОМЫ -->
+        <div class="stats-row idiom-difficulty-row">
+          <div class="word-list-card">
+            <div class="daily-cap-header">
+              <span class="material-symbols-outlined">sentiment_very_dissatisfied</span>
+              <h3>Сложные идиомы</h3>
+            </div>
+            <ul id="st-hard-idioms" class="wlist"></ul>
+          </div>
+          <div class="word-list-card">
+            <div class="daily-cap-header">
+              <span class="material-symbols-outlined">sentiment_very_satisfied</span>
+              <h3>Лёгкие идиомы</h3>
+            </div>
+            <ul id="st-easy-idioms" class="wlist"></ul>
+          </div>
         </div>
 
         <div class="word-lists">
@@ -1143,7 +1127,7 @@
 
     <!-- Плавающая кнопка добавления идиомы -->
     <button class="floating-add-btn" id="floating-add-idiom-btn">
-      <span class="material-symbols-outlined">translate</span>
+      <span class="material-symbols-outlined">theater_comedy</span>
     </button>
 
     <!-- Модальное окно добавления идиомы -->
@@ -1338,6 +1322,14 @@
                   <option value="sand">Песок</option>
                   <option value="graphite">Графит</option>
                 </select>
+              </div>
+
+              <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                  <input type="checkbox" id="show-phonetic" checked>
+                  <span>Показывать транскрипцию в карточках</span>
+                </label>
+                <small class="form-text" style="color: var(--muted);">Отображение /ˈfəʊniːtɪk/ рядом со словом</small>
               </div>
             </div>
           </div>

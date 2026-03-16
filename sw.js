@@ -30,6 +30,16 @@ self.addEventListener('fetch', event => {
   // Не кэшируем запросы к Supabase API
   if (event.request.url.includes('supabase.co')) return;
 
+  // Не кэшируем аудиофайлы
+  if (
+    event.request.url.includes('/audio/') ||
+    event.request.url.includes('/audio-male/') ||
+    event.request.url.includes('/audio-idioms/')
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
@@ -47,16 +57,14 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => {
           if (event.request.mode === 'navigate') {
-            return caches
-              .match('/offline.html')
-              .then(
-                r =>
-                  r ||
-                  new Response('Offline', {
-                    status: 503,
-                    statusText: 'Service Unavailable',
-                  }),
-              );
+            return caches.match('/offline.html').then(
+              r =>
+                r ||
+                new Response('Offline', {
+                  status: 503,
+                  statusText: 'Service Unavailable',
+                }),
+            );
           }
           return new Response('Offline', {
             status: 503,
