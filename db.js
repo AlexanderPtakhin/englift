@@ -20,7 +20,19 @@ export async function loadWordsOnce(callback) {
   if (error) {
     console.error('Error loading words:', error);
     callback([]);
-  } else callback(data);
+  } else {
+    // Преобразуем correct_exercise_types из JSON в массив
+    const normalizedData = data.map(word => ({
+      ...word,
+      stats: word.stats
+        ? {
+            ...word.stats,
+            correctExerciseTypes: word.correct_exercise_types || [],
+          }
+        : undefined,
+    }));
+    callback(normalizedData);
+  }
 }
 
 export async function saveWordToDb(word) {
@@ -38,6 +50,8 @@ export async function saveWordToDb(word) {
       updated_at: new Date().toISOString(),
       created_at: createdAt ?? new Date().toISOString(),
       examples_audio: examplesAudio ?? null,
+      // Сохраняем correctExerciseTypes как JSON
+      correct_exercise_types: word.stats?.correctExerciseTypes ?? null,
     },
     { onConflict: 'id' },
   );
@@ -113,7 +127,19 @@ export async function loadIdiomsOnce(callback) {
   if (error) {
     console.error('Error loading idioms:', error);
     callback([]);
-  } else callback(data);
+  } else {
+    // Преобразуем correct_exercise_types из JSON в массив
+    const normalizedData = data.map(idiom => ({
+      ...idiom,
+      stats: idiom.stats
+        ? {
+            ...idiom.stats,
+            correctExerciseTypes: idiom.correct_exercise_types || [],
+          }
+        : undefined,
+    }));
+    callback(normalizedData);
+  }
 }
 
 export async function saveIdiomToDb(idiom) {
@@ -138,6 +164,8 @@ export async function saveIdiomToDb(idiom) {
     created_at: createdAt ?? new Date().toISOString(),
     examples_audio: examplesAudio || [], // исправлено: всегда массив
     example_translation: example_translation ?? null, // ← маппинг
+    // Сохраняем correctExerciseTypes как JSON
+    correct_exercise_types: idiom.stats?.correctExerciseTypes ?? null,
   };
 
   // Детальное логирование для отладки

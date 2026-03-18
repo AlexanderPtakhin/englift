@@ -12178,3 +12178,59 @@ button.floating-add-btn:hover .material-symbols-outlined,
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* Прогресс через левый бордер карточки */
+.word-card[data-streak='1'] {
+  border-left: 3px solid var(--primary);
+  opacity: 0.7;
+}
+
+.word-card[data-streak='2'] {
+  border-left: 3px solid var(--primary);
+}
+
+.word-card[data-streak='3'] {
+  border-left: 3px solid var(--success);
+}
+
+/* Прогресс-сегменты в верхней части карточки */
+.progress-segments {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+  height: 3px;
+  width: 100%;
+}
+
+.progress-segment {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.progress-segment.filled {
+  background: var(--primary);
+}
+
+/* Для выученных слов можно сделать сегменты зелёными (опционально) */
+.word-card .progress-segment.filled {
+  background: var(--primary);
+}
+.word-card--learned .progress-segment.filled {
+  background: var(--success);
+}
+
+/* Индикатор прогресса выучивания на карточках */
+.word-progress {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+  align-items: center;
+}
+
+.word-progress .material-symbols-outlined {
+  font-size: 16px !important;
+  transition: color 0.2s ease;
+}

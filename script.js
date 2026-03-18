@@ -670,6 +670,17 @@ function normalizeWord(word) {
           : Array.isArray(word.examplesAudio)
             ? word.examplesAudio
             : [],
+    // Нормализация для нового поля
+    stats: word.stats
+      ? {
+          ...word.stats,
+          correctExerciseTypes: Array.isArray(word.stats.correctExerciseTypes)
+            ? word.stats.correctExerciseTypes
+            : word.stats.learned
+              ? ['legacy']
+              : [],
+        }
+      : undefined,
   };
 }
 
@@ -684,6 +695,17 @@ function normalizeIdiom(idiom) {
           : Array.isArray(idiom.examplesAudio)
             ? idiom.examplesAudio
             : [],
+    // Нормализация для нового поля
+    stats: idiom.stats
+      ? {
+          ...idiom.stats,
+          correctExerciseTypes: Array.isArray(idiom.stats.correctExerciseTypes)
+            ? idiom.stats.correctExerciseTypes
+            : idiom.stats.learned
+              ? ['legacy']
+              : [],
+        }
+      : undefined,
   };
 }
 
@@ -3217,6 +3239,8 @@ function mkWord(
       interval: 1,
 
       easeFactor: 2.5,
+
+      correctExerciseTypes: [], // ← новое поле
     },
   };
 }
@@ -3554,6 +3578,7 @@ async function addIdiom(
       nextReview: new Date().toISOString(),
       interval: 1,
       easeFactor: 2.5,
+      correctExerciseTypes: [], // ← новое поле
     },
   };
 
@@ -3610,7 +3635,7 @@ async function updIdiom(id, data) {
   }
 }
 
-function updStats(id, correct) {
+function updStats(id, correct, exerciseType) {
   const w = window.words.find(w => w.id === id);
 
   if (!w) {
@@ -3634,6 +3659,11 @@ function updStats(id, correct) {
       Math.min(2.5, w.stats.easeFactor + 0.05),
     );
 
+    // Добавляем тип упражнения, если его ещё нет
+    if (!w.stats.correctExerciseTypes.includes(exerciseType)) {
+      w.stats.correctExerciseTypes.push(exerciseType);
+    }
+
     if (w.stats.interval <= 1) {
       w.stats.interval = 3;
     } else if (w.stats.interval <= 3) {
@@ -3655,6 +3685,7 @@ function updStats(id, correct) {
     w.stats.interval = 1;
 
     w.stats.easeFactor = Math.max(1.3, w.stats.easeFactor - 0.2);
+    // Массив correctExerciseTypes НЕ трогаем!
   }
 
   const next = new Date();
@@ -3663,9 +3694,11 @@ function updStats(id, correct) {
 
   w.stats.nextReview = next.toISOString();
 
+  // Новый критерий выученности: legacy ИЛИ минимум 3 разных типа
   const wasLearned = w.stats.learned;
-
-  w.stats.learned = w.stats.streak >= 3;
+  w.stats.learned =
+    w.stats.correctExerciseTypes.includes('legacy') ||
+    w.stats.correctExerciseTypes.length >= 3;
 
   if (!wasLearned && w.stats.learned) {
     gainXP(
@@ -5969,9 +6002,7 @@ function optimizedSearch(query) {
 
 function makeCard(w) {
   const card = document.createElement('div');
-
   card.className = 'word-card';
-
   card.dataset.id = w.id;
 
   // Сохраняем все данные в data-атрибутах для раскрытия
@@ -5981,88 +6012,33 @@ function makeCard(w) {
   card.dataset.tags = JSON.stringify(w.tags || []);
   card.dataset.learned = w.stats.learned;
 
+  // Добавляем атрибут для прогресса через бордер
+  card.dataset.streak = w.stats.learned
+    ? 3
+    : w.stats.correctExerciseTypes?.length || 0;
+
   // Базовая разметка (свёрнутое состояние)
-
   card.innerHTML = `
-
-
-
     <div class="word-card-header">
-
-
-
       <div class="word-main">
-    
         <h3 class="word-title">${esc(w.en)}</h3>
         ${window.user_settings?.showPhonetic && w.phonetic ? `<div class="word-phonetic">${esc(w.phonetic)}</div>` : ''}
       </div>
-    
       <div class="word-actions">
-    
-
-
-
-        ${
-          true
-            ? `
-
-
-
-          <button class="audio-btn" data-word="${w.id}" title="Прослушать">
-
-
-
-            <span class="material-symbols-outlined">volume_up</span>
-
-
-
-          </button>
-
-
-
-        `
-            : ''
-        }
-
-
-
-        ${w.stats.learned ? '<span class="learned-badge" title="Выучено"><span class="material-symbols-outlined">check_circle</span></span>' : ''}
-
-
-
+        <button class="audio-btn" data-word="${w.id}" title="Прослушать">
+          <span class="material-symbols-outlined">volume_up</span>
+        </button>
       </div>
-
-
-
     </div>
-
-
-
     <div class="word-translation">${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</div>
-
-
-
     <div class="word-card-footer">
-
-
-
       <span class="expand-hint">Нажмите, чтобы раскрыть</span>
-
-
-
       <span class="material-symbols-outlined expand-icon">expand_more</span>
-
-
-
     </div>
-
-
-
   `;
 
-  // Добавляем обработчик клика для раскрытия
+  // Обработчик клика для раскрытия
   card.addEventListener('click', e => {
-    // Игнорируем клики по кнопкам аудио, редактирования, удаления и примеров
     if (
       e.target.closest('.audio-btn') ||
       e.target.closest('.edit-btn') ||
@@ -6071,13 +6047,9 @@ function makeCard(w) {
     ) {
       return;
     }
-
     card.classList.toggle('expanded');
-
-    // Обновляем текст подсказки
     const expandHint = card.querySelector('.expand-hint');
     const expandIcon = card.querySelector('.expand-icon');
-
     if (card.classList.contains('expanded')) {
       expandHint.textContent = 'Нажмите, чтобы свернуть';
       expandIcon.textContent = 'expand_less';
@@ -6085,7 +6057,6 @@ function makeCard(w) {
       expandHint.textContent = 'Нажмите, чтобы раскрыть';
       expandIcon.textContent = 'expand_more';
     }
-
     updateExpandedContent(card);
   });
 
@@ -10235,7 +10206,7 @@ function nextExercise() {
 
               if (knewBtn)
                 knewBtn.onclick = () => {
-                  recordAnswer(true);
+                  recordAnswer(true, t);
 
                   sIdx++;
 
@@ -10244,7 +10215,7 @@ function nextExercise() {
 
               if (didntBtn)
                 didntBtn.onclick = () => {
-                  recordAnswer(false);
+                  recordAnswer(false, t);
 
                   sIdx++;
 
@@ -10309,15 +10280,16 @@ function nextExercise() {
       }
 
       const correctVariants = parseAnswerVariants(correctFull);
-      const correct =
-        correctVariants.length > 0 ? correctVariants[0] : correctFull;
+      const correctDisplay =
+        correctVariants.length > 0 ? correctVariants.join(', ') : correctFull;
 
       // --- Отладочное логирование ---
       console.log('🔍 Multi choice debug:', {
         word: w.en,
         isRUEN,
         question,
-        correct,
+        correctDisplay,
+        correctVariants,
         direction: isRUEN ? 'RU→EN' : 'EN→RU',
       });
 
@@ -10337,26 +10309,20 @@ function nextExercise() {
             trans = isRUEN ? x.en : x.ru;
           }
           const variants = parseAnswerVariants(trans);
-          return variants.length > 0 ? variants[0] : trans;
+          return { id: x.id, text: variants.length > 0 ? variants[0] : trans };
         })
-        .filter(v => v && v !== correct); // убираем пустые и совпадающие с правильным
+        .filter(item => item.text && !correctVariants.includes(item.text)); // убираем пустые и все варианты правильного ответа
 
       // Перемешиваем и берём до 3 дистракторов
       let distractors = distractorCandidates
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
 
-      // Если дистракторов мало, добираем другими вариантами правильного слова
-      if (distractors.length < 3 && correctVariants.length > 1) {
-        const otherVariants = correctVariants.slice(1);
-        distractors = [...distractors, ...otherVariants].slice(0, 3);
-      }
-
       // Формируем опции: правильный ответ + дистракторы
-      let options = [correct, ...distractors];
+      let options = [{ id: w.id, text: correctDisplay }, ...distractors];
       // Для идиом приводим к нижнему регистру
       if (isIdiom) {
-        options = options.map(o => o.toLowerCase());
+        options = options.map(o => ({ ...o, text: o.text.toLowerCase() }));
       }
       // Перемешиваем окончательно
       options = options.sort(() => Math.random() - 0.5);
@@ -10399,7 +10365,7 @@ function nextExercise() {
 
 
 
-            ${options.map(o => `<button class="mc-btn" data-ans="${safeAttr(o)}">${esc(o)}</button>`).join('')}
+            ${options.map(o => `<button class="mc-btn" data-id="${o.id}">${esc(o.text)}</button>`).join('')}
 
 
 
@@ -10427,12 +10393,12 @@ function nextExercise() {
       if (exContent) {
         exContent.querySelectorAll('.mc-btn').forEach(b =>
           b.addEventListener('click', () => {
-            const ok = b.dataset.ans === correct;
+            const ok = b.dataset.id === w.id;
 
             exContent.querySelectorAll('.mc-btn').forEach(x => {
               x.disabled = true;
 
-              if (x.dataset.ans === correct) x.classList.add('correct');
+              if (x.dataset.id === w.id) x.classList.add('correct');
             });
 
             if (!ok) b.classList.add('wrong');
@@ -10446,7 +10412,7 @@ function nextExercise() {
 
             setTimeout(
               () => {
-                recordAnswer(ok);
+                recordAnswer(ok, t);
 
                 sIdx++;
 
@@ -10459,10 +10425,14 @@ function nextExercise() {
         );
       }
     } else if (t === 'idiom-builder') {
-      runIdiomBuilderExercise(w, () => {
-        sIdx++;
-        nextExercise();
-      });
+      runIdiomBuilderExercise(
+        w,
+        () => {
+          sIdx++;
+          nextExercise();
+        },
+        t,
+      );
     } else if (t === 'type') {
       if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
 
@@ -10594,7 +10564,7 @@ function nextExercise() {
                 } else window.speakWord(w);
 
                 setTimeout(() => {
-                  recordAnswer(true);
+                  recordAnswer(true, t);
 
                   sIdx++;
 
@@ -10608,7 +10578,7 @@ function nextExercise() {
                 fb.innerHTML = getFeedbackHTML(w, isCorrect);
 
                 setTimeout(() => {
-                  recordAnswer(false);
+                  recordAnswer(false, t);
 
                   sIdx++;
 
@@ -10703,7 +10673,7 @@ function nextExercise() {
             if (dictSubmit) dictSubmit.disabled = true;
 
             setTimeout(() => {
-              recordAnswer(ok);
+              recordAnswer(ok, t);
 
               sIdx++;
 
@@ -11083,7 +11053,7 @@ function nextExercise() {
           });
 
           setTimeout(() => {
-            recordAnswer(true);
+            recordAnswer(true, t);
             sIdx++;
             nextExercise();
           }, 2000);
@@ -11295,7 +11265,7 @@ function nextExercise() {
             if (replayBtn) replayBtn.disabled = true;
 
             setTimeout(() => {
-              recordAnswer(true);
+              recordAnswer(true, t);
               sIdx++;
               nextExercise();
             }, 1500);
@@ -11409,7 +11379,7 @@ function nextExercise() {
 
             startBtn.style.display = 'flex';
 
-            recordAnswer(false);
+            recordAnswer(false, t);
 
             sIdx++;
 
@@ -11425,12 +11395,17 @@ function nextExercise() {
               sIdx++;
               nextExercise();
             },
+            t,
           );
         } else {
-          runMatchExercise(session.items.slice(sIdx, sIdx + 6), elapsed => {
-            sIdx++;
-            nextExercise();
-          });
+          runMatchExercise(
+            session.items.slice(sIdx, sIdx + 6),
+            elapsed => {
+              sIdx++;
+              nextExercise();
+            },
+            t,
+          );
         }
       } catch (error) {
         console.error('Error in match exercise:', error);
@@ -11439,11 +11414,14 @@ function nextExercise() {
       }
     } else if (t === 'context') {
       try {
-        runContextExercise(w, () => {
-          sIdx++;
-
-          nextExercise();
-        });
+        runContextExercise(
+          w,
+          () => {
+            sIdx++;
+            nextExercise();
+          },
+          t,
+        );
       } catch (error) {
         console.error('Error in context exercise:', error);
 
@@ -11453,11 +11431,15 @@ function nextExercise() {
       }
     } else if (t === 'speech-sentence') {
       try {
-        runSpeechSentenceExercise(w, () => {
-          sIdx++;
+        runSpeechSentenceExercise(
+          w,
+          () => {
+            sIdx++;
 
-          nextExercise();
-        });
+            nextExercise();
+          },
+          t,
+        );
       } catch (error) {
         console.error('Error in speech-sentence exercise:', error);
 
@@ -11481,7 +11463,7 @@ function nextExercise() {
   }
 }
 
-function updIdiomStats(id, correct) {
+function updIdiomStats(id, correct, exerciseType) {
   const i = window.idioms.find(i => i.id === id);
   if (!i) return;
 
@@ -11496,6 +11478,7 @@ function updIdiomStats(id, correct) {
       nextReview: null,
       interval: 1,
       easeFactor: 2.5,
+      correctExerciseTypes: [], // добавим на всякий случай
     };
   }
 
@@ -11509,6 +11492,10 @@ function updIdiomStats(id, correct) {
       1.3,
       Math.min(2.5, i.stats.easeFactor + 0.05),
     );
+
+    if (!i.stats.correctExerciseTypes.includes(exerciseType)) {
+      i.stats.correctExerciseTypes.push(exerciseType);
+    }
 
     if (i.stats.interval <= 1) {
       i.stats.interval = 3;
@@ -11528,6 +11515,7 @@ function updIdiomStats(id, correct) {
     i.stats.streak = 0;
     i.stats.interval = 1;
     i.stats.easeFactor = Math.max(1.3, i.stats.easeFactor - 0.2);
+    // Массив не трогаем
   }
 
   const next = new Date();
@@ -11535,7 +11523,9 @@ function updIdiomStats(id, correct) {
   i.stats.nextReview = next.toISOString();
 
   const wasLearned = i.stats.learned;
-  i.stats.learned = i.stats.streak >= 3;
+  i.stats.learned =
+    i.stats.correctExerciseTypes.includes('legacy') ||
+    i.stats.correctExerciseTypes.length >= 3;
 
   if (!wasLearned && i.stats.learned) {
     gainXP(
@@ -11555,7 +11545,7 @@ function updIdiomStats(id, correct) {
   markIdiomDirty(id);
 }
 
-function recordAnswer(correct) {
+function recordAnswer(correct, exerciseType) {
   // Увеличиваем дневной счётчик
 
   incrementDailyCount();
@@ -11583,9 +11573,9 @@ function recordAnswer(correct) {
 
   // Используем соответствующую функцию статистики
   if (session.dataType === 'idioms') {
-    updIdiomStats(session.items[sIdx].id, correct);
+    updIdiomStats(session.items[sIdx].id, correct, exerciseType);
   } else {
-    updStats(session.items[sIdx].id, correct);
+    updStats(session.items[sIdx].id, correct, exerciseType);
   }
 
   updStreak();
@@ -13171,7 +13161,7 @@ function playSound(type) {
   }
 }
 
-function runMatchExercise(initialWords, onComplete) {
+function runMatchExercise(initialWords, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');
 
   const btns = document.getElementById('ex-btns');
@@ -13323,9 +13313,9 @@ function runMatchExercise(initialWords, onComplete) {
 
       // Обновляем статистику для обоих слов
 
-      updStats(id, true);
+      updStats(id, true, exerciseType);
 
-      updStats(selectedWord.id, true);
+      updStats(selectedWord.id, true, exerciseType);
 
       sResults.correct.push(initialWords.find(w => w.id === id));
 
@@ -13357,7 +13347,7 @@ function runMatchExercise(initialWords, onComplete) {
 
       // Записываем ошибку для первого выбранного слова
 
-      updStats(selectedWord.id, false);
+      updStats(selectedWord.id, false, exerciseType);
 
       sResults.wrong.push(initialWords.find(w => w.id === selectedWord.id));
 
@@ -13376,7 +13366,7 @@ function runMatchExercise(initialWords, onComplete) {
   grid.addEventListener('click', clickHandler);
 }
 
-function runIdiomMatchExercise(items, onComplete) {
+function runIdiomMatchExercise(items, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   btns.innerHTML = '';
@@ -13470,8 +13460,8 @@ function runIdiomMatchExercise(items, onComplete) {
       selected.element.disabled = true;
 
       // Обновляем статистику для обоих
-      updIdiomStats(id, true);
-      updIdiomStats(selected.id, true);
+      updIdiomStats(id, true, exerciseType);
+      updIdiomStats(selected.id, true, exerciseType);
 
       sResults.correct.push(currentItems.find(i => i.id === id));
       sResults.correct.push(currentItems.find(i => i.id === selected.id));
@@ -13489,7 +13479,7 @@ function runIdiomMatchExercise(items, onComplete) {
       btn.classList.add('wrong');
       selected.element.classList.add('wrong');
 
-      updIdiomStats(selected.id, false);
+      updIdiomStats(selected.id, false, exerciseType);
       sResults.wrong.push(currentItems.find(i => i.id === selected.id));
 
       setTimeout(() => {
@@ -13507,7 +13497,7 @@ function runIdiomMatchExercise(items, onComplete) {
 
 // === NEW EXERCISES ===
 
-function runContextExercise(item, onComplete) {
+function runContextExercise(item, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   const exTypeLbl = document.getElementById('ex-type-lbl');
@@ -13600,9 +13590,9 @@ function runContextExercise(item, onComplete) {
 
       // Записываем ответ
       if (isCorrect) {
-        recordAnswer(true);
+        recordAnswer(true, exerciseType);
       } else {
-        recordAnswer(false);
+        recordAnswer(false, exerciseType);
       }
 
       // Показываем полный пример
@@ -13643,13 +13633,13 @@ function runContextExercise(item, onComplete) {
   if (btns) {
     btns.innerHTML = `<button class="btn-icon" id="context-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
     document.getElementById('context-skip')?.addEventListener('click', () => {
-      recordAnswer(false);
+      recordAnswer(false, exerciseType);
       onComplete();
     });
   }
 }
 
-function runSpeechSentenceExercise(word, onComplete) {
+function runSpeechSentenceExercise(word, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   const exTypeLbl = document.getElementById('ex-type-lbl');
@@ -13841,7 +13831,7 @@ function runSpeechSentenceExercise(word, onComplete) {
         if (replayBtn) replayBtn.disabled = true;
 
         setTimeout(() => {
-          recordAnswer(true);
+          recordAnswer(true, exerciseType);
           onComplete(); // переход к следующему упражнению
         }, 1500);
       } else {
@@ -13952,14 +13942,14 @@ function runSpeechSentenceExercise(word, onComplete) {
 
         startBtn.style.display = 'flex';
 
-        recordAnswer(false);
+        recordAnswer(false, exerciseType);
 
         onComplete();
       });
   }
 }
 
-function runIdiomBuilderExercise(item, onComplete) {
+function runIdiomBuilderExercise(item, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   const exTypeLbl = document.getElementById('ex-type-lbl');
@@ -14062,7 +14052,7 @@ function runIdiomBuilderExercise(item, onComplete) {
       if (item.audio) playIdiomAudio(item.audio);
       else speakText(phrase);
       setTimeout(() => {
-        recordAnswer(true);
+        recordAnswer(true, exerciseType);
         onComplete();
       }, 1500);
     } else if (current.length >= phrase.length) {
@@ -14783,6 +14773,11 @@ function makeIdiomCard(i) {
   card.dataset.tags = JSON.stringify(i.tags || []);
   card.dataset.examplesAudio = JSON.stringify(i.examplesAudio || []);
 
+  // Добавляем атрибут для прогресса через бордер
+  card.dataset.streak = i.stats?.learned
+    ? 3
+    : i.stats?.correctExerciseTypes?.length || 0;
+
   // Базовая разметка (свёрнутое состояние)
   card.innerHTML = `
     <div class="word-card-header">
@@ -14808,7 +14803,6 @@ function makeIdiomCard(i) {
         <button class="audio-btn" data-idiom="${i.id}" title="Прослушать">
           <span class="material-symbols-outlined">volume_up</span>
         </button>
-        ${i.stats?.learned ? '<span class="learned-badge" title="Выучено"><span class="material-symbols-outlined">check_circle</span></span>' : ''}
       </div>
     </div>
     <div class="word-translation">${esc(i.meaning)}</div>
@@ -14820,7 +14814,6 @@ function makeIdiomCard(i) {
 
   // Обработчик клика для раскрытия/сворачивания
   card.addEventListener('click', e => {
-    // Игнорируем клики по кнопкам
     if (
       e.target.closest('.audio-btn') ||
       e.target.closest('.edit-btn') ||
@@ -14829,11 +14822,9 @@ function makeIdiomCard(i) {
     ) {
       return;
     }
-
     card.classList.toggle('expanded');
     const expandHint = card.querySelector('.expand-hint');
     const expandIcon = card.querySelector('.expand-icon');
-
     if (card.classList.contains('expanded')) {
       expandHint.textContent = 'Нажмите, чтобы свернуть';
       expandIcon.textContent = 'expand_less';
