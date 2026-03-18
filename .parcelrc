@@ -4,6 +4,7 @@
     "*.json": ["@parcel/transformer-json"]
   },
   "packagers": {
-    "*.json": "@parcel/packager-raw-url"
+    "*.json": "@parcel/packager-raw-url",
+    "sw.js": "@parcel/packager-raw-url"
   }
 }

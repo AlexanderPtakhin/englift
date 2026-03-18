@@ -1,6 +1,24 @@
 import { supabase } from './supabase.js';
 import { saveUserData } from './db.js';
 
+// Флаг, что профиль загружен, но колбэк ещё не вызван
+window._pendingProfileLoaded = false;
+
+// Универсальная функция для вызова колбэка
+function callOnProfileFullyLoaded() {
+  console.log(
+    '🔄 callOnProfileFullyLoaded вызван, onProfileFullyLoaded существует:',
+    !!window.onProfileFullyLoaded,
+  );
+  if (window.onProfileFullyLoaded) {
+    console.log('✅ Вызываем onProfileFullyLoaded немедленно');
+    window.onProfileFullyLoaded();
+  } else {
+    console.log('⏳ Устанавливаем флаг _pendingProfileLoaded = true');
+    window._pendingProfileLoaded = true;
+  }
+}
+
 // Флаг для отслеживания явного выхода
 let isExplicitLogoutPending = false;
 
@@ -386,7 +404,11 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         const merged = window.mergeWords
           ? window.mergeWords(localWords, remoteWords)
           : remoteWords;
-        window.words = merged;
+        window.words = merged.map(word =>
+          typeof word === 'object'
+            ? window.normalizeWord?.(word) || word
+            : word,
+        );
         localStorage.setItem('englift_words', JSON.stringify(window.words));
         if (window.refreshUI) window.refreshUI();
 
@@ -524,15 +546,19 @@ async function loadUserProfile(user) {
       if (!wordsLoaded) {
         wordsLoaded = true;
         window.authExports.loadWordsOnce(remoteWords => {
-          window.words = remoteWords || [];
+          window.words = (remoteWords || []).map(word =>
+            typeof word === 'object'
+              ? window.normalizeWord?.(word) || word
+              : word,
+          );
           localStorage.setItem('englift_words', JSON.stringify(window.words));
           if (window.refreshUI) window.refreshUI();
           // Вызываем onProfileFullyLoaded ПОСЛЕ загрузки слов
-          window.onProfileFullyLoaded?.();
+          callOnProfileFullyLoaded();
         });
       } else {
         // Если слова уже загружены, вызываем сразу
-        window.onProfileFullyLoaded?.();
+        callOnProfileFullyLoaded();
       }
       return;
     }
@@ -571,15 +597,19 @@ async function loadUserProfile(user) {
       if (!wordsLoaded) {
         wordsLoaded = true;
         window.authExports.loadWordsOnce(remoteWords => {
-          window.words = remoteWords || [];
+          window.words = (remoteWords || []).map(word =>
+            typeof word === 'object'
+              ? window.normalizeWord?.(word) || word
+              : word,
+          );
           localStorage.setItem('englift_words', JSON.stringify(window.words));
           if (window.refreshUI) window.refreshUI();
           // Вызываем onProfileFullyLoaded ПОСЛЕ загрузки слов
-          window.onProfileFullyLoaded?.();
+          callOnProfileFullyLoaded();
         });
       } else {
         // Если слова уже загружены, вызываем сразу
-        window.onProfileFullyLoaded?.();
+        callOnProfileFullyLoaded();
       }
       return;
     }
@@ -627,18 +657,22 @@ async function loadUserProfile(user) {
         const merged = window.mergeWords
           ? window.mergeWords(localWords, remoteWords)
           : remoteWords;
-        window.words = merged;
+        window.words = merged.map(word =>
+          typeof word === 'object'
+            ? window.normalizeWord?.(word) || word
+            : word,
+        );
         localStorage.setItem('englift_words', JSON.stringify(window.words));
         if (window.refreshUI) window.refreshUI();
 
         console.log(`✅ Синхронизация завершена: ${merged.length} слов`);
 
         // Вызываем onProfileFullyLoaded ПОСЛЕ загрузки слов
-        window.onProfileFullyLoaded?.();
+        callOnProfileFullyLoaded();
       });
     } else {
       // Если слова уже загружены, вызываем сразу
-      window.onProfileFullyLoaded?.();
+      callOnProfileFullyLoaded();
     }
   } catch (err) {
     console.error('Ошибка в loadUserProfile:', err);

@@ -3,7 +3,7 @@
   "source": "index.html",
   "scripts": {
     "start": "parcel --open chrome",
-    "build": "parcel build index.html --public-url / --no-scope-hoist --no-content-hash"
+    "build": "parcel build index.html --public-url / --no-scope-hoist --no-content-hash && copy sw.js dist\\sw.js && copy .htaccess dist\\.htaccess"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",

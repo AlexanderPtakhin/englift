@@ -1,7 +1,16 @@
-const CACHE_NAME = 'englift-v2';
+const CACHE_NAME = 'englift-v7';
+
+// Обработка команды на немедленную активацию
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('SW получил SKIP_WAITING, вызываю skipWaiting()');
+    self.skipWaiting();
+  }
+});
 
 // Установка — кэшируем ТОЛЬКО offline.html, остальное динамически
 self.addEventListener('install', event => {
+  console.log('⚙️ SW устанавливается, новая версия');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.add('/offline.html')),
   );
@@ -10,16 +19,25 @@ self.addEventListener('install', event => {
 
 // Активация — удаляем старые кэши
 self.addEventListener('activate', event => {
+  console.log('SW активирован, очищаем старый кэш');
   event.waitUntil(
     caches
       .keys()
-      .then(keys =>
-        Promise.all(
-          keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)),
-        ),
-      ),
+      .then(keys => {
+        return Promise.all(
+          keys
+            .filter(key => key !== CACHE_NAME)
+            .map(key => {
+              console.log('Удаляем старый кэш:', key);
+              return caches.delete(key);
+            }),
+        );
+      })
+      .then(() => {
+        // Немедленно захватываем контроль над всеми клиентами (вкладками)
+        return self.clients.claim();
+      }),
   );
-  self.clients.claim();
 });
 
 // Перехват запросов — динамический кэш + fallback на offline

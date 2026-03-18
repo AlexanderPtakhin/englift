@@ -28,6 +28,40 @@ const DEBUG =
 
 // =============================================
 
+// ГЛОБАЛЬНЫЕ КОНСТАНТЫ
+
+// =============================================
+
+const CONSTANTS = {
+  XP_PER_LEVEL: 200,
+  STORAGE_KEYS: {
+    WORDS: 'englift_words',
+    IDIOMS: 'englift_idioms',
+    XP: 'englift_xp',
+    STREAK: 'englift_streak',
+    SPEECH: 'englift_speech_settings',
+  },
+  LIMITS: {
+    MAX_WORD_LENGTH: 100,
+    MAX_TRANSLATION_LENGTH: 200,
+    MAX_EXAMPLE_LENGTH: 500,
+    MAX_TAG_LENGTH: 30,
+    MAX_TAGS: 10,
+    MAX_VISIBLE_WORDS: 100,
+    MAX_CACHE_SIZE: 200,
+    LOCAL_STORAGE_LIMIT: 4 * 1024 * 1024, // 4MB
+  },
+  SPEECH: {
+    SIMILARITY_THRESHOLD: 0.8,
+    RECOGNITION_TIMEOUT: 5000,
+    AUTO_LANG: 'ru-RU',
+  },
+};
+
+const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
+
+// =============================================
+
 // НЕМЕДЛЕННАЯ ИНИЦИАЛИЗАЦИЯ ТЕМЫ (чтобы не было мерцания)
 
 // =============================================
@@ -62,11 +96,606 @@ const DEBUG =
 
 // =============================================
 
-// КЭШ СЛОВАРЯ - оптимизация загрузки
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (объявляются ДО их использования)
 
 // =============================================
 
+// Глобальные массивы данных
+window.words = [];
+window.idioms = []; // глобальный массив идиом
+window.idiomsBank = []; // банк идиом из JSON
+
+// User settings and progress
+window.user_settings = {
+  voice: 'female',
+  reviewLimit: 100,
+};
+window.dailyProgress = {
+  add_new: 0,
+  review: 0,
+  practice_time: 0,
+  completed: false,
+  lastReset: new Date().toISOString().split('T')[0],
+};
+window.cefrLevels = { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 };
+window.dailyReviewCount = 0;
+window.lastReviewResetDate = null;
+window.postponedToastShown = false;
+
+// Streak and XP
+let streak = { count: 0, lastDate: null };
+let xpData = { xp: 0, level: 1, badges: [] };
+
+// Practice session variables
+let sResults = { correct: [], wrong: [] };
+let sIdx = 0;
+let session = null;
+let autoPron = true;
+let lastSessionConfig = null;
+let currentExerciseTimer = null;
+window.isSessionActive = false;
+
+// Practice modes
+let practiceMode = 'normal';
+let selectedWordExercises = []; // массив выбранных упражнений для слов
+let selectedIdiomExercises = []; // массив выбранных упражнений для идиом
+
+// Exam mode variables
+let examTime = 600; // секунд (по умолчанию 10 мин)
+let examQuestions = 50;
+let examTimerInterval = null;
+let practiceStartTime = null;
+
+// Filter and search variables
+let activeFilter = 'all',
+  searchQ = '',
+  sortBy = 'date-desc',
+  tagFilter = '';
+
+// Infinite scroll variables
+let visibleLimit = 30;
+let isLoadingMore = false;
+let intersectionObserver = null;
+let renderCache = new Map();
+let searchDebounceTimer = null;
+
+// Idioms variables
+let idiomsVisibleLimit = 30;
+let idiomsIsLoadingMore = false;
+let idiomsIntersectionObserver = null;
+let idiomsSearchQuery = '';
+let idiomsSortBy = 'date-desc';
+let idiomsTagFilter = '';
+let idiomsActiveFilter = 'all';
+
+// Sync and save variables
+let profileDirty = false;
+let profileSyncTimer = null;
+let isSaving = false;
+let badgeCheckInterval = null;
+let refreshScheduled = false;
+let retryAttempts = 0;
 let wordBankCache = null;
+let fileParsed = [];
+let lastFetchedWordData = null;
+let lastFetchedIdiomData = null;
+let pendingWordUpdates = new Map();
+let pendingIdiomUpdates = new Map();
+let wordSyncTimer;
+let idiomSyncTimer;
+let saveTimeout;
+let audioContext = null;
+let currentRecognition = null;
+let currentTooltip = null;
+
+// Constants
+const PAGE_SIZE = 20;
+const MAX_RETRY_ATTEMPTS = 3;
+const speechRecognitionSupported = !!(
+  window.SpeechRecognition || window.webkitSpeechRecognition
+);
+
+// Daily goals configuration
+const DAILY_GOALS = [
+  {
+    id: 'add_new',
+    target: 5,
+    icon: 'add_circle',
+    label: 'Новых слов',
+    unit: 'слова',
+    xpReward: 10,
+  },
+  {
+    id: 'review',
+    target: 20,
+    icon: 'repeat',
+    label: 'Повторений',
+    unit: 'раз',
+    xpReward: 15,
+  },
+  {
+    id: 'practice_time',
+    target: 15,
+    icon: 'schedule',
+    label: 'Время практики',
+    unit: 'мин',
+    xpReward: 20,
+  },
+];
+
+// Badges definition
+const BADGES_DEF = [
+  // ===== Слова в словаре =====
+  {
+    id: 'first_word',
+    name: 'Первое слово',
+    description: 'Добавьте первое слово в словарь',
+    icon: 'emoji_events',
+    condition: data => data.totalWords >= 1,
+    progress: data => ({ current: Math.min(data.totalWords, 1), target: 1 }),
+    category: 'collection',
+    rarity: 'common',
+    xp: 10,
+  },
+  {
+    id: 'word_collector_10',
+    name: 'Коллекционер слов',
+    description: 'Добавьте 10 слов в словарь',
+    icon: 'collections_bookmark',
+    condition: data => data.totalWords >= 10,
+    progress: data => ({ current: Math.min(data.totalWords, 10), target: 10 }),
+    category: 'collection',
+    rarity: 'common',
+    xp: 25,
+  },
+  {
+    id: 'word_collector_50',
+    name: 'Словесный энтузиаст',
+    description: 'Добавьте 50 слов в словарь',
+    icon: 'menu_book',
+    condition: data => data.totalWords >= 50,
+    progress: data => ({ current: Math.min(data.totalWords, 50), target: 50 }),
+    category: 'collection',
+    rarity: 'rare',
+    xp: 100,
+  },
+  {
+    id: 'word_collector_100',
+    name: 'Лексикон',
+    description: 'Добавьте 100 слов в словарь',
+    icon: 'auto_stories',
+    condition: data => data.totalWords >= 100,
+    progress: data => ({
+      current: Math.min(data.totalWords, 100),
+      target: 100,
+    }),
+    category: 'collection',
+    rarity: 'epic',
+    xp: 200,
+  },
+  {
+    id: 'word_collector_500',
+    name: 'Мастер лексики',
+    description: 'Добавьте 500 слов в словарь',
+    icon: 'local_library',
+    condition: data => data.totalWords >= 500,
+    progress: data => ({
+      current: Math.min(data.totalWords, 500),
+      target: 500,
+    }),
+    category: 'collection',
+    rarity: 'legendary',
+    xp: 500,
+  },
+  // ===== Идиомы в словаре =====
+  {
+    id: 'first_idiom',
+    name: 'Первая идиома',
+    description: 'Добавьте первую идиому в словарь',
+    icon: 'theater_comedy',
+    condition: data => data.totalIdioms >= 1,
+    progress: data => ({ current: Math.min(data.totalIdioms, 1), target: 1 }),
+    category: 'collection',
+    rarity: 'common',
+    xp: 15,
+  },
+  {
+    id: 'idiom_collector_25',
+    name: 'Идиоматическийcollector',
+    description: 'Добавьте 25 идиом в словарь',
+    icon: 'sentiment_satisfied',
+    condition: data => data.totalIdioms >= 25,
+    progress: data => ({ current: Math.min(data.totalIdioms, 25), target: 25 }),
+    category: 'collection',
+    rarity: 'rare',
+    xp: 75,
+  },
+  {
+    id: 'idiom_collector_100',
+    name: 'Идиоматический мастер',
+    description: 'Добавьте 100 идиом в словарь',
+    icon: 'psychology',
+    condition: data => data.totalIdioms >= 100,
+    progress: data => ({
+      current: Math.min(data.totalIdioms, 100),
+      target: 100,
+    }),
+    category: 'collection',
+    rarity: 'epic',
+    xp: 250,
+  },
+  // ===== Прогресс изучения =====
+  {
+    id: 'first_learned',
+    name: 'Первое изученное',
+    description: 'Изучите первое слово или идиому',
+    icon: 'school',
+    condition: data => data.learnedWords >= 1,
+    progress: data => ({ current: Math.min(data.learnedWords, 1), target: 1 }),
+    category: 'learning',
+    rarity: 'common',
+    xp: 20,
+  },
+  {
+    id: 'learning_streak_3',
+    name: 'Серия обучения',
+    description: 'Изучите 3 слова/идиомы подряд',
+    icon: 'local_fire_department',
+    condition: data => data.learningStreak >= 3,
+    progress: data => ({
+      current: Math.min(data.learningStreak, 3),
+      target: 3,
+    }),
+    category: 'learning',
+    rarity: 'common',
+    xp: 30,
+  },
+  {
+    id: 'learning_streak_10',
+    name: 'Горячая серия',
+    description: 'Изучите 10 слов/идиом подряд',
+    icon: 'whatshot',
+    condition: data => data.learningStreak >= 10,
+    progress: data => ({
+      current: Math.min(data.learningStreak, 10),
+      target: 10,
+    }),
+    category: 'learning',
+    rarity: 'rare',
+    xp: 75,
+  },
+  {
+    id: 'knowledge_master_25',
+    name: 'Знаток основ',
+    description: 'Изучите 25 слов/идиом',
+    icon: 'psychology',
+    condition: data => data.learnedWords >= 25,
+    progress: data => ({
+      current: Math.min(data.learnedWords, 25),
+      target: 25,
+    }),
+    category: 'learning',
+    rarity: 'rare',
+    xp: 100,
+  },
+  {
+    id: 'knowledge_master_100',
+    name: 'Эрудит',
+    description: 'Изучите 100 слов/идиом',
+    icon: 'workspace_premium',
+    condition: data => data.learnedWords >= 100,
+    progress: data => ({
+      current: Math.min(data.learnedWords, 100),
+      target: 100,
+    }),
+    category: 'learning',
+    rarity: 'epic',
+    xp: 300,
+  },
+  // ===== Практика и повторение =====
+  {
+    id: 'first_session',
+    name: 'Первое занятие',
+    description: 'Завершите первую сессию практики',
+    icon: 'play_circle',
+    condition: data => data.totalSessions >= 1,
+    progress: data => ({ current: Math.min(data.totalSessions, 1), target: 1 }),
+    category: 'practice',
+    rarity: 'common',
+    xp: 25,
+  },
+  {
+    id: 'practice_regular',
+    name: 'Регулярность',
+    description: 'Завершите 5 сессий практики',
+    icon: 'calendar_today',
+    condition: data => data.totalSessions >= 5,
+    progress: data => ({ current: Math.min(data.totalSessions, 5), target: 5 }),
+    category: 'practice',
+    rarity: 'common',
+    xp: 50,
+  },
+  {
+    id: 'practice_dedicated',
+    name: 'Преданность',
+    description: 'Завершите 25 сессий практики',
+    icon: 'event_available',
+    condition: data => data.totalSessions >= 25,
+    progress: data => ({
+      current: Math.min(data.totalSessions, 25),
+      target: 25,
+    }),
+    category: 'practice',
+    rarity: 'rare',
+    xp: 125,
+  },
+  {
+    id: 'practice_master',
+    name: 'Мастер практики',
+    description: 'Завершите 100 сессий практики',
+    icon: 'military_tech',
+    condition: data => data.totalSessions >= 100,
+    progress: data => ({
+      current: Math.min(data.totalSessions, 100),
+      target: 100,
+    }),
+    category: 'practice',
+    rarity: 'epic',
+    xp: 400,
+  },
+  {
+    id: 'accuracy_perfection',
+    name: 'Точность мастера',
+    description: 'Достигните 95% точности в сессии',
+    icon: 'target',
+    condition: data => data.bestAccuracy >= 95,
+    progress: data => ({
+      current: Math.min(data.bestAccuracy, 95),
+      target: 95,
+      format: val => `${val}%`,
+    }),
+    category: 'practice',
+    rarity: 'rare',
+    xp: 150,
+  },
+  // ===== Ежедневные цели =====
+  {
+    id: 'daily_goal_first',
+    name: 'Цель дня',
+    description: 'Выполните первую ежедневную цель',
+    icon: 'today',
+    condition: data => data.dailyGoalsCompleted >= 1,
+    progress: data => ({
+      current: Math.min(data.dailyGoalsCompleted, 1),
+      target: 1,
+    }),
+    category: 'daily',
+    rarity: 'common',
+    xp: 30,
+  },
+  {
+    id: 'daily_goal_regular',
+    name: 'Планер дня',
+    description: 'Выполните все ежедневные цели 7 раз',
+    icon: 'date_range',
+    condition: data => data.perfectDays >= 7,
+    progress: data => ({ current: Math.min(data.perfectDays, 7), target: 7 }),
+    category: 'daily',
+    rarity: 'rare',
+    xp: 200,
+  },
+  {
+    id: 'daily_goal_consistent',
+    name: 'Последовательность',
+    description: 'Выполните все ежедневные цели 30 дней',
+    icon: 'calendar_month',
+    condition: data => data.perfectDays >= 30,
+    progress: data => ({ current: Math.min(data.perfectDays, 30), target: 30 }),
+    category: 'daily',
+    rarity: 'epic',
+    xp: 500,
+  },
+  // ===== Серии (streaks) =====
+  {
+    id: 'streak_beginner',
+    name: 'Начало серии',
+    description: 'Достигните 3-дневной серии',
+    icon: 'local_fire_department',
+    condition: data => data.streakDays >= 3,
+    progress: data => ({ current: Math.min(data.streakDays, 3), target: 3 }),
+    category: 'streak',
+    rarity: 'common',
+    xp: 40,
+  },
+  {
+    id: 'streak_regular',
+    name: 'Привычка',
+    description: 'Достигните 7-дневной серии',
+    icon: 'whatshot',
+    condition: data => data.streakDays >= 7,
+    progress: data => ({ current: Math.min(data.streakDays, 7), target: 7 }),
+    category: 'streak',
+    rarity: 'common',
+    xp: 75,
+  },
+  {
+    id: 'streak_dedicated',
+    name: 'Преданность',
+    description: 'Достигните 30-дневной серии',
+    icon: 'local_fire_department',
+    condition: data => data.streakDays >= 30,
+    progress: data => ({ current: Math.min(data.streakDays, 30), target: 30 }),
+    category: 'streak',
+    rarity: 'rare',
+    xp: 300,
+  },
+  {
+    id: 'streak_master',
+    name: 'Мастер серии',
+    description: 'Достигните 100-дневной серии',
+    icon: 'workspace_premium',
+    condition: data => data.streakDays >= 100,
+    progress: data => ({
+      current: Math.min(data.streakDays, 100),
+      target: 100,
+    }),
+    category: 'streak',
+    rarity: 'epic',
+    xp: 1000,
+  },
+  {
+    id: 'streak_legendary',
+    name: 'Легенда серии',
+    description: 'Достигните 365-дневной серии',
+    icon: 'emoji_events',
+    condition: data => data.streakDays >= 365,
+    progress: data => ({
+      current: Math.min(data.streakDays, 365),
+      target: 365,
+    }),
+    category: 'streak',
+    rarity: 'legendary',
+    xp: 3650,
+  },
+  // ===== Особые достижения =====
+  {
+    id: 'variety_explorer',
+    name: 'Исследователь',
+    description: 'Попробуйте все типы упражнений',
+    icon: 'explore',
+    condition: data => data.exercisesTried >= 8,
+    progress: data => ({
+      current: Math.min(data.exercisesTried, 8),
+      target: 8,
+    }),
+    category: 'special',
+    rarity: 'rare',
+    xp: 200,
+  },
+  {
+    id: 'speed_demon',
+    name: 'Скоростной демон',
+    description: 'Завершите сессию со средней скоростью < 3 сек/вопрос',
+    icon: 'speed',
+    condition: data => data.bestSpeed <= 3,
+    progress: data => ({
+      current: Math.max(5 - data.bestSpeed, 0),
+      target: 2,
+      format: val => `${data.bestSpeed}с`,
+    }),
+    category: 'special',
+    rarity: 'epic',
+    xp: 250,
+  },
+  {
+    id: 'perfectionist',
+    name: 'Перфекционист',
+    description: 'Завершите 10 сессий с точностью 100%',
+    icon: 'grade',
+    condition: data => data.perfectSessions >= 10,
+    progress: data => ({
+      current: Math.min(data.perfectSessions, 10),
+      target: 10,
+    }),
+    category: 'special',
+    rarity: 'epic',
+    xp: 400,
+  },
+  // ===== Уровни и опыт =====
+  {
+    id: 'level_5',
+    name: 'Новичок',
+    description: 'Достигните 5 уровня',
+    icon: 'stars',
+    condition: data => data.level >= 5,
+    progress: data => ({ current: Math.min(data.level, 5), target: 5 }),
+    category: 'level',
+    rarity: 'common',
+    xp: 50,
+  },
+  {
+    id: 'level_10',
+    name: 'Ученик',
+    description: 'Достигните 10 уровня',
+    icon: 'auto_awesome',
+    condition: data => data.level >= 10,
+    progress: data => ({ current: Math.min(data.level, 10), target: 10 }),
+    category: 'level',
+    rarity: 'rare',
+    xp: 150,
+  },
+  {
+    id: 'level_25',
+    name: 'Эксперт',
+    description: 'Достигните 25 уровня',
+    icon: 'workspace_premium',
+    condition: data => data.level >= 25,
+    progress: data => ({ current: Math.min(data.level, 25), target: 25 }),
+    category: 'level',
+    rarity: 'epic',
+    xp: 500,
+  },
+  {
+    id: 'level_50',
+    name: 'Мастер',
+    description: 'Достигните 50 уровня',
+    icon: 'military_tech',
+    condition: data => data.level >= 50,
+    progress: data => ({ current: Math.min(data.level, 50), target: 50 }),
+    category: 'level',
+    rarity: 'legendary',
+    xp: 1500,
+  },
+];
+
+// Global flags
+window.profileFullyLoaded = false;
+window.pendingWordUpdates = pendingWordUpdates;
+window.pendingIdiomUpdates = pendingIdiomUpdates;
+
+// =============================================
+
+// ФУНКЦИИ НОРМАЛИЗАЦИИ ДАННЫХ
+
+// =============================================
+
+function normalizeWord(word) {
+  return {
+    ...word,
+    examplesAudio:
+      Array.isArray(word.examples_audio) && word.examples_audio.length
+        ? word.examples_audio
+        : Array.isArray(word.examplesaudio) && word.examplesaudio.length
+          ? word.examplesaudio
+          : Array.isArray(word.examplesAudio)
+            ? word.examplesAudio
+            : [],
+  };
+}
+
+function normalizeIdiom(idiom) {
+  return {
+    ...idiom,
+    examplesAudio:
+      Array.isArray(idiom.examples_audio) && idiom.examples_audio.length
+        ? idiom.examples_audio
+        : Array.isArray(idiom.examplesaudio) && idiom.examplesaudio.length
+          ? idiom.examplesaudio
+          : Array.isArray(idiom.examplesAudio)
+            ? idiom.examplesAudio
+            : [],
+  };
+}
+
+// Делаем функции доступными глобально
+window.normalizeWord = normalizeWord;
+window.normalizeIdiom = normalizeIdiom;
+
+// =============================================
+
+// КЭШ СЛОВАРЯ - оптимизация загрузки
+
+// =============================================
 
 // =============================================
 
@@ -168,6 +797,13 @@ window.speakWord = function (wordObj, onEnd) {
   playAudio(audioFile, onEnd);
 };
 
+window.speakIdiom = function (idiomId) {
+  const idiom = window.idioms.find(i => i.id === idiomId);
+  if (!idiom) return;
+  if (idiom.audio) playIdiomAudio(idiom.audio);
+  else speakText(idiom.idiom);
+};
+
 window.playExampleAudio = function (wordObj) {
   if (!wordObj || !wordObj.examplesAudio || !wordObj.examplesAudio.length)
     return;
@@ -183,32 +819,11 @@ const debugLog = (...args) => {
 
 // File import variables
 
-let fileParsed = [];
-
-let lastFetchedWordData = null; // данные последнего автозаполнения
-let lastFetchedIdiomData = null; // данные последнего автозаполнения идиомы
-
-// Инициализация глобальных переменных
-
-window.words = [];
-
-window.idioms = []; // глобальный массив идиом
-window.idiomsBank = []; // банк идиом из JSON
-
 // Функция обновления счётчика идиом
 function updateIdiomsCount() {
   // Бейджи убраны из nav, updateDueBadge теперь всё обновляет
   updateDueBadge();
 }
-
-// Infinite scroll для идиом
-let idiomsVisibleLimit = 30;
-let idiomsIsLoadingMore = false;
-let idiomsIntersectionObserver = null;
-let idiomsSearchQuery = '';
-let idiomsSortBy = 'date-desc'; // можно потом добавить сортировку
-let idiomsTagFilter = '';
-let idiomsActiveFilter = 'all'; // фильтр: all, learning, learned
 
 // ============================================================
 // THEME MANAGEMENT
@@ -275,6 +890,8 @@ window.applyTheme = function (baseTheme = 'lavender', dark = false) {
   // Помечаем профиль грязным для синхронизации с сервером
   if (window.currentUserId) {
     window.markProfileDirty();
+    // Немедленно синхронизируем с сервером
+    window.syncProfileToServer(true);
   }
 
   console.log(
@@ -283,26 +900,6 @@ window.applyTheme = function (baseTheme = 'lavender', dark = false) {
 };
 
 window.profileFullyLoaded = false;
-
-// Intersection Observer для бесконечной прокрутки
-
-let intersectionObserver = null;
-
-// Пакетное сохранение слов
-
-let pendingWordUpdates = new Map(); // id -> слово
-
-window.pendingWordUpdates = pendingWordUpdates; // делаем доступной глобально
-
-let wordSyncTimer;
-
-// Пакетное сохранение идиом (аналогично pendingWordUpdates)
-
-let pendingIdiomUpdates = new Map(); // id -> идиома
-
-window.pendingIdiomUpdates = pendingIdiomUpdates;
-
-let idiomSyncTimer;
 
 function markWordDirty(wordId) {
   const word = window.words?.find(w => w.id === wordId);
@@ -478,10 +1075,6 @@ function mergeWordsWithServer(serverWords) {
 
 // =============================================
 
-let profileDirty = false;
-
-let profileSyncTimer = null;
-
 window.markProfileDirty = function () {
   if (!window.currentUserId) return;
 
@@ -582,54 +1175,6 @@ function scheduleDelayedSync(delay = 30000) {
 }
 
 // Инициализация переменных ДО их использования
-
-let streak = { count: 0, lastDate: null };
-
-let xpData = { xp: 0, level: 1, badges: [] };
-
-let isSaving = false; // Защита от параллельного сохранения
-
-let badgeCheckInterval = null; // Идентификатор интервала проверки бейджей
-
-// Daily Goals configuration - должно быть объявлено ДО использования
-
-const DAILY_GOALS = [
-  {
-    id: 'add_new',
-
-    label: 'Добавить 5 новых слов',
-
-    target: 5,
-
-    icon: 'add_circle',
-
-    xpReward: 30,
-  },
-
-  {
-    id: 'review',
-
-    label: 'Повторить 15 слов',
-
-    target: 15,
-
-    icon: 'repeat',
-
-    xpReward: 50,
-  },
-
-  {
-    id: 'practice_time',
-
-    label: 'Практиковать 10+ минут',
-
-    target: 10, // в минутах
-
-    icon: 'timer',
-
-    xpReward: 40,
-  },
-];
 
 // Daily progress tracking - должно быть объявлено ДО использования
 
@@ -768,8 +1313,6 @@ function incrementDailyCount() {
 
 // Универсальная функция для обновления всего интерфейса
 
-let refreshScheduled = false;
-
 function refreshUI() {
   if (refreshScheduled) return;
 
@@ -837,7 +1380,8 @@ function loadWordsFromLocalStorage() {
 
   if (saved) {
     try {
-      window.words = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      window.words = parsed.map(normalizeWord);
     } catch (e) {
       console.error('Ошибка парсинга localStorage:', e);
 
@@ -852,7 +1396,8 @@ function loadIdiomsFromLocalStorage() {
   const saved = localStorage.getItem('englift_idioms');
   if (saved) {
     try {
-      window.idioms = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      window.idioms = parsed.map(normalizeIdiom);
     } catch (e) {
       window.idioms = [];
     }
@@ -1019,10 +1564,6 @@ function syncSaveProfile() {
 }
 
 // Retry механизм
-
-let retryAttempts = 0;
-
-const MAX_RETRY_ATTEMPTS = 3;
 
 function scheduleRetrySave() {
   if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
@@ -1241,7 +1782,6 @@ function renderWeekChart() {
         <div class="week-total">
           <span><span class="material-symbols-outlined">menu_book</span> ${days.reduce((a, d) => a + d.words, 0)} слов</span>
           <span><span class="material-symbols-outlined">theater_comedy</span> ${days.reduce((a, d) => a + d.idioms, 0)} идиом</span>
-          <span><span class="material-symbols-outlined">auto_awesome</span> ${days.reduce((a, d) => a + d.total, 0)} всего</span>
         </div>
       </div>
     </div>
@@ -1307,50 +1847,6 @@ function getFeedbackHTML(word, isCorrect, confidence = null) {
     </div>
   `;
 }
-
-const CONSTANTS = {
-  XP_PER_LEVEL: 200,
-
-  STORAGE_KEYS: {
-    WORDS: 'englift_v1',
-
-    XP: 'englift_xp',
-
-    STREAK: 'englift_streak',
-
-    SPEECH: 'englift_speech',
-
-    DARK_MODE: 'engliftDark',
-  },
-
-  LIMITS: {
-    MAX_WORD_LENGTH: 100,
-
-    MAX_TRANSLATION_LENGTH: 200,
-
-    MAX_EXAMPLE_LENGTH: 500,
-
-    MAX_TAG_LENGTH: 30,
-
-    MAX_TAGS: 10,
-
-    MAX_VISIBLE_WORDS: 100,
-
-    MAX_CACHE_SIZE: 200,
-
-    LOCAL_STORAGE_LIMIT: 4 * 1024 * 1024, // 4MB
-  },
-
-  SPEECH: {
-    SIMILARITY_THRESHOLD: 0.8,
-
-    RECOGNITION_TIMEOUT: 5000,
-
-    AUTO_LANG: 'ru-RU',
-  },
-};
-
-const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
 // ============================================================
 
@@ -1640,22 +2136,14 @@ function applyProfileData(data) {
   }
 
   // Проверяем и сбрасываем счётчик при смене дня
-
   checkAndResetDailyCount();
 
-  // ===== ПРИМЕНЕНИЕ ТЕМЫ — ЛОКАЛЬНЫЙ ПРИОРИТЕТ (главный фикс) =====
-  const saved = JSON.parse(
-    localStorage.getItem('englift_user_settings') || '{}',
-  );
-  const finalBaseTheme =
-    saved.baseTheme || window.user_settings.baseTheme || 'lavender';
-  const finalDark = saved.dark ?? window.user_settings.dark ?? false;
-
-  console.log('🎨 Финальная тема после загрузки профиля:', {
-    finalBaseTheme,
-    finalDark,
+  // Применяем тему из загруженных серверных данных
+  console.log('🎨 Применяем тему из серверных данных:', {
+    baseTheme: window.user_settings.baseTheme,
+    dark: window.user_settings.dark,
   });
-  window.applyTheme(finalBaseTheme, finalDark);
+  window.applyTheme(window.user_settings.baseTheme, window.user_settings.dark);
 
   window.lastProfileUpdate = data.updated_at
     ? new Date(data.updated_at).getTime()
@@ -1667,14 +2155,6 @@ function applyProfileData(data) {
 // SPEECH RECOGNITION SUPPORT
 
 // ============================================================
-
-const speechRecognitionSupported = !!(
-  window.SpeechRecognition || window.webkitSpeechRecognition
-);
-
-let currentRecognition = null; // будет создаваться при каждом запуске
-
-// Всё остальное удаляем – глобальный экземпляр больше не нужен
 
 // Проверка схожести произнесенного слова с правильным
 
@@ -1757,13 +2237,8 @@ function levenshteinDistance(str1, str2) {
   return matrix[str2.length][str1.length];
 }
 
-// Обработчики для карточек упражнений
-
-document.querySelectorAll('.exercise-card').forEach(card => {
-  card.addEventListener('click', () => {
-    card.classList.toggle('selected');
-  });
-});
+// Инициализация обработчиков для карточек упражнений
+updateExerciseSelection();
 
 // Показываем предупреждение если Speech Recognition не поддерживается
 
@@ -2166,14 +2641,6 @@ function setButtonLoading(button, loading = true) {
 
 // ============================================================
 
-const SK = CONSTANTS.STORAGE_KEYS.WORDS;
-
-const XP_K = CONSTANTS.STORAGE_KEYS.XP;
-
-const STREAK_K = CONSTANTS.STORAGE_KEYS.STREAK;
-
-const SPEECH_K = CONSTANTS.STORAGE_KEYS.SPEECH;
-
 // Функции для получения ключей
 
 async function getXPKey() {
@@ -2569,8 +3036,6 @@ async function migrateExampleTranslations() {
 // async function loadDictionaryFromJson() { ... }
 
 // НОВАЯ функция — тихое сохранение с задержкой
-
-let saveTimeout;
 
 function debouncedSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
@@ -3217,440 +3682,7 @@ function updStats(id, correct) {
   markWordDirty(id);
 }
 
-const BADGES_DEF = [
-  // ===== Слова в словаре =====
-
-  {
-    id: 'first_word',
-
-    icon: 'emoji_nature',
-
-    name: 'Первое слово',
-
-    desc: 'Добавь 1 слово в словарь',
-
-    check: () => window.words.length >= 1,
-  },
-
-  {
-    id: 'words_10',
-
-    icon: 'menu_book',
-
-    name: 'Начинающий коллекционер',
-
-    desc: '10 слов в словаре',
-
-    check: () => window.words.length >= 10,
-  },
-
-  {
-    id: 'words_50',
-
-    icon: 'auto_stories',
-
-    name: 'Книжный червь',
-
-    desc: '50 слов в словаре',
-
-    check: () => window.words.length >= 50,
-  },
-
-  {
-    id: 'words_100',
-
-    icon: 'workspace_premium',
-
-    name: 'Словарный запас',
-
-    desc: '100 слов в словаре',
-
-    check: () => window.words.length >= 100,
-  },
-
-  {
-    id: 'words_250',
-
-    icon: 'psychology',
-
-    name: 'Эрудит',
-
-    desc: '250 слов в словаре',
-
-    check: () => window.words.length >= 250,
-  },
-
-  {
-    id: 'words_500',
-
-    icon: 'library_books',
-
-    name: 'Лексикон',
-
-    desc: '500 слов в словаре',
-
-    check: () => window.words.length >= 500,
-  },
-
-  {
-    id: 'words_1000',
-
-    icon: 'language',
-
-    name: 'Полиглот',
-
-    desc: '1000 слов в словаре',
-
-    check: () => window.words.length >= 1000,
-  },
-
-  // ===== Выученные слова =====
-
-  {
-    id: 'learned_1',
-
-    icon: 'star',
-
-    name: 'Первый успех',
-
-    desc: 'Выучи 1 слово',
-
-    check: () => window.words.filter(w => w.stats?.learned).length >= 1,
-  },
-
-  {
-    id: 'learned_10',
-
-    icon: 'stars',
-
-    name: 'Звезда',
-
-    desc: 'Выучи 10 слов',
-
-    check: () => window.words.filter(w => w.stats?.learned).length >= 10,
-  },
-
-  {
-    id: 'learned_25',
-
-    icon: 'auto_awesome',
-
-    name: 'Блестящий',
-
-    desc: 'Выучи 25 слов',
-
-    check: () => window.words.filter(w => w.stats?.learned).length >= 25,
-  },
-
-  {
-    id: 'learned_50',
-
-    icon: 'workspace_premium',
-
-    name: 'Мастер слов',
-
-    desc: 'Выучи 50 слов',
-
-    check: () => window.words.filter(w => w.stats?.learned).length >= 50,
-  },
-
-  {
-    id: 'learned_100',
-
-    icon: 'emoji_events',
-
-    name: 'Знаток',
-
-    desc: 'Выучи 100 слов',
-
-    check: () => window.words.filter(w => w.stats?.learned).length >= 100,
-  },
-
-  {
-    id: 'learned_250',
-
-    icon: 'school',
-
-    name: 'Профессор',
-
-    desc: 'Выучи 250 слов',
-
-    check: () => window.words.filter(w => w.stats?.learned).length >= 250,
-  },
-
-  // ── ИДИОМЫ ─────────────────────────────────────
-  {
-    id: 'idioms5',
-    icon: 'record_voice_over',
-    name: 'Первые идиомы',
-    desc: 'Добавь 5 идиом',
-    check: () => window.idioms.length >= 5,
-  },
-  {
-    id: 'idioms25',
-    icon: 'theater_comedy',
-    name: 'Фразеолог',
-    desc: 'Добавь 25 идиом',
-    check: () => window.idioms.length >= 25,
-  },
-  {
-    id: 'idioms50',
-    icon: 'auto_stories',
-    name: 'Idiom Hunter',
-    desc: 'Добавь 50 идиом',
-    check: () => window.idioms.length >= 50,
-  },
-  {
-    id: 'idioms100',
-    icon: 'menu_book',
-    name: 'Мастер идиом',
-    desc: 'Добавь 100 идиом',
-    check: () => window.idioms.length >= 100,
-  },
-  {
-    id: 'idiomlearned5',
-    icon: 'star',
-    name: 'Идиомы в памяти',
-    desc: 'Выучи 5 идиом',
-    check: () => window.idioms.filter(i => i.stats?.learned).length >= 5,
-  },
-  {
-    id: 'idiomlearned20',
-    icon: 'stars',
-    name: 'Идиоматик',
-    desc: 'Выучи 20 идиом',
-    check: () => window.idioms.filter(i => i.stats?.learned).length >= 20,
-  },
-  {
-    id: 'idiomlearned50',
-    icon: 'workspace_premium',
-    name: 'Idiom Master',
-    desc: 'Выучи 50 идиом',
-    check: () => window.idioms.filter(i => i.stats?.learned).length >= 50,
-  },
-
-  // ===== Серии (streak) =====
-
-  {
-    id: 'streak_3',
-
-    icon: 'local_fire_department',
-
-    name: 'Искра',
-
-    desc: '3 дня подряд',
-
-    check: () => streak.count >= 3,
-  },
-
-  {
-    id: 'streak_7',
-
-    icon: 'rocket_launch',
-
-    name: 'Пламя',
-
-    desc: '7 дней подряд',
-
-    check: () => streak.count >= 7,
-  },
-
-  {
-    id: 'streak_30',
-
-    icon: 'whatshot',
-
-    name: 'Огонь',
-
-    desc: '30 дней подряд',
-
-    check: () => streak.count >= 30,
-  },
-
-  {
-    id: 'streak_100',
-
-    icon: 'local_fire_department',
-
-    name: 'Неугасимый',
-
-    desc: '100 дней подряд',
-
-    check: () => streak.count >= 100,
-  },
-
-  {
-    id: 'streak_365',
-
-    icon: 'emoji_events',
-
-    name: 'Вечный',
-
-    desc: '365 дней подряд (целый год!)',
-
-    check: () => streak.count >= 365,
-  },
-
-  // ===== Опыт (XP) =====
-
-  {
-    id: 'xp_250',
-
-    icon: 'emoji_objects',
-
-    name: 'Любознательный',
-
-    desc: 'Набери 250 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 250,
-  },
-
-  {
-    id: 'xp_500',
-
-    icon: 'diamond',
-
-    name: 'Прилежный',
-
-    desc: 'Набери 500 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 500,
-  },
-
-  {
-    id: 'xp_1000',
-
-    icon: 'military_tech',
-
-    name: 'Эксперт',
-
-    desc: 'Набери 1000 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 1000,
-  },
-
-  {
-    id: 'xp_2000',
-
-    icon: 'workspace_premium',
-
-    name: 'Профессионал',
-
-    desc: 'Набери 2000 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 2000,
-  },
-
-  {
-    id: 'xp_3500',
-
-    icon: 'star',
-
-    name: 'Мастер',
-
-    desc: 'Набери 3500 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 3500,
-  },
-
-  {
-    id: 'xp_5000',
-
-    icon: 'emoji_events',
-
-    name: 'Легенда',
-
-    desc: 'Набери 5000 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 5000,
-  },
-
-  {
-    id: 'xp_7500',
-
-    icon: 'military_tech',
-
-    name: 'Герой',
-
-    desc: 'Набери 7500 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 7500,
-  },
-
-  {
-    id: 'xp_10000',
-
-    icon: 'workspace_premium',
-
-    name: 'Бессмертный',
-
-    desc: 'Набери 10000 XP',
-
-    check: () => xpData.xp + (xpData.level - 1) * XP_PER_LEVEL >= 10000,
-  },
-
-  // ===== Особые =====
-
-  {
-    id: 'perfect',
-
-    icon: 'target',
-
-    name: 'Снайпер',
-
-    desc: 'Сессия без ошибок (минимум 5 слов)',
-
-    check: () => false, // будет проверяться через perfectSession параметр
-  },
-
-  {
-    id: 'level_5',
-
-    icon: 'bolt',
-
-    name: 'Прокачанный',
-
-    desc: 'Достигни 5 уровня',
-
-    check: () => xpData.level >= 5,
-  },
-
-  {
-    id: 'level_10',
-
-    icon: 'flight_takeoff',
-
-    name: 'Орёл',
-
-    desc: 'Достигни 10 уровня',
-
-    check: () => xpData.level >= 10,
-  },
-
-  {
-    id: 'level_20',
-
-    icon: 'rocket_launch',
-
-    name: 'Ас',
-
-    desc: 'Достигни 20 уровня',
-
-    check: () => xpData.level >= 20,
-  },
-
-  {
-    id: 'level_50',
-
-    icon: 'workspace_premium',
-
-    name: 'Бог',
-
-    desc: 'Достигни 50 уровня',
-
-    check: () => xpData.level >= 50,
-  },
-];
+// Функция для проверки и обновления бейджей
 
 function xpNeeded(lvl) {
   return lvl * XP_PER_LEVEL;
@@ -3711,14 +3743,40 @@ function gainXP(amount, reason = '') {
 function checkBadges(perfectSession) {
   let newBadges = [];
 
+  // Собираем данные для проверки условий бейджей
+  const totalWords = window.words ? window.words.length : 0;
+  const totalIdioms = window.idioms ? window.idioms.length : 0;
+  const learnedWords = window.words
+    ? window.words.filter(w => w.level >= 5).length
+    : 0;
+  const learnedIdioms = window.idioms
+    ? window.idioms.filter(i => i.level >= 5).length
+    : 0;
+
+  const badgeData = {
+    totalWords,
+    totalIdioms,
+    learnedWords,
+    learnedIdioms,
+    xp: xpData.xp,
+    level: xpData.level,
+    streak: streak.count,
+  };
+
   BADGES_DEF.forEach(def => {
     if (xpData.badges.includes(def.id)) return;
 
-    const earned = def.id === 'perfect' ? !!perfectSession : def.check();
+    let earned;
+    if (def.id === 'accuracy_perfection') {
+      // Для бейджа точности используем perfectSession напрямую
+      earned = !!perfectSession;
+    } else {
+      // Для остальных бейджей вызываем condition с данными
+      earned = def.condition(badgeData);
+    }
 
     if (earned) {
       xpData.badges.push(def.id);
-
       newBadges.push(def);
     }
   });
@@ -3976,7 +4034,7 @@ function renderBadges() {
       def.name +
       '</div>' +
       '<div class="badge-desc">' +
-      def.desc +
+      def.description +
       '</div>' +
       (progress
         ? `
@@ -4125,8 +4183,6 @@ function updStreak() {
 // ============================================================
 
 // Оптимизированный AudioContext для звуков
-
-let audioContext = null;
 
 function getAudioContext() {
   if (!audioContext) {
@@ -4729,7 +4785,6 @@ function renderStats() {
         </div>
         <div class="spc-nums">
           <span><span class="material-symbols-outlined stat-icon-small">psychology</span> ${totalLearned} из ${totalAll} единиц</span>
-          <span><span class="material-symbols-outlined stat-icon-small">calendar_today</span> +${thisWeek} на этой неделе</span>
         </div>
       </div>
     `;
@@ -4737,16 +4792,13 @@ function renderStats() {
 
   // ── HARD / EASY СЛОВА ───────────────────────────
   const makeWordItem = w => {
-    const acc = Math.round((w.stats.correct / w.stats.shown) * 100);
-    const cls = acc >= 70 ? 'good' : acc >= 40 ? 'mid' : 'bad';
     return `<li>
       <span class="word-info">
         <strong>${esc(w.en)}</strong>
-        <button class="btn-audio audio-card-btn" onclick="window.speakWord('${w.id}')" title="">
-          <span class="material-symbols-outlined">volume_up</span>
-        </button>
       </span>
-      <span class="stat-acc ${cls}">${acc}%</span>
+      <button class="btn-audio audio-card-btn" onclick="window.speakWord('${w.id}')" title="Прослушать">
+        <span class="material-symbols-outlined">volume_up</span>
+      </button>
     </li>`;
   };
 
@@ -4773,13 +4825,13 @@ function renderStats() {
 
   // ── HARD / EASY ИДИОМЫ ──────────────────────────
   const makeIdiomItem = i => {
-    const acc = Math.round((i.stats.correct / i.stats.shown) * 100);
-    const cls = acc >= 70 ? 'good' : acc >= 40 ? 'mid' : 'bad';
     return `<li>
       <span class="word-info">
         <strong>${esc(i.idiom.toLowerCase())}</strong>
       </span>
-      <span class="stat-acc ${cls}">${acc}%</span>
+      <button class="btn-audio audio-card-btn" onclick="window.speakIdiom('${i.id}')" title="Прослушать">
+        <span class="material-symbols-outlined">volume_up</span>
+      </button>
     </li>`;
   };
 
@@ -5460,26 +5512,7 @@ if (themeCheckbox) {
 
 // ============================================================
 
-let activeFilter = 'all',
-  searchQ = '',
-  sortBy = 'date-desc',
-  tagFilter = '';
-
-// Infinite scroll переменные
-
-let visibleLimit = 30; // сколько слов показываем сейчас
-
-const PAGE_SIZE = 20; // сколько подгружаем за раз
-
-let isLoadingMore = false; // флаг, чтобы не делать множественных запросов
-
-// Кеширование для оптимизации
-
-let renderCache = new Map();
-
-let searchDebounceTimer = null;
-
-// Управление индикатором синхронизации
+// Функции для работы со словами и идиомами
 
 function updateSyncIndicator(status, message = '') {
   // Индикатор синхронизации отключен
@@ -6345,8 +6378,6 @@ function getExampleHtmlForCard(card, index) {
 }
 
 // === УЛУЧШЕННЫЙ ТУЛТИП (рекомендую заменить полностью) ===
-
-let currentTooltip = null;
 
 function showTooltip(text, targetElement) {
   // Проверяем, что элемент всё ещё в DOM
@@ -7325,12 +7356,14 @@ document
       }
 
       const examples = ex ? [{ text: ex, translation: exTranslation }] : [];
+      const phonetic = lastFetchedWordData?.phonetic || null;
+
       const success = await addWord(
         en,
         ru,
         ex,
         normalizeTags(tags),
-        null,
+        phonetic,
         examples,
         lastFetchedWordData?.audio || null,
         lastFetchedWordData?.examplesAudio || null,
@@ -7390,13 +7423,14 @@ document
       // Используем данные автозаполнения, если они есть
       const audio = lastFetchedIdiomData?.audio || null;
       const examplesAudio = lastFetchedIdiomData?.examplesAudio || [];
+      const phonetic = lastFetchedIdiomData?.phonetic || '';
 
       const success = await addIdiom(
         idiom,
         meaning,
         definition,
         ex,
-        '', // phonetic пока не добавляем, можно потом добавить поле
+        phonetic,
         tags,
         audio,
         examplesAudio,
@@ -7605,6 +7639,160 @@ function updateSelectedItem(items) {
 
       // Прокрутка, если нужно
 
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+// --- Автодополнение для русского перевода ---
+const ruInput = document.getElementById('modal-word-ru');
+const ruSuggestionsContainer = document.getElementById(
+  'ru-autocomplete-suggestions',
+);
+
+let selectedRuSuggestionIndex = -1;
+
+function showRussianSuggestions(query) {
+  if (!query || query.length < 2) {
+    ruSuggestionsContainer.style.display = 'none';
+    return;
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const userWordsEn = new Set(window.words.map(w => w.en.toLowerCase()));
+
+  // Ищем в банке слов, у которых русский перевод начинается с введённой строки
+  const candidates = (window.wordBank || [])
+    .filter(item => {
+      // Приводим русский перевод к нижнему регистру и проверяем, начинается ли с запроса
+      const ruLower = item.ru.toLowerCase();
+      return (
+        ruLower.startsWith(lowerQuery) &&
+        !userWordsEn.has(item.en.toLowerCase())
+      );
+    })
+    .map(item => ({
+      en: item.en,
+      ru: item.ru,
+      tags: item.tags || [],
+      phonetic: item.phonetic || null,
+      examples: item.examples || [],
+      examplesAudio: item.examplesAudio || [],
+      audio: item.audio,
+      source: 'bank',
+    }));
+
+  if (candidates.length === 0) {
+    ruSuggestionsContainer.style.display = 'none';
+    return;
+  }
+
+  ruSuggestionsContainer.innerHTML = candidates
+    .map((c, index) => {
+      const tags = c.tags.slice(0, 2).join(' · ');
+      return `<div class="suggestion-item" data-index="${index}" data-word="${encodeURIComponent(JSON.stringify(c))}">
+        <strong>${c.en}</strong> 
+        <span style="color: var(--muted); font-size: 0.8rem;">${c.ru}</span>
+        ${tags ? `<span style="color: var(--primary); font-size: 0.7rem;"> (${tags})</span>` : ''}
+      </div>`;
+    })
+    .join('');
+
+  ruSuggestionsContainer.style.display = 'block';
+  selectedRuSuggestionIndex = -1;
+}
+
+// Обработчик ввода в русское поле
+ruInput.addEventListener('input', e => {
+  const val = e.target.value.trim();
+
+  if (val === '') {
+    // Очищаем только авто-заполненные поля, кроме самого русского поля
+    document.querySelectorAll('.auto-filled').forEach(field => {
+      if (field.id !== 'modal-word-ru' && field.id !== 'modal-word-en') {
+        field.value = '';
+        field.classList.remove('auto-filled');
+      }
+    });
+    lastFetchedWordData = null;
+    showRussianSuggestions(val);
+    return;
+  }
+
+  // Если есть сохранённые данные и введённый русский текст не совпадает с ru из данных — сбрасываем
+  if (lastFetchedWordData && val !== lastFetchedWordData.ru) {
+    lastFetchedWordData = null;
+  }
+  showRussianSuggestions(val);
+});
+
+// Обработчик клика на подсказку
+ruSuggestionsContainer.addEventListener('click', e => {
+  const target = e.target.closest('.suggestion-item');
+  if (!target) return;
+
+  const data = JSON.parse(decodeURIComponent(target.dataset.word));
+
+  // Заполняем оба поля
+  document.getElementById('modal-word-en').value = data.en;
+  ruInput.value = data.ru;
+
+  // Сохраняем данные
+  lastFetchedWordData = {
+    ru: data.ru,
+    phonetic: data.phonetic,
+    tags: data.tags,
+    audio: data.audio,
+    examples: data.examples,
+    examplesAudio: data.examplesAudio,
+  };
+
+  // Заполняем остальные поля формы
+  fillFormWithData(lastFetchedWordData);
+  ruSuggestionsContainer.style.display = 'none';
+});
+
+// Скрываем подсказки при потере фокуса
+ruInput.addEventListener('blur', () => {
+  setTimeout(() => {
+    ruSuggestionsContainer.style.display = 'none';
+  }, 200);
+});
+
+// Возврат фокуса
+ruInput.addEventListener('focus', () => {
+  if (ruInput.value.length >= 2) {
+    showRussianSuggestions(ruInput.value);
+  }
+});
+
+// Клавиатурная навигация
+ruInput.addEventListener('keydown', e => {
+  const items = ruSuggestionsContainer.querySelectorAll('.suggestion-item');
+  if (items.length === 0) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectedRuSuggestionIndex = (selectedRuSuggestionIndex + 1) % items.length;
+    updateRuSelectedItem(items, selectedRuSuggestionIndex);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectedRuSuggestionIndex =
+      (selectedRuSuggestionIndex - 1 + items.length) % items.length;
+    updateRuSelectedItem(items, selectedRuSuggestionIndex);
+  } else if (e.key === 'Enter' && selectedRuSuggestionIndex !== -1) {
+    e.preventDefault();
+    items[selectedRuSuggestionIndex].click();
+  }
+});
+
+// Функция обновления выделения для русского поля
+function updateRuSelectedItem(items, index) {
+  items.forEach((item, idx) => {
+    if (idx === index) {
+      item.classList.add('selected');
       item.scrollIntoView({ block: 'nearest' });
     } else {
       item.classList.remove('selected');
@@ -8248,24 +8436,6 @@ document
     // Load phonetic setting
     const showPhonetic = window.user_settings?.showPhonetic ?? true;
     document.getElementById('show-phonetic').checked = showPhonetic;
-
-    // Load timer settings
-
-    const currentTimed = window.user_settings?.timedMode || 'off';
-
-    const timedChip = document.querySelector(
-      `.chip[data-timed="${currentTimed}"]`,
-    );
-
-    if (timedChip) {
-      document
-
-        .querySelectorAll('.chip[data-timed]')
-
-        .forEach(chip => chip.classList.remove('on'));
-
-      timedChip.classList.add('on');
-    }
   });
 
 // Обработчик кнопки синхронизации
@@ -8687,18 +8857,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 
 // Practice session variables
 
-let sResults = { correct: [], wrong: [] };
-
-let sIdx = 0;
-
-let session = null;
-
-let autoPron = true,
-  lastSessionConfig = null,
-  currentExerciseTimer = null; // Сбрасываем флаг сессии при загрузке страницы
-
-window.isSessionActive = false;
-
 // Добавляем функцию для принудительного сброса сессии (для отладки)
 
 window.resetSession = function () {
@@ -8773,46 +8931,6 @@ document.querySelectorAll('.chip[data-dir]').forEach(b =>
       .forEach(x => x.classList.remove('on'));
 
     b.classList.add('on');
-  }),
-);
-
-document.querySelectorAll('.chip[data-timed]').forEach(c =>
-  c.addEventListener('click', async () => {
-    document
-
-      .querySelectorAll('.chip[data-timed]')
-
-      .forEach(x => x.classList.remove('on'));
-
-    c.classList.add('on');
-
-    // Сохраняем настройку таймера
-
-    window.user_settings = window.user_settings || {};
-
-    window.user_settings.timedMode = c.dataset.timed;
-
-    // Обновляем метку времени сразу (оптимистично)
-
-    window.lastProfileUpdate = Date.now();
-
-    // Сохраняем в Supabase если пользователь авторизован
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        debouncedSaveUserData(user.id, {
-          speech_cfg: window.speech_cfg,
-
-          user_settings: window.user_settings,
-        });
-      }
-    } catch (error) {
-      console.error('Error saving timed mode:', error);
-    }
   }),
 );
 
@@ -8978,17 +9096,8 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
       document.body.classList.remove('practice-idioms');
     }
 
-    // Обновляем классы selected для первой карточки
-    document.querySelectorAll('.exercise-card').forEach((card, index) => {
-      if (index === 0) card.classList.add('selected');
-    });
-
-    // Заново навешиваем обработчики кликов на карточки упражнений
-    document.querySelectorAll('.exercise-card').forEach(card => {
-      card.addEventListener('click', () => {
-        card.classList.toggle('selected');
-      });
-    });
+    // Обновляем выделение упражнений согласно сохраненным значениям
+    updateExerciseSelection();
 
     // Управляем классами вместо прямых манипуляций со стилями
     if (practiceMode === 'exam') {
@@ -9080,40 +9189,45 @@ function updateExamStats() {
   }
 }
 
-// Practice time tracking
+// Функции для управления выбором упражнений
+function updateExerciseSelection() {
+  const mode = practiceMode; // 'normal' или 'idioms'
+  const selectedArray =
+    mode === 'idioms' ? selectedIdiomExercises : selectedWordExercises;
+  document.querySelectorAll('.exercise-card').forEach(card => {
+    const exType = card.dataset.ex;
+    if (selectedArray.includes(exType)) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  });
 
-let practiceStartTime = null;
+  // Удаляем старые обработчики и вешаем новые
+  document.querySelectorAll('.exercise-card').forEach(card => {
+    card.removeEventListener('click', handleExerciseClick);
+    card.addEventListener('click', handleExerciseClick);
+  });
+}
 
-// Exam mode variables
+function handleExerciseClick(e) {
+  const card = e.currentTarget;
+  const exType = card.dataset.ex;
+  const mode = practiceMode;
+  const selectedArray =
+    mode === 'idioms' ? selectedIdiomExercises : selectedWordExercises;
 
-let practiceMode = 'normal'; // 'normal' или 'exam'
-
-// Для обычного режима (слова)
-let selectedWordExercises = [
-  'flash',
-  'multi',
-  'type',
-  'dictation',
-  'speech',
-  'match',
-  'builder',
-  'context',
-];
-// Для режима идиом
-let selectedIdiomExercises = [
-  'flash',
-  'multi',
-  'type',
-  'idiom-builder',
-  'context',
-  'match',
-];
-
-let examTime = 600; // секунд (по умолчанию 10 мин)
-
-let examQuestions = 50;
-
-let examTimerInterval = null;
+  const index = selectedArray.indexOf(exType);
+  if (index === -1) {
+    // добавляем
+    selectedArray.push(exType);
+    card.classList.add('selected');
+  } else {
+    // убираем
+    selectedArray.splice(index, 1);
+    card.classList.remove('selected');
+  }
+}
 
 // Таймер экзамена
 
@@ -9825,9 +9939,9 @@ function nextExercise() {
 
     sIdx,
 
-    'session.words.length:',
+    'session.items.length:',
 
-    session?.words?.length,
+    session?.items?.length,
   );
 
   try {
@@ -10030,7 +10144,9 @@ function nextExercise() {
             else speakText(w.idiom);
           }, 300);
       } else {
-        if (autoPron && !showRU) setTimeout(() => window.speakWord(w), 300);
+        // Озвучиваем только когда на рубашке английское слово (frontWord === w.en)
+        if (autoPron && frontWord === w.en)
+          setTimeout(() => window.speakWord(w), 300);
       }
 
       // Изначально скрываем кнопки ответа для карточек
@@ -10107,6 +10223,12 @@ function nextExercise() {
             if (isFlipped && exBtns) {
               exBtns.innerHTML = `<button class="btn-icon" id="knew-btn"><span class="material-symbols-outlined">check</span></button><button class="btn-icon" id="didnt-btn"><span class="material-symbols-outlined">close</span></button>`;
 
+              // Автоозвучивание при перевороте на английскую сторону
+              if (autoPron && backWord === w.en && !isIdiom) {
+                setTimeout(() => window.speakWord(w), 300);
+              }
+              // Для идиом не озвучиваем при перевороте, т.к. на обороте русский перевод
+
               const knewBtn = document.getElementById('knew-btn');
 
               const didntBtn = document.getElementById('didnt-btn');
@@ -10134,36 +10256,6 @@ function nextExercise() {
       }
     } else if (t === 'multi') {
       if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
-
-      // Создаём таймер всегда для multi
-      const oldTimer = headerContainer.querySelector('.exercise-timer');
-      if (oldTimer) oldTimer.remove();
-
-      const timerEl = document.createElement('div');
-      timerEl.id = 'exercise-timer';
-      timerEl.className = 'exercise-timer';
-      timerEl.innerHTML = `
-        <span class="material-symbols-outlined">timer</span>
-        <span class="timer-text">10s</span>
-      `;
-      headerContainer.insertBefore(timerEl, headerContainer.firstChild);
-
-      let timeRemaining = 10;
-      currentExerciseTimer = setInterval(() => {
-        timeRemaining--;
-        const timerText = timerEl.querySelector('.timer-text');
-        if (timerText) timerText.textContent = `${timeRemaining}s`;
-        if (timeRemaining <= 3) timerEl.classList.add('timer-urgent');
-        else timerEl.classList.remove('timer-urgent');
-        if (timeRemaining <= 0) {
-          clearInterval(currentExerciseTimer);
-          currentExerciseTimer = null;
-          timerEl.remove();
-          recordAnswer(false);
-          sIdx++;
-          nextExercise();
-        }
-      }, 1000);
 
       if (exTypeLbl) {
         exTypeLbl.innerHTML =
@@ -10720,6 +10812,14 @@ function nextExercise() {
 
 
 
+            <button class="btn-icon" id="builder-reset-btn"><span class="material-symbols-outlined">refresh</span></button>
+
+
+
+
+
+
+
           </div>
 
 
@@ -10812,16 +10912,16 @@ function nextExercise() {
             if (builderProcessing) return;
             builderProcessing = true;
 
-            // Находим соответствующую кнопку буквы и делаем её видимой
-            const allLetterBtns = document.querySelectorAll('.builder-letter');
-            const originalBtn = Array.from(allLetterBtns).find(
-              btn =>
-                btn.dataset.letter === letter.toLowerCase() &&
-                btn.style.visibility === 'hidden',
-            );
-
-            if (originalBtn) {
-              originalBtn.style.visibility = 'visible';
+            const originalIndex = firstPlaceholder.dataset.originalIndex;
+            if (originalIndex !== undefined) {
+              const allLetterBtns =
+                document.querySelectorAll('.builder-letter');
+              const targetBtn = Array.from(allLetterBtns).find(
+                btn => btn.dataset.index === originalIndex,
+              );
+              if (targetBtn) {
+                targetBtn.style.visibility = 'visible';
+              }
             }
 
             // Возвращаем ячейку в состояние заглушки
@@ -10927,6 +11027,38 @@ function nextExercise() {
               targetBtn.classList.remove('builder-hint-pulse');
             }, 2000);
           }
+        });
+
+      // Обработчик кнопки сброса
+      document
+        .getElementById('builder-reset-btn')
+        .addEventListener('click', () => {
+          // Очищаем ответ
+          answerContainer.innerHTML = '';
+          for (let i = 0; i < word.length; i++) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'builder-answer-letter placeholder';
+            placeholder.dataset.index = i;
+            answerContainer.appendChild(placeholder);
+          }
+
+          // Восстанавливаем все кнопки букв
+          document.querySelectorAll('.builder-letter').forEach(btn => {
+            btn.disabled = false;
+            btn.style.visibility = 'visible';
+            btn.classList.remove('builder-hint-pulse'); // убираем подсветку
+          });
+
+          // Скрываем фидбек
+          const fb = document.getElementById('builder-fb');
+          if (fb) {
+            fb.style.display = 'none';
+            fb.textContent = '';
+            fb.classList.remove('correct', 'incorrect', 'warning');
+          }
+
+          // Показываем контейнер с буквами (на случай если он был скрыт после правильного ответа)
+          document.getElementById('builder-letters').style.display = 'flex';
         });
 
       function checkBuilderAnswer() {
@@ -11073,6 +11205,13 @@ function nextExercise() {
       }
 
       startBtn?.addEventListener('click', () => {
+        // Скрываем старый фидбек
+        if (feedback) {
+          feedback.style.display = 'none';
+          feedback.innerHTML = '';
+          feedback.classList.remove('correct', 'incorrect', 'warning');
+        }
+
         // Если предыдущее распознавание ещё активно – прерываем
 
         if (currentRecognition) {
@@ -11119,8 +11258,9 @@ function nextExercise() {
 
           startBtn.style.display = 'none';
 
+          // Полностью скрываем и сбрасываем фидбек
           feedback.style.display = 'none';
-
+          feedback.classList.remove('correct', 'incorrect', 'warning');
           feedback.textContent = '';
         };
 
@@ -11140,41 +11280,36 @@ function nextExercise() {
           const result = checkSpeechSimilarity(spoken, correct);
 
           if (result.isCorrect) {
-            feedback.style.display = 'block';
-
             feedback.classList.remove('correct', 'incorrect', 'warning');
             feedback.classList.add('correct');
-            feedback.style.display = 'block';
-
             feedback.innerHTML = getFeedbackHTML(
               w,
               result.isCorrect,
               result.confidence,
             );
-
+            feedback.style.display = 'flex';
             playSound('correct');
 
-            recordAnswer(true);
+            // Блокируем кнопки на время показа фидбека
+            startBtn.disabled = true;
+            if (replayBtn) replayBtn.disabled = true;
 
-            sIdx++;
-
-            nextExercise();
+            setTimeout(() => {
+              recordAnswer(true);
+              sIdx++;
+              nextExercise();
+            }, 1500);
           } else {
-            feedback.style.display = 'block';
-
             feedback.classList.remove('correct', 'incorrect', 'warning');
             feedback.classList.add('incorrect');
-            feedback.style.display = 'block';
-
             feedback.innerHTML = getFeedbackHTML(
               w,
               result.isCorrect,
               result.confidence,
             );
-
+            feedback.style.display = 'flex';
             playSound('wrong');
-
-            // Даём ещё одну попытку – не увеличиваем sIdx
+            // Кнопки остаются активными – можно попробовать снова
           }
 
           currentRecognition = null;
@@ -11201,11 +11336,8 @@ function nextExercise() {
           else if (e.error === 'aborted')
             errorMessage = 'Превышено время ожидания. Попробуйте ещё раз.';
 
-          feedback.style.display = 'block';
-
           feedback.classList.remove('correct', 'incorrect', 'warning');
           feedback.classList.add('warning');
-          feedback.style.display = 'block';
 
           feedback.innerHTML = `<span class="material-symbols-outlined">warning</span><span>${errorMessage}</span>`;
 
@@ -13519,11 +13651,8 @@ function runContextExercise(item, onComplete) {
 
 function runSpeechSentenceExercise(word, onComplete) {
   const content = document.getElementById('ex-content');
-
   const btns = document.getElementById('ex-btns');
-
   const exTypeLbl = document.getElementById('ex-type-lbl');
-
   const exCounter = document.getElementById('ex-counter');
 
   if (exTypeLbl) {
@@ -13532,228 +13661,49 @@ function runSpeechSentenceExercise(word, onComplete) {
   }
 
   if (exCounter) {
-    exCounter.textContent = `${sIdx + 1} / ${session.words.length}`;
+    exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
   }
 
-  // Показываем предложение, если есть пример, иначе слово
-
   const hasExample = word.ex && word.ex.trim().length > 0;
-
   const promptText = hasExample ? word.ex : word.en;
-
-  const expectedWord = promptText; // для проверки используем полный текст предложения
-
+  const expectedWord = promptText;
   const exampleTranslation =
     hasExample && word.examples && word.examples[0]
       ? word.examples[0].translation
       : null;
 
-  if (content) {
-    content.innerHTML = `
-
-
-
-
-
-
-
-      <div class="speech-exercise">
-
-
-
-
-
-
-
-        <div class="speech-prompt">
-
-
-
-
-
-
-
-          <div class="speech-word-container">
-
-
-
-
-
-
-
-            <div class="speech-word speech-sentence">${esc(promptText)}</div>
-
-
-
-
-
-
-
-            <button class="btn-icon btn-small" id="speech-sentence-replay-btn" title="Прослушать предложение">
-
-
-
-
-
-
-
-              <span class="material-symbols-outlined">volume_up</span>
-
-
-
-
-
-
-
-            </button>
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-          <div class="speech-hint">${!hasExample ? 'Прослушайте слово, затем повторите его' : ''}</div>
-
-
-
-
-
-
-
-          <div class="speech-translation" id="speech-sentence-translation" style="margin-top: 0.5rem; opacity: 0.7;">
-
-
-
-
-
-
-
-            ${!hasExample ? `${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}` : exampleTranslation ? `${esc(exampleTranslation)}` : ''}
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-        <div class="speech-controls">
-
-
-
-
-
-
-
-          <button class="btn-icon" id="speech-sentence-start-btn">
-
-
-
-
-
-
-
-            <span class="material-symbols-outlined">mic</span>
-
-
-
-
-
-
-
+  content.innerHTML = `
+    <div class="speech-exercise">
+      <div class="speech-prompt">
+        <div class="speech-word-container">
+          <div class="speech-word speech-sentence">${esc(promptText)}</div>
+          <button class="btn-icon btn-small" id="speech-sentence-replay-btn" title="Прослушать предложение">
+            <span class="material-symbols-outlined">volume_up</span>
           </button>
-
-
-
-
-
-
-
-          <div class="recording-indicator" id="speech-sentence-recording-indicator" style="display: none;">
-
-
-
-
-
-
-
-            <span class="material-symbols-outlined">graphic_eq</span> Говорите...
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
         </div>
-
-
-
-
-
-
-
-        <div class="feedback-panel" id="speech-sentence-feedback" style="display: none;"></div>
-
-
-
-
-
-
-
+        <div class="speech-hint">${!hasExample ? 'Прослушайте слово, затем повторите его' : ''}</div>
+        <div class="speech-translation" id="speech-sentence-translation" style="margin-top: 0.5rem; opacity: 0.7;">
+          ${!hasExample ? `${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}` : exampleTranslation ? `${esc(exampleTranslation)}` : ''}
+        </div>
       </div>
-
-
-
-
-
-
-
-    `;
-  }
+      <div class="speech-controls">
+        <button class="btn-icon" id="speech-sentence-start-btn">
+          <span class="material-symbols-outlined">mic</span>
+        </button>
+        <div class="recording-indicator" id="speech-sentence-recording-indicator" style="display: none;">
+          <span class="material-symbols-outlined">graphic_eq</span> Говорите...
+        </div>
+      </div>
+      <div class="feedback-panel" id="speech-sentence-feedback" style="display: none;"></div>
+    </div>
+  `;
 
   const replayBtn = document.getElementById('speech-sentence-replay-btn');
-
   const startBtn = document.getElementById('speech-sentence-start-btn');
-
   const indicator = document.getElementById(
     'speech-sentence-recording-indicator',
   );
-
   const feedback = document.getElementById('speech-sentence-feedback');
-
   const translationEl = document.getElementById('speech-sentence-translation');
 
   // Автоматическая озвучка при запуске упражнения
@@ -13798,6 +13748,15 @@ function runSpeechSentenceExercise(word, onComplete) {
   }
 
   startBtn?.addEventListener('click', () => {
+    // === ДОБАВЬТЕ ЭТИ СТРОКИ ===
+    if (feedback) {
+      feedback.style.display = 'none';
+      feedback.innerHTML = '';
+      feedback.classList.remove('correct', 'incorrect', 'warning');
+    }
+    if (indicator) indicator.style.display = 'none';
+    // ============================
+
     if (currentRecognition) {
       try {
         currentRecognition.abort();
@@ -13842,60 +13801,61 @@ function runSpeechSentenceExercise(word, onComplete) {
 
       startBtn.style.display = 'none';
 
+      // Полностью скрываем и сбрасываем фидбек
       feedback.style.display = 'none';
-
+      feedback.classList.remove('correct', 'incorrect', 'warning');
       feedback.textContent = '';
     };
 
     rec.onresult = event => {
       clearTimeout(timeoutId);
-
       recognitionActive = false;
-
       indicator.style.display = 'none';
-
       startBtn.style.display = 'flex';
 
       const spoken = event.results[0][0].transcript.trim().toLowerCase();
-
       const correct = expectedWord.toLowerCase();
-
       const result = checkSpeechSimilarity(spoken, correct);
 
+      // Создаём объект для фидбека (имитация слова)
+      const feedbackWord = {
+        en: word.en,
+        ru: word.ru,
+        idiom: word.idiom,
+        meaning: word.meaning,
+      };
+
       if (result.isCorrect) {
-        feedback.style.display = 'block';
-
-        feedback.className = 'feedback-panel correct';
-
+        feedback.classList.remove('correct', 'incorrect', 'warning');
+        feedback.classList.add('correct');
         feedback.innerHTML = getFeedbackHTML(
-          w,
-          result.isCorrect,
+          feedbackWord,
+          true,
           result.confidence,
         );
-
+        feedback.style.display = 'flex';
         playSound('correct');
 
-        recordAnswer(true);
+        // Отключаем кнопки на время показа фидбека
+        startBtn.disabled = true;
+        if (replayBtn) replayBtn.disabled = true;
 
-        sIdx++;
-
-        nextExercise();
+        setTimeout(() => {
+          recordAnswer(true);
+          onComplete(); // переход к следующему упражнению
+        }, 1500);
       } else {
-        feedback.style.display = 'block';
-
-        feedback.className = 'feedback-panel incorrect';
-
+        feedback.classList.remove('correct', 'incorrect', 'warning');
+        feedback.classList.add('incorrect');
         feedback.innerHTML = getFeedbackHTML(
-          w,
-          result.isCorrect,
+          feedbackWord,
+          false,
           result.confidence,
         );
-
+        feedback.style.display = 'flex';
         playSound('wrong');
-
-        // ещё одна попытка
+        // Даём ещё одну попытку – кнопки остаются активными
       }
-
       currentRecognition = null;
     };
 
@@ -13919,9 +13879,8 @@ function runSpeechSentenceExercise(word, onComplete) {
       else if (e.error === 'aborted')
         errorMessage = 'Превышено время ожидания. Попробуйте ещё раз.';
 
-      feedback.style.display = 'block';
-
-      feedback.className = 'feedback-panel warning';
+      feedback.classList.remove('correct', 'incorrect', 'warning');
+      feedback.classList.add('warning');
 
       feedback.innerHTML = `<span class="material-symbols-outlined">warning</span><span>${errorMessage}</span>`;
 
@@ -14110,14 +14069,8 @@ function runIdiomBuilderExercise(item, onComplete) {
       wordsContainer.style.display = 'none';
       fb.style.display = 'block';
       fb.className = 'feedback-panel incorrect';
-      fb.innerHTML = `
-        <span class="material-symbols-outlined">close</span>
-        <div>Правильно: <strong>${phrase}</strong></div>
-      `;
-      setTimeout(() => {
-        recordAnswer(false);
-        onComplete();
-      }, 2000);
+      fb.innerHTML = `<span class="material-symbols-outlined">refresh</span><span>Попробуйте ещё раз!</span>`;
+      // НЕ вызываем recordAnswer(false) и onComplete()
     }
   }
 
@@ -14178,6 +14131,8 @@ function runIdiomBuilderExercise(item, onComplete) {
       });
       wordsContainer.style.display = 'flex';
       fb.style.display = 'none';
+      fb.textContent = '';
+      fb.classList.remove('correct', 'incorrect', 'warning');
     });
 
   // Логика подсказки
@@ -14203,16 +14158,7 @@ function runIdiomBuilderExercise(item, onComplete) {
       }
     });
 
-  // Кнопка пропуска
-  if (btns) {
-    btns.innerHTML = `<button class="btn-icon" id="idiom-builder-skip"><span class="material-symbols-outlined">skip_next</span></button>`;
-    document
-      .getElementById('idiom-builder-skip')
-      ?.addEventListener('click', () => {
-        recordAnswer(false);
-        onComplete();
-      });
-  }
+  // Убираем кнопку пропуска - не нужна как в собери слово
 }
 
 // === EXIT SESSION ===
@@ -15061,6 +15007,11 @@ function closeAddWordModal() {
 
 addWordBtn?.addEventListener('click', openAddWordModal);
 addWordModalClose?.addEventListener('click', closeAddWordModal);
+
+// Обработчик для кнопки "Добавить первое слово"
+const emptyAddWordBtn = document.getElementById('empty-add-word-btn');
+emptyAddWordBtn?.addEventListener('click', openAddWordModal);
+
 addWordModal?.addEventListener('click', e => {
   if (e.target === addWordModal) closeAddWordModal();
 });
@@ -15179,7 +15130,7 @@ window.onProfileFullyLoaded = async function () {
 
       await new Promise(resolve => {
         window.authExports.loadWordsOnce(remoteWords => {
-          window.words = remoteWords;
+          window.words = (remoteWords || []).map(normalizeWord);
 
           localStorage.setItem('englift_words', JSON.stringify(window.words));
 
@@ -15196,14 +15147,7 @@ window.onProfileFullyLoaded = async function () {
     try {
       await new Promise(resolve => {
         window.authExports.loadIdiomsOnce(remoteIdioms => {
-          window.idioms = (remoteIdioms || []).map(idiom => ({
-            ...idiom,
-            examplesAudio:
-              idiom.examples_audio ||
-              idiom.examplesAudio ||
-              idiom.examplesaudio ||
-              [], // ← добавляем поле examplesAudio
-          }));
+          window.idioms = (remoteIdioms || []).map(normalizeIdiom);
           localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
           updateIdiomsCount(); // обновляем счётчик после загрузки
           resolve();
@@ -15259,6 +15203,17 @@ window.onProfileFullyLoaded = async function () {
 
   renderRandomBankWord();
 };
+
+// Если был пропущенный вызов – выполняем сейчас
+if (window._pendingProfileLoaded) {
+  console.log(
+    '🔄 Выполняем пропущенный вызов onProfileFullyLoaded (флаг был установлен)',
+  );
+  window.onProfileFullyLoaded();
+  window._pendingProfileLoaded = false;
+} else {
+  console.log('✅ Флаг _pendingProfileLoaded не установлен, все в порядке');
+}
 
 // Если через 2 секунды Supabase не загрузил тему
 setTimeout(() => {
@@ -15575,6 +15530,10 @@ if (themeToggleBtn) {
     const isDark = document.documentElement.classList.contains('dark');
     const baseTheme = window.user_settings?.baseTheme || 'lavender';
     window.applyTheme(baseTheme, !isDark);
+    // Немедленно сохраняем на сервер
+    if (window.currentUserId) {
+      window.syncProfileToServer(true);
+    }
   });
 }
 
@@ -15592,5 +15551,17 @@ if (document.readyState === 'loading') {
 setTimeout(() => {
   updateFloatingButtonsForTab('words');
 }, 100);
+
+// PWA мгновенное обновление при активации нового сервис-воркера
+if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      console.log('🔄 Новый сервис-воркер активирован, перезагружаем страницу');
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+}
 
 switchTab('words');

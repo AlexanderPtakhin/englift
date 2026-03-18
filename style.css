@@ -6203,6 +6203,11 @@ html.dark .badge-learned {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  /* Если последняя карточка одна в ряду (нечётное общее количество) */
+  .exercise-grid .exercise-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1; /* занимает обе колонки */
+  }
+
   .chip {
     padding: 0.5rem 1rem;
 
@@ -6213,6 +6218,11 @@ html.dark .badge-learned {
 @media (max-width: 830px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Растягиваем третью (последнюю) карточку на всю ширину */
+  .stats-grid .stat-card:last-child {
+    grid-column: 1 / -1; /* занимает все колонки */
   }
 
   .xp-stats-row {
@@ -9267,8 +9277,6 @@ html.dark .due-soon {
 
   color: var(--text);
 
-  margin-bottom: 0.5rem;
-
   text-align: center;
 
   display: flex;
@@ -11331,9 +11339,10 @@ html.dark .cefr-level:hover {
   font-weight: 800;
 }
 
-.spc-nums span {
-  font-size: 0.95rem;
-  font-weight: 600;
+.spc-nums span
+/* Specificity: (0,1,1) */ {
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .stat-due-chip {
@@ -11543,7 +11552,7 @@ html.dark .cefr-level:hover {
   .spc-nums {
     flex-direction: row;
     align-items: flex-start;
-    gap: 0.75rem 1.5rem;
+    gap: 0.75rem 0.5rem;
   }
   .spc-nums span:not(:last-child)::after {
     content: '•';

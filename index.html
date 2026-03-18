@@ -717,22 +717,7 @@
               </div>
             </div>
 
-            <div class="setup-row">
-              <label
-                ><span
-                  class="material-symbols-outlined"
-                  style="vertical-align: middle; margin-right: 8px"
-                  >timer</span
-                >Режим на время</label
-              >
-
-              <div class="chip-group">
-                <button class="chip" data-timed="off">Выключено</button>
-
-                <button class="chip" data-timed="on">10 сек/вопрос</button>
-              </div>
-            </div>
-
+            
             <button
               class="btn btn-primary btn-lg"
               id="start-btn"
@@ -997,7 +982,7 @@
 
           <div class="word-list-card">
             <div class="daily-cap-header">
-              <span class="material-symbols-outlined">star</span>
+              <span class="material-symbols-outlined">emoji_objects</span>
 
               <h3>Топ-5 лёгких</h3>
             </div>
@@ -1204,7 +1189,10 @@
           </div>
           <div class="form-group">
             <label>Русский перевод *</label>
-            <input class="form-control" type="text" id="modal-word-ru" required />
+            <div style="position: relative">
+              <input class="form-control" type="text" id="modal-word-ru" required />
+              <div id="ru-autocomplete-suggestions" class="autocomplete-suggestions"></div>
+            </div>
           </div>
           <div class="form-group">
             <label>Пример</label>
