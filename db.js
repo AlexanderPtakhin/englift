@@ -76,35 +76,34 @@ export async function deleteWordFromDb(wordId) {
 // ─── PROFILES ────────────────────────────────────────────
 
 export async function saveUserData(uid, data) {
-  if (!uid) return;
+  if (!uid) {
+    console.warn('saveUserData: нет uid');
+    return;
+  }
 
-  const payload = { updated_at: new Date().toISOString() }; // ← обязательно!
+  const payload = {
+    id: uid, // ← ОБЯЗАТЕЛЬНО для upsert
+    updated_at: new Date().toISOString(),
+    ...data, // xp, level, badges, streak, dailyprogress и т.д.
+  };
 
-  if (data.xp !== undefined) payload.xp = data.xp;
-  if (data.level !== undefined) payload.level = data.level;
-  if (data.badges !== undefined) payload.badges = data.badges;
-  if (data.streak !== undefined) payload.streak = data.streak;
-  if (data.laststreakdate !== undefined)
-    payload.laststreakdate = data.laststreakdate;
-  if (data.dailyprogress !== undefined)
-    payload.dailyprogress = data.dailyprogress;
-  if (data.dailyreviewcount !== undefined)
-    payload.dailyreviewcount = data.dailyreviewcount;
-  if (data.lastreviewreset !== undefined)
-    payload.lastreviewreset = data.lastreviewreset;
-  if (data.usersettings !== undefined) payload.usersettings = data.usersettings;
-  if (data.speechcfg !== undefined) payload.speechcfg = data.speechcfg;
-  if (data.darktheme !== undefined) payload.darktheme = data.darktheme;
+  console.log('📤 saveUserData → upsert профиля:', {
+    uid,
+    keys: Object.keys(payload),
+    xp: payload.xp,
+    level: payload.level,
+  });
 
   const { error } = await supabase
     .from('profiles')
-    .update(payload)
-    .eq('id', uid);
+    .upsert(payload, { onConflict: 'id' }); // ← ВОТ ЗДЕСЬ МАГИЯ
 
   if (error) {
-    console.error('Error saving user data:', error);
+    console.error('❌ Ошибка сохранения профиля:', error);
     throw error;
   }
+
+  console.log("✅ Профиль успешно upsert'нут в Supabase");
 }
 
 // ─── IDIOMS ──────────────────────────────────────────────

@@ -19,8 +19,6 @@ import idiomsBankData from './idioms.json';
 
 // =============================================
 
-const PROFILE_BACKUP_KEY = 'englift_profile_backup';
-
 // Debug flag - должен быть определен до использования в функциях
 
 const DEBUG =
@@ -169,8 +167,6 @@ let idiomsTagFilter = '';
 let idiomsActiveFilter = 'all';
 
 // Sync and save variables
-let profileDirty = false;
-let profileSyncTimer = null;
 let isSaving = false;
 let badgeCheckInterval = null;
 let refreshScheduled = false;
@@ -501,8 +497,8 @@ const BADGES_DEF = [
     name: 'Начало серии',
     description: 'Достигните 3-дневной серии',
     icon: 'local_fire_department',
-    condition: data => data.streakDays >= 3,
-    progress: data => ({ current: Math.min(data.streakDays, 3), target: 3 }),
+    condition: data => data.streak >= 3,
+    progress: data => ({ current: Math.min(data.streak, 3), target: 3 }),
     category: 'streak',
     rarity: 'common',
     xp: 40,
@@ -512,8 +508,8 @@ const BADGES_DEF = [
     name: 'Привычка',
     description: 'Достигните 7-дневной серии',
     icon: 'whatshot',
-    condition: data => data.streakDays >= 7,
-    progress: data => ({ current: Math.min(data.streakDays, 7), target: 7 }),
+    condition: data => data.streak >= 7,
+    progress: data => ({ current: Math.min(data.streak, 7), target: 7 }),
     category: 'streak',
     rarity: 'common',
     xp: 75,
@@ -523,8 +519,8 @@ const BADGES_DEF = [
     name: 'Преданность',
     description: 'Достигните 30-дневной серии',
     icon: 'local_fire_department',
-    condition: data => data.streakDays >= 30,
-    progress: data => ({ current: Math.min(data.streakDays, 30), target: 30 }),
+    condition: data => data.streak >= 30,
+    progress: data => ({ current: Math.min(data.streak, 30), target: 30 }),
     category: 'streak',
     rarity: 'rare',
     xp: 300,
@@ -534,9 +530,9 @@ const BADGES_DEF = [
     name: 'Мастер серии',
     description: 'Достигните 100-дневной серии',
     icon: 'workspace_premium',
-    condition: data => data.streakDays >= 100,
+    condition: data => data.streak >= 100,
     progress: data => ({
-      current: Math.min(data.streakDays, 100),
+      current: Math.min(data.streak, 100),
       target: 100,
     }),
     category: 'streak',
@@ -548,9 +544,9 @@ const BADGES_DEF = [
     name: 'Легенда серии',
     description: 'Достигните 365-дневной серии',
     icon: 'emoji_events',
-    condition: data => data.streakDays >= 365,
+    condition: data => data.streak >= 365,
     progress: data => ({
-      current: Math.min(data.streakDays, 365),
+      current: Math.min(data.streak, 365),
       target: 365,
     }),
     category: 'streak',
@@ -911,9 +907,7 @@ window.applyTheme = function (baseTheme = 'lavender', dark = false) {
 
   // Помечаем профиль грязным для синхронизации с сервером
   if (window.currentUserId) {
-    window.markProfileDirty();
-    // Немедленно синхронизируем с сервером
-    window.syncProfileToServer(true);
+    window.scheduleProfileSave();
   }
 
   console.log(
@@ -1097,28 +1091,11 @@ function mergeWordsWithServer(serverWords) {
 
 // =============================================
 
-window.markProfileDirty = function () {
-  if (!window.currentUserId) return;
-
-  profileDirty = true;
-
-  scheduleProfileSync();
-};
-
-function scheduleProfileSync(delay = 2500) {
-  if (profileSyncTimer) clearTimeout(profileSyncTimer);
-
-  profileSyncTimer = setTimeout(syncProfileToServer, delay);
-}
-
-async function syncProfileToServer(force = false) {
-  if (!window.currentUserId || !navigator.onLine) return;
-
-  if (!force && !profileDirty) return;
-
-  if (!force && !window.profileFullyLoaded) return;
-
-  console.log('💾 [PROFILE] Синхронизируем профиль...');
+async function syncProfileToServer() {
+  if (!window.currentUserId) {
+    console.warn('Нет userId, пропускаем сохранение');
+    return;
+  }
 
   const profileData = {
     xp: xpData.xp || 0,
@@ -1130,27 +1107,47 @@ async function syncProfileToServer(force = false) {
     dailyreviewcount: window.dailyReviewCount || 0,
     lastreviewreset: window.lastReviewResetDate || null,
     usersettings: window.user_settings,
+    darktheme: document.documentElement.classList.contains('dark'),
   };
-
-  // Debug: Check dailyprogress before saving
-  console.log('🔍 Сохраняем dailyprogress:', profileData.dailyprogress);
 
   try {
     await saveUserData(window.currentUserId, profileData);
-
-    profileDirty = false;
-
-    backupProfileToLocalStorage(); // ← ДОБАВЬ ЭТО
-
-    console.log('✅ [PROFILE] Профиль сохранён:', profileData);
+    console.log('✅ Профиль сохранён на сервер');
   } catch (e) {
-    console.error('❌ [PROFILE] Ошибка:', e);
+    console.error('❌ Ошибка сохранения профиля:', e);
+    window.toast?.(
+      'Не удалось сохранить прогресс. Проверьте соединение.',
+      'warning',
+    );
   }
 }
 
 // Делаем доступной из auth.js
-
 window.syncProfileToServer = syncProfileToServer;
+
+// Debounced версия с задержкой 500мс
+let profileSaveTimer = null;
+
+function scheduleProfileSave() {
+  if (profileSaveTimer) clearTimeout(profileSaveTimer);
+  profileSaveTimer = setTimeout(() => {
+    syncProfileToServer();
+    profileSaveTimer = null;
+  }, 500); // 500 мс задержки
+}
+
+// Делаем доступной глобально
+window.scheduleProfileSave = scheduleProfileSave;
+
+// Сохранение при закрытии страницы
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    if (profileSaveTimer) {
+      clearTimeout(profileSaveTimer);
+      syncProfileToServer(); // пытаемся отправить перед закрытием
+    }
+  }
+});
 
 // Синхронизация слов с сервером (унифицированная функция)
 
@@ -1268,7 +1265,7 @@ function checkAndResetDailyCount() {
     // Помечаем профиль как изменённый, чтобы сохранить новую дату
 
     if (window.currentUserId) {
-      window.markProfileDirty();
+      scheduleProfileSave();
     }
   }
 }
@@ -1329,7 +1326,7 @@ function incrementDailyCount() {
   console.log(`📈 Счетчик упражнений увеличен до ${window.dailyReviewCount}`);
 
   if (window.currentUserId) {
-    window.markProfileDirty(); // ← вместо debouncedSaveProfile
+    scheduleProfileSave();
   }
 }
 
@@ -1363,11 +1360,7 @@ window.refreshUI = refreshUI;
 
 window.markWordDirty = markWordDirty;
 
-window.backupProfileToLocalStorage = backupProfileToLocalStorage;
-
-window.restoreProfileFromLocalStorage = restoreProfileFromLocalStorage;
-
-window.mergeProfileData = mergeProfileData;
+// window.backupProfileToLocalStorage = backupProfileToLocalStorage;
 
 window.applyProfileData = applyProfileData;
 
@@ -1393,7 +1386,7 @@ window.debugLimits = function () {
   console.log('========================');
 };
 
-window.isProfileEmpty = isProfileEmpty;
+// window.isProfileEmpty = isProfileEmpty;
 
 // Загрузка слов из localStorage при старте
 
@@ -1557,24 +1550,24 @@ async function saveAllUserData() {
 
     streak: streak.count,
 
-    last_streak_date: streak.lastDate,
+    laststreakdate: streak.lastDate,
 
-    daily_progress: window.dailyProgress,
+    dailyprogress: window.dailyProgress,
 
-    last_review_reset: window.lastReviewResetDate,
+    lastreviewreset: window.lastReviewResetDate,
 
-    daily_review_count: window.dailyReviewCount,
+    dailyreviewcount: window.dailyReviewCount,
 
-    user_settings: window.user_settings,
+    usersettings: window.user_settings,
 
-    dark_theme: document.documentElement.classList.contains('dark'),
+    darktheme: document.documentElement.classList.contains('dark'),
   });
 }
 
 // НОВАЯ saveProfileData — только помечает dirty
 
 async function saveProfileData() {
-  window.markProfileDirty();
+  scheduleProfileSave();
 }
 
 // syncSaveProfile — тоже через очередь
@@ -1582,7 +1575,7 @@ async function saveProfileData() {
 function syncSaveProfile() {
   if (!window.currentUserId || !window.profileFullyLoaded) return;
 
-  window.markProfileDirty();
+  scheduleProfileSave();
 }
 
 // Retry механизм
@@ -1613,7 +1606,7 @@ function scheduleRetrySave() {
 
 window.saveProfileData = saveProfileData;
 
-// debouncedSaveProfile removed - use markProfileDirty instead
+// debouncedSaveProfile removed - use scheduleProfileSave instead
 
 // Сохранение через Beacon при закрытии - удалено, используется unified обработчик в конце файла
 
@@ -1622,7 +1615,7 @@ window.saveProfileData = saveProfileData;
 function syncSaveProfile() {
   if (!window.currentUserId || !window.profileFullyLoaded) return;
 
-  window.markProfileDirty(); // тоже через очередь
+  scheduleProfileSave(); // тоже через очередь
 }
 
 // Экспортируем глобально
@@ -1884,214 +1877,9 @@ function formatTag(tag) {
 
 // ============================================================
 
-// ПРОФИЛЬ: БЭКАП И МЕРЖ
+// ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ АВТОРИЗАЦИИ
 
 // ============================================================
-
-// PROFILE_BACKUP_KEY уже объявлена вверху файла
-
-function backupProfileToLocalStorage() {
-  if (!window.currentUserId) return;
-
-  const profileData = {
-    xp: xpData.xp,
-
-    level: xpData.level,
-
-    badges: xpData.badges,
-
-    streak: streak.count,
-
-    last_streak_date: streak.lastDate,
-
-    daily_progress: window.dailyProgress,
-
-    last_review_reset: window.lastReviewResetDate,
-
-    daily_review_count: window.dailyReviewCount,
-
-    user_settings: window.user_settings,
-
-    dark_theme: document.documentElement.classList.contains('dark'),
-
-    lastProfileUpdate: window.lastProfileUpdate || Date.now(),
-
-    updated_at: new Date().toISOString(), // для сравнения
-  };
-
-  localStorage.setItem(PROFILE_BACKUP_KEY, JSON.stringify(profileData));
-}
-
-function restoreProfileFromLocalStorage() {
-  if (typeof PROFILE_BACKUP_KEY === 'undefined') {
-    console.warn('PROFILE_BACKUP_KEY ещё не инициализирован');
-
-    return null;
-  }
-
-  const backup = localStorage.getItem(PROFILE_BACKUP_KEY);
-
-  if (!backup) return null;
-
-  try {
-    return JSON.parse(backup);
-  } catch (e) {
-    console.error('Ошибка парсинга бэкапа профиля:', e);
-
-    localStorage.removeItem(PROFILE_BACKUP_KEY);
-
-    return null;
-  }
-}
-
-function isProfileEmpty(profile) {
-  if (!profile) return true;
-
-  // Проверяем, что у пользователя действительно нет данных
-
-  // Учитываем, что xp может быть 0, а level может быть 1 (начальные значения)
-
-  return (
-    (profile.xp === 0 || profile.xp === undefined) &&
-    (profile.level === 1 || profile.level === undefined) &&
-    (!profile.badges || profile.badges.length === 0) &&
-    (!profile.streak || profile.streak.count === 0)
-  );
-}
-
-// Мерж двух профилей: первый считается основным (более свежим), второй – дополнительным.
-
-// Возвращает новый объект, где для каждого поля выбирается значение из основного, если оно не undefined,
-
-// иначе из дополнительного. Для вложенных объектов (daily_progress, user_settings) делается поверхностное слияние.
-
-function mergeProfileData(primary, secondary) {
-  if (!secondary) return { ...primary };
-
-  const merged = { ...primary };
-
-  // Список полей, которые нужно мержить беря максимум
-
-  const maxFields = ['xp', 'level', 'streak'];
-
-  maxFields.forEach(field => {
-    const primaryValue = merged[field] || 0;
-
-    const secondaryValue = secondary[field] || 0;
-
-    merged[field] = Math.max(primaryValue, secondaryValue);
-  });
-
-  // dailyreviewcount — отдельно с учётом даты сброса:
-
-  if (primary.last_review_reset !== secondary.last_review_reset) {
-    const primaryDate = new Date(primary.last_review_reset || 0);
-
-    const secondaryDate = new Date(secondary.last_review_reset || 0);
-
-    if (primaryDate >= secondaryDate) {
-      merged.daily_review_count = primary.daily_review_count || 0;
-
-      merged.last_review_reset = primary.last_review_reset;
-    } else {
-      merged.daily_review_count = secondary.daily_review_count || 0;
-
-      merged.last_review_reset = secondary.last_review_reset;
-    }
-  } else {
-    merged.daily_review_count = Math.max(
-      primary.daily_review_count || 0,
-
-      secondary.daily_review_count || 0,
-    );
-  }
-
-  // Список полей, которые не нужно глубоко мержить
-
-  const simpleFields = ['last_streak_date', 'dark_theme'];
-
-  simpleFields.forEach(field => {
-    if (merged[field] === undefined && secondary[field] !== undefined) {
-      merged[field] = secondary[field];
-    }
-  });
-
-  // daily_progress – берём максимум по каждому счётчику (кроме lastReset)
-
-  if (merged.daily_progress && secondary.daily_progress) {
-    merged.daily_progress = {
-      add_new: Math.max(
-        merged.daily_progress.add_new || 0,
-
-        secondary.daily_progress.add_new || 0,
-      ),
-
-      review: Math.max(
-        merged.daily_progress.review || 0,
-
-        secondary.daily_progress.review || 0,
-      ),
-
-      practice_time: Math.max(
-        merged.daily_progress.practice_time || 0,
-
-        secondary.daily_progress.practice_time || 0,
-      ),
-
-      completed:
-        merged.daily_progress.completed || secondary.daily_progress.completed,
-
-      lastReset:
-        merged.daily_progress.lastReset ||
-        secondary.daily_progress.lastReset ||
-        new Date().toISOString().split('T')[0],
-    };
-  } else if (!merged.daily_progress && secondary.daily_progress) {
-    merged.daily_progress = secondary.daily_progress;
-  }
-
-  // user_settings – поверхностное слияние, приоритет у локальных (secondary)
-
-  merged.user_settings = {
-    ...(primary.user_settings || {}),
-    ...(secondary.user_settings || {}),
-  };
-
-  // badges - объединяем уникальные бейджи из обоих источников
-
-  if (merged.badges && secondary.badges) {
-    const badgeSet = new Set();
-
-    // Добавляем все бейджи из primary
-
-    merged.badges.forEach(badge => badgeSet.add(badge));
-
-    // Добавляем уникальные бейджи из secondary
-
-    secondary.badges.forEach(badge => badgeSet.add(badge));
-
-    merged.badges = Array.from(badgeSet);
-  } else if (!merged.badges && secondary.badges) {
-    merged.badges = secondary.badges;
-  }
-
-  // Обновляем время обновления на самое свежее
-
-  const primaryTime = primary.updated_at
-    ? new Date(primary.updated_at).getTime()
-    : 0;
-
-  const secondaryTime = secondary.updated_at
-    ? new Date(secondary.updated_at).getTime()
-    : 0;
-
-  merged.updated_at =
-    primaryTime > secondaryTime ? primary.updated_at : secondary.updated_at;
-
-  return merged;
-}
-
-// Экспортируем функции глобально для использования в auth.js
 
 function applyProfileData(data) {
   console.log('applyProfileData вызван с:', data);
@@ -2100,9 +1888,7 @@ function applyProfileData(data) {
 
   window.updateXpData?.({
     xp: data.xp ?? 0,
-
     level: data.level ?? 1,
-
     badges: data.badges ?? [],
   });
 
@@ -2112,7 +1898,7 @@ function applyProfileData(data) {
   });
 
   if (data.dailyprogress) {
-    console.log('🔍 Применяем daily_progress:', data.dailyprogress);
+    console.log('🔍 Применяем dailyprogress:', data.dailyprogress);
     window.updateDailyProgress?.(data.dailyprogress);
   }
 
@@ -2124,44 +1910,19 @@ function applyProfileData(data) {
     window.lastReviewResetDate = data.lastreviewreset;
   }
 
-  // Always ensure user_settings has default values
+  // Настройки пользователя
   console.log('📥 Загруженные usersettings из профиля:', data.usersettings);
   window.user_settings = {
     voice: 'female',
     reviewLimit: 100,
-    showPhonetic: data.usersettings?.showPhonetic ?? true, // true по умолчанию
+    showPhonetic: data.usersettings?.showPhonetic ?? true,
+    baseTheme: data.usersettings?.baseTheme || 'lavender',
+    dark: data.usersettings?.dark ?? false,
     ...(data.usersettings || {}),
   };
 
-  // Конвертация старого поля theme в новую структуру
-  if (data.user_settings?.theme) {
-    const oldTheme = data.user_settings.theme;
-    // Создаём временные переменные
-    let newBaseTheme = 'lavender';
-    let newDark = false;
-    if (oldTheme === 'dark') {
-      newBaseTheme = window.user_settings?.baseTheme || 'lavender';
-      newDark = true;
-    } else if (oldTheme === 'lavender') {
-      newBaseTheme = 'lavender';
-      newDark = false;
-    }
-    // Присваиваем
-    window.user_settings.baseTheme = newBaseTheme;
-    window.user_settings.dark = newDark;
-    delete window.user_settings.theme; // больше не нужно
-  } else {
-    // Если новых полей нет, ставим разумные значения
-    window.user_settings.baseTheme =
-      window.user_settings.baseTheme || 'lavender';
-    window.user_settings.dark = window.user_settings.dark ?? false;
-  }
-
-  // Проверяем и сбрасываем счётчик при смене дня
-  checkAndResetDailyCount();
-
-  // Применяем тему из загруженных серверных данных
-  console.log('🎨 Применяем тему из серверных данных:', {
+  // Применяем тему
+  console.log('🎨 Применяем тему из данных:', {
     baseTheme: window.user_settings.baseTheme,
     dark: window.user_settings.dark,
   });
@@ -2776,8 +2537,8 @@ async function resetDailyGoalsIfNeeded() {
       lastReset: today,
     };
 
-    // Mark profile as dirty to ensure the reset is saved
-    window.markProfileDirty?.();
+    // Mark profile as dirty to ensure reset is saved
+    scheduleProfileSave();
 
     // Update UI to show reset goals immediately
     refreshUI();
@@ -2894,7 +2655,8 @@ async function load() {
     }
 
     // Восстанавливаем статистику из страховки если нужно
-
+    // ЗАКОММЕНТИРОВАНО - теперь используем upsert в Supabase
+    /*
     try {
       const backup = localStorage.getItem('englift_lastknown_progress');
 
@@ -2968,6 +2730,7 @@ async function load() {
     } catch (e) {
       console.warn('Ошибка восстановления из страховки:', e);
     }
+    */
 
     // Сбрасываем счетчик повторений при загрузке - УДАЛЕНО (будет вызываться в applyProfileData)
 
@@ -3464,7 +3227,7 @@ async function delWord(id) {
 
   refreshUI();
 
-  window.markProfileDirty?.(); // ← ДОБАВЬ ЭТО
+  scheduleProfileSave(); // ← ДОБАВЬ ЭТО
 
   // Если есть интернет, пробуем сразу удалить (опционально)
 
@@ -3514,7 +3277,7 @@ async function updWord(id, data) {
     debouncedSave();
   }
 
-  window.markProfileDirty?.(); // ← ДОБАВЬ ЭТО
+  scheduleProfileSave(); // ← ДОБАВЬ ЭТО
 }
 
 async function addIdiom(
@@ -3752,9 +3515,9 @@ function gainXP(amount, reason = '') {
 
   // Сохраняем профиль через dirty flag
 
-  console.log('💾 Вызываем markProfileDirty из gainXP');
+  console.log('💾 Вызываем scheduleProfileSave из gainXP');
 
-  window.markProfileDirty?.();
+  scheduleProfileSave();
 
   // Проверяем бейджи
 
@@ -3980,19 +3743,21 @@ function getBadgeProgress(def) {
   // Прогресс по стрику
 
   if (def.id.startsWith('streak_')) {
-    const target = parseInt(def.id.split('_')[1]);
-
+    // Соответствие ID → целевое значение
+    const streakTargets = {
+      streak_beginner: 3,
+      streak_regular: 7,
+      streak_dedicated: 30,
+      streak_master: 100,
+      streak_legendary: 365,
+    };
+    const target = streakTargets[def.id] || 0;
     const remaining = Math.max(0, target - currentStreak);
-
     return {
       type: 'streak',
-
       current: currentStreak,
-
       target: target,
-
       remaining: remaining,
-
       progress: Math.min(100, (currentStreak / target) * 100),
     };
   }
@@ -4202,10 +3967,10 @@ function updStreak() {
 
   console.log('🔥 Новый streak:', streak);
 
-  saveStreak();
+  scheduleProfileSave(); // ← сохраняем с задержкой
 
-  window.markProfileDirty?.();
-
+  renderBadges();
+  checkBadges(); // ← добавляем проверку бейджей
   console.log('✅ updStreak завершен');
 }
 
@@ -5531,7 +5296,7 @@ if (themeCheckbox) {
     // после изменения чекбокса
     window.user_settings.dark =
       document.documentElement.classList.contains('dark');
-    if (window.currentUserId) window.markProfileDirty();
+    if (window.currentUserId) scheduleProfileSave();
   });
 }
 
@@ -8269,7 +8034,7 @@ function showPreview() {
 
       debouncedSave();
 
-      window.markProfileDirty?.(); // ← ДОБАВЬ ЭТО
+      scheduleProfileSave(); // ← ДОБАВЬ ЭТО
 
       // Скрываем предпросмотр и кнопку
 
@@ -8513,7 +8278,7 @@ if (speechModalSave && themeSelect) {
     window.user_settings.showPhonetic = showPhonetic;
     // dark не трогаем — он остаётся как был
 
-    // 3. Применяем тему (она уже вызовет markProfileDirty)
+    // 3. Применяем тему (она уже вызовет scheduleProfileSave)
     window.applyTheme(newTheme, currentDark);
 
     // 4. Немедленно сохраняем профиль на сервер
@@ -8685,7 +8450,7 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
         refreshUI();
 
-        window.markProfileDirty?.(); // пометить профиль как изменённый (изменилось общее кол-во слов)
+        scheduleProfileSave(); // пометить профиль как изменённый (изменилось общее кол-во слов)
 
         toast('✅ Все слова успешно стерты!', 'success');
       } catch (error) {
@@ -8828,7 +8593,7 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
         // 5. Обновляем интерфейс
         refreshUI();
         renderIdioms();
-        window.markProfileDirty?.(); // чтобы сохранить изменения на сервере (если что-то пошло не так)
+        scheduleProfileSave(); // чтобы сохранить изменения на сервере (если что-то пошло не так)
 
         toast('✅ Весь прогресс успешно сброшен!', 'success');
       } catch (error) {
@@ -9855,7 +9620,7 @@ function showResults() {
       (window.dailyProgress.practice_time || 0) + practiceMinutes;
 
     // Mark profile as dirty to ensure practice time progress is saved
-    window.markProfileDirty?.();
+    scheduleProfileSave();
 
     // Обновляем метку времени сразу (оптимистично)
 
@@ -9872,9 +9637,9 @@ function showResults() {
 
   // Немедленно сохраняем статистику после завершения практики
 
-  console.log('💾 Вызываем markProfileDirty из showResults');
+  console.log('💾 Вызываем scheduleProfileSave из showResults');
 
-  window.markProfileDirty?.();
+  scheduleProfileSave();
 
   console.log('✅ showResults завершен');
 }
@@ -11651,7 +11416,7 @@ function recordAnswer(correct, exerciseType) {
     window.dailyProgress.review = (window.dailyProgress.review || 0) + 1;
 
     // Mark profile as dirty to ensure progress is saved
-    window.markProfileDirty?.();
+    scheduleProfileSave();
 
     // Update UI to show progress immediately
     refreshUI();
@@ -12820,7 +12585,7 @@ async function renderRandomBankWord() {
       // === ОБНОВЛЕНИЕ ЕЖЕДНЕВНЫХ ЦЕЛЕЙ ===
       resetDailyGoalsIfNeeded();
       window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
-      window.markProfileDirty?.(); // Помечаем профиль как изменённый
+      scheduleProfileSave(); // Помечаем профиль как изменённый
       checkDailyGoalsCompletion();
       // ====================================
 
@@ -14589,7 +14354,7 @@ window.clearUserData = function (isExplicitLogout = false) {
   window.pendingWordUpdates?.clear();
   updateIdiomsCount(); // обновляем счётчик после очистки
   if (window.wordSyncTimer) clearTimeout(window.wordSyncTimer);
-  if (profileSyncTimer) clearTimeout(profileSyncTimer);
+  if (profileSaveTimer) clearTimeout(profileSaveTimer);
 
   if (isExplicitLogout) {
     // Сброс данных в памяти
@@ -15027,7 +14792,8 @@ document.addEventListener('visibilitychange', () => {
     }
 
     // Дополнительно сохраняем в localStorage как страховку
-
+    // ЗАКОММЕНТИРОВАНО - теперь используем Supabase
+    /*
     const profileData = JSON.stringify({
       daily_progress: window.dailyProgress,
 
@@ -15041,6 +14807,7 @@ document.addEventListener('visibilitychange', () => {
     });
 
     localStorage.setItem('englift_lastknown_progress', profileData);
+    */
   }
 });
 
@@ -15540,62 +15307,6 @@ if ('serviceWorker' in navigator) {
       window.location.reload();
     }
   });
-}
-
-// === АДАПТИВ ПОД МОБИЛЬНУЮ КЛАВИАТУРУ (как в Duolingo) ===
-let lastKeyboardHeight = 0;
-
-function setupKeyboardAdaptive() {
-  if (!window.visualViewport) return; // старые браузеры не поддерживают
-
-  const exWrap = document.querySelector('.ex-wrap'); // контейнер с заданием
-  if (!exWrap) return;
-
-  const onViewportChange = () => {
-    const viewport = window.visualViewport;
-    const windowHeight = window.innerHeight;
-    const keyboardHeight = windowHeight - viewport.height;
-
-    // Если клавиатура открыта (keyboardHeight > 0)
-    if (keyboardHeight > 50) {
-      // порог, чтобы не реагировать на мелкие изменения
-      // Уменьшаем высоту контейнера на высоту клавиатуры
-      exWrap.style.height = `calc(100vh - ${keyboardHeight}px)`;
-      // Прокручиваем поле ввода в центр (если нужно)
-      setTimeout(() => {
-        const activeInput = document.querySelector(
-          'input:focus, textarea:focus',
-        );
-        if (activeInput) {
-          activeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
-      lastKeyboardHeight = keyboardHeight;
-    } else {
-      // Клавиатура закрыта – возвращаем исходную высоту
-      exWrap.style.height = '';
-    }
-  };
-
-  window.visualViewport.addEventListener('resize', onViewportChange);
-  window.visualViewport.addEventListener('scroll', onViewportChange);
-}
-
-// Запускаем после загрузки DOM
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    setupKeyboardAdaptive();
-    // Добавляем CSS transition для плавного изменения высоты
-    const style = document.createElement('style');
-    style.textContent = '.ex-wrap { transition: height 0.2s ease; }';
-    document.head.appendChild(style);
-  });
-} else {
-  setupKeyboardAdaptive();
-  // Добавляем CSS transition для плавного изменения высоты
-  const style = document.createElement('style');
-  style.textContent = '.ex-wrap { transition: height 0.2s ease; }';
-  document.head.appendChild(style);
 }
 
 switchTab('words');
