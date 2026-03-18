@@ -6012,13 +6012,26 @@ function makeCard(w) {
   card.dataset.tags = JSON.stringify(w.tags || []);
   card.dataset.learned = w.stats.learned;
 
-  // Добавляем атрибут для прогресса через бордер
-  card.dataset.streak = w.stats.learned
+  // Базовая разметка (свёрнутое состояние)
+  // Генерируем индикаторы прогресса
+  const progressLevel = w.stats.learned
     ? 3
     : w.stats.correctExerciseTypes?.length || 0;
+  const indicators = Array.from({ length: 3 }, (_, i) => {
+    const dotClass = i < progressLevel ? 'filled' : '';
+    return `<div class="progress-dot ${dotClass}"></div>`;
+  }).join('');
 
-  // Базовая разметка (свёрнутое состояние)
+  // Tooltip текст
+  let tooltipText = 'Не изучено';
+  if (w.stats.learned) {
+    tooltipText = 'Выучено ✨';
+  } else if (progressLevel > 0) {
+    tooltipText = `Прогресс: ${progressLevel}/3 упражнения`;
+  }
+
   card.innerHTML = `
+    <div class="progress-indicators" data-tooltip="${tooltipText}">${indicators}</div>
     <div class="word-card-header">
       <div class="word-main">
         <h3 class="word-title">${esc(w.en)}</h3>
@@ -10069,8 +10082,7 @@ function nextExercise() {
 
 
 
-                <div class="card-hint" style="font-size:.7rem;opacity:.5">${showRU ? 'RU' : 'EN'} · нажми для перевода</div>
-
+                
 
 
               </div>
@@ -10091,8 +10103,7 @@ function nextExercise() {
                   ${backWord === w.en || (isIdiom && backWord === w.idiom) ? `<button class="btn-audio" id="fc-audio-btn-back" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
                 </div>
 
-                ${!showRU && w.ex ? `<div class="card-ex">${esc(w.ex)}</div>` : ''}
-
+                
               </div>
 
 
@@ -10206,6 +10217,7 @@ function nextExercise() {
 
               if (knewBtn)
                 knewBtn.onclick = () => {
+                  playSound('correct');
                   recordAnswer(true, t);
 
                   sIdx++;
@@ -10215,6 +10227,7 @@ function nextExercise() {
 
               if (didntBtn)
                 didntBtn.onclick = () => {
+                  playSound('wrong');
                   recordAnswer(false, t);
 
                   sIdx++;
@@ -10401,9 +10414,13 @@ function nextExercise() {
               if (x.dataset.id === w.id) x.classList.add('correct');
             });
 
-            if (!ok) b.classList.add('wrong');
+            if (!ok) {
+              b.classList.add('wrong');
+              playSound('wrong');
+            }
 
             if (ok) {
+              playSound('correct');
               if (isIdiom) {
                 if (w.audio) playIdiomAudio(w.audio);
                 else speakText(w.idiom);
@@ -10563,6 +10580,8 @@ function nextExercise() {
                   else speakText(w.idiom);
                 } else window.speakWord(w);
 
+                playSound('correct');
+
                 setTimeout(() => {
                   recordAnswer(true, t);
 
@@ -10574,6 +10593,8 @@ function nextExercise() {
                 fb.classList.remove('correct', 'incorrect', 'warning');
                 fb.classList.add('incorrect');
                 fb.style.display = 'flex';
+
+                playSound('wrong');
 
                 fb.innerHTML = getFeedbackHTML(w, isCorrect);
 
@@ -11048,6 +11069,8 @@ function nextExercise() {
           // Озвучиваем слово после правильного ответа
           window.speakWord(w);
 
+          playSound('correct');
+
           document.querySelectorAll('.builder-letter').forEach(btn => {
             btn.disabled = true;
           });
@@ -11065,6 +11088,8 @@ function nextExercise() {
           fb.classList.add('incorrect');
           fb.style.display = 'block';
           fb.innerHTML = `<span class="material-symbols-outlined">refresh</span><span>Попробуйте ещё раз!</span>`;
+
+          playSound('wrong');
         } else {
           // Показываем буквы и скрываем фидбек при неполном ответе
           lettersContainer.style.display = 'flex';
@@ -11278,6 +11303,7 @@ function nextExercise() {
               result.confidence,
             );
             feedback.style.display = 'flex';
+
             playSound('wrong');
             // Кнопки остаются активными – можно попробовать снова
           }
@@ -11569,7 +11595,7 @@ function recordAnswer(correct, exerciseType) {
     session.currentTimerEl = null; // Очищаем ссылку
   }
 
-  playSound(correct ? 'correct' : 'wrong');
+  // Звук больше не нужен в recordAnswer - все звуки играют напрямую в упражнениях
 
   // Используем соответствующую функцию статистики
   if (session.dataType === 'idioms') {
@@ -13090,71 +13116,15 @@ function playSound(type) {
     }
 
     if (type === 'correct') {
-      const oscs = [];
-
-      [
-        [523.25, 0, 0.12],
-
-        [659.25, 0.06, 0.12],
-      ].forEach(([freq, delay, dur]) => {
-        const osc = ctx.createOscillator();
-
-        const gain = ctx.createGain();
-
-        osc.connect(gain);
-
-        gain.connect(ctx.destination);
-
-        osc.type = 'sine';
-
-        osc.frequency.value = freq;
-
-        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
-
-        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + delay + 0.02);
-
-        gain.gain.exponentialRampToValueAtTime(
-          0.001,
-
-          ctx.currentTime + delay + dur,
-        );
-
-        osc.start(ctx.currentTime + delay);
-
-        osc.stop(ctx.currentTime + delay + dur + 0.05);
-
-        oscs.push(osc);
-      });
-
-      oscs[oscs.length - 1].onended = () => {
-        // Не закрываем контекст - переиспользуем его
-      };
+      // Play success sound MP3 file
+      const audio = new Audio('sound/sucsess.mp3');
+      audio.volume = 0.1;
+      audio.play().catch(e => console.error('Error playing success sound:', e));
     } else {
-      const osc = ctx.createOscillator();
-
-      const gain = ctx.createGain();
-
-      osc.connect(gain);
-
-      gain.connect(ctx.destination);
-
-      osc.type = 'sine';
-
-      osc.frequency.setValueAtTime(330, ctx.currentTime);
-
-      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.18);
-
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-
-      osc.start(ctx.currentTime);
-
-      osc.stop(ctx.currentTime + 0.25);
-
-      osc.onended = () => {
-        // Не закрываем контекст - переиспользуем его
-      };
+      // Play wrong sound MP3 file
+      const audio = new Audio('sound/wrong.mp3');
+      audio.volume = 0.1;
+      audio.play().catch(e => console.error('Error playing wrong sound:', e));
     }
   } catch (e) {
     console.error('Error playing sound:', e);
@@ -13843,6 +13813,7 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
           result.confidence,
         );
         feedback.style.display = 'flex';
+
         playSound('wrong');
         // Даём ещё одну попытку – кнопки остаются активными
       }
@@ -14051,6 +14022,9 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
       // Озвучиваем идиому
       if (item.audio) playIdiomAudio(item.audio);
       else speakText(phrase);
+
+      playSound('correct');
+
       setTimeout(() => {
         recordAnswer(true, exerciseType);
         onComplete();
@@ -14773,13 +14747,26 @@ function makeIdiomCard(i) {
   card.dataset.tags = JSON.stringify(i.tags || []);
   card.dataset.examplesAudio = JSON.stringify(i.examplesAudio || []);
 
-  // Добавляем атрибут для прогресса через бордер
-  card.dataset.streak = i.stats?.learned
+  // Базовая разметка (свёрнутое состояние)
+  // Генерируем индикаторы прогресса
+  const progressLevel = i.stats?.learned
     ? 3
     : i.stats?.correctExerciseTypes?.length || 0;
+  const indicators = Array.from({ length: 3 }, (_, index) => {
+    const dotClass = index < progressLevel ? 'filled' : '';
+    return `<div class="progress-dot ${dotClass}"></div>`;
+  }).join('');
 
-  // Базовая разметка (свёрнутое состояние)
+  // Tooltip текст
+  let tooltipText = 'Не изучено';
+  if (i.stats?.learned) {
+    tooltipText = 'Выучено ✨';
+  } else if (progressLevel > 0) {
+    tooltipText = `Прогресс: ${progressLevel}/3 упражнения`;
+  }
+
   card.innerHTML = `
+    <div class="progress-indicators" data-tooltip="${tooltipText}">${indicators}</div>
     <div class="word-card-header">
       <div class="word-main">
         <h3 class="word-title">${esc(i.idiom).toLowerCase()}</h3>
@@ -15553,6 +15540,62 @@ if ('serviceWorker' in navigator) {
       window.location.reload();
     }
   });
+}
+
+// === АДАПТИВ ПОД МОБИЛЬНУЮ КЛАВИАТУРУ (как в Duolingo) ===
+let lastKeyboardHeight = 0;
+
+function setupKeyboardAdaptive() {
+  if (!window.visualViewport) return; // старые браузеры не поддерживают
+
+  const exWrap = document.querySelector('.ex-wrap'); // контейнер с заданием
+  if (!exWrap) return;
+
+  const onViewportChange = () => {
+    const viewport = window.visualViewport;
+    const windowHeight = window.innerHeight;
+    const keyboardHeight = windowHeight - viewport.height;
+
+    // Если клавиатура открыта (keyboardHeight > 0)
+    if (keyboardHeight > 50) {
+      // порог, чтобы не реагировать на мелкие изменения
+      // Уменьшаем высоту контейнера на высоту клавиатуры
+      exWrap.style.height = `calc(100vh - ${keyboardHeight}px)`;
+      // Прокручиваем поле ввода в центр (если нужно)
+      setTimeout(() => {
+        const activeInput = document.querySelector(
+          'input:focus, textarea:focus',
+        );
+        if (activeInput) {
+          activeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      lastKeyboardHeight = keyboardHeight;
+    } else {
+      // Клавиатура закрыта – возвращаем исходную высоту
+      exWrap.style.height = '';
+    }
+  };
+
+  window.visualViewport.addEventListener('resize', onViewportChange);
+  window.visualViewport.addEventListener('scroll', onViewportChange);
+}
+
+// Запускаем после загрузки DOM
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setupKeyboardAdaptive();
+    // Добавляем CSS transition для плавного изменения высоты
+    const style = document.createElement('style');
+    style.textContent = '.ex-wrap { transition: height 0.2s ease; }';
+    document.head.appendChild(style);
+  });
+} else {
+  setupKeyboardAdaptive();
+  // Добавляем CSS transition для плавного изменения высоты
+  const style = document.createElement('style');
+  style.textContent = '.ex-wrap { transition: height 0.2s ease; }';
+  document.head.appendChild(style);
 }
 
 switchTab('words');

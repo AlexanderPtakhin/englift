@@ -12234,3 +12234,281 @@ button.floating-add-btn:hover .material-symbols-outlined,
   font-size: 16px !important;
   transition: color 0.2s ease;
 }
+
+/* Контекстные вопросы и подсказки */
+.context-question {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.target-word {
+  font-size: 1rem;
+  color: var(--primary);
+  text-align: center;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.example-hint {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+/* Для мобильных */
+@media (max-width: 768px) {
+  .context-question {
+    font-size: 1.2rem;
+  }
+  .target-word {
+    font-size: 0.9rem;
+  }
+}
+
+/* НОВЫЕ индикаторы выученности - точки в правом верхнем углу */
+.word-card .progress-indicators {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  z-index: 1;
+}
+
+.word-card .progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all 0.3s ease;
+  opacity: 0.3;
+}
+
+.word-card .progress-dot.filled {
+  background: var(--primary);
+  opacity: 1;
+}
+
+.word-card .progress-dot.learned {
+  background: var(--success);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.word-card .progress-dot:hover {
+  transform: scale(1.2);
+}
+
+/* Анимация появления индикаторов */
+.word-card .progress-indicators {
+  animation: fadeInScale 0.3s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .word-card .progress-indicators {
+    top: 8px;
+    right: 8px;
+    gap: 3px;
+  }
+  
+  .word-card .progress-dot {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+.word-card {
+  position: relative;
+}
+
+/* Tooltip для индикаторов прогресса */
+.progress-indicators {
+  position: relative;
+}
+
+.progress-indicators::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+  z-index: 10;
+}
+
+.progress-indicators:hover::before {
+  opacity: 1;
+}
+
+/* Анимация при обновлении прогресса */
+.progress-dot.updating {
+  animation: pulse 0.6s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* Бонус: подсветка при наведении на всю группу */
+.word-card:hover .progress-dot {
+  opacity: 0.8;
+}
+
+.word-card:hover .progress-dot.filled {
+  opacity: 1;
+}
+
+.word-card {
+  position: relative;
+}
+
+/* УБИРАЕМ СТАРУЮ СИСТЕМУ С БОРДЕРАМИ */
+.word-card[data-streak='1'], .word-card[data-streak='2'], .word-card[data-streak='3'] {
+  border-left: none !important;
+  opacity: 1 !important;
+}
+
+/* Полностью убираем старую систему бордеров */
+.word-card[data-streak] {
+  border: 2px solid transparent !important;
+  border-left: none !important;
+}
+
+.word-card[data-streak='1'], .word-card[data-streak='2'], .word-card[data-streak='3'] {
+  opacity: 1 !important;
+  border-left: none !important;
+}
+
+/* Убираем любые стили прогресс-сегментов если есть */
+.progress-segment {
+  display: none !important;
+}
+
+/* ВЕРТИКАЛЬНЫЕ индикаторы прогресса */
+.word-card .progress-indicators {
+  flex-direction: column;
+  gap: 2px;
+  top: 8px;
+  right: 8px;
+}
+
+.word-card .progress-dot {
+  width: 6px;
+  height: 6px;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .word-card .progress-indicators {
+    top: 6px;
+    right: 6px;
+    gap: 1px;
+  }
+  
+  .word-card .progress-dot {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+.word-card .progress-indicators {
+  top: 30px;
+  right: 10px;
+}
+
+/* Исправляем тултип чтобы не прятался за соседние карточки */
+.progress-indicators::before {
+  z-index: 1000;
+  position: fixed;
+  transform: translateX(-50%);
+}
+
+.progress-indicators:hover::before {
+  opacity: 1;
+}
+
+/* Исправляем тултип чтобы не прятался за соседние карточки */
+.progress-indicators {
+  position: relative;
+  z-index: 10;
+}
+
+.progress-indicators::before {
+  z-index: 1000;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0;
+}
+
+/* Дополнительно поднимаем всю карточку при наведении если нужно */
+.word-card:hover {
+  z-index: 5;
+}
+
+/* Заполнение индикаторов снизу вверх */
+.word-card .progress-indicators {
+  flex-direction: column-reverse;
+  gap: 2px;
+  top: 30px;
+  right: 10px;
+}
+
+/* Для мобильных тоже реверс */
+@media (max-width: 768px) {
+  .word-card .progress-indicators {
+    flex-direction: column-reverse;
+  }
+}
+
+/* Убираем зеленый цвет для выученных слов */
+.word-card .progress-dot.learned {
+  background: var(--primary) !important;
+  box-shadow: none !important;
+}
+
+/* Одинаковые размеры индикаторов для всех устройств */
+@media (max-width: 768px) {
+  .word-card .progress-indicators {
+    top: 30px;
+    right: 10px;
+    gap: 2px;
+  }
+  
+  .word-card .progress-dot {
+    width: 6px;
+    height: 6px;
+  }
+}
