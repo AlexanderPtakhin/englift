@@ -24,7 +24,10 @@ window.authExports = {
 // === РЕГИСТРАЦИЯ SERVICE WORKER С АВТООБНОВЛЕНИЕМ ===
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
-    .register(new URL('./sw.js', import.meta.url), { scope: '/' })
+    .register(new URL('./sw.js', import.meta.url), {
+      scope: '/',
+      updateViaCache: 'none', // ←←← ВОТ ЭТО ГЛАВНОЕ
+    })
     .then(reg => {
       console.log('SW registered:', reg);
 

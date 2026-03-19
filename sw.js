@@ -1,4 +1,4 @@
-const CACHE_NAME = 'englift-v7';
+const CACHE_NAME = 'englift-v8';
 
 // Обработка команды на немедленную активацию
 self.addEventListener('message', event => {

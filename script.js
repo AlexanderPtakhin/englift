@@ -655,6 +655,18 @@ window.pendingIdiomUpdates = pendingIdiomUpdates;
 
 // =============================================
 
+// Функция нормализации русского текста (е/ё)
+function normalizeRussian(text) {
+  return text.replace(/ё/g, 'е').replace(/Ё/g, 'Е');
+}
+
+// Функция проверки ответа с учетом е/ё
+function checkAnswerWithNormalization(userAnswer, correctAnswer) {
+  const normalizedUser = normalizeRussian(userAnswer);
+  const normalizedCorrect = normalizeRussian(correctAnswer);
+  return normalizedUser === normalizedCorrect;
+}
+
 function normalizeWord(word) {
   return {
     ...word,
@@ -708,6 +720,8 @@ function normalizeIdiom(idiom) {
 // Делаем функции доступными глобально
 window.normalizeWord = normalizeWord;
 window.normalizeIdiom = normalizeIdiom;
+window.normalizeRussian = normalizeRussian;
+window.checkAnswerWithNormalization = checkAnswerWithNormalization;
 
 // =============================================
 
@@ -1835,7 +1849,7 @@ function parseAnswerVariants(str) {
 
     .split(/[\/,;]/)
 
-    .map(s => s.trim().toLowerCase())
+    .map(s => normalizeRussian(s.trim().toLowerCase()))
 
     .filter(s => s);
 }
@@ -3349,7 +3363,8 @@ async function addIdiom(
   const isDuplicate = window.idioms.some(
     i =>
       i.idiom.toLowerCase() === newIdiom.idiom.toLowerCase() &&
-      i.meaning.toLowerCase() === newIdiom.meaning.toLowerCase(),
+      normalizeRussian(i.meaning.toLowerCase()) ===
+        normalizeRussian(newIdiom.meaning.toLowerCase()),
   );
   if (isDuplicate) {
     toast(`Идиома «${idiom}» с таким значением уже есть`, 'warning');
@@ -4420,12 +4435,13 @@ function updateDueBadge() {
   // Бейдж над "Практикой" в навигации — просто точка
   const desktopBadge = document.getElementById('due-count');
   const mobileBadge = document.getElementById('mobile-due-count');
+  const displayDue = totalDue.toString();
   if (desktopBadge) {
-    desktopBadge.textContent = '·';
+    desktopBadge.textContent = displayDue;
     desktopBadge.style.display = totalDue > 0 ? 'flex' : 'none';
   }
   if (mobileBadge) {
-    mobileBadge.textContent = '·';
+    mobileBadge.textContent = displayDue;
     mobileBadge.style.display = totalDue > 0 ? 'flex' : 'none';
   }
 
@@ -8349,8 +8365,10 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
   // Функция проверки
 
   const checkInput = () => {
-    const isValid =
-      inputEl.value.trim().toLowerCase() === expectedText.toLowerCase();
+    const isValid = checkAnswerWithNormalization(
+      inputEl.value.trim().toLowerCase(),
+      expectedText.toLowerCase(),
+    );
 
     confirmBtn.disabled = !isValid;
 
@@ -10322,11 +10340,23 @@ function nextExercise() {
         if (submit) {
           const checkAnswer = () => {
             const userAnswer = input.value.trim().toLowerCase();
+            const normalizedUserAnswer = normalizeRussian(userAnswer);
 
             const isCorrect = isIdiom
-              ? userAnswer === answer ||
-                levenshteinDistance(userAnswer, answer) <= 2
-              : parseAnswerVariants(answer).some(v => v === userAnswer);
+              ? checkAnswerWithNormalization(
+                  normalizedUserAnswer,
+                  answer.toLowerCase(),
+                ) ||
+                levenshteinDistance(
+                  normalizedUserAnswer,
+                  answer.toLowerCase(),
+                ) <= 2
+              : parseAnswerVariants(answer).some(v =>
+                  checkAnswerWithNormalization(
+                    normalizedUserAnswer,
+                    v.toLowerCase(),
+                  ),
+                );
 
             if (input) input.disabled = true;
 
@@ -10443,10 +10473,13 @@ function nextExercise() {
         if (dictSubmit && dictFb) {
           const check = () => {
             const val = dictInput.value.trim().toLowerCase();
+            const normalizedVal = normalizeRussian(val);
 
             const answerVariants = parseAnswerVariants(w.en);
 
-            const ok = answerVariants.some(v => v === val);
+            const ok = answerVariants.some(v =>
+              checkAnswerWithNormalization(normalizedVal, v.toLowerCase()),
+            );
 
             dictFb.classList.remove('correct', 'incorrect', 'warning');
             dictFb.classList.add(ok ? 'correct' : 'incorrect');
@@ -13779,7 +13812,11 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
     const current = Array.from(answerContainer.children)
       .map(el => el.textContent)
       .join(' ');
-    if (current === phrase) {
+
+    const normalizedCurrent = normalizeRussian(current.toLowerCase());
+    const normalizedPhrase = normalizeRussian(phrase.toLowerCase());
+
+    if (normalizedCurrent === normalizedPhrase) {
       wordsContainer.style.display = 'none';
       fb.style.display = 'block';
       fb.className = 'feedback-panel correct';
