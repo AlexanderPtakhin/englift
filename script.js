@@ -1,11 +1,26 @@
 import { supabase } from './supabase.js';
 
 import {
-  saveWordToDb,
-  deleteWordFromDb,
+  loadWords,
+  saveWords,
+  loadIdioms,
+  saveIdioms,
   saveUserData,
-  saveIdiomToDb,
-  deleteIdiomFromDb,
+  loadUserData,
+  saveUserSettings,
+  loadUserSettings,
+  searchUsers,
+  sendFriendRequest,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  getFriends,
+  getIncomingRequests,
+  getOutgoingRequests,
+  getFriendsLeaderboard,
+  saveWordToDb, // ← добавить
+  deleteWordFromDb, // ← добавить
+  saveIdiomToDb, // ← добавить
+  deleteIdiomFromDb, // ← добавить
 } from './db.js';
 
 import './auth.js';
@@ -1122,6 +1137,9 @@ async function syncProfileToServer() {
     lastreviewreset: window.lastReviewResetDate || null,
     usersettings: window.user_settings,
     darktheme: document.documentElement.classList.contains('dark'),
+    total_words: window.words.length,
+    total_idioms: window.idioms.length,
+    learned_words: window.words.filter(w => w.stats?.learned).length,
   };
 
   try {
@@ -4381,6 +4399,7 @@ function showLimitModal(limit) {
 }
 
 function toast(msg, type = '', icon = '') {
+  console.log('Toast вызван:', msg, type, icon);
   const el = document.createElement('div');
 
   el.className = 'toast' + (type ? ' ' + type : '');
@@ -4391,7 +4410,14 @@ function toast(msg, type = '', icon = '') {
     el.textContent = msg;
   }
 
-  document.getElementById('toast-box').appendChild(el);
+  const toastBox = document.getElementById('toast-box');
+  if (!toastBox) {
+    console.error('Toast box не найден!');
+    return;
+  }
+
+  toastBox.appendChild(el);
+  console.log('Toast добавлен в DOM');
 
   // Увеличиваем время для важных сообщений
 
@@ -4408,6 +4434,9 @@ function toast(msg, type = '', icon = '') {
     setTimeout(() => el.remove(), 320);
   }, duration);
 }
+
+// Делаем toast доступной глобально
+window.toast = toast;
 
 // ============================================================
 
@@ -5191,6 +5220,10 @@ function switchTab(name) {
     idiomsVisibleLimit = 30;
     renderIdioms();
     renderRandomBankIdiom(); // показываем случайную идиому из банка
+  }
+
+  if (name === 'friends') {
+    loadFriendsDataNew();
   }
 
   // Управление видимостью плавающих кнопок при переключении вкладок
@@ -6831,6 +6864,23 @@ document.getElementById('del-confirm').addEventListener('click', () => {
         'success',
         'delete',
       );
+    } else if (pendingDeleteType === 'friend') {
+      // Удаление друга
+      const userId = window.currentUserId;
+      if (!userId) {
+        toast('Ошибка: не удалось определить пользователя', 'danger');
+        return;
+      }
+      rejectFriendRequest(userId, pendingDelId)
+        .then(() => {
+          pendingDelId = null;
+          loadFriendsDataNew();
+          toast('Удалено из друзей', 'success');
+        })
+        .catch(err => {
+          console.error(err);
+          toast('Ошибка удаления', 'danger');
+        });
     }
   }
 
@@ -8299,7 +8349,7 @@ if (speechModalSave && themeSelect) {
 
     // 4. Немедленно сохраняем профиль на сервер
     if (window.currentUserId) {
-      await window.syncProfileToServer(true);
+      await window.syncProfileToServer();
     }
 
     // 5. Обновляем интерфейс, чтобы отобразить новый лимит
@@ -14825,7 +14875,7 @@ document.addEventListener('visibilitychange', () => {
     }
 
     if (window.currentUserId) {
-      syncProfileToServer(true);
+      syncProfileToServer();
     }
 
     // Дополнительно сохраняем в localStorage как страховку
@@ -15292,6 +15342,9 @@ function updateFloatingButtonsForTab(tabName) {
   } else if (tabName === 'idioms') {
     floatingIdiomBtn.classList.remove('fab-hidden');
     floatingWordBtn.classList.add('fab-hidden');
+  } else if (tabName === 'friends') {
+    floatingWordBtn.classList.add('fab-hidden');
+    floatingIdiomBtn.classList.add('fab-hidden');
   } else {
     floatingWordBtn.classList.add('fab-hidden');
     floatingIdiomBtn.classList.add('fab-hidden');
@@ -15314,7 +15367,7 @@ if (themeToggleBtn) {
     window.applyTheme(baseTheme, !isDark);
     // Немедленно сохраняем на сервер
     if (window.currentUserId) {
-      window.syncProfileToServer(true);
+      window.syncProfileToServer();
     }
   });
 }
@@ -15345,5 +15398,524 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// ============================================
+// FRIENDS MODULE
+// ============================================
+
+let friendsData = { friends: [], requests: [], outgoing: [], leaderboard: [] };
+let activeFriendsPanel = 'list';
+
+async function loadFriendsDataNew() {
+  if (!window.currentUserId) {
+    console.log('⚠️ loadFriendsDataNew: нет userId, пропускаем');
+    return;
+  }
+  try {
+    const [friends, incoming, outgoing, leaderboard] = await Promise.all([
+      getFriends(window.currentUserId),
+      getIncomingRequests(window.currentUserId),
+      getOutgoingRequests(window.currentUserId),
+      getFriendsLeaderboard(window.currentUserId),
+    ]);
+    friendsData = {
+      friends: friends || [],
+      requests: incoming || [],
+      outgoing: outgoing || [],
+      leaderboard: leaderboard || [],
+    };
+  } catch (e) {
+    console.error('loadFriendsDataNew error', e);
+    friendsData = { friends: [], requests: [], outgoing: [], leaderboard: [] };
+  }
+  renderFriendsTab();
+}
+
+function renderFriendsTab() {
+  renderFriendsLeaderboard();
+  renderFriendsList();
+  renderFriendsRequests();
+  updateFriendsBadges();
+}
+
+// --- ЛИДЕРБОРД ---
+function renderFriendsLeaderboard() {
+  const container = document.getElementById('friends-leaderboard-list');
+  if (!container) return;
+
+  const list = [...friendsData.leaderboard];
+  const myId = window.currentUserId;
+
+  if (!list.length) {
+    container.innerHTML = `
+      <div class="friends-empty">
+        <span class="material-symbols-outlined">emoji_events</span>
+        <p>Добавь друзей — увидишь лидерборд</p>
+      </div>`;
+    return;
+  }
+
+  const top3 = list.slice(0, 3);
+  const rest = list.slice(3);
+
+  // Порядок подиума: 2й слева, 1й по центру, 3й справа
+  const podiumOrder = [top3[1] || null, top3[0] || null, top3[2] || null];
+  const podiumMedals = [
+    '<span class="material-symbols-outlined">workspace_premium</span>', // 2 место
+    '<span class="material-symbols-outlined">emoji_events</span>', // 1 место
+    '<span class="material-symbols-outlined">military_tech</span>', // 3 место
+  ];
+  const podiumRanks = [2, 1, 3];
+
+  const top3HTML = `
+    <div class="lb-top3">
+      ${podiumOrder
+        .map((user, i) => {
+          if (!user) return '<div></div>';
+          const isMe = user.id === myId;
+          return `
+          <div class="lb-podium-item ${isMe ? 'me' : ''} rank-${podiumRanks[i]}">
+            <div class="lb-podium-medal">${podiumMedals[i]}</div>
+            <div class="lb-podium-name">${esc(user.username)}${isMe ? ' (ты)' : ''}</div>
+            <div class="lb-podium-xp">${user.xp || 0} XP</div>
+            <div class="lb-podium-level">lv.${user.level || 1}</div>
+          </div>`;
+        })
+        .join('')}
+    </div>`;
+
+  const restHTML = rest
+    .map((user, i) => {
+      const isMe = user.id === myId;
+      return `
+      <div class="lb-row ${isMe ? 'me' : ''}">
+        <div class="lb-rank">${i + 4}</div>
+        <div class="lb-avatar">${user.username?.[0]?.toUpperCase() || '?'}</div>
+        <div class="lb-info">
+          <div class="lb-name">${esc(user.username)}</div>
+          <div class="lb-meta">
+            <span class="material-symbols-outlined">menu_book</span>${user.totalwords || user.total_words || 0}
+            <span class="material-symbols-outlined">theater_comedy</span>${user.totalidioms || user.total_idioms || 0}
+          </div>
+        </div>
+        <div class="lb-xp">${user.xp || 0} XP</div>
+        <div class="lb-streak">
+          <span class="material-symbols-outlined">local_fire_department</span>
+          ${user.streak || 0}
+        </div>
+      </div>`;
+    })
+    .join('');
+
+  container.innerHTML = top3HTML + restHTML;
+}
+
+// --- СПИСОК ДРУЗЕЙ ---
+function renderFriendsList() {
+  const container = document.getElementById('friends-list-content');
+  if (!container) return;
+
+  if (!friendsData.friends.length) {
+    container.innerHTML = `
+      <div class="friends-empty">
+        <span class="material-symbols-outlined">people</span>
+        <p>Пока нет друзей — найди их через поиск</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = friendsData.friends
+    .map(
+      friend => `
+    <div class="friend-card-new" data-id="${friend.id}">
+      <div class="friend-avatar-new">${friend.username?.[0]?.toUpperCase() || '?'}</div>
+      <div class="friend-info-new">
+        <div class="friend-name-new">${esc(friend.username)}</div>
+        <div class="friend-stats-new">
+          <span class="friend-stat-chip">
+            <span class="material-symbols-outlined">workspace_premium</span>
+            lv.${friend.level || 1}
+          </span>
+          <span class="friend-stat-chip">
+            <span class="material-symbols-outlined">bolt</span>
+            ${friend.xp || 0} XP
+          </span>
+          <span class="friend-stat-chip streak-chip">
+            <span class="material-symbols-outlined">local_fire_department</span>
+            ${friend.streak || 0}
+          </span>
+          <span class="friend-stat-chip">
+            <span class="material-symbols-outlined">menu_book</span>
+            ${friend.totalwords || friend.total_words || 0}
+          </span>
+        </div>
+        <div class="friend-extra-new" style="display:none">
+          <div class="friend-extra-grid">
+            <div class="friend-extra-stat">
+              <div class="friend-extra-stat-num">${friend.xp || 0}</div>
+              <div class="friend-extra-stat-label">XP</div>
+            </div>
+            <div class="friend-extra-stat">
+              <div class="friend-extra-stat-num">${friend.totalwords || friend.total_words || 0}</div>
+              <div class="friend-extra-stat-label">Слов</div>
+            </div>
+            <div class="friend-extra-stat">
+              <div class="friend-extra-stat-num">${friend.totalidioms || friend.total_idioms || 0}</div>
+              <div class="friend-extra-stat-label">Идиом</div>
+            </div>
+            <div class="friend-extra-stat">
+              <div class="friend-extra-stat-num">${friend.learnedwords || friend.learned_words || 0}</div>
+              <div class="friend-extra-stat-label">Выучено</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
+            <button class="btn-icon btn-danger friend-remove-btn" data-id="${friend.id}" title="Удалить из друзей">
+              <span class="material-symbols-outlined">person_remove</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <span class="material-symbols-outlined expand-icon" style="color:var(--muted);font-size:1.2rem;flex-shrink:0;transition:transform 0.3s ease">expand_more</span>
+    </div>
+  `,
+    )
+    .join('');
+
+  // Раскрытие карточки
+  container.querySelectorAll('.friend-card-new').forEach(card => {
+    card.addEventListener('click', function (e) {
+      if (e.target.closest('.friend-remove-btn')) return;
+      this.classList.toggle('expanded');
+      const icon = this.querySelector('.expand-icon');
+      if (icon)
+        icon.style.transform = this.classList.contains('expanded')
+          ? 'rotate(180deg)'
+          : 'rotate(0deg)';
+      const extra = this.querySelector('.friend-extra-new');
+      if (extra)
+        extra.style.display = this.classList.contains('expanded')
+          ? 'block'
+          : 'none';
+
+      // Плавно прокручиваем к раскрытой карточке
+      if (this.classList.contains('expanded')) {
+        setTimeout(() => {
+          this.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    });
+  });
+
+  // Удалить друга
+  container.querySelectorAll('.friend-remove-btn').forEach(btn => {
+    btn.addEventListener('click', async function (e) {
+      e.stopPropagation();
+      const id = this.dataset.id;
+
+      // Используем обычную модалку как при удалении слов
+      pendingDelId = id;
+      pendingDeleteType = 'friend';
+
+      document.getElementById('del-modal').classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  });
+}
+
+// --- ЗАЯВКИ ---
+function renderFriendsRequests() {
+  renderIncomingRequests();
+  renderOutgoingRequests();
+}
+
+function renderIncomingRequests() {
+  const container = document.getElementById('incoming-list');
+  const section = document.getElementById('incoming-section');
+  if (!container || !section) return;
+
+  if (!friendsData.requests.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  container.innerHTML = friendsData.requests
+    .map(
+      req => `
+    <div class="request-card">
+      <div class="friend-avatar-new" style="width:38px;height:38px;font-size:0.95rem">
+        ${req.username?.[0]?.toUpperCase() || '?'}</div>
+      <div class="request-info">
+        <div class="request-name">${esc(req.username)}</div>
+        <div class="request-meta">lv.${req.level || 1} · ${req.xp || 0} XP · ${req.totalwords || req.total_words || 0} слов</div>
+      </div>
+      <div class="request-actions">
+        <button class="btn-icon btn-success accept-req-btn" data-id="${req.id}" title="Принять">
+          <span class="material-symbols-outlined">check</span>
+        </button>
+        <button class="btn-icon btn-danger reject-req-btn" data-id="${req.id}" title="Отклонить">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+  `,
+    )
+    .join('');
+
+  container.querySelectorAll('.accept-req-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const friendId = this.dataset.id;
+      const userId = window.currentUserId;
+      if (!userId) {
+        toast('Ошибка: не удалось определить пользователя', 'danger');
+        return;
+      }
+      try {
+        await acceptFriendRequest(userId, friendId);
+        await loadFriendsDataNew();
+        toast('Друг добавлен!', 'success');
+      } catch (e) {
+        toast('Ошибка', 'danger');
+      }
+    });
+  });
+
+  container.querySelectorAll('.reject-req-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const friendId = this.dataset.id;
+      const userId = window.currentUserId;
+      if (!userId) {
+        toast('Ошибка: не удалось определить пользователя', 'danger');
+        return;
+      }
+      try {
+        await rejectFriendRequest(userId, friendId);
+        await loadFriendsDataNew();
+        toast('Заявка отклонена', 'warning');
+      } catch (e) {
+        toast('Ошибка', 'danger');
+      }
+    });
+  });
+}
+
+function renderOutgoingRequests() {
+  const container = document.getElementById('outgoing-list');
+  const section = document.getElementById('outgoing-section');
+  if (!container || !section) return;
+
+  if (!friendsData.outgoing.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  container.innerHTML = friendsData.outgoing
+    .map(
+      user => `
+    <div class="request-card">
+      <div class="friend-avatar-new" style="width:38px;height:38px;font-size:0.95rem">
+        ${user.username?.[0]?.toUpperCase() || '?'}</div>
+      <div class="request-info">
+        <div class="request-name">${esc(user.username)}</div>
+        <div class="request-meta">Ожидает ответа...</div>
+      </div>
+      <div class="request-actions">
+        <button class="btn-icon btn-danger cancel-req-btn" data-id="${user.id}" title="Отменить">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+  `,
+    )
+    .join('');
+
+  container.querySelectorAll('.cancel-req-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const friendId = this.dataset.id;
+      const userId = window.currentUserId;
+      if (!userId) {
+        toast('Ошибка: не удалось определить пользователя', 'danger');
+        return;
+      }
+      try {
+        await rejectFriendRequest(userId, friendId);
+        await loadFriendsDataNew();
+        toast('Заявка отменена', 'warning');
+      } catch (e) {
+        toast('Ошибка', 'danger');
+      }
+    });
+  });
+}
+
+// --- ПОИСК ---
+let friendSearchTimer = null;
+
+document.addEventListener('input', function (e) {
+  if (e.target.id !== 'friends-search-input-new') return;
+  clearTimeout(friendSearchTimer);
+  const q = e.target.value.trim();
+  const results = document.getElementById('friends-search-results-new');
+  if (!results) return;
+  if (!q) {
+    results.innerHTML = '';
+    return;
+  }
+  friendSearchTimer = setTimeout(() => doFriendSearch(q), 400);
+});
+
+async function doFriendSearch(q) {
+  const container = document.getElementById('friends-search-results-new');
+  if (!container) return;
+
+  container.innerHTML = '<div class="loading-spinner"></div>';
+
+  try {
+    const users = await searchUsers(q, window.currentUserId);
+
+    if (!users || !users.length) {
+      container.innerHTML = `
+        <div class="friends-empty">
+          <span class="material-symbols-outlined">search_off</span>
+          <p>Никого не нашли по запросу "${esc(q)}"</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = users
+      .map(user => {
+        const isFriend = friendsData.friends.some(f => f.id === user.id);
+        const isPending = friendsData.outgoing.some(o => o.id === user.id);
+        const isIncoming = friendsData.requests.some(r => r.id === user.id);
+
+        let actionBtn = '';
+        if (isFriend) {
+          actionBtn = `<span style="font-size:0.8rem;color:var(--success);font-weight:700;white-space:nowrap">✓ Друг</span>`;
+        } else if (isPending) {
+          actionBtn = `<span style="font-size:0.8rem;color:var(--muted);font-weight:700;white-space:nowrap">Отправлено</span>`;
+        } else if (isIncoming) {
+          actionBtn = `<span style="font-size:0.8rem;color:var(--warning);font-weight:700;white-space:nowrap">Входящая</span>`;
+        } else {
+          actionBtn = `<button class="btn-icon btn-primary add-friend-btn" data-id="${user.id}" title="Добавить в друзья">
+          <span class="material-symbols-outlined">person_add</span>
+        </button>`;
+        }
+
+        return `
+        <div class="search-result-card">
+          <div class="friend-avatar-new">${user.username?.[0]?.toUpperCase() || '?'}</div>
+          <div class="search-result-info">
+            <div class="search-result-name">${esc(user.username)}</div>
+            <div class="search-result-meta">lv.${user.level || 1} · ${user.xp || 0} XP · ${user.totalwords || user.total_words || 0} слов</div>
+          </div>
+          <div class="request-actions">
+            ${actionBtn}
+          </div>
+        </div>
+      `;
+      })
+      .join('');
+
+    // Обработчики кнопок добавления
+    container.querySelectorAll('.add-friend-btn').forEach(btn => {
+      btn.addEventListener('click', async function () {
+        try {
+          await sendFriendRequest(window.currentUserId, this.dataset.id);
+          await loadFriendsDataNew();
+
+          // Очищаем поиск и скрываем результаты
+          const searchInput = document.getElementById(
+            'friends-search-input-new',
+          );
+          const searchResults = document.getElementById(
+            'friends-search-results-new',
+          );
+          if (searchInput) {
+            searchInput.value = '';
+          }
+          if (searchResults) {
+            searchResults.innerHTML = '';
+          }
+
+          toast('Запрос отправлен!', 'success');
+        } catch (e) {
+          toast('Ошибка', 'danger');
+        }
+      });
+    });
+  } catch (e) {
+    console.error('Search error:', e);
+    container.innerHTML = `
+      <div class="friends-empty">
+        <span class="material-symbols-outlined">error</span>
+        <p>Ошибка поиска</p>
+      </div>`;
+  }
+}
+
+// --- ПИЛЮЛИ ---
+document.addEventListener('click', function (e) {
+  const pill = e.target.closest('[data-fpill]');
+  if (!pill) return;
+
+  document
+    .querySelectorAll('[data-fpill]')
+    .forEach(p => p.classList.remove('active'));
+  document
+    .querySelectorAll('.friends-panel')
+    .forEach(p => p.classList.remove('active'));
+
+  pill.classList.add('active');
+  activeFriendsPanel = pill.dataset.fpill;
+
+  const panel = document.getElementById(`fpanel-${activeFriendsPanel}`);
+  if (panel) panel.classList.add('active');
+});
+
+// --- BADGES ---
+function updateFriendsBadges() {
+  const desktopBadge = document.getElementById('friends-req-badge');
+  const mobileBadge = document.getElementById('mobile-friends-req-badge');
+  const countBadge = document.getElementById('friends-count-badge');
+  const reqCount = document.getElementById('friends-req-count');
+
+  const reqCountNum = friendsData.requests.length;
+  const friendsCountNum = friendsData.friends.length;
+
+  // Desktop/Mobile badges
+  [desktopBadge, mobileBadge].forEach(badge => {
+    if (badge) {
+      if (reqCountNum > 0) {
+        badge.textContent = reqCountNum > 9 ? '9+' : reqCountNum;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  });
+
+  // Count badges in pills
+  if (countBadge) {
+    countBadge.textContent = friendsCountNum;
+    countBadge.style.display = friendsCountNum > 0 ? 'inline-flex' : 'none';
+  }
+
+  if (reqCount) {
+    if (reqCountNum > 0) {
+      reqCount.textContent = reqCountNum > 9 ? '9+' : reqCountNum;
+      reqCount.style.display = 'inline-flex';
+    } else {
+      reqCount.style.display = 'none';
+    }
+  }
+}
+
+// --- INIT TAB ---
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('tab-friends')) {
+    loadFriendsDataNew();
+  }
+});
 
 switchTab('words');

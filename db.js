@@ -202,3 +202,263 @@ export async function deleteIdiomFromDb(idiomId) {
 
   if (error) throw error;
 }
+
+// ─── FRIENDSHIPS ───────────────────────────────────────────
+
+/**
+ * Поиск пользователей по username или email (исключая себя и уже имеющих связь)
+ */
+export async function searchUsers(query, currentUserId) {
+  if (!query || query.length < 2) return [];
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(
+      'id, username, xp, level, streak, laststreakdate, total_words, total_idioms, learned_words',
+    )
+    .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
+    .neq('id', currentUserId)
+    .limit(20);
+
+  if (error) {
+    console.error('Error searching users:', error);
+    return [];
+  }
+
+  // Получаем уже существующие связи с этими пользователями
+  const { data: existing } = await supabase
+    .from('friendships')
+    .select('user_id, friend_id, status')
+    .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
+
+  const existingMap = new Map();
+  existing?.forEach(f => {
+    const otherId = f.user_id === currentUserId ? f.friend_id : f.user_id;
+    existingMap.set(otherId, f.status);
+  });
+
+  return data.map(user => ({
+    ...user,
+    friendshipStatus: existingMap.get(user.id) || null,
+  }));
+}
+
+/**
+ * Отправить запрос в друзья
+ */
+export async function sendFriendRequest(userId, friendId) {
+  const { error } = await supabase
+    .from('friendships')
+    .insert({ user_id: userId, friend_id: friendId, status: 'pending' });
+
+  if (error) throw error;
+}
+
+/**
+ * Принять запрос в друзья
+ */
+export async function acceptFriendRequest(userId, friendId) {
+  if (!userId || !friendId) {
+    console.error('acceptFriendRequest: userId или friendId отсутствуют', {
+      userId,
+      friendId,
+    });
+    throw new Error('Недостаточно данных для принятия заявки');
+  }
+  const { error } = await supabase
+    .from('friendships')
+    .update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .eq('user_id', friendId)
+    .eq('friend_id', userId)
+    .eq('status', 'pending');
+
+  if (error) throw error;
+}
+
+/**
+ * Отклонить/удалить запрос (или удалить из друзей)
+ */
+export async function rejectFriendRequest(userId, friendId) {
+  if (!userId || !friendId) {
+    console.error('rejectFriendRequest: userId или friendId отсутствуют', {
+      userId,
+      friendId,
+    });
+    throw new Error('Недостаточно данных для отклонения заявки');
+  }
+  console.log('rejectFriendRequest called with:', { userId, friendId });
+
+  // Сначала проверим, есть ли вообще такие записи
+  const { data: existingRecords, error: checkError } = await supabase
+    .from('friendships')
+    .select('*')
+    .or(
+      `user_id.eq.${userId},friend_id.eq.${friendId},user_id.eq.${friendId},friend_id.eq.${userId}`,
+    );
+
+  console.log('Existing records before delete:', existingRecords);
+  console.log('Check error:', checkError);
+
+  // Удаляем запись, где текущий пользователь отправитель
+  const { error: error1 } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('user_id', userId)
+    .eq('friend_id', friendId);
+
+  console.log('First delete error:', error1);
+
+  // Удаляем запись, где текущий пользователь получатель
+  const { error: error2 } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('user_id', friendId)
+    .eq('friend_id', userId);
+
+  console.log('Second delete error:', error2);
+
+  if (error1) {
+    console.error('Error in first delete:', error1);
+    throw error1;
+  }
+  if (error2) {
+    console.error('Error in second delete:', error2);
+    throw error2;
+  }
+
+  console.log('Friend request rejected successfully');
+}
+
+/**
+ * Получить список друзей (status = accepted)
+ */
+export async function getFriends(userId) {
+  const { data, error } = await supabase
+    .from('friendships')
+    .select(
+      `
+      user_id,
+      friend_id,
+      user_profile:profiles!friendships_user_id_fkey(id, username, xp, level, streak, laststreakdate, total_words, total_idioms, learned_words),
+      friend_profile:profiles!friendships_friend_id_fkey(id, username, xp, level, streak, laststreakdate, total_words, total_idioms, learned_words)
+    `,
+    )
+    .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+    .eq('status', 'accepted');
+
+  if (error) {
+    console.error('Error getting friends:', error);
+    return [];
+  }
+
+  // Преобразуем в массив друзей (другой пользователь)
+  const friends = data.map(f => {
+    const friend = f.user_id === userId ? f.friend_profile : f.user_profile;
+    return {
+      id: friend.id,
+      username: friend.username,
+      xp: friend.xp,
+      level: friend.level,
+      streak: friend.streak,
+      lastActive: friend.laststreakdate,
+      total_words: friend.total_words,
+      total_idioms: friend.total_idioms,
+      learned_words: friend.learned_words,
+    };
+  });
+
+  return friends;
+}
+
+/**
+ * Получить входящие заявки (pending, где friend_id = текущий пользователь)
+ */
+export async function getIncomingRequests(userId) {
+  const { data, error } = await supabase
+    .from('friendships')
+    .select(
+      `
+      user_id,
+      user_profile:profiles!friendships_user_id_fkey(id, username, xp, level, streak, total_words, total_idioms, learned_words)
+    `,
+    )
+    .eq('friend_id', userId)
+    .eq('status', 'pending');
+
+  if (error) {
+    console.error('Error getting incoming requests:', error);
+    return [];
+  }
+
+  return data.map(f => ({
+    id: f.user_id,
+    username: f.user_profile.username,
+    xp: f.user_profile.xp,
+    level: f.user_profile.level,
+    streak: f.user_profile.streak,
+    total_words: f.user_profile.total_words,
+    total_idioms: f.user_profile.total_idioms,
+    learned_words: f.user_profile.learned_words,
+  }));
+}
+
+/**
+ * Получить исходящие заявки (pending, где user_id = текущий пользователь)
+ */
+export async function getOutgoingRequests(userId) {
+  const { data, error } = await supabase
+    .from('friendships')
+    .select(
+      `
+      friend_id,
+      friend_profile:profiles!friendships_friend_id_fkey(id, username, xp, level, streak, total_words, total_idioms, learned_words)
+    `,
+    )
+    .eq('user_id', userId)
+    .eq('status', 'pending');
+
+  if (error) {
+    console.error('Error getting outgoing requests:', error);
+    return [];
+  }
+
+  return data.map(f => ({
+    id: f.friend_id,
+    username: f.friend_profile.username,
+    xp: f.friend_profile.xp,
+    level: f.friend_profile.level,
+    streak: f.friend_profile.streak,
+    total_words: f.friend_profile.total_words,
+    total_idioms: f.friend_profile.total_idioms,
+    learned_words: f.friend_profile.learned_words,
+  }));
+}
+
+/**
+ * Получить рейтинг друзей по XP (сортировка по убыванию)
+ */
+export async function getFriendsLeaderboard(userId) {
+  // Получаем друзей
+  const friends = await getFriends(userId);
+
+  // Получаем свой профиль
+  const { data: myProfile, error } = await supabase
+    .from('profiles')
+    .select(
+      'id, username, xp, level, streak, total_words, total_idioms, learned_words',
+    )
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error(
+      'getFriendsLeaderboard — ошибка загрузки своего профиля',
+      error,
+    );
+    return friends.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+  }
+
+  // Объединяем себя с друзьями и сортируем по XP
+  const all = [myProfile, ...friends];
+  return all.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+}

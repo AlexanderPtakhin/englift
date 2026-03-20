@@ -263,14 +263,30 @@
 
           <span class="nav-text">Статистика</span>
         </button>
+
+        <button class="nav-btn" data-tab="friends">
+          <span class="material-symbols-outlined">group</span>
+          <span class="nav-text">Друзья</span>
+          <span
+            class="badge"
+            id="friends-req-badge"
+            style="display: none"
+          ></span>
+        </button>
       </nav>
 
       <div class="header-right">
         <!-- Кнопка переключения темы -->
-        <button class="theme-toggle-header" id="theme-toggle-header" title="Переключить тему">
-          <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+        <button
+          class="theme-toggle-header"
+          id="theme-toggle-header"
+          title="Переключить тему"
+        >
+          <span class="material-symbols-outlined" id="theme-icon"
+            >dark_mode</span
+          >
         </button>
-        
+
         <!-- Личный кабинет (будет виден только после авторизации) -->
 
         <div class="user-menu" id="user-menu">
@@ -338,6 +354,16 @@
         <span class="material-symbols-outlined">monitoring</span>
 
         <span>Статистика</span>
+      </button>
+
+      <button class="mobile-nav-btn" data-tab="friends">
+        <span class="material-symbols-outlined">group</span>
+        <span>Друзья</span>
+        <span
+          class="badge"
+          id="mobile-friends-req-badge"
+          style="display: none"
+        ></span>
       </button>
     </nav>
 
@@ -717,7 +743,6 @@
               </div>
             </div>
 
-            
             <button
               class="btn btn-primary btn-lg"
               id="start-btn"
@@ -955,14 +980,18 @@
         <div class="stats-row idiom-difficulty-row">
           <div class="word-list-card">
             <div class="daily-cap-header">
-              <span class="material-symbols-outlined">sentiment_very_dissatisfied</span>
+              <span class="material-symbols-outlined"
+                >sentiment_very_dissatisfied</span
+              >
               <h3>Сложные идиомы</h3>
             </div>
             <ul id="st-hard-idioms" class="wlist"></ul>
           </div>
           <div class="word-list-card">
             <div class="daily-cap-header">
-              <span class="material-symbols-outlined">sentiment_very_satisfied</span>
+              <span class="material-symbols-outlined"
+                >sentiment_very_satisfied</span
+              >
               <h3>Лёгкие идиомы</h3>
             </div>
             <ul id="st-easy-idioms" class="wlist"></ul>
@@ -995,7 +1024,7 @@
       <!-- TAB: IDIOMS -->
       <div class="tab-pane" id="tab-idioms">
         <!-- Банк идиом -->
-        <div id="idiom-bank-wrap" style="margin-bottom: 2rem;"></div>
+        <div id="idiom-bank-wrap" style="margin-bottom: 2rem"></div>
 
         <div class="section-title">
           Мои идиомы <span class="section-subtitle" id="idioms-subtitle"></span>
@@ -1025,7 +1054,10 @@
             </button>
 
             <button class="pill" data-filter="learning" data-target="idioms">
-              <span class="material-symbols-outlined learning-icon">cognition_2</span> Учу
+              <span class="material-symbols-outlined learning-icon"
+                >cognition_2</span
+              >
+              Учу
             </button>
 
             <button class="pill" data-filter="learned" data-target="idioms">
@@ -1033,7 +1065,10 @@
             </button>
 
             <div class="custom-select" id="idiom-sort-select-container">
-              <button class="custom-select-trigger" id="idiom-sort-select-trigger">
+              <button
+                class="custom-select-trigger"
+                id="idiom-sort-select-trigger"
+              >
                 <span class="material-symbols-outlined">clock_loader_10</span>
                 <span>Новые</span>
                 <span class="material-symbols-outlined">expand_more</span>
@@ -1103,6 +1138,85 @@
           </button>
         </div>
       </div>
+
+      <!-- TAB FRIENDS -->
+      <div class="tab-pane" id="tab-friends">
+        <!-- ЛИДЕРБОРД -->
+        <div class="friends-leaderboard-section">
+          <div class="daily-cap-header">
+            <span class="material-symbols-outlined">emoji_events</span>
+            <h3>Лидерборд</h3>
+          </div>
+          <div id="friends-leaderboard-list" class="friends-leaderboard-list">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+
+        <!-- ПИЛЮЛИ: Друзья / Заявки -->
+        <div class="friends-pills">
+          <button class="pill active" id="pill-friends-list" data-fpill="list">
+            <span class="material-symbols-outlined">people</span>
+            <span>Друзья</span>
+            <span class="friends-count-badge" id="friends-count-badge"></span>
+          </button>
+          <button class="pill" id="pill-friends-requests" data-fpill="requests">
+            <span class="material-symbols-outlined">mark_email_unread</span>
+            <span>Заявки</span>
+            <span
+              class="friends-req-badge"
+              id="friends-req-badge"
+              style="display: none"
+              >0</span
+            >
+          </button>
+          <button class="pill" id="pill-friends-search" data-fpill="search">
+            <span class="material-symbols-outlined">search</span>
+            <span>Поиск</span>
+          </button>
+        </div>
+
+        <!-- ПАНЕЛЬ: СПИСОК ДРУЗЕЙ -->
+        <div class="friends-panel active" id="fpanel-list">
+          <div id="friends-list-content">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+
+        <!-- ПАНЕЛЬ: ЗАЯВКИ -->
+        <div class="friends-panel" id="fpanel-requests">
+          <!-- Входящие -->
+          <div class="friends-subsection" id="incoming-section">
+            <div class="friends-subsection-title">
+              <span class="material-symbols-outlined">call_received</span>
+              Входящие
+            </div>
+            <div id="incoming-list"></div>
+          </div>
+          <!-- Исходящие -->
+          <div class="friends-subsection" id="outgoing-section">
+            <div class="friends-subsection-title">
+              <span class="material-symbols-outlined">call_made</span>
+              Исходящие
+            </div>
+            <div id="outgoing-list"></div>
+          </div>
+        </div>
+
+        <!-- ПАНЕЛЬ: ПОИСК -->
+        <div class="friends-panel" id="fpanel-search">
+          <div class="search-container" style="margin-bottom: 1rem">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input
+              class="form-control"
+              id="friends-search-input-new"
+              type="text"
+              placeholder="Email или имя пользователя..."
+              autocomplete="off"
+            />
+          </div>
+          <div id="friends-search-results-new"></div>
+        </div>
+      </div>
     </main>
 
     <!-- Плавающая кнопка добавления слова -->
@@ -1145,7 +1259,11 @@
           </div>
           <div class="form-group">
             <label>Определение</label>
-            <input class="form-control" type="text" id="modal-idiom-definition" />
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-definition"
+            />
           </div>
           <div class="form-group">
             <label>Пример</label>
@@ -1183,15 +1301,31 @@
           <div class="form-group">
             <label>Английское слово *</label>
             <div style="position: relative">
-              <input class="form-control" type="text" id="modal-word-en" required />
-              <div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
+              <input
+                class="form-control"
+                type="text"
+                id="modal-word-en"
+                required
+              />
+              <div
+                id="autocomplete-suggestions"
+                class="autocomplete-suggestions"
+              ></div>
             </div>
           </div>
           <div class="form-group">
             <label>Русский перевод *</label>
             <div style="position: relative">
-              <input class="form-control" type="text" id="modal-word-ru" required />
-              <div id="ru-autocomplete-suggestions" class="autocomplete-suggestions"></div>
+              <input
+                class="form-control"
+                type="text"
+                id="modal-word-ru"
+                required
+              />
+              <div
+                id="ru-autocomplete-suggestions"
+                class="autocomplete-suggestions"
+              ></div>
             </div>
           </div>
           <div class="form-group">
@@ -1313,11 +1447,13 @@
               </div>
 
               <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 0.5rem;">
-                  <input type="checkbox" id="show-phonetic" checked>
+                <label style="display: flex; align-items: center; gap: 0.5rem">
+                  <input type="checkbox" id="show-phonetic" checked />
                   <span>Показывать транскрипцию в карточках</span>
                 </label>
-                <small class="form-text" style="color: var(--muted);">Отображение /ˈfəʊniːtɪk/ рядом со словом</small>
+                <small class="form-text" style="color: var(--muted)"
+                  >Отображение /ˈfəʊniːtɪk/ рядом со словом</small
+                >
               </div>
             </div>
           </div>
@@ -1516,5 +1652,6 @@
           </button>
         </div>
       </div>
-    </body>
+    </div>
+  </body>
 </html>

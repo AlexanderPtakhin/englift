@@ -284,7 +284,7 @@ dropdownLogout.addEventListener('click', async () => {
   // 2. Синхронизируем профиль ПРЯМО СЕЙЧАС
   if (window.currentUserId && navigator.onLine) {
     console.log('💾 Принудительно сохраняем профиль перед выходом...');
-    await window.syncProfileToServer?.(true);
+    await window.syncProfileToServer?.();
   }
 
   window.currentUserId = null;
@@ -504,7 +504,14 @@ async function loadUserProfile(user) {
     if (!serverProfile) {
       // Создаём новый профиль
       const today = new Date().toISOString().split('T')[0];
+
+      // Генерируем username из email
+      const emailPrefix = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+      const randomSuffix = Math.floor(Math.random() * 1000);
+      const username = emailPrefix + randomSuffix;
+
       const defaultProfile = {
+        username: username,
         xp: 0,
         level: 1,
         badges: [],
