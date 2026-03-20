@@ -73,6 +73,162 @@ const CONSTANTS = {
 
 const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
+// Конфетти при перфекте
+function triggerConfetti() {
+  if (typeof confetti === 'function') {
+    // Первый выстрел - звёзды
+    confetti({
+      particleCount: 120,
+      spread: 90,
+      shapes: ['star'],
+      colors: ['#FFD700', '#FFA500', '#FF6347'],
+      scalar: 1.2,
+      startVelocity: 55,
+      origin: { y: 0.6 },
+    });
+
+    // Второй выстрел - фирменные цвета через 200мс
+    setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        colors: ['#6C63FF', '#22C55E', '#F59E0B', '#EC4899'],
+        scalar: 0.8,
+        startVelocity: 45,
+        origin: { y: 0.5 },
+      });
+    }, 200);
+
+    // Третий выстрел - боковые вспышки через 400мс
+    setTimeout(() => {
+      // Левая сторона
+      confetti({
+        particleCount: 60,
+        angle: 60,
+        spread: 55,
+        colors: ['#6C63FF', '#F59E0B'],
+        scalar: 0.6,
+        origin: { x: 0.2, y: 0.4 },
+      });
+
+      // Правая сторона
+      confetti({
+        particleCount: 60,
+        angle: 120,
+        spread: 55,
+        colors: ['#22C55E', '#EC4899'],
+        scalar: 0.6,
+        origin: { x: 0.8, y: 0.4 },
+      });
+    }, 400);
+  }
+}
+
+// Грустный дождь при 0-20%
+function triggerSadRain() {
+  if (typeof confetti === 'function') {
+    for (let i = 0; i < 15; i++) {
+      setTimeout(() => {
+        confetti({
+          particleCount: 3,
+          spread: 30,
+          shapes: ['circle'],
+          colors: ['#94A3B8'],
+          scalar: 0.3,
+          startVelocity: 20,
+          gravity: 2,
+          decay: 0.95,
+          origin: { x: Math.random(), y: 0.3 },
+        });
+      }, i * 100);
+    }
+  }
+}
+
+// Несколько капель при 21-40%
+function triggerFewDrops() {
+  if (typeof confetti === 'function') {
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        confetti({
+          particleCount: 5,
+          spread: 45,
+          shapes: ['circle'],
+          colors: ['#60A5FA'],
+          scalar: 0.4,
+          startVelocity: 25,
+          gravity: 1.5,
+          origin: { x: Math.random(), y: 0.2 },
+        });
+      }, i * 150);
+    }
+  }
+}
+
+// Лёгкий дождик при 41-60%
+function triggerLightRain() {
+  if (typeof confetti === 'function') {
+    for (let i = 0; i < 12; i++) {
+      setTimeout(() => {
+        confetti({
+          particleCount: 8,
+          spread: 60,
+          shapes: ['square', 'circle'],
+          colors: ['#F59E0B', '#FBBF24'],
+          scalar: 0.5,
+          startVelocity: 30,
+          gravity: 1.2,
+          origin: { x: Math.random(), y: 0.1 },
+        });
+      }, i * 120);
+    }
+  }
+}
+
+// Маленький салют при 61-80%
+function triggerSmallConfetti() {
+  if (typeof confetti === 'function') {
+    confetti({
+      particleCount: 60,
+      spread: 80,
+      shapes: ['square', 'circle'],
+      colors: ['#F59E0B', '#10B981'],
+      scalar: 0.7,
+      startVelocity: 40,
+      origin: { y: 0.6 },
+    });
+  }
+}
+
+// Хороший салют при 81-94%
+function triggerGoodConfetti() {
+  if (typeof confetti === 'function') {
+    // Первый выстрел
+    confetti({
+      particleCount: 80,
+      spread: 90,
+      shapes: ['square', 'circle'],
+      colors: ['#6C63FF', '#22C55E'],
+      scalar: 0.9,
+      startVelocity: 45,
+      origin: { y: 0.5 },
+    });
+
+    // Второй выстрел через 150мс
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        spread: 70,
+        shapes: ['circle'],
+        colors: ['#EC4899', '#F59E0B'],
+        scalar: 0.6,
+        startVelocity: 35,
+        origin: { y: 0.4 },
+      });
+    }, 150);
+  }
+}
+
 // =============================================
 
 // НЕМЕДЛЕННАЯ ИНИЦИАЛИЗАЦИЯ ТЕМЫ (чтобы не было мерцания)
@@ -1331,10 +1487,8 @@ function canStartSession(requestedCount) {
     // Запрошено больше, чем осталось – показываем предупреждение и берём только остаток
 
     toast(
-      `⏰ Осталось только ${remaining} упражнений на сегодня. Будет показано ${remaining} из ${requestedCount} слов.`,
-
+      `⏰ Осталось только ${pluralize(remaining, 'упражнение', 'упражнения', 'упражнений')} на сегодня. Будет показано ${remaining} из ${requestedCount} слов.`,
       'info',
-
       'schedule',
     );
 
@@ -1827,8 +1981,18 @@ function renderWeekChart() {
             .join('')}
         </div>
         <div class="week-total">
-          <span><span class="material-symbols-outlined">menu_book</span> ${days.reduce((a, d) => a + d.words, 0)} слов</span>
-          <span><span class="material-symbols-outlined">theater_comedy</span> ${days.reduce((a, d) => a + d.idioms, 0)} идиом</span>
+          <span><span class="material-symbols-outlined">menu_book</span> ${pluralize(
+            days.reduce((a, d) => a + d.words, 0),
+            'слово',
+            'слова',
+            'слов',
+          )}</span>
+          <span><span class="material-symbols-outlined">theater_comedy</span> ${pluralize(
+            days.reduce((a, d) => a + d.idioms, 0),
+            'идиома',
+            'идиомы',
+            'идиом',
+          )}</span>
         </div>
       </div>
     </div>
@@ -1864,11 +2028,8 @@ function parseAnswerVariants(str) {
   if (!str) return [];
 
   return str
-
     .split(/[\/,;]/)
-
-    .map(s => normalizeRussian(s.trim().toLowerCase()))
-
+    .map(s => stripParens(normalizeRussian(s.trim().toLowerCase())))
     .filter(s => s);
 }
 
@@ -1987,6 +2148,11 @@ function checkSpeechSimilarity(spoken, correct) {
   correct = stripPunct(correct.toLowerCase());
 
   if (spoken === correct) return { isCorrect: true, confidence: 100 };
+
+  // ── ОМОФОН ──────────────────────────────────────────────────
+  if (isHomophone(spoken, correct)) {
+    return { isCorrect: true, confidence: 90 };
+  }
 
   const cleanSpoken = spoken
     .replace(/\b(a|an|the|in|on|at|to|for|of|with)\b/gi, '')
@@ -2113,6 +2279,27 @@ function safeAttr(str) {
     .replace(/'/g, '&#39;')
 
     .replace(/\//g, '&#x2F;');
+}
+
+/**
+ * Склонение существительного после числительного
+ * pluralize(1, 'слово', 'слова', 'слов') → '1 слово'
+ * pluralize(3, 'слово', 'слова', 'слов') → '3 слова'
+ * pluralize(11, 'слово', 'слова', 'слов') → '11 слов'
+ */
+function pluralize(n, form1, form2, form5) {
+  const abs = Math.abs(n) % 100;
+  const rem = abs % 10;
+  if (abs >= 11 && abs <= 19) return `${n} ${form5}`;
+  if (rem === 1) return `${n} ${form1}`;
+  if (rem >= 2 && rem <= 4) return `${n} ${form2}`;
+  return `${n} ${form5}`;
+}
+
+// Убирает всё в скобках: 'закалять (металл)' → 'закалять'
+function stripParens(str) {
+  if (!str) return str;
+  return str.replace(/\s*\(.*?\)\s*/g, ' ').trim();
 }
 
 // Валидация английского слова
@@ -3950,34 +4137,26 @@ function renderBadges() {
 function getProgressText(progress) {
   switch (progress.type) {
     case 'words':
-      return `${progress.remaining} ${getWordForm(progress.remaining, 'слово', 'слова', 'слов')}`;
+      return pluralize(progress.remaining, 'слово', 'слова', 'слов');
 
     case 'learned':
-      return `${progress.remaining} ${getWordForm(progress.remaining, 'слово', 'слова', 'слов')} выучить`;
+      return `${pluralize(progress.remaining, 'слово', 'слова', 'слов')} выучить`;
 
     case 'streak':
-      return `${progress.remaining} ${getWordForm(progress.remaining, 'день', 'дня', 'дней')}`;
+      return pluralize(progress.remaining, 'день', 'дня', 'дней');
 
     case 'xp':
       return `${progress.remaining} XP`;
 
     case 'idioms':
-      return `ещё ${progress.remaining} идиом`;
+      return `ещё ${pluralize(progress.remaining, 'идиома', 'идиомы', 'идиом')}`;
 
     case 'idiomlearned':
-      return `ещё ${progress.remaining} выучить`;
+      return `ещё ${pluralize(progress.remaining, 'идиома', 'идиомы', 'идиом')} выучить`;
 
     default:
       return `${progress.remaining}`;
   }
-}
-
-function getWordForm(n, one, few, many) {
-  if (n % 10 === 1 && n % 100 !== 11) return one;
-
-  if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return few;
-
-  return many;
 }
 
 function updStreak() {
@@ -4214,7 +4393,7 @@ function showLimitModal(limit) {
 
 
 
-        Выполнил все <strong>${limit}</strong> упражнений. <br><br>
+        Выполнил все ${pluralize(limit, 'упражнение', 'упражнения', 'упражнений')}. <br><br>
 
 
 
@@ -5514,7 +5693,7 @@ function renderWords() {
       subtitleEl.textContent =
         list.length !== window.words.length
           ? `(${list.length} из ${window.words.length})`
-          : `— ${window.words.length} слов`;
+          : `— ${pluralize(window.words.length, 'слово', 'слова', 'слов')}`;
     }
 
     if (!list.length) {
@@ -5620,7 +5799,7 @@ function updateWordsCount() {
     subtitleEl.textContent =
       list.length !== window.words.length
         ? `(${list.length} из ${window.words.length})`
-        : `— ${window.words.length} слов`;
+        : `— ${pluralize(window.words.length, 'слово', 'слова', 'слов')}`;
   }
 }
 
@@ -5841,7 +6020,7 @@ function makeCard(w) {
   if (w.stats.learned) {
     tooltipText = 'Выучено ✨';
   } else if (progressLevel > 0) {
-    tooltipText = `Прогресс: ${progressLevel}/3 упражнения`;
+    tooltipText = `Прогресс: ${progressLevel}/3 ${pluralize(3, 'упражнение', 'упражнения', 'упражнений')}`;
   }
 
   card.innerHTML = `
@@ -8994,7 +9173,7 @@ function updateExamStats() {
   const statsEl = document.getElementById('exam-stats');
 
   if (statsEl) {
-    let message = `${total} слов • `;
+    let message = `${pluralize(total, 'слово', 'слова', 'слов')} • `;
 
     if (avg > 60) {
       message += `${avg} сек/слово (медленно)`;
@@ -9329,6 +9508,12 @@ function startSession(cfg) {
 
     pool = pool.sort(() => Math.random() - 0.5).slice(0, totalCount);
 
+    // ── CUSTOM POOL (напр. повтор ошибок) ────────────────────────
+    if (cfg && cfg.customPool && cfg.customPool.length > 0) {
+      pool = [...cfg.customPool];
+    }
+    // ─────────────────────────────────────────────────────────────
+
     // === НОВЫЙ БЛОК: ПРОВЕРКА ЛИМИТА ===
 
     if (!canStartSession(pool.length)) {
@@ -9512,212 +9697,295 @@ function startSession(cfg) {
 }
 
 function showResults() {
-  console.log('📊 showResults вызван, результаты:', sResults);
-
-  // Добавить в начало:
-
-  if (window._matchTimerCancel) {
-    window._matchTimerCancel();
-
-    window._matchTimerCancel = null;
+  console.log('showResults', sResults);
+  if (window.matchTimerCancel) {
+    window.matchTimerCancel();
+    window.matchTimerCancel = null;
   }
-
-  // Сбрасываем флаг активной сессии
-
   window.isSessionActive = false;
 
-  // Разблокируем кнопку Start
-
   const startBtn = document.getElementById('start-btn');
-
   if (startBtn) {
     startBtn.disabled = false;
-
-    startBtn.innerHTML =
-      '<span class="material-symbols-outlined">rocket_launch</span> Начать';
+    startBtn.innerHTML = `<span class="material-symbols-outlined">rocket_launch</span>`;
   }
-
-  // Показываем экран результатов
 
   document.getElementById('practice-ex').style.display = 'none';
-
   document.getElementById('practice-results').style.display = 'block';
 
-  // Сбрасываем display для results-card если он был скрыт
-
-  const resultsCard = document.querySelector('.results-card');
-
-  if (resultsCard) resultsCard.style.display = '';
-
+  // ── Подсчёт результатов ──────────────────────────────────────
   const resTotal = sResults.correct.length + sResults.wrong.length;
-
   const resCorrect = sResults.correct.length;
-
   const resPct = resTotal > 0 ? Math.round((resCorrect / resTotal) * 100) : 0;
-
-  console.log('📊 Статистика практики:', {
-    total: resTotal,
-
-    correct: resCorrect,
-
-    percent: resPct,
-  });
-
-  document.getElementById('r-score').textContent = `${resCorrect}/${resTotal}`;
-
-  document.getElementById('r-label').textContent =
-    `правильно · ${resPct}% точность`;
-
-  const r = 50;
-
-  const cx = 65;
-
-  const cy = 65;
-
-  const circ = 2 * Math.PI * r;
-
-  document.getElementById('r-ring').innerHTML = `
-
-
-
-
-
-
-
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
-
-
-
-
-
-
-
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--primary)" stroke-width="10"
-
-
-
-
-
-
-
-      stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - resPct / 100)}"
-
-
-
-
-
-
-
-      transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dashoffset .8s ease"/>
-
-
-
-
-
-
-
-    <text x="${cx}" y="${cy + 7}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--text)">${resPct}%</text>
-
-
-
-
-
-
-
-  `;
-
   const isIdiom = session && session.dataType === 'idioms';
 
-  document.getElementById('r-correct').innerHTML = sResults.correct
-    .map(item => {
-      if (isIdiom) {
-        return `<li>${esc(item.idiom).toLowerCase()} — ${parseAnswerVariants(item.meaning).join(', ') || esc(item.meaning)}</li>`;
-      } else {
-        return `<li>${esc(item.en)} — ${parseAnswerVariants(item.ru).join(', ') || esc(item.ru)}</li>`;
-      }
+  // ── Время сессии ─────────────────────────────────────────────
+  const practiceMs = practiceStartTime ? Date.now() - practiceStartTime : 0;
+  const practiceSec = Math.round(practiceMs / 1000);
+  const timeStr =
+    practiceSec >= 60
+      ? `${Math.floor(practiceSec / 60)} мин ${practiceSec % 60 > 0 ? (practiceSec % 60) + ' с' : ''}`
+      : `${practiceSec} с`;
+
+  // ── XP (считаем заранее для отображения) ─────────────────────
+  const isPerfect = resTotal >= 5 && resCorrect === resTotal;
+  const xpEarned = resCorrect * 3 + (isPerfect ? 10 : 0);
+
+  // ── Мотивационное сообщение ───────────────────────────────────
+  const motiv =
+    resPct === 100
+      ? {
+          icon: 'emoji_events',
+          color: '#16a34a',
+          title: 'Абсолютный перфект!',
+          sub: 'Ты знаешь каждое слово этой сессии',
+        }
+      : resPct >= 80
+        ? {
+            icon: 'local_fire_department',
+            color: '#fff',
+            title: 'Огонь!',
+            sub: 'Почти идеально — ещё чуть-чуть!',
+          }
+        : resPct >= 60
+          ? {
+              icon: 'trending_up',
+              color: '#fff',
+              title: 'Хороший результат',
+              sub: 'Продолжай в том же духе',
+            }
+          : resPct >= 40
+            ? {
+                icon: 'fitness_center',
+                color: '#fff',
+                title: 'Есть прогресс!',
+                sub: 'Повтори ошибки — будет отлично',
+              }
+            : resPct > 0
+              ? {
+                  icon: 'spa',
+                  color: '#fff',
+                  title: 'Сложная сессия',
+                  sub: 'Это нормально — главное практика',
+                }
+              : {
+                  icon: 'sentiment_very_dissatisfied',
+                  color: '#fff',
+                  title: 'Ну и ну...',
+                  sub: 'Зато честно. Начни сначала!',
+                };
+
+  // ── Градиент героя по результату ─────────────────────────────
+  const heroGrad =
+    resPct === 100
+      ? 'linear-gradient(135deg,#16a34a 0%,#22c55e 100%)'
+      : resPct >= 80
+        ? 'linear-gradient(135deg,#1d4ed8 0%,var(--primary) 100%)'
+        : resPct >= 50
+          ? 'linear-gradient(135deg,var(--primary) 0%,#6366f1 100%)'
+          : resPct >= 25
+            ? 'linear-gradient(135deg,#b45309 0%,#f59e0b 100%)'
+            : 'linear-gradient(135deg,#b91c1c 0%,#ef4444 100%)';
+
+  // ── SVG кольцо ───────────────────────────────────────────────
+  const r = 52,
+    cx = 64,
+    cy = 64;
+  const circ = 2 * Math.PI * r;
+
+  // ── Чипы ошибок ──────────────────────────────────────────────
+  const wrongChips = sResults.wrong
+    .map((item, i) => {
+      const word = isIdiom ? esc(item.idiom.toLowerCase()) : esc(item.en);
+      const trans = isIdiom
+        ? esc(parseAnswerVariants(item.meaning).join(' / '))
+        : esc(parseAnswerVariants(item.ru).join(' / '));
+      return `
+      <div class="res-word-chip res-word-chip--wrong" style="animation-delay:${i * 0.045}s">
+        <span class="res-chip-word">${word}</span>
+        <span class="res-chip-arrow">→</span>
+        <span class="res-chip-trans">${trans}</span>
+      </div>`;
     })
     .join('');
 
-  document.getElementById('r-wrong').innerHTML = sResults.wrong
-    .map(item => {
-      if (isIdiom) {
-        return `<li>${esc(item.idiom).toLowerCase()} — ${parseAnswerVariants(item.meaning).join(', ') || esc(item.meaning)}</li>`;
-      } else {
-        return `<li>${esc(item.en)} — ${parseAnswerVariants(item.ru).join(', ') || esc(item.ru)}</li>`;
+  // ── Чипы правильных ──────────────────────────────────────────
+  const correctChips = ''; // Убираем правильные ответы - они не нужны
+
+  // ── Тип сессии ────────────────────────────────────────────────
+  const sessionTypeLabel = isIdiom
+    ? 'Идиомы'
+    : session?.mode === 'exam'
+      ? 'Экзамен'
+      : 'Слова';
+
+  // ── Блок ошибок / перфект ─────────────────────────────────────
+  const wrongSection =
+    sResults.wrong.length > 0
+      ? `
+    <div class="res-section">
+      <div class="res-section-hdr">
+        <span class="material-symbols-outlined" style="color:var(--danger)">cancel</span>
+        <h4>Ошибки <span class="res-count-badge res-count-badge--wrong">${sResults.wrong.length}</span></h4>
+      </div>
+      <div class="res-chips-grid">${wrongChips}</div>
+    </div>`
+      : ''; // Убираем блок перфекта - заголовок уже говорит "Абсолютный перфект!"
+
+  // ── Блок правильных (свёрнутый) ───────────────────────────────
+  const correctSection = ''; // Убираем правильные ответы совсем
+
+  // ── Кнопки действий ──────────────────────────────────────────
+  const retryBtn = ''; // Убираем красную кнопку "Добить слабые"
+
+  // ── Сборка HTML ───────────────────────────────────────────────
+  const resultsCard = document.querySelector('.results-card');
+  if (!resultsCard) return;
+
+  resultsCard.innerHTML = `
+  <div class="res-content-wrapper ${resPct === 100 ? 'perfect-results' : ''}">
+    <div class="res-hero">
+      <div class="res-hero-inner">
+        <div class="res-ring-wrap">
+          <svg class="res-ring-svg" viewBox="0 0 128 128">
+            <circle class="res-ring-bg" cx="64" cy="64" r="54" />
+            <circle class="res-ring-fill" cx="64" cy="64" r="54" stroke-dasharray="0 339.29" id="ring-fill" />
+          </svg>
+          <div class="res-ring-inner">
+            <div class="res-ring-score">${resCorrect}/${resTotal}</div>
+            <div class="res-ring-pct">${resPct}%</div>
+          </div>
+        </div>
+        <div class="res-hero-text">
+          <div class="res-motiv-title">${motiv.title}</div>
+          <div class="res-motiv-sub">${motiv.sub}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="res-stats-row">
+      <div class="res-stat-chip res-stat-chip--time">
+        <span class="material-symbols-outlined">schedule</span>
+        ${timeStr}
+      </div>
+      <div class="res-stat-chip">
+        <span class="material-symbols-outlined">${isIdiom ? 'theater_comedy' : 'menu_book'}</span>
+        ${sessionTypeLabel} · ${resTotal}
+      </div>
+      ${
+        xpEarned > 0
+          ? `
+        <div class="res-stat-chip res-stat-chip--xp">
+          <span class="material-symbols-outlined">bolt</span>
+          +${xpEarned} XP
+        </div>
+      `
+          : ''
       }
-    })
-    .join('');
+      ${
+        isPerfect
+          ? `
+        <div class="res-stat-chip res-stat-chip--perfect">
+          <span class="material-symbols-outlined">emoji_events</span>
+          Бонус +10 XP
+        </div>
+      `
+          : ''
+      }
+    </div>
 
-  // Запускаем разные анимации в зависимости от процента правильных ответов
+    ${wrongSection}
 
-  if (resPct === 0) {
-    spawnSadRain(); // 0% - Грустный дождь 🌧️
-  } else if (resPct <= 20) {
-    spawnFewDrops(); // 1-20% - Несколько капель 🌦️
-  } else if (resPct <= 50) {
-    spawnLightRain(); // 21-50% - Легкий дождик 🌧️
-  } else if (resPct <= 80) {
-    spawnSmallConfetti(); // 51-80% - Маленький салют 🎆
-  } else if (resPct < 100) {
-    spawnGoodConfetti(); // 81-99% - Хороший салют 🎇
-  } else {
-    spawnEpicConfetti(); // 100% - Большой салют + фейерверк 🎊🎆
+    <div class="res-actions">
+      ${retryBtn}
+      <button class="res-action-btn res-action-btn--repeat" id="repeat-btn">
+        <span class="material-symbols-outlined">refresh</span>
+        Ещё раз
+      </button>
+      <button class="res-action-btn res-action-btn--setup" id="setup-btn">
+        <span class="material-symbols-outlined">tune</span>
+        Настройки
+      </button>
+    </div>
+  </div>
+`;
+
+  // ── Анимируем кольцо после рендера ────────────────────────────
+  const circumference = 2 * Math.PI * 58; // Увеличили радиус с 52 до 58
+  const ringFill = document.getElementById('ring-fill');
+  if (ringFill) {
+    requestAnimationFrame(() => {
+      const percent = resPct / 100;
+      const dash = circumference * percent;
+      ringFill.style.strokeDasharray = `${dash} ${circumference}`;
+    });
   }
 
-  // XP
+  // ── Свернуть/развернуть правильные ───────────────────────────
+  // Удалено - правильные ответы больше не показываются
 
+  // ── Кнопка «Добить слабые» ─────────────────────────────────
+  // Удалено - красная кнопка больше не нужна
+
+  // ── Кнопка «Ещё раз» ─────────────────────────────────────────
+  document.getElementById('repeat-btn')?.addEventListener('click', () => {
+    document.getElementById('practice-results').style.display = 'none';
+    startSession(lastSessionConfig);
+  });
+
+  // ── Кнопка «Настройки» ───────────────────────────────────────
+  document.getElementById('setup-btn')?.addEventListener('click', () => {
+    document.getElementById('practice-results').style.display = 'none';
+    document.getElementById('practice-setup').style.display = 'block';
+  });
+
+  // ── Эффекты конфетти ────────────────────────────────────
+  if (resPct >= 95) {
+    triggerConfetti(); // ← звёздное шоу при 95%+
+  } else if (resPct >= 81) {
+    triggerGoodConfetti(); // ← хороший салют при 81-94%
+  } else if (resPct >= 61) {
+    triggerSmallConfetti(); // ← маленький салют при 61-80%
+  } else if (resPct >= 41) {
+    triggerLightRain(); // ← лёгкий дождик при 41-60%
+  } else if (resPct >= 21) {
+    triggerFewDrops(); // ← несколько капель при 21-40%
+  } else {
+    triggerSadRain(); // ← грустный дождь при 0-20%
+  }
+
+  // ── XP, стрик, бейджи ─────────────────────────────────────────
   const xpCorrect = resCorrect;
-
   const xpTotal = resTotal;
-
-  if (xpCorrect > 0) gainXP(xpCorrect * 3, xpCorrect + ' правильных');
-
-  const isPerfect = xpTotal >= 5 && xpCorrect === xpTotal;
-
+  if (xpCorrect > 0)
+    gainXP(
+      xpCorrect * 3,
+      `${pluralize(xpCorrect, 'слово', 'слова', 'слов')} <span class="material-symbols-outlined" style="vertical-align:middle;font-size:16px">check_circle</span>`,
+    );
   if (isPerfect)
     gainXP(
       10,
-
-      'идеальная сессия <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 16px;">target</span>',
+      `<span class="material-symbols-outlined" style="vertical-align:middle;font-size:16px">target</span> Перфект!`,
     );
-
   updStreak();
-
   checkBadges(isPerfect);
 
-  // Обновляем время практики в ежедневных целях
-
+  // ── Время практики в dailyProgress ───────────────────────────
   if (practiceStartTime) {
     const practiceMinutes = Math.round(
       (Date.now() - practiceStartTime) / 60000,
     );
-
-    window.dailyProgress.practice_time =
-      (window.dailyProgress.practice_time || 0) + practiceMinutes;
-
-    // Mark profile as dirty to ensure practice time progress is saved
+    window.dailyProgress.practicetime =
+      (window.dailyProgress.practicetime || 0) + practiceMinutes;
     scheduleProfileSave();
-
-    // Обновляем метку времени сразу (оптимистично)
-
     window.lastProfileUpdate = Date.now();
-
     checkDailyGoalsCompletion();
-
-    practiceStartTime = null; // Сбрасываем таймер
+    practiceStartTime = null;
   }
 
-  // Обновляем интерфейс после всех изменений
-
   refreshUI();
-
-  // Немедленно сохраняем статистику после завершения практики
-
-  console.log('💾 Вызываем scheduleProfileSave из showResults');
-
   scheduleProfileSave();
-
-  console.log('✅ showResults завершен');
+  console.log('showResults done');
 }
 
 function cleanupExercise() {
@@ -10317,7 +10585,7 @@ function nextExercise() {
 
         question = isRUEN ? parseAnswerVariants(w.ru).join(', ') || w.ru : w.en;
 
-        answer = isRUEN ? w.en : w.ru;
+        answer = stripParens(isRUEN ? w.en : w.ru);
       }
 
       // Отключаем автоозвучку в упражнении "Напиши перевод"
@@ -14638,7 +14906,7 @@ function makeIdiomCard(i) {
   if (i.stats?.learned) {
     tooltipText = 'Выучено ✨';
   } else if (progressLevel > 0) {
-    tooltipText = `Прогресс: ${progressLevel}/3 упражнения`;
+    tooltipText = `Прогресс: ${progressLevel}/3 ${pluralize(3, 'упражнение', 'упражнения', 'упражнений')}`;
   }
 
   card.innerHTML = `
@@ -15494,7 +15762,7 @@ function renderFriendsLeaderboard() {
           if (!user) return '<div></div>';
           const isMe = user.id === myId;
           return `
-          <div class="lb-podium-item ${isMe ? 'me' : ''} rank-${podiumRanks[i]}">
+          <div class="lb-podium-item ${isMe ? 'me' : ''} rank-${podiumRanks[i]}" data-id="${user.id}">
             <div class="lb-podium-medal">${podiumMedals[i]}</div>
             <div class="lb-podium-name">${esc(user.username)}${isMe ? ' (ты)' : ''}</div>
             <div class="lb-podium-xp">${user.xp || 0} XP</div>
@@ -15508,7 +15776,7 @@ function renderFriendsLeaderboard() {
     .map((user, i) => {
       const isMe = user.id === myId;
       return `
-      <div class="lb-row ${isMe ? 'me' : ''}">
+      <div class="lb-row ${isMe ? 'me' : ''}" data-id="${user.id}">
         <div class="lb-rank">${i + 4}</div>
         <div class="lb-avatar">${user.username?.[0]?.toUpperCase() || '?'}</div>
         <div class="lb-info">
@@ -15528,6 +15796,15 @@ function renderFriendsLeaderboard() {
     .join('');
 
   container.innerHTML = top3HTML + restHTML;
+
+  // Кликабельные строки лидерборда
+  container.querySelectorAll('.lb-row, .lb-podium-item').forEach(row => {
+    const userId = row.dataset.id;
+    if (userId && userId !== window.currentUserId) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => openFriendModal(userId));
+    }
+  });
 }
 
 // --- СПИСОК ДРУЗЕЙ ---
@@ -15566,80 +15843,190 @@ function renderFriendsList() {
           </span>
           <span class="friend-stat-chip">
             <span class="material-symbols-outlined">menu_book</span>
-            ${friend.totalwords || friend.total_words || 0}
+            ${friend.total_words || friend.totalWords || 0}
           </span>
         </div>
-        <div class="friend-extra-new" style="display:none">
-          <div class="friend-extra-grid">
-            <div class="friend-extra-stat">
-              <div class="friend-extra-stat-num">${friend.xp || 0}</div>
-              <div class="friend-extra-stat-label">XP</div>
-            </div>
-            <div class="friend-extra-stat">
-              <div class="friend-extra-stat-num">${friend.totalwords || friend.total_words || 0}</div>
-              <div class="friend-extra-stat-label">Слов</div>
-            </div>
-            <div class="friend-extra-stat">
-              <div class="friend-extra-stat-num">${friend.totalidioms || friend.total_idioms || 0}</div>
-              <div class="friend-extra-stat-label">Идиом</div>
-            </div>
-            <div class="friend-extra-stat">
-              <div class="friend-extra-stat-num">${friend.learnedwords || friend.learned_words || 0}</div>
-              <div class="friend-extra-stat-label">Выучено</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
-            <button class="btn-icon btn-danger friend-remove-btn" data-id="${friend.id}" title="Удалить из друзей">
-              <span class="material-symbols-outlined">person_remove</span>
-            </button>
-          </div>
-        </div>
       </div>
-      <span class="material-symbols-outlined expand-icon" style="color:var(--muted);font-size:1.2rem;flex-shrink:0;transition:transform 0.3s ease">expand_more</span>
     </div>
   `,
     )
     .join('');
 
-  // Раскрытие карточки
+  // Клик по карточке открывает модалку
   container.querySelectorAll('.friend-card-new').forEach(card => {
-    card.addEventListener('click', function (e) {
-      if (e.target.closest('.friend-remove-btn')) return;
-      this.classList.toggle('expanded');
-      const icon = this.querySelector('.expand-icon');
-      if (icon)
-        icon.style.transform = this.classList.contains('expanded')
-          ? 'rotate(180deg)'
-          : 'rotate(0deg)';
-      const extra = this.querySelector('.friend-extra-new');
-      if (extra)
-        extra.style.display = this.classList.contains('expanded')
-          ? 'block'
-          : 'none';
-
-      // Плавно прокручиваем к раскрытой карточке
-      if (this.classList.contains('expanded')) {
-        setTimeout(() => {
-          this.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-      }
+    card.addEventListener('click', () => {
+      const friendId = card.dataset.id;
+      openFriendModal(friendId);
     });
   });
+}
 
-  // Удалить друга
-  container.querySelectorAll('.friend-remove-btn').forEach(btn => {
-    btn.addEventListener('click', async function (e) {
-      e.stopPropagation();
-      const id = this.dataset.id;
+let currentModal = null;
 
-      // Используем обычную модалку как при удалении слов
-      pendingDelId = id;
-      pendingDeleteType = 'friend';
+async function openFriendModal(friendId) {
+  // Если модалка уже открыта, закрываем
+  if (currentModal) {
+    currentModal.remove();
+    currentModal = null;
+  }
 
-      document.getElementById('del-modal').classList.add('open');
-      document.body.classList.add('modal-open');
-    });
+  // Получаем данные о друге
+  const friend = friendsData.friends.find(f => f.id === friendId);
+  if (!friend) return;
+
+  // Загружаем бейджи друга (если есть)
+  let friendBadges = [];
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('badges')
+      .eq('id', friendId)
+      .single();
+    if (data && data.badges) friendBadges = data.badges;
+  } catch (e) {
+    console.warn('Не удалось загрузить бейджи друга');
+  }
+
+  // Создаём модалку
+  const modal = document.createElement('div');
+  modal.className = 'friend-modal';
+  modal.innerHTML = `
+    <div class="friend-modal-content">
+      <button class="friend-modal-close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <div class="friend-modal-header">
+        <div class="friend-modal-avatar">${friend.username?.[0]?.toUpperCase() || '?'}</div>
+        <div class="friend-modal-name">${esc(friend.username)}</div>
+        <div class="friend-modal-bio">${friend.bio || 'Изучает английский с EngLift'}</div>
+      </div>
+
+      <div class="friend-modal-stats">
+        <div class="friend-stat-item">
+          <div class="friend-stat-value">${friend.xp || 0}</div>
+          <div class="friend-stat-label">XP</div>
+        </div>
+        <div class="friend-stat-item">
+          <div class="friend-stat-value">${friend.streak || 0}</div>
+          <div class="friend-stat-label">Дней</div>
+        </div>
+        <div class="friend-stat-item">
+          <div class="friend-stat-value">${friend.level || 1}</div>
+          <div class="friend-stat-label">Уровень</div>
+        </div>
+        <div class="friend-stat-item">
+          <div class="friend-stat-value">${friend.total_words || friend.totalWords || 0}</div>
+          <div class="friend-stat-label">Слова</div>
+        </div>
+        <div class="friend-stat-item">
+          <div class="friend-stat-value">${friend.total_idioms || friend.totalIdioms || 0}</div>
+          <div class="friend-stat-label">Идиомы</div>
+        </div>
+        <div class="friend-stat-item">
+          <div class="friend-stat-value">${friend.learned_words || friend.learnedWords || 0}</div>
+          <div class="friend-stat-label">Выучено</div>
+        </div>
+      </div>
+
+      <div class="friend-badges">
+        <h4><span class="material-symbols-outlined">emoji_events</span> Достижения</h4>
+        <div class="badges-grid-mini">
+          ${
+            friendBadges.length
+              ? friendBadges
+                  .slice(0, 6)
+                  .map(
+                    b =>
+                      `<span class="badge-mini"><span class="material-symbols-outlined">stars</span> ${b}</span>`,
+                  )
+                  .join('')
+              : '<span class="badge-mini">Пока нет бейджей</span>'
+          }
+        </div>
+      </div>
+
+      <div class="friend-activity">
+        <h4><span class="material-symbols-outlined">show_chart</span> Активность (последние 7 дней)</h4>
+        <div class="activity-heatmap" id="friend-heatmap"></div>
+      </div>
+
+      <div class="friend-modal-actions">
+        <button class="modal-action-btn primary" id="challenge-friend">
+          <span class="material-symbols-outlined">sports_score</span>
+          Бросить вызов
+        </button>
+        <button class="modal-action-btn" id="compare-words">
+          <span class="material-symbols-outlined">compare</span>
+          Сравнить словари
+        </button>
+        <button class="modal-action-btn danger" id="remove-friend">
+          <span class="material-symbols-outlined">person_remove</span>
+          Удалить из друзей
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Генерируем тепловую карту активности (заглушка)
+  const heatmap = modal.querySelector('#friend-heatmap');
+  if (heatmap) {
+    for (let i = 0; i < 7; i++) {
+      const level = Math.floor(Math.random() * 5); // 0-4
+      const day = document.createElement('div');
+      day.className = 'heat-day';
+      day.setAttribute('data-level', level);
+      day.title = ['Нет', 'Низкая', 'Средняя', 'Высокая', 'Очень высокая'][
+        level
+      ];
+      heatmap.appendChild(day);
+    }
+  }
+
+  // Закрытие
+  const closeBtn = modal.querySelector('.friend-modal-close');
+  closeBtn.onclick = () => {
+    modal.classList.remove('open');
+    setTimeout(() => modal.remove(), 300);
+    currentModal = null;
+  };
+  modal.addEventListener('click', e => {
+    if (e.target === modal) {
+      modal.classList.remove('open');
+      setTimeout(() => modal.remove(), 300);
+      currentModal = null;
+    }
   });
+
+  // Кнопки действий
+  modal.querySelector('#remove-friend').onclick = async () => {
+    const userId = window.currentUserId;
+    if (!userId) return;
+    try {
+      await rejectFriendRequest(userId, friendId);
+      await loadFriendsDataNew();
+      toast(`${friend.username} удалён из друзей`, 'warning');
+      modal.classList.remove('open');
+      setTimeout(() => modal.remove(), 300);
+      currentModal = null;
+    } catch (err) {
+      toast('Ошибка', 'danger');
+    }
+  };
+
+  modal.querySelector('#challenge-friend').onclick = () => {
+    toast(`🚀 Вызов ${friend.username} на недельный челлендж!`, 'info');
+    // TODO: реализовать челлендж
+  };
+
+  modal.querySelector('#compare-words').onclick = () => {
+    toast(`🔍 Сравнение словарей с ${friend.username} (в разработке)`, 'info');
+    // TODO: показать общие слова
+  };
+
+  document.body.appendChild(modal);
+  currentModal = modal;
+  // Анимация открытия
+  requestAnimationFrame(() => modal.classList.add('open'));
 }
 
 // --- ЗАЯВКИ ---

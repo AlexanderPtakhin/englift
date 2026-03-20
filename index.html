@@ -55,6 +55,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
     <!-- Убрали xlsx.js для ускорения загрузки -->
 
@@ -538,14 +539,6 @@
       <div class="tab-pane" id="tab-practice">
         <div class="practice-wrap">
           <div class="setup-card" id="practice-setup">
-            <h2>
-              <span
-                class="material-symbols-outlined"
-                style="vertical-align: middle; margin-right: 8px"
-                >exercise</span
-              >Тип упражнений
-            </h2>
-
             <div class="setup-row">
               <label>
                 <span
@@ -843,7 +836,7 @@
             <div class="results-card">
               <div class="results-score" id="r-score">—</div>
 
-              <div class="results-label" id="r-label">слов правильно</div>
+              <div class="results-label" id="r-label">правильно</div>
 
               <svg
                 class="results-ring"
@@ -854,16 +847,6 @@
               ></svg>
 
               <div class="breakdown" id="r-breakdown">
-                <div class="breakdown-col">
-                  <h4>
-                    <span class="material-symbols-outlined">check_circle</span>
-
-                    Правильно
-                  </h4>
-
-                  <ul class="breakdown-list" id="r-correct"></ul>
-                </div>
-
                 <div class="breakdown-col">
                   <h4>
                     <span class="material-symbols-outlined">cancel</span> Ошибки
@@ -938,7 +921,7 @@
             <div class="stat-content">
               <div class="stat-number" id="st-streak">0</div>
 
-              <div class="stat-label">Дней подряд</div>
+              <div class="stat-label">дней подряд</div>
             </div>
           </div>
 
@@ -1814,6 +1797,7 @@
       </div>
     </div>
 
+    <script src="homophones.js"></script>
     <script src="tour.js"></script>
   </body>
 </html>
