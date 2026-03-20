@@ -188,7 +188,8 @@
   function addDemoWord() {
     if (!window.words) return;
     if (window.words.find(w => w.id === '__demo__')) return;
-    window.words.unshift({
+
+    const demoWord = {
       id: '__demo__',
       en: 'Hello',
       ru: 'Привет',
@@ -216,12 +217,34 @@
         lastPracticed: new Date(Date.now() - 86400000).toISOString(),
       },
       isDemo: true,
-    });
-    // даем время на отрисовку
+    };
+
+    const injectDemo = () => {
+      if (!window.words) return;
+      if (!window.words.find(w => w.id === '__demo__')) {
+        window.words.unshift(demoWord);
+      }
+    };
+
+    // Патчим renderWords — перед каждым рендером проверяем что demo на месте
+    if (!window._tourOriginalRenderWords) {
+      window._tourOriginalRenderWords = window.renderWords;
+      window.renderWords = function (...args) {
+        injectDemo();
+        return window._tourOriginalRenderWords?.(...args);
+      };
+    }
+
+    injectDemo();
     setTimeout(() => window.renderWords?.(), 50);
   }
 
   function removeDemoWord() {
+    // Снимаем патч
+    if (window._tourOriginalRenderWords) {
+      window.renderWords = window._tourOriginalRenderWords;
+      window._tourOriginalRenderWords = null;
+    }
     if (!window.words) return;
     window.words = window.words.filter(w => w.id !== '__demo__');
     window.renderWords?.();
@@ -377,20 +400,22 @@
   }
 
   // ─── SMART POSITIONING ────────────────────────────────────
-  function positionTooltip(step) {
+  function positionTooltip(step, silent = false) {
     const tooltip = document.getElementById('tour-tooltip');
     const ring = document.getElementById('tour-ring');
     const hole = document.getElementById('tour-hole');
     const arrow = document.getElementById('tour-arrow');
     const target = step.target ? step.target() : null;
 
-    // fade out → in
-    tooltip.style.opacity = '0';
-    tooltip.style.transform = 'translateY(8px) scale(0.97)';
-    setTimeout(() => {
-      tooltip.style.opacity = '1';
-      tooltip.style.transform = 'translateY(0) scale(1)';
-    }, 50);
+    // fade only при смене шага, не при resize
+    if (!silent) {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(8px) scale(0.97)';
+      setTimeout(() => {
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateY(0) scale(1)';
+      }, 50);
+    }
 
     // ── центральный шаг (без подсветки) ──
     if (!target || step.position === 'center') {
@@ -407,10 +432,16 @@
     arrow.style.display = 'block';
 
     const r = target.getBoundingClientRect();
+
+    // На мобиле скроллим таргет в видимую зону перед позиционированием
+    if (isMobile()) {
+      target.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+
     // SVG hole + ring - чистый PAD или ноль для элементов у края
     const PAD_FULL = 10;
-    const VW = window.innerWidth;
-    const VH = window.innerHeight;
+    const VW = window.visualViewport?.width ?? window.innerWidth;
+    const VH = window.visualViewport?.height ?? window.innerHeight;
 
     // Если элемент у любого края — убираем отступ полностью
     const nearEdge =
@@ -501,14 +532,17 @@
       window._tourResizeObserver.disconnect();
     }
     if (target) {
+      let _rObsTimer = null;
       window._tourResizeObserver = new ResizeObserver(() => {
-        // перепозиционируем только если этот шаг ещё активен
-        const currentStep = STEPS[state.step];
-        const currentTarget =
-          typeof currentStep.target === 'function'
-            ? currentStep.target()
-            : currentStep.target;
-        if (currentTarget === target) positionTooltip(currentStep);
+        clearTimeout(_rObsTimer);
+        _rObsTimer = setTimeout(() => {
+          const currentStep = STEPS[state.step];
+          const currentTarget =
+            typeof currentStep.target === 'function'
+              ? currentStep.target()
+              : currentStep.target;
+          if (currentTarget === target) positionTooltip(currentStep, true); // ← silent=true
+        }, 80);
       });
       window._tourResizeObserver.observe(target);
     }
@@ -522,9 +556,12 @@
     );
     window._tourResizeObserver?.disconnect();
     window._tourResizeObserver = null;
-    removeDemoWord(); // ← добавить сюда
+    removeDemoWord();
+
+    // Всегда сохраняем — неважно, завершил или пропустил
+    localStorage.setItem(TOUR_KEY, '1');
+
     if (completed) {
-      localStorage.setItem(TOUR_KEY, '1');
       window.spawnConfetti?.();
       setTimeout(() => {
         const btn = document.querySelector('#floating-add-word-btn');

@@ -67,7 +67,7 @@ const CONSTANTS = {
   SPEECH: {
     SIMILARITY_THRESHOLD: 0.8,
     RECOGNITION_TIMEOUT: 5000,
-    AUTO_LANG: 'ru-RU',
+    AUTO_LANG: 'en-US',
   },
 };
 
@@ -672,7 +672,7 @@ window.pendingIdiomUpdates = pendingIdiomUpdates;
 
 // Функция нормализации русского текста (е/ё)
 function normalizeRussian(text) {
-  return text.replace(/ё/g, 'е').replace(/Ё/g, 'Е');
+  return text.replace(/ё/g, 'е').replace(/Ё/g, 'Е').toLowerCase().trim();
 }
 
 // Функция проверки ответа с учетом е/ё
@@ -1976,46 +1976,46 @@ function applyProfileData(data) {
 function checkSpeechSimilarity(spoken, correct) {
   if (!spoken || !correct) return { isCorrect: false, confidence: 0 };
 
-  // Точное совпадение
+  // Убираем пунктуацию ПЕРЕД всеми сравнениями
+  const stripPunct = s =>
+    s
+      .replace(/[.,!?;:'"()\-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  spoken = stripPunct(spoken.toLowerCase());
+  correct = stripPunct(correct.toLowerCase());
 
   if (spoken === correct) return { isCorrect: true, confidence: 100 };
 
-  // Удаляем артикли и предлоги для сравнения
-
   const cleanSpoken = spoken
-
     .replace(/\b(a|an|the|in|on|at|to|for|of|with)\b/gi, '')
-
     .trim();
-
   const cleanCorrect = correct
-
     .replace(/\b(a|an|the|in|on|at|to|for|of|with)\b/gi, '')
-
     .trim();
 
   if (cleanSpoken === cleanCorrect) return { isCorrect: true, confidence: 95 };
-
-  // Проверяем содержит ли одно другое
-
   if (cleanSpoken.includes(cleanCorrect) || cleanCorrect.includes(cleanSpoken))
     return { isCorrect: true, confidence: 85 };
 
-  // Расстояние Левенштейна для похожих слов
-
   const distance = levenshteinDistance(cleanSpoken, cleanCorrect);
-
   const maxLength = Math.max(cleanSpoken.length, cleanCorrect.length);
-
   const similarity = 1 - distance / maxLength;
+  const confidencePercentage = Math.round(similarity * 100); // ← убрали * 0.80
 
-  const confidencePercentage = Math.round(similarity * 100);
-
-  // Считаем правильным если схожесть > 80%
+  // Адаптивный порог: короткие слова сложнее оценивать
+  const threshold =
+    cleanCorrect.length <= 4
+      ? 0.65
+      : cleanCorrect.length <= 7
+        ? 0.75
+        : cleanCorrect.length <= 20
+          ? 0.8
+          : 0.72; // ← длинные предложения — чуть мягче
 
   return {
-    isCorrect: similarity > CONSTANTS.SPEECH.SIMILARITY_THRESHOLD,
-
+    isCorrect: similarity >= threshold,
     confidence: confidencePercentage,
   };
 }
@@ -10408,7 +10408,7 @@ function nextExercise() {
                 levenshteinDistance(
                   normalizedUserAnswer,
                   answer.toLowerCase(),
-                ) <= 2
+                ) <= 1
               : parseAnswerVariants(answer).some(v =>
                   checkAnswerWithNormalization(
                     normalizedUserAnswer,
@@ -10530,10 +10530,15 @@ function nextExercise() {
 
         if (dictSubmit && dictFb) {
           const check = () => {
-            const val = dictInput.value.trim().toLowerCase();
+            const val = dictInput.value
+              .trim()
+              .toLowerCase()
+              .replace(/["'`]/g, '');
             const normalizedVal = normalizeRussian(val);
 
-            const answerVariants = parseAnswerVariants(w.en);
+            const answerVariants = parseAnswerVariants(w.en).map(v =>
+              v.replace(/["'`]/g, '').toLowerCase(),
+            );
 
             const ok = answerVariants.some(v =>
               checkAnswerWithNormalization(normalizedVal, v.toLowerCase()),
@@ -10577,7 +10582,10 @@ function nextExercise() {
         exCounter.textContent = `${sIdx + 1} / ${session.items.length}`;
       }
 
-      const word = w.en.toLowerCase().replace(/[^a-z]/g, ''); // только буквы
+      const word = w.en
+        .toLowerCase()
+        .replace(/[^a-z]/g, '')
+        .replace(/["'`]/g, ''); // только буквы, апострофы как отдельные символы
 
       const letters = word.split('');
 
@@ -11080,7 +11088,7 @@ function nextExercise() {
 
         const rec = new SpeechRec();
 
-        rec.lang = 'en-US';
+        rec.lang = CONSTANTS.SPEECH.AUTO_LANG || 'en-US';
 
         rec.continuous = false;
 
@@ -11124,11 +11132,14 @@ function nextExercise() {
 
           startBtn.style.display = 'flex';
 
-          const spoken = event.results[0][0].transcript.trim().toLowerCase();
-
           const correct = expectedWord.toLowerCase();
-
-          const result = checkSpeechSimilarity(spoken, correct);
+          let result = { isCorrect: false, confidence: 0 };
+          for (let i = 0; i < event.results[0].length; i++) {
+            const spoken = event.results[0][i].transcript.trim().toLowerCase();
+            const r = checkSpeechSimilarity(spoken, correct);
+            if (r.confidence > result.confidence) result = r;
+            if (result.isCorrect) break;
+          }
 
           if (result.isCorrect) {
             feedback.classList.remove('correct', 'incorrect', 'warning');
@@ -13629,9 +13640,14 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
       indicator.style.display = 'none';
       startBtn.style.display = 'flex';
 
-      const spoken = event.results[0][0].transcript.trim().toLowerCase();
       const correct = expectedWord.toLowerCase();
-      const result = checkSpeechSimilarity(spoken, correct);
+      let result = { isCorrect: false, confidence: 0 };
+      for (let i = 0; i < event.results[0].length; i++) {
+        const spoken = event.results[0][i].transcript.trim().toLowerCase();
+        const r = checkSpeechSimilarity(spoken, correct);
+        if (r.confidence > result.confidence) result = r;
+        if (result.isCorrect) break;
+      }
 
       // Создаём объект для фидбека (имитация слова)
       const feedbackWord = {
@@ -15921,5 +15937,237 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFriendsDataNew();
   }
 });
+
+// ============================================================
+//  BOTTOM SHEET — Настройки практики
+// ============================================================
+(function initPracticeBottomSheet() {
+  const sheet = document.getElementById('practice-bottom-sheet');
+  const backdrop = document.getElementById('practice-bs-backdrop');
+  const trigger = document.getElementById('practice-bs-trigger');
+  const summary = document.getElementById('bs-trigger-summary');
+  if (!sheet || !backdrop || !trigger) return;
+
+  // --- Метки для summary ---
+  const filterLabels = {
+    all: 'Все слова',
+    learning: 'Учу',
+    random: 'Случайные',
+    due: 'К повторению',
+  };
+  const dirLabels = {
+    both: 'EN+RU',
+    'en-ru': 'EN→RU',
+    'ru-en': 'RU→EN',
+  };
+  const countLabels = {
+    5: '5 слов',
+    10: '10 слов',
+    20: '20 слов',
+    all: 'Все',
+  };
+
+  // --- Обновить summary в триггере ---
+  function updateSummary() {
+    const filterVal =
+      document.querySelector('.chip[data-filter-w].on')?.dataset.filterW ||
+      'all';
+    const dirVal =
+      document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
+    const pronOn =
+      document.querySelector('.chip[data-autopron].on')?.dataset.autopron !==
+      'off';
+    const duePill = document.getElementById('due-pill')?.textContent || '0';
+
+    let filterText = filterLabels[filterVal] || 'Все';
+    if (filterVal === 'due' && parseInt(duePill) > 0)
+      filterText += ` (${duePill})`;
+
+    const soundIcon = pronOn
+      ? '<span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">volume_up</span>'
+      : '<span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">volume_off</span>';
+
+    summary.innerHTML = `${filterText} · ${dirLabels[dirVal]} · ${soundIcon}`;
+
+    // Синхронизируем состояние bs-опций с реальными чипами
+    syncSheetState();
+  }
+
+  // --- Синхронизировать визуальное состояние шторки ---
+  function syncSheetState() {
+    const filterVal =
+      document.querySelector('.chip[data-filter-w].on')?.dataset.filterW ||
+      'all';
+    const dirVal =
+      document.querySelector('.chip[data-dir].on')?.dataset.dir || 'both';
+    const pronVal =
+      document.querySelector('.chip[data-autopron].on')?.dataset.autopron ||
+      'on';
+    const countVal =
+      document.querySelector('.chip[data-count].on')?.dataset.count || '10';
+
+    // Фильтр
+    document.querySelectorAll('#bs-filter-list .bs-option').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.bsFilterW === filterVal);
+    });
+    // Количество слов
+    document.querySelectorAll('#bs-count-seg .bs-seg-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.bsCount === countVal);
+    });
+    // Автопрон
+    document.querySelectorAll('#bs-autopron-seg .bs-seg-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.bsAutopron === pronVal);
+    });
+    // Направление
+    document.querySelectorAll('#bs-dir-seg .bs-seg-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.bsDir === dirVal);
+    });
+
+    // due badge
+    const duePill = document.getElementById('due-pill')?.textContent || '0';
+    const bsBadge = document.getElementById('bs-due-badge');
+    if (bsBadge) bsBadge.textContent = duePill;
+  }
+
+  // --- Открыть ---
+  function openSheet() {
+    syncSheetState();
+    sheet.classList.add('open');
+    backdrop.classList.add('visible');
+    document.body.classList.add('bs-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  // --- Закрыть ---
+  function closeSheet() {
+    sheet.classList.remove('open', 'dragging');
+    sheet.style.transform = '';
+    backdrop.classList.remove('visible');
+    document.body.classList.remove('bs-open');
+    document.body.style.overflow = '';
+  }
+
+  // --- Клик триггера ---
+  trigger.addEventListener('click', openSheet);
+
+  // --- Клик backdrop ---
+  backdrop.addEventListener('click', closeSheet);
+
+  // --- Клики по опциям фильтра ---
+  document.querySelectorAll('#bs-filter-list .bs-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const val = opt.dataset.bsFilterW;
+      // Кликаем соответствующий скрытый чип
+      const realChip = document.querySelector(`.chip[data-filter-w="${val}"]`);
+      if (realChip) realChip.click();
+      syncSheetState();
+      updateSummary();
+      // Небольшая задержка для анимации check, потом закрываем
+      setTimeout(closeSheet, 180);
+    });
+  });
+
+  // --- Клики по сегментам Количество слов ---
+  document.querySelectorAll('#bs-count-seg .bs-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.bsCount;
+      const realChip = document.querySelector(`.chip[data-count="${val}"]`);
+      if (realChip) realChip.click();
+      document
+        .querySelectorAll('#bs-count-seg .bs-seg-btn')
+        .forEach(b => b.classList.toggle('active', b === btn));
+      updateSummary();
+    });
+  });
+
+  // --- Клики по сегментам Автопрон ---
+  document.querySelectorAll('#bs-autopron-seg .bs-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.bsAutopron;
+      const realChip = document.querySelector(`.chip[data-autopron="${val}"]`);
+      if (realChip) realChip.click();
+      document
+        .querySelectorAll('#bs-autopron-seg .bs-seg-btn')
+        .forEach(b => b.classList.toggle('active', b === btn));
+      updateSummary();
+    });
+  });
+
+  // --- Клики по сегментам Направления ---
+  document.querySelectorAll('#bs-dir-seg .bs-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.bsDir;
+      const realChip = document.querySelector(`.chip[data-dir="${val}"]`);
+      if (realChip) realChip.click();
+      document
+        .querySelectorAll('#bs-dir-seg .bs-seg-btn')
+        .forEach(b => b.classList.toggle('active', b === btn));
+      updateSummary();
+    });
+  });
+
+  // --- Свайп вниз для закрытия ---
+  const dragArea = document.getElementById('bs-drag-area');
+  let startY = 0,
+    currentY = 0,
+    isDragging = false;
+
+  dragArea.addEventListener(
+    'touchstart',
+    e => {
+      startY = e.touches[0].clientY;
+      isDragging = true;
+      sheet.classList.add('dragging');
+    },
+    { passive: true },
+  );
+
+  document.addEventListener(
+    'touchmove',
+    e => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const delta = Math.max(0, currentY - startY); // только вниз
+      sheet.style.transform = `translateY(${delta}px)`;
+      // Затемнение backdrop пропорционально свайпу
+      const progress = Math.min(delta / 300, 1);
+      backdrop.style.background = `rgba(0,0,0,${0.45 * (1 - progress)})`;
+    },
+    { passive: true },
+  );
+
+  document.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    const delta = currentY - startY;
+    sheet.classList.remove('dragging');
+    sheet.style.transform = '';
+    backdrop.style.background = '';
+    if (delta > 90) {
+      closeSheet();
+    }
+    // Иначе snap back (transition сам анимирует)
+  });
+
+  // --- Клавиша Escape ---
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && sheet.classList.contains('open')) closeSheet();
+  });
+
+  // --- Инициализация summary при загрузке ---
+  // Ждём пока чипы проинициализируются
+  setTimeout(updateSummary, 500);
+
+  // Обновляем summary когда меняются чипы (на десктопе)
+  document
+    .querySelectorAll(
+      '.chip[data-filter-w], .chip[data-dir], .chip[data-autopron], .chip[data-count]',
+    )
+    .forEach(c =>
+      c.addEventListener('click', () => setTimeout(updateSummary, 50)),
+    );
+
+  window._updateBsSummary = updateSummary; // для внешнего вызова если нужно
+})();
 
 switchTab('words');

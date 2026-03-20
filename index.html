@@ -542,8 +542,8 @@
               <span
                 class="material-symbols-outlined"
                 style="vertical-align: middle; margin-right: 8px"
-                >tune</span
-              >Настройка тренировки
+                >exercise</span
+              >Тип упражнений
             </h2>
 
             <div class="setup-row">
@@ -626,8 +626,6 @@
             </div>
 
             <div class="setup-row">
-              <label>Тип упражнений</label>
-
               <div class="exercise-grid">
                 <div class="exercise-card" data-ex="flash">
                   <div class="exercise-icon">
@@ -767,6 +765,31 @@
 
                 <button class="chip" data-dir="ru-en">RU → EN</button>
               </div>
+            </div>
+
+            <!-- ===== MOBILE TRIGGER BUTTON (только мобиле) ===== -->
+            <div class="setup-row bs-trigger-row" id="bs-trigger-row">
+              <button class="bs-trigger-btn" id="practice-bs-trigger">
+                <div class="bs-trigger-left">
+                  <span class="material-symbols-outlined bs-trigger-icon"
+                    >tune</span
+                  >
+                  <div class="bs-trigger-text">
+                    <span class="bs-trigger-label">Настройки</span>
+                    <span class="bs-trigger-summary" id="bs-trigger-summary"
+                      >Все слова · EN+RU ·
+                      <span
+                        class="material-symbols-outlined"
+                        style="font-size: 16px; vertical-align: middle"
+                        >volume_up</span
+                      ></span
+                    >
+                  </div>
+                </div>
+                <span class="material-symbols-outlined bs-trigger-arrow"
+                  >expand_more</span
+                >
+              </button>
             </div>
 
             <button
@@ -1679,6 +1702,118 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== BOTTOM SHEET для настроек практики ===== -->
+    <div class="bs-backdrop" id="practice-bs-backdrop"></div>
+
+    <div
+      class="bottom-sheet"
+      id="practice-bottom-sheet"
+      aria-modal="true"
+      role="dialog"
+    >
+      <!-- Ручка для свайпа -->
+      <div class="bs-drag-area" id="bs-drag-area">
+        <div class="bs-handle"></div>
+      </div>
+
+      <div class="bs-body">
+        <!-- РАЗДЕЛ 1: Слова для практики -->
+        <div class="bs-section">
+          <div class="bs-section-label">
+            <span class="material-symbols-outlined">filter_list</span>
+            Слова для практики
+          </div>
+          <div class="bs-option-list" id="bs-filter-list">
+            <button class="bs-option active" data-bs-filter-w="all">
+              <span class="material-symbols-outlined bs-opt-icon">list</span>
+              <span class="bs-opt-text">Все слова</span>
+              <span class="material-symbols-outlined bs-opt-check"
+                >check_circle</span
+              >
+            </button>
+            <button class="bs-option" data-bs-filter-w="learning">
+              <span class="material-symbols-outlined bs-opt-icon"
+                >cognition_2</span
+              >
+              <span class="bs-opt-text">Только учу</span>
+              <span class="material-symbols-outlined bs-opt-check"
+                >check_circle</span
+              >
+            </button>
+            <button class="bs-option" data-bs-filter-w="random">
+              <span class="material-symbols-outlined bs-opt-icon">shuffle</span>
+              <span class="bs-opt-text">Случайные</span>
+              <span class="material-symbols-outlined bs-opt-check"
+                >check_circle</span
+              >
+            </button>
+            <button class="bs-option" data-bs-filter-w="due">
+              <span class="material-symbols-outlined bs-opt-icon"
+                >schedule</span
+              >
+              <span class="bs-opt-text">
+                К повторению
+                <span class="bs-due-badge" id="bs-due-badge">0</span>
+              </span>
+              <span class="material-symbols-outlined bs-opt-check"
+                >check_circle</span
+              >
+            </button>
+          </div>
+        </div>
+
+        <div class="bs-divider"></div>
+
+        <!-- РАЗДЕЛ 2: Количество слов -->
+        <div class="bs-section bs-section--row">
+          <div class="bs-section-label">
+            <span class="material-symbols-outlined">format_list_numbered</span>
+            Количество слов
+          </div>
+          <div class="bs-seg" id="bs-count-seg">
+            <button class="bs-seg-btn" data-bs-count="5">5</button>
+            <button class="bs-seg-btn active" data-bs-count="10">10</button>
+            <button class="bs-seg-btn" data-bs-count="20">20</button>
+            <button class="bs-seg-btn" data-bs-count="all">Все</button>
+          </div>
+        </div>
+
+        <div class="bs-divider"></div>
+
+        <!-- РАЗДЕЛ 3: Автопроизношение -->
+        <div class="bs-section bs-section--row">
+          <div class="bs-section-label">
+            <span class="material-symbols-outlined">volume_up</span>
+            Автопроизношение
+          </div>
+          <div class="bs-seg" id="bs-autopron-seg">
+            <button class="bs-seg-btn active" data-bs-autopron="on">
+              <span class="material-symbols-outlined">volume_up</span>
+            </button>
+            <button class="bs-seg-btn" data-bs-autopron="off">
+              <span class="material-symbols-outlined">volume_off</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bs-divider"></div>
+
+        <!-- РАЗДЕЛ 3: Направление -->
+        <div class="bs-section bs-section--row">
+          <div class="bs-section-label">
+            <span class="material-symbols-outlined">swap_horiz</span>
+            Направление
+          </div>
+          <div class="bs-seg" id="bs-dir-seg">
+            <button class="bs-seg-btn active" data-bs-dir="both">EN+RU</button>
+            <button class="bs-seg-btn" data-bs-dir="en-ru">EN→RU</button>
+            <button class="bs-seg-btn" data-bs-dir="ru-en">RU→EN</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="tour.js"></script>
   </body>
 </html>
