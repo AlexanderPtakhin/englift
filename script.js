@@ -8253,6 +8253,14 @@ document
     document.getElementById('show-phonetic').checked = showPhonetic;
   });
 
+// Обработчик кнопки тура
+document
+  .getElementById('dropdown-start-tour')
+  ?.addEventListener('click', () => {
+    document.getElementById('user-dropdown').style.display = 'none';
+    window.startTour();
+  });
+
 // Обработчик кнопки синхронизации
 
 document
