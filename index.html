@@ -143,6 +143,32 @@
           </div>
         </div>
 
+        <!-- Поле username — показывается только при регистрации -->
+        <div class="form-group" id="gate-username-group" style="display: none">
+          <label>Имя пользователя</label>
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">badge</span>
+            <input
+              class="form-control"
+              type="text"
+              id="gate-username"
+              placeholder="например: cooluser42"
+              autocomplete="username"
+              maxlength="20"
+            />
+          </div>
+          <small
+            id="gate-username-hint"
+            style="
+              color: var(--muted);
+              font-size: 0.78rem;
+              margin-top: 4px;
+              display: block;
+            "
+            >3–20 символов: буквы, цифры, _ и -</small
+          >
+        </div>
+
         <div class="form-group">
           <label>Пароль</label>
 
@@ -504,11 +530,6 @@
           <p>Добавьте первое слово, чтобы начать учить английский!</p>
 
           <br />
-
-          <button class="btn btn-primary btn-lg" id="empty-add-word-btn">
-            <span class="material-symbols-outlined">add</span>
-            Добавить первое слово
-          </button>
         </div>
       </div>
 

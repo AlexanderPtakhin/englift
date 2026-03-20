@@ -14846,10 +14846,6 @@ function closeAddWordModal() {
 addWordBtn?.addEventListener('click', openAddWordModal);
 addWordModalClose?.addEventListener('click', closeAddWordModal);
 
-// Обработчик для кнопки "Добавить первое слово"
-const emptyAddWordBtn = document.getElementById('empty-add-word-btn');
-emptyAddWordBtn?.addEventListener('click', openAddWordModal);
-
 addWordModal?.addEventListener('click', e => {
   if (e.target === addWordModal) closeAddWordModal();
 });

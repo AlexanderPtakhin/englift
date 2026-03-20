@@ -47,6 +47,27 @@ const userDropdown = document.getElementById('user-dropdown');
 const dropdownEmail = document.getElementById('dropdown-email');
 const dropdownLogout = document.getElementById('dropdown-logout');
 
+// Добавляем элементы для username
+const gateUsername = document.getElementById('gate-username');
+const gateUsernameGroup = document.getElementById('gate-username-group');
+const gateUsernameHint = document.getElementById('gate-username-hint');
+
+// Real-time проверка username пока пишет
+gateUsername.addEventListener('input', () => {
+  const val = gateUsername.value.trim();
+  const valid = /^[a-zA-Z0-9_-]{3,20}$/.test(val);
+  if (!val) {
+    gateUsernameHint.style.color = 'var(--muted)';
+    gateUsernameHint.textContent = '3–20 символов: буквы, цифры, _ и -';
+  } else if (!valid) {
+    gateUsernameHint.style.color = 'var(--danger)';
+    gateUsernameHint.textContent = 'Только буквы, цифры, _ и - (3–20 символов)';
+  } else {
+    gateUsernameHint.style.color = 'var(--success)';
+    gateUsernameHint.textContent = '✓ Выглядит хорошо';
+  }
+});
+
 // Добавляем элементы табов
 const authTabs = document.querySelectorAll('.auth-tab');
 
@@ -91,12 +112,17 @@ function hideEmailNotVerified() {
   if (emailNotVerifiedBlock) emailNotVerifiedBlock.style.display = 'none';
 }
 
-function toggleConfirmPassword(show) {
+function toggleRegisterFields(show) {
   if (show) {
     gateConfirmGroup.style.display = 'block';
+    gateUsernameGroup.style.display = 'block';
   } else {
     gateConfirmGroup.style.display = 'none';
     gateConfirm.value = '';
+    gateUsernameGroup.style.display = 'none';
+    gateUsername.value = '';
+    gateUsernameHint.style.color = 'var(--muted)';
+    gateUsernameHint.textContent = '3–20 символов: буквы, цифры, _ и -';
   }
 }
 
@@ -104,7 +130,10 @@ function clearGateForm() {
   gateEmail.value = '';
   gatePassword.value = '';
   gateConfirm.value = '';
+  gateUsername.value = '';
   gateError.textContent = '';
+  // на случай если юзер передумал регистрироваться
+  localStorage.removeItem('englift_pending_username');
 }
 
 // Функция обновления табов
@@ -126,7 +155,7 @@ authTabs.forEach(tab => {
 
     // Обновляем UI в зависимости от режима
     gateSubmit.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
-    toggleConfirmPassword(isRegisterMode);
+    toggleRegisterFields(isRegisterMode);
     gateError.textContent = '';
     clearGateForm();
   });
@@ -176,6 +205,23 @@ async function handleAuth(email, password, confirm, isRegister) {
     gateError.textContent = 'Пароли не совпадают';
     return;
   }
+
+  // ── Валидация username при регистрации ──
+  let chosenUsername = '';
+  if (isRegister) {
+    chosenUsername = gateUsername.value.trim();
+    if (!chosenUsername) {
+      gateError.textContent = 'Введи имя пользователя';
+      gateUsername.focus();
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]{3,20}$/.test(chosenUsername)) {
+      gateError.textContent = 'Имя: 3–20 символов, только буквы, цифры, _ и -';
+      gateUsername.focus();
+      return;
+    }
+  }
+
   gateError.textContent = '';
   gateSubmit.disabled = true;
   gateSubmit.textContent = '...';
@@ -183,6 +229,23 @@ async function handleAuth(email, password, confirm, isRegister) {
   try {
     if (isRegister) {
       console.log('📝 Registering new user...');
+
+      // ── Проверяем уникальность username ──
+      const { data: taken } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', chosenUsername)
+        .maybeSingle();
+
+      if (taken) {
+        gateError.textContent = `Никнейм «${chosenUsername}» уже занят`;
+        gateUsername.focus();
+        return;
+      }
+
+      // ── Сохраняем выбранный username чтобы loadUserProfile его подхватил ──
+      localStorage.setItem('englift_pending_username', chosenUsername);
+
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       if (data.user) {
@@ -215,6 +278,7 @@ async function handleAuth(email, password, confirm, isRegister) {
       invalid_credentials: 'Неверный email или пароль',
     };
     gateError.textContent = msgs[err.message] || err.message;
+    localStorage.removeItem('englift_pending_username'); // сбрасываем если ошибка
   } finally {
     gateSubmit.disabled = false;
     gateSubmit.textContent = isRegister ? 'Создать аккаунт' : 'Войти';
@@ -505,10 +569,13 @@ async function loadUserProfile(user) {
       // Создаём новый профиль
       const today = new Date().toISOString().split('T')[0];
 
-      // Генерируем username из email
-      const emailPrefix = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
-      const randomSuffix = Math.floor(Math.random() * 1000);
-      const username = emailPrefix + randomSuffix;
+      // Используем выбранный username или генерируем из email
+      const savedUsername = localStorage.getItem('englift_pending_username');
+      const username =
+        savedUsername ||
+        user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') +
+          Math.floor(Math.random() * 1000);
+      localStorage.removeItem('englift_pending_username'); // чистим сразу после использования
 
       const defaultProfile = {
         username: username,

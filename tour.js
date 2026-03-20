@@ -9,7 +9,8 @@
   const STEPS = [
     {
       target: null,
-      title: '👋 Добро пожаловать в EngLift!',
+      title:
+        '<span class="material-symbols-outlined">waving_hand</span> Добро пожаловать в EngLift!',
       text: 'Быстрый тур по приложению — меньше минуты, и ты будешь знать всё.',
       position: 'center',
     },
@@ -18,7 +19,7 @@
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="words"]')
           : document.querySelector('.nav-btn[data-tab="words"]'),
-      title: '📚 Словарь',
+      title: '<span class="material-symbols-outlined">menu_book</span> Словарь',
       text: 'Здесь хранятся все твои слова. Фильтруй по тегам, CEFR-уровням, сортируй как удобно.',
       onBefore: () => {
         // Убеждаемся что на вкладке слов
@@ -28,7 +29,8 @@
     },
     {
       target: () => document.querySelector('#wotd-wrap'),
-      title: '✨ Банк слов',
+      title:
+        '<span class="material-symbols-outlined">auto_awesome</span> Банк слов',
       text: 'Каждый раз при открытии — новое слово из огромной базы. Можно сразу добавить к себе в словарь одной кнопкой.',
       onBefore: () => {
         // Остаемся на вкладке слов
@@ -38,7 +40,8 @@
     },
     {
       target: () => document.querySelector('#floating-add-word-btn'),
-      title: '➕ Добавить слово',
+      title:
+        '<span class="material-symbols-outlined">add_circle</span> Добавить слово',
       text: 'Одна кнопка — и форма открыта. Перевод, транскрипция и пример подтянутся из словаря автоматически.',
       onBefore: () => {
         // Остаемся на вкладке слов
@@ -46,12 +49,55 @@
         document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
       },
     },
+    // ШАГ 4 — кнопка аудио на карточке
+    {
+      target: () =>
+        document.querySelector(
+          '#words-grid .word-card[data-id="__demo__"] .audio-btn',
+        ) || document.querySelector('#words-grid .word-card .audio-btn'),
+      title:
+        '<span class="material-symbols-outlined">volume_up</span> Произношение слова',
+      text: 'На каждой карточке есть кнопка звука — нажми и услышишь произношение носителем языка.',
+      onBefore() {
+        document.querySelector('.nav-btn[data-tab="words"]')?.click();
+        document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
+        const expanded = document.querySelector(
+          '#words-grid .word-card.expanded',
+        );
+        if (expanded) expanded.click();
+      },
+    },
+    // ШАГ 5 — раскрытие карточки, пример и аудио примера
+    {
+      target: () =>
+        document.querySelector('#words-grid .word-card[data-id="__demo__"]') ||
+        document.querySelector('#words-grid .word-card'),
+      title:
+        '<span class="material-symbols-outlined">menu_open</span> Пример и перевод',
+      text: 'Нажми на карточку — она раскроется. Внутри увидишь пример использования, его перевод и кнопку прослушать пример.',
+      delay: 420,
+      onBefore() {
+        document.querySelector('.nav-btn[data-tab="words"]')?.click();
+        document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
+        // раскрываем с задержкой — после того как rAF пересоберёт DOM
+        setTimeout(() => {
+          const demoCard =
+            document.querySelector(
+              '#words-grid .word-card[data-id="__demo__"]',
+            ) || document.querySelector('#words-grid .word-card');
+          if (demoCard && !demoCard.classList.contains('expanded')) {
+            demoCard.click();
+          }
+        }, 160);
+      },
+    },
     {
       target: () =>
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="idioms"]')
           : document.querySelector('.nav-btn[data-tab="idioms"]'),
-      title: '🎭 Идиомы',
+      title:
+        '<span class="material-symbols-outlined">theater_comedy</span> Идиомы',
       text: 'Отдельный раздел для идиом и устойчивых выражений. Та же механика, отдельная база.',
       onBefore: () => {
         // Переключаемся на вкладку идиом
@@ -61,8 +107,9 @@
     },
     {
       target: () => document.querySelector('#idiom-bank-wrap'),
-      title: '🎲 Банк идиом',
+      title: '<span class="material-symbols-outlined">casino</span> Банк идиом',
       text: 'То же самое для идиом — случайная подборка из большой базы. Листай, добавляй что понравилось.',
+      delay: 500,
       onBefore: () => {
         // Убеждаемся что на вкладке идиом
         document.querySelector('.nav-btn[data-tab="idioms"]')?.click();
@@ -74,7 +121,8 @@
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="practice"]')
           : document.querySelector('.nav-btn[data-tab="practice"]'),
-      title: '🚀 Практика',
+      title:
+        '<span class="material-symbols-outlined">rocket_launch</span> Практика',
       text: '9 типов упражнений: флэш-карты, тест, диктовка, речь, конструктор и другие. Умный SM-2 алгоритм сам решает что показать.',
       onBefore: () => {
         // Переключаемся на вкладку практики
@@ -87,7 +135,8 @@
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="stats"]')
           : document.querySelector('.nav-btn[data-tab="stats"]'),
-      title: '📊 Прогресс',
+      title:
+        '<span class="material-symbols-outlined">monitoring</span> Прогресс',
       text: 'XP, уровень, стрик, недельный график, CEFR и бейджи. Всё чтобы не забросить.',
       onBefore: () => {
         // Переключаемся на вкладку статистики
@@ -100,7 +149,7 @@
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="friends"]')
           : document.querySelector('.nav-btn[data-tab="friends"]'),
-      title: '👥 Друзья',
+      title: '<span class="material-symbols-outlined">group</span> Друзья',
       text: 'Добавляй друзей и соревнуйся в лидерборде по XP. Конкуренция мотивирует!',
       onBefore: () => {
         // Переключаемся на вкладку друзей
@@ -109,8 +158,21 @@
       },
     },
     {
+      target: () => document.querySelector('#user-avatar'),
+      title:
+        '<span class="material-symbols-outlined">settings</span> Настройки',
+      text: 'Нажми на аватарку — там можно сменить голос озвучки, выбрать тему оформления и настроить лимит повторений в день.',
+      onBefore() {
+        // закрыть дропдаун если вдруг открыт
+        const dropdown = document.getElementById('user-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        STEPS[10].target = document.querySelector('#user-avatar');
+      },
+    },
+    {
       target: null,
-      title: '🎉 Готово!',
+      title:
+        '<span class="material-symbols-outlined">celebration</span> Готово!',
       text: 'Добавь первое слово прямо сейчас — и пусть стрик никогда не обнулится 🔥',
       position: 'center',
       isLast: true,
@@ -122,13 +184,59 @@
     },
   ];
 
+  // ─── DEMO WORD FUNCTIONS ───────────────────────────────────
+  function addDemoWord() {
+    if (!window.words) return;
+    if (window.words.find(w => w.id === '__demo__')) return;
+    window.words.unshift({
+      id: '__demo__',
+      en: 'Hello',
+      ru: 'Привет',
+      phonetic: '[həˈloʊ]',
+      ex: 'Hello, how are you today?',
+      examples: [
+        {
+          text: 'Hello, how are you today?',
+          translation: 'Привет, как дела сегодня?',
+        },
+      ],
+      examplesAudio: [],
+      audio: null,
+      tags: ['A1'],
+      createdAt: new Date().toISOString(),
+      stats: {
+        shown: 3,
+        correct: 2,
+        streak: 1,
+        learned: false,
+        nextReview: new Date().toISOString(),
+        interval: 3,
+        easeFactor: 2.5,
+        correctExerciseTypes: ['flash', 'multi'],
+        lastPracticed: new Date(Date.now() - 86400000).toISOString(),
+      },
+      isDemo: true,
+    });
+    // даем время на отрисовку
+    setTimeout(() => window.renderWords?.(), 50);
+  }
+
+  function removeDemoWord() {
+    if (!window.words) return;
+    window.words = window.words.filter(w => w.id !== '__demo__');
+    window.renderWords?.();
+  }
+
   // ─── BUILD DOM ────────────────────────────────────────────
   function buildTour() {
-    injectStyles();
+    addDemoWord(); // ← добавить сюда
+    // ждем отрисовки демо-слова
+    setTimeout(() => {
+      injectStyles();
 
-    const overlay = document.createElement('div');
-    overlay.id = 'tour-overlay';
-    overlay.innerHTML = `
+      const overlay = document.createElement('div');
+      overlay.id = 'tour-overlay';
+      overlay.innerHTML = `
       <svg id="tour-svg" aria-hidden="true">
         <defs>
           <mask id="tour-mask">
@@ -140,12 +248,12 @@
               fill="rgba(0,0,0,0.55)" mask="url(#tour-mask)"/>
       </svg>`;
 
-    const ring = document.createElement('div');
-    ring.id = 'tour-ring';
+      const ring = document.createElement('div');
+      ring.id = 'tour-ring';
 
-    const tooltip = document.createElement('div');
-    tooltip.id = 'tour-tooltip';
-    tooltip.innerHTML = `
+      const tooltip = document.createElement('div');
+      tooltip.id = 'tour-tooltip';
+      tooltip.innerHTML = `
       <div id="tour-arrow"></div>
       <div id="tour-header">
         <span id="tour-badge"></span>
@@ -164,23 +272,24 @@
       </div>
     `;
 
-    document.body.append(overlay, ring, tooltip);
+      document.body.append(overlay, ring, tooltip);
 
-    document.getElementById('tour-skip').onclick = () => endTour(false);
-    document.getElementById('tour-prev').onclick = () => goTo(state.step - 1);
-    document.getElementById('tour-next').onclick = () => {
-      if (state.step === STEPS.length - 1) endTour(true);
-      else goTo(state.step + 1);
-    };
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay || e.target.closest('#tour-svg')) {
-        if (state.step < STEPS.length - 1) goTo(state.step + 1);
-        else endTour(true);
-      }
-    });
-    document.addEventListener('keydown', onKey);
+      document.getElementById('tour-skip').onclick = () => endTour(false);
+      document.getElementById('tour-prev').onclick = () => goTo(state.step - 1);
+      document.getElementById('tour-next').onclick = () => {
+        if (state.step === STEPS.length - 1) endTour(true);
+        else goTo(state.step + 1);
+      };
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay || e.target.closest('#tour-svg')) {
+          if (state.step < STEPS.length - 1) goTo(state.step + 1);
+          else endTour(true);
+        }
+      });
+      document.addEventListener('keydown', onKey);
 
-    goTo(0);
+      goTo(0);
+    }, 300); // ждем отрисовки демо-слова
   }
 
   // ─── STATE & RENDER ───────────────────────────────────────
@@ -190,12 +299,10 @@
     if (idx < 0 || idx >= STEPS.length) return;
     state.step = idx;
     const step = STEPS[idx];
-
-    // Вызываем хук перед рендером
     if (step.onBefore) {
       step.onBefore();
-      // Небольшая задержка чтобы DOM успел перерисоваться
-      setTimeout(() => renderStep(step, idx), 120);
+      // используем step.delay если есть, иначе дефолтные 120ms
+      setTimeout(() => renderStep(step, idx), step.delay ?? 120);
       return;
     }
     renderStep(step, idx);
@@ -205,7 +312,7 @@
     const pct = Math.round(((idx + 1) / STEPS.length) * 100);
     document.getElementById('tour-badge').textContent =
       `${idx + 1} / ${STEPS.length}`;
-    document.getElementById('tour-title').textContent = step.title;
+    document.getElementById('tour-title').innerHTML = step.title;
     document.getElementById('tour-text').textContent = step.text;
 
     document.getElementById('tour-dots').innerHTML = STEPS.map(
@@ -226,7 +333,8 @@
       // Создаем кнопку "Начать" по центру
       const finishBtn = document.createElement('button');
       finishBtn.id = 'tour-finish';
-      finishBtn.textContent = '🎉 Начать!';
+      finishBtn.innerHTML =
+        '<span class="material-symbols-outlined">celebration</span> Начать!';
       finishBtn.className = 'finish';
       finishBtn.onclick = () => endTour(true);
 
@@ -299,25 +407,37 @@
     arrow.style.display = 'block';
 
     const r = target.getBoundingClientRect();
-    const PAD = 10;
+    // SVG hole + ring - чистый PAD или ноль для элементов у края
+    const PAD_FULL = 10;
+    const VW = window.innerWidth;
+    const VH = window.innerHeight;
 
-    // SVG hole + ring
+    // Если элемент у любого края — убираем отступ полностью
+    const nearEdge =
+      r.left < PAD_FULL ||
+      r.top < PAD_FULL ||
+      VW - r.right < PAD_FULL ||
+      VH - r.bottom < PAD_FULL;
+
+    const PAD = nearEdge ? 0 : PAD_FULL;
+
     hole.setAttribute('x', r.left - PAD);
     hole.setAttribute('y', r.top - PAD);
     hole.setAttribute('width', r.width + PAD * 2);
     hole.setAttribute('height', r.height + PAD * 2);
+
     Object.assign(ring.style, {
-      top: `${r.top - PAD}px`,
-      left: `${r.left - PAD}px`,
-      width: `${r.width + PAD * 2}px`,
-      height: `${r.height + PAD * 2}px`,
+      top: r.top - PAD + 'px',
+      left: r.left - PAD + 'px',
+      width: r.width + PAD * 2 + 'px',
+      height: r.height + PAD * 2 + 'px',
     });
 
     // Размеры и ограничения
     const TW = Math.min(320, window.innerWidth - 32);
-    const TH = 220;
-    const VW = window.innerWidth;
-    const VH = window.innerHeight;
+    // Ставим ширину сразу — браузер посчитает реальную высоту
+    tooltip.style.width = TW + 'px';
+    const TH = tooltip.offsetHeight || 220; // ← реальная высота, не гадаем
     const GAP = 16;
     const M = 16;
 
@@ -356,9 +476,15 @@
       left = M;
     }
 
+    // Убеждаемся что низ тултипа не залезает в зону мобильного меню
+    const safeBottom = isMobile() ? VH - MOBILE_NAV_H - M : VH - M;
+    if (top + TH > safeBottom) {
+      top = safeBottom - TH - 4;
+    }
+
     tooltip.style.top = `${top}px`;
     tooltip.style.left = `${left}px`;
-    tooltip.style.width = `${TW}px`;
+    tooltip.style.width = `${TW}px`; // уже выставлен выше, но для ясности
 
     // Позиция стрелки: указываем на центр целевого элемента
     const targetCenter = r.left + r.width / 2;
@@ -369,14 +495,34 @@
     const arrowPos = Math.max(16, Math.min(arrowX - 6, TW - 28));
     arrow.className = arrowClass;
     arrow.style.left = `${arrowPos}px`;
+
+    // Следим за изменением размеров таргета
+    if (window._tourResizeObserver) {
+      window._tourResizeObserver.disconnect();
+    }
+    if (target) {
+      window._tourResizeObserver = new ResizeObserver(() => {
+        // перепозиционируем только если этот шаг ещё активен
+        const currentStep = STEPS[state.step];
+        const currentTarget =
+          typeof currentStep.target === 'function'
+            ? currentStep.target()
+            : currentStep.target;
+        if (currentTarget === target) positionTooltip(currentStep);
+      });
+      window._tourResizeObserver.observe(target);
+    }
   }
 
   // ─── END ──────────────────────────────────────────────────
   function endTour(completed) {
     document.removeEventListener('keydown', onKey);
-    ['tour-overlay', 'tour-ring', 'tour-tooltip'].forEach(id =>
+    ['tour-overlay', 'tour-ring', 'tour-tooltip', 'tour-styles'].forEach(id =>
       document.getElementById(id)?.remove(),
     );
+    window._tourResizeObserver?.disconnect();
+    window._tourResizeObserver = null;
+    removeDemoWord(); // ← добавить сюда
     if (completed) {
       localStorage.setItem(TOUR_KEY, '1');
       window.spawnConfetti?.();
@@ -468,6 +614,11 @@
       #tour-title {
         font-size: 1rem; font-weight: 800; line-height: 1.3;
         color: var(--text); margin-bottom: 6px;
+        display: flex; align-items: center; gap: 8px;
+      }
+      #tour-title .material-symbols-outlined {
+        font-size: 1.2rem;
+        color: var(--primary);
       }
       #tour-text {
         font-size: .855rem; line-height: 1.6;
@@ -529,10 +680,18 @@
         transition: opacity .15s, transform .15s;
         font-family: inherit;
         box-shadow: 0 4px 16px rgba(var(--primary-rgb), .3);
+        display: flex; align-items: center; gap: 8px;
+      }
+      #tour-finish .material-symbols-outlined {
+        font-size: 1.1rem;
+        color: #fff !important;
       }
       #tour-finish:hover {
         opacity: .9; 
         transform: scale(1.05);
+      }
+      #tour-finish:hover .material-symbols-outlined {
+        color: #fff !important;
       }
       #tour-prev:disabled { opacity: .3; cursor: default; }
       #tour-prev:not(:disabled):hover,
