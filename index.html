@@ -55,6 +55,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
     <!-- Убрали xlsx.js для ускорения загрузки -->
@@ -141,14 +142,31 @@
               placeholder="your@email.com"
               autocomplete="email"
             />
+
+            <div
+              id="email-check-spinner"
+              class="loading-spinner"
+              style="
+                display: none;
+                width: 16px;
+                height: 16px;
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+              "
+            ></div>
           </div>
         </div>
 
         <!-- Поле username — показывается только при регистрации -->
+
         <div class="form-group" id="gate-username-group" style="display: none">
           <label>Имя пользователя</label>
+
           <div class="input-with-icon">
             <span class="material-symbols-outlined input-icon">badge</span>
+
             <input
               class="form-control"
               type="text"
@@ -158,12 +176,16 @@
               maxlength="20"
             />
           </div>
+
           <small
             id="gate-username-hint"
             style="
               color: var(--muted);
+
               font-size: 0.78rem;
+
               margin-top: 4px;
+
               display: block;
             "
             >3–20 символов: буквы, цифры, _ и -</small
@@ -269,11 +291,13 @@
       <nav>
         <button class="nav-btn" data-tab="words">
           <span class="material-symbols-outlined">menu_book</span>
+
           <span class="nav-text">Словарь</span>
         </button>
 
         <button class="nav-btn" data-tab="idioms">
           <span class="material-symbols-outlined">theater_comedy</span>
+
           <span class="nav-text">Идиомы</span>
         </button>
 
@@ -293,7 +317,9 @@
 
         <button class="nav-btn" data-tab="friends">
           <span class="material-symbols-outlined">group</span>
+
           <span class="nav-text">Друзья</span>
+
           <span
             class="badge"
             id="friends-req-badge"
@@ -304,6 +330,7 @@
 
       <div class="header-right">
         <!-- Кнопка переключения темы -->
+
         <button
           class="theme-toggle-header"
           id="theme-toggle-header"
@@ -336,6 +363,7 @@
 
             <div class="dropdown-item" id="dropdown-start-tour">
               <span class="material-symbols-outlined">explore</span>
+
               <span>Тур по приложению</span>
             </div>
 
@@ -345,6 +373,7 @@
               style="display: none"
             >
               <span class="material-symbols-outlined">download</span>
+
               <span>Приложение</span>
             </div>
 
@@ -371,6 +400,7 @@
 
       <button class="mobile-nav-btn" data-tab="idioms">
         <span class="material-symbols-outlined">theater_comedy</span>
+
         <span>Идиомы</span>
       </button>
 
@@ -390,7 +420,9 @@
 
       <button class="mobile-nav-btn" data-tab="friends">
         <span class="material-symbols-outlined">group</span>
+
         <span>Друзья</span>
+
         <span
           class="badge"
           id="mobile-friends-req-badge"
@@ -553,10 +585,13 @@
               <div class="chip-group" id="practice-mode">
                 <button class="chip on" data-mode="normal">
                   <span class="material-symbols-outlined">school</span>
+
                   Слова<span id="practice-words-due"></span>
                 </button>
+
                 <button class="chip" data-mode="idioms">
                   <span class="material-symbols-outlined">theater_comedy</span>
+
                   Идиомы<span id="practice-idioms-due"></span>
                 </button>
               </div>
@@ -626,6 +661,7 @@
                   </div>
 
                   <div class="exercise-name">Карточки</div>
+
                   <div class="exercise-desc" style="display: none">
                     Переворачивай и запоминай
                   </div>
@@ -637,6 +673,7 @@
                   </div>
 
                   <div class="exercise-name">Выбор</div>
+
                   <div class="exercise-desc" style="display: none">
                     Найди правильный вариант
                   </div>
@@ -648,6 +685,7 @@
                   </div>
 
                   <div class="exercise-name">Напиши</div>
+
                   <div class="exercise-desc" style="display: none">
                     Введи перевод слова
                   </div>
@@ -659,6 +697,7 @@
                   </div>
 
                   <div class="exercise-name">Диктант</div>
+
                   <div class="exercise-desc" style="display: none">
                     Напиши, что слышишь
                   </div>
@@ -672,6 +711,7 @@
                   </div>
 
                   <div class="exercise-name">Скажи</div>
+
                   <div class="exercise-desc" style="display: none">
                     Тренируй произношение
                   </div>
@@ -685,6 +725,7 @@
                   </div>
 
                   <div class="exercise-name">Фраза</div>
+
                   <div class="exercise-desc" style="display: none">
                     Прослушай и повтори предложение
                   </div>
@@ -696,6 +737,7 @@
                   </div>
 
                   <div class="exercise-name">Пары</div>
+
                   <div class="exercise-desc" style="display: none">
                     Соедини слово и перевод
                   </div>
@@ -707,6 +749,7 @@
                   </div>
 
                   <div class="exercise-name">Собери</div>
+
                   <div class="exercise-desc" style="display: none">
                     Составь слово из букв
                   </div>
@@ -718,6 +761,7 @@
                   </div>
 
                   <div class="exercise-name">Контекст</div>
+
                   <div class="exercise-desc" style="display: none">
                     Пойми слово по смыслу
                   </div>
@@ -788,16 +832,20 @@
             </div>
 
             <!-- ===== MOBILE TRIGGER BUTTON (только мобиле) ===== -->
+
             <div class="setup-row bs-trigger-row" id="bs-trigger-row">
               <button class="bs-trigger-btn" id="practice-bs-trigger">
                 <div class="bs-trigger-left">
                   <span class="material-symbols-outlined bs-trigger-icon"
                     >tune</span
                   >
+
                   <div class="bs-trigger-text">
                     <span class="bs-trigger-label">Настройки</span>
+
                     <span class="bs-trigger-summary" id="bs-trigger-summary"
                       >Все слова · EN+RU ·
+
                       <span
                         class="material-symbols-outlined"
                         style="font-size: 16px; vertical-align: middle"
@@ -806,6 +854,7 @@
                     >
                   </div>
                 </div>
+
                 <span class="material-symbols-outlined bs-trigger-arrow"
                   >expand_more</span
                 >
@@ -902,6 +951,18 @@
                   <button class="btn-icon" id="setup-btn">
                     <span class="material-symbols-outlined">close</span>
                   </button>
+
+                  <div class="form-group">
+                    <button
+                      class="btn-pill btn-pill--secondary"
+                      id="change-password-btn"
+                      style="width: 100%"
+                    >
+                      <span class="material-symbols-outlined">vpn_key</span>
+
+                      Сменить пароль
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -935,6 +996,7 @@
         </div>
 
         <!-- Прогресс карточки -->
+
         <div id="st-progress-cards" class="st-progress-cards"></div>
 
         <div class="stats-grid">
@@ -1036,23 +1098,29 @@
         </div>
 
         <!-- Сложные/лёгкие ИДИОМЫ -->
+
         <div class="stats-row idiom-difficulty-row">
           <div class="word-list-card">
             <div class="daily-cap-header">
               <span class="material-symbols-outlined"
                 >sentiment_very_dissatisfied</span
               >
+
               <h3>Сложные идиомы</h3>
             </div>
+
             <ul id="st-hard-idioms" class="wlist"></ul>
           </div>
+
           <div class="word-list-card">
             <div class="daily-cap-header">
               <span class="material-symbols-outlined"
                 >sentiment_very_satisfied</span
               >
+
               <h3>Лёгкие идиомы</h3>
             </div>
+
             <ul id="st-easy-idioms" class="wlist"></ul>
           </div>
         </div>
@@ -1081,8 +1149,10 @@
       </div>
 
       <!-- TAB: IDIOMS -->
+
       <div class="tab-pane" id="tab-idioms">
         <!-- Банк идиом -->
+
         <div id="idiom-bank-wrap" style="margin-bottom: 2rem"></div>
 
         <div class="section-title">
@@ -1090,9 +1160,11 @@
         </div>
 
         <!-- Поиск и фильтры -->
+
         <div class="words-toolbar">
           <div class="search-container">
             <span class="material-symbols-outlined search-icon">search</span>
+
             <input
               class="form-control"
               id="idioms-search"
@@ -1116,6 +1188,7 @@
               <span class="material-symbols-outlined learning-icon"
                 >cognition_2</span
               >
+
               Учу
             </button>
 
@@ -1129,33 +1202,46 @@
                 id="idiom-sort-select-trigger"
               >
                 <span class="material-symbols-outlined">clock_loader_10</span>
+
                 <span>Новые</span>
+
                 <span class="material-symbols-outlined">expand_more</span>
               </button>
 
               <div class="custom-select-options" id="idiom-sort-select-options">
                 <div class="custom-select-option active" data-value="date-desc">
                   <span class="material-symbols-outlined">clock_loader_10</span>
+
                   <span>Новые</span>
                 </div>
+
                 <div class="custom-select-option" data-value="date-asc">
                   <span class="material-symbols-outlined">clock_loader_80</span>
+
                   <span>Старые</span>
                 </div>
+
                 <div class="custom-select-option" data-value="alpha-asc">
                   <span class="material-symbols-outlined">sort_by_alpha</span>
+
                   <span>A → Z</span>
                 </div>
+
                 <div class="custom-select-option" data-value="alpha-desc">
                   <span class="material-symbols-outlined">sort_by_alpha</span>
+
                   <span>Z → A</span>
                 </div>
+
                 <div class="custom-select-option" data-value="progress-asc">
                   <span class="material-symbols-outlined">fitness_center</span>
+
                   <span>Сложные</span>
                 </div>
+
                 <div class="custom-select-option" data-value="progress-desc">
                   <span class="material-symbols-outlined">check_circle</span>
+
                   <span>Лёгкие</span>
                 </div>
               </div>
@@ -1164,34 +1250,45 @@
         </div>
 
         <!-- Сетка для идиом -->
+
         <div id="idioms-grid" class="words-grid"></div>
 
         <!-- Бесконечная прокрутка -->
+
         <div
           id="idioms-load-more-trigger"
           style="height: 1px; width: 100%; visibility: hidden"
         ></div>
+
         <div
           id="idioms-loading-more"
           style="display: none; text-align: center; padding: 1rem"
         >
           <div class="loading-spinner"></div>
+
           Загружаем ещё...
         </div>
 
         <!-- Пустое состояние -->
+
         <div
           id="empty-idioms"
           style="
             display: none;
+
             text-align: center;
+
             padding: 3rem;
+
             color: var(--muted);
           "
         >
           <h3>Идиом пока нет</h3>
+
           <p>Добавьте первую идиому, чтобы запомнить её!</p>
+
           <br />
+
           <button class="btn btn-primary btn-lg" id="empty-add-idiom-btn">
             <span class="material-symbols-outlined">add</span> Добавить идиому
           </button>
@@ -1199,28 +1296,38 @@
       </div>
 
       <!-- TAB FRIENDS -->
+
       <div class="tab-pane" id="tab-friends">
         <!-- ЛИДЕРБОРД -->
+
         <div class="friends-leaderboard-section">
           <div class="daily-cap-header">
             <span class="material-symbols-outlined">emoji_events</span>
+
             <h3>Лидерборд</h3>
           </div>
+
           <div id="friends-leaderboard-list" class="friends-leaderboard-list">
             <div class="loading-spinner"></div>
           </div>
         </div>
 
         <!-- ПИЛЮЛИ: Друзья / Заявки -->
+
         <div class="friends-pills">
           <button class="pill active" id="pill-friends-list" data-fpill="list">
             <span class="material-symbols-outlined">people</span>
+
             <span>Друзья</span>
+
             <span class="friends-count-badge" id="friends-count-badge"></span>
           </button>
+
           <button class="pill" id="pill-friends-requests" data-fpill="requests">
             <span class="material-symbols-outlined">mark_email_unread</span>
+
             <span>Заявки</span>
+
             <span
               class="friends-req-badge"
               id="friends-req-badge"
@@ -1228,13 +1335,16 @@
               >0</span
             >
           </button>
+
           <button class="pill" id="pill-friends-search" data-fpill="search">
             <span class="material-symbols-outlined">search</span>
+
             <span>Поиск</span>
           </button>
         </div>
 
         <!-- ПАНЕЛЬ: СПИСОК ДРУЗЕЙ -->
+
         <div class="friends-panel active" id="fpanel-list">
           <div id="friends-list-content">
             <div class="loading-spinner"></div>
@@ -1242,29 +1352,39 @@
         </div>
 
         <!-- ПАНЕЛЬ: ЗАЯВКИ -->
+
         <div class="friends-panel" id="fpanel-requests">
           <!-- Входящие -->
+
           <div class="friends-subsection" id="incoming-section">
             <div class="friends-subsection-title">
               <span class="material-symbols-outlined">call_received</span>
+
               Входящие
             </div>
+
             <div id="incoming-list"></div>
           </div>
+
           <!-- Исходящие -->
+
           <div class="friends-subsection" id="outgoing-section">
             <div class="friends-subsection-title">
               <span class="material-symbols-outlined">call_made</span>
+
               Исходящие
             </div>
+
             <div id="outgoing-list"></div>
           </div>
         </div>
 
         <!-- ПАНЕЛЬ: ПОИСК -->
+
         <div class="friends-panel" id="fpanel-search">
           <div class="search-container" style="margin-bottom: 1rem">
             <span class="material-symbols-outlined search-icon">search</span>
+
             <input
               class="form-control"
               id="friends-search-input-new"
@@ -1273,33 +1393,40 @@
               autocomplete="off"
             />
           </div>
+
           <div id="friends-search-results-new"></div>
         </div>
       </div>
     </main>
 
     <!-- Плавающая кнопка добавления слова -->
+
     <button class="floating-add-btn" id="floating-add-word-btn">
       <span class="material-symbols-outlined">add</span>
     </button>
 
     <!-- Плавающая кнопка добавления идиомы -->
+
     <button class="floating-add-btn" id="floating-add-idiom-btn">
       <span class="material-symbols-outlined">theater_comedy</span>
     </button>
 
     <!-- Модальное окно добавления идиомы -->
+
     <div class="modal-backdrop" id="add-idiom-modal">
       <div class="modal-box" style="max-width: 500px">
         <div class="modal-header">
           <h3>Добавить идиому</h3>
+
           <button class="modal-close" id="add-idiom-modal-close">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
+
         <form id="add-idiom-form">
           <div class="form-group">
             <label>Английская идиома *</label>
+
             <input
               class="form-control"
               type="text"
@@ -1307,8 +1434,10 @@
               required
             />
           </div>
+
           <div class="form-group">
             <label>Русский перевод *</label>
+
             <input
               class="form-control"
               type="text"
@@ -1316,30 +1445,39 @@
               required
             />
           </div>
+
           <div class="form-group">
             <label>Определение</label>
+
             <input
               class="form-control"
               type="text"
               id="modal-idiom-definition"
             />
           </div>
+
           <div class="form-group">
             <label>Пример</label>
+
             <input class="form-control" type="text" id="modal-idiom-ex" />
           </div>
+
           <div class="form-group">
             <label>Перевод примера</label>
+
             <input
               class="form-control"
               type="text"
               id="modal-idiom-ex-translation"
             />
           </div>
+
           <div class="form-group">
             <label>Теги через запятую</label>
+
             <input class="form-control" type="text" id="modal-idiom-tags" />
           </div>
+
           <button type="submit" class="btn btn-primary" style="width: 100%">
             Добавить идиому
           </button>
@@ -1348,17 +1486,21 @@
     </div>
 
     <!-- Модальное окно добавления слова -->
+
     <div class="modal-backdrop" id="add-word-modal">
       <div class="modal-box" style="max-width: 500px">
         <div class="modal-header">
           <h3>Добавить слово</h3>
+
           <button class="modal-close" id="add-word-modal-close">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
+
         <form id="add-word-form">
           <div class="form-group">
             <label>Английское слово *</label>
+
             <div style="position: relative">
               <input
                 class="form-control"
@@ -1366,14 +1508,17 @@
                 id="modal-word-en"
                 required
               />
+
               <div
                 id="autocomplete-suggestions"
                 class="autocomplete-suggestions"
               ></div>
             </div>
           </div>
+
           <div class="form-group">
             <label>Русский перевод *</label>
+
             <div style="position: relative">
               <input
                 class="form-control"
@@ -1381,28 +1526,36 @@
                 id="modal-word-ru"
                 required
               />
+
               <div
                 id="ru-autocomplete-suggestions"
                 class="autocomplete-suggestions"
               ></div>
             </div>
           </div>
+
           <div class="form-group">
             <label>Пример</label>
+
             <input class="form-control" type="text" id="modal-word-ex" />
           </div>
+
           <div class="form-group">
             <label>Перевод примера</label>
+
             <input
               class="form-control"
               type="text"
               id="modal-word-ex-translation"
             />
           </div>
+
           <div class="form-group">
             <label>Теги через запятую</label>
+
             <input class="form-control" type="text" id="modal-word-tags" />
           </div>
+
           <button type="submit" class="btn btn-primary" style="width: 100%">
             Добавить слово
           </button>
@@ -1493,14 +1646,22 @@
 
               <div class="form-group">
                 <label>Цветовая тема</label>
+
                 <select id="theme-base-select" class="form-control">
                   <option value="lavender">Терракота (по умолчанию)</option>
+
                   <option value="ocean">Океан</option>
+
                   <option value="forest">Лес</option>
+
                   <option value="purple">Лаванда</option>
+
                   <option value="sunset">Закат</option>
+
                   <option value="sky">Небесная</option>
+
                   <option value="sand">Песок</option>
+
                   <option value="graphite">Графит</option>
                 </select>
               </div>
@@ -1508,11 +1669,44 @@
               <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 0.5rem">
                   <input type="checkbox" id="show-phonetic" checked />
+
                   <span>Показывать транскрипцию в карточках</span>
                 </label>
+
                 <small class="form-text" style="color: var(--muted)"
                   >Отображение /ˈfəʊniːtɪk/ рядом со словом</small
                 >
+              </div>
+
+              <div class="form-group">
+                <label>Уровень слов в рекомендациях</label>
+
+                <select id="bank-word-level-select" class="form-control">
+                  <option value="all">Все уровни</option>
+
+                  <option value="A1">A1 (начальный)</option>
+
+                  <option value="A2">A2 (базовый)</option>
+
+                  <option value="B1">B1 (средний)</option>
+
+                  <option value="B2">B2 (выше среднего)</option>
+
+                  <option value="C1">C1 (продвинутый)</option>
+
+                  <option value="C2">C2 (профессиональный)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <button
+                  class="btn-pill btn-pill--secondary"
+                  id="change-password-btn"
+                  style="width: 100%"
+                >
+                  <span class="material-symbols-outlined">vpn_key</span> Сменить
+                  пароль
+                </button>
               </div>
             </div>
           </div>
@@ -1539,8 +1733,10 @@
           </button>
 
           <!-- Новая кнопка сброса прогресса -->
+
           <button class="danger-btn" id="reset-progress-btn">
             <span class="material-symbols-outlined">restart_alt</span>
+
             Сбросить весь прогресс
           </button>
 
@@ -1713,7 +1909,155 @@
       </div>
     </div>
 
+    <!-- Change Password Modal -->
+
+    <div class="modal-backdrop" id="change-password-modal">
+      <div class="modal-box" style="max-width: 420px">
+        <div class="modal-header">
+          <h3
+            style="color: var(--text); text-align: center; margin-bottom: 1rem"
+          >
+            <span
+              class="material-symbols-outlined"
+              style="
+                vertical-align: middle;
+
+                margin-right: 8px;
+
+                color: var(--primary);
+              "
+              >vpn_key</span
+            >
+
+            Смена пароля
+          </h3>
+
+          <button class="modal-close" id="change-password-modal-close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <form id="change-password-form">
+          <div class="form-group">
+            <label style="color: var(--text); font-weight: 600"
+              >Текущий пароль</label
+            >
+
+            <div class="input-with-icon">
+              <span class="material-symbols-outlined input-icon">lock</span>
+
+              <div class="password-field-wrapper">
+                <input
+                  type="password"
+                  id="current-password"
+                  class="form-control"
+                  placeholder="Введите текущий пароль"
+                  required
+                  autocomplete="current-password"
+                  readonly
+                  onfocus="this.removeAttribute('readonly')"
+                />
+
+                <button
+                  type="button"
+                  class="password-toggle"
+                  id="current-password-toggle"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="color: var(--text); font-weight: 600"
+              >Новый пароль</label
+            >
+
+            <div class="input-with-icon">
+              <span class="material-symbols-outlined input-icon">lock</span>
+
+              <div class="password-field-wrapper">
+                <input
+                  type="password"
+                  id="new-password"
+                  class="form-control"
+                  placeholder="Минимум 6 символов"
+                  required
+                  minlength="6"
+                  autocomplete="new-password"
+                  readonly
+                  onfocus="this.removeAttribute('readonly')"
+                />
+
+                <button
+                  type="button"
+                  class="password-toggle"
+                  id="new-password-toggle"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="color: var(--text); font-weight: 600"
+              >Подтвердите пароль</label
+            >
+
+            <div class="input-with-icon">
+              <span class="material-symbols-outlined input-icon">lock</span>
+
+              <div class="password-field-wrapper">
+                <input
+                  type="password"
+                  id="confirm-new-password"
+                  class="form-control"
+                  placeholder="Повторите новый пароль"
+                  required
+                  minlength="6"
+                  autocomplete="new-password"
+                  readonly
+                  onfocus="this.removeAttribute('readonly')"
+                />
+
+                <button
+                  type="button"
+                  class="password-toggle"
+                  id="confirm-new-password-toggle"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn-pill btn-pill--secondary"
+              style="flex: 1"
+              id="change-password-submit"
+            >
+              <span class="material-symbols-outlined">check</span> Сменить
+            </button>
+
+            <button
+              type="button"
+              class="btn-pill btn-pill--secondary"
+              style="flex: 1"
+              id="change-password-cancel"
+            >
+              <span class="material-symbols-outlined">close</span> Отмена
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- ===== BOTTOM SHEET для настроек практики ===== -->
+
     <div class="bs-backdrop" id="practice-bs-backdrop"></div>
 
     <div
@@ -1723,49 +2067,65 @@
       role="dialog"
     >
       <!-- Ручка для свайпа -->
+
       <div class="bs-drag-area" id="bs-drag-area">
         <div class="bs-handle"></div>
       </div>
 
       <div class="bs-body">
         <!-- РАЗДЕЛ 1: Слова для практики -->
+
         <div class="bs-section">
           <div class="bs-section-label">
             <span class="material-symbols-outlined">filter_list</span>
+
             Слова для практики
           </div>
+
           <div class="bs-option-list" id="bs-filter-list">
             <button class="bs-option active" data-bs-filter-w="all">
               <span class="material-symbols-outlined bs-opt-icon">list</span>
+
               <span class="bs-opt-text">Все слова</span>
+
               <span class="material-symbols-outlined bs-opt-check"
                 >check_circle</span
               >
             </button>
+
             <button class="bs-option" data-bs-filter-w="learning">
               <span class="material-symbols-outlined bs-opt-icon"
                 >cognition_2</span
               >
+
               <span class="bs-opt-text">Только учу</span>
+
               <span class="material-symbols-outlined bs-opt-check"
                 >check_circle</span
               >
             </button>
+
             <button class="bs-option" data-bs-filter-w="random">
               <span class="material-symbols-outlined bs-opt-icon">shuffle</span>
+
               <span class="bs-opt-text">Случайные</span>
+
               <span class="material-symbols-outlined bs-opt-check"
                 >check_circle</span
               >
             </button>
+
             <button class="bs-option" data-bs-filter-w="due">
               <span class="material-symbols-outlined bs-opt-icon"
                 >schedule</span
               >
+
               <span class="bs-opt-text">
                 К повторению
+
                 <span class="bs-due-badge" id="bs-due-badge">0</span>
               </span>
+
               <span class="material-symbols-outlined bs-opt-check"
                 >check_circle</span
               >
@@ -1776,15 +2136,21 @@
         <div class="bs-divider"></div>
 
         <!-- РАЗДЕЛ 2: Количество слов -->
+
         <div class="bs-section bs-section--row">
           <div class="bs-section-label">
             <span class="material-symbols-outlined">format_list_numbered</span>
+
             Количество слов
           </div>
+
           <div class="bs-seg" id="bs-count-seg">
             <button class="bs-seg-btn" data-bs-count="5">5</button>
+
             <button class="bs-seg-btn active" data-bs-count="10">10</button>
+
             <button class="bs-seg-btn" data-bs-count="20">20</button>
+
             <button class="bs-seg-btn" data-bs-count="all">Все</button>
           </div>
         </div>
@@ -1792,15 +2158,19 @@
         <div class="bs-divider"></div>
 
         <!-- РАЗДЕЛ 3: Автопроизношение -->
+
         <div class="bs-section bs-section--row">
           <div class="bs-section-label">
             <span class="material-symbols-outlined">volume_up</span>
+
             Автопроизношение
           </div>
+
           <div class="bs-seg" id="bs-autopron-seg">
             <button class="bs-seg-btn active" data-bs-autopron="on">
               <span class="material-symbols-outlined">volume_up</span>
             </button>
+
             <button class="bs-seg-btn" data-bs-autopron="off">
               <span class="material-symbols-outlined">volume_off</span>
             </button>
@@ -1810,14 +2180,19 @@
         <div class="bs-divider"></div>
 
         <!-- РАЗДЕЛ 3: Направление -->
+
         <div class="bs-section bs-section--row">
           <div class="bs-section-label">
             <span class="material-symbols-outlined">swap_horiz</span>
+
             Направление
           </div>
+
           <div class="bs-seg" id="bs-dir-seg">
             <button class="bs-seg-btn active" data-bs-dir="both">EN+RU</button>
+
             <button class="bs-seg-btn" data-bs-dir="en-ru">EN→RU</button>
+
             <button class="bs-seg-btn" data-bs-dir="ru-en">RU→EN</button>
           </div>
         </div>
@@ -1825,13 +2200,17 @@
     </div>
 
     <!-- GLOBAL FEEDBACK SHEET -->
+
     <div class="fb-sheet" id="fb-sheet">
       <div class="fb-sheet-bar"></div>
+
       <div class="fb-sheet-inner" id="fb-sheet-inner"></div>
     </div>
+
     <div class="fb-backdrop" id="fb-backdrop"></div>
 
     <script src="homophones.js"></script>
+
     <script src="tour.js"></script>
   </body>
 </html>

@@ -33,6 +33,56 @@ const gateError = document.getElementById('gate-error');
 const forgotPasswordBtn = document.getElementById('forgot-password-btn');
 const resetModal = document.getElementById('reset-password-modal');
 const resetEmail = document.getElementById('reset-email');
+
+// ===== ПРОВЕРКА EMAIL НА ЛЕТУ (через Edge Function) =====
+let emailCheckDebounceTimer = null;
+let isEmailTaken = false;
+let lastCheckedEmail = '';
+
+// Функция проверки email
+async function checkEmailAvailability(email) {
+  if (!email) return false;
+
+  // Показываем спиннер
+  const spinner = document.getElementById('email-check-spinner');
+  if (spinner) spinner.style.display = 'block';
+
+  try {
+    const { data, error } = await supabase.functions.invoke('check-email', {
+      body: { email },
+    });
+    if (error) throw error;
+    return data.exists; // true если занят
+  } catch (err) {
+    console.warn('Ошибка проверки email:', err);
+    // При ошибке не блокируем регистрацию, считаем что email свободен
+    return false;
+  } finally {
+    // Скрываем спиннер
+    if (spinner) spinner.style.display = 'none';
+  }
+}
+
+// Обновление UI сообщения о занятости email
+function updateEmailAvailabilityStatus(taken) {
+  if (!isRegisterMode) {
+    // В режиме входа не блокируем кнопку, даже если email занят
+    return;
+  }
+  isEmailTaken = taken;
+  const errorEl = document.getElementById('gate-error');
+  if (taken) {
+    errorEl.textContent =
+      'Этот email уже зарегистрирован. Войдите или используйте другой.';
+  } else if (errorEl.textContent.includes('уже зарегистрирован')) {
+    errorEl.textContent = '';
+  }
+  const submitBtn = document.getElementById('gate-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = taken;
+    submitBtn.style.opacity = taken ? '0.5' : '1';
+  }
+}
 const sendResetBtn = document.getElementById('send-reset-btn');
 const cancelResetBtn = document.getElementById('cancel-reset-btn');
 const emailNotVerifiedBlock = document.getElementById('email-not-verified');
@@ -132,6 +182,11 @@ function clearGateForm() {
   gateConfirm.value = '';
   gateUsername.value = '';
   gateError.textContent = '';
+
+  // Сбрасываем состояние проверки email (только если не в обработчике табов)
+  const spinner = document.getElementById('email-check-spinner');
+  if (spinner) spinner.style.display = 'none';
+
   // на случай если юзер передумал регистрироваться
   localStorage.removeItem('englift_pending_username');
 }
@@ -158,7 +213,67 @@ authTabs.forEach(tab => {
     toggleRegisterFields(isRegisterMode);
     gateError.textContent = '';
     clearGateForm();
+
+    // ===== НОВЫЙ КОД: сброс проверки email =====
+    isEmailTaken = false;
+    lastCheckedEmail = '';
+    // Разблокируем кнопку (на случай если она была заблокирована из-за занятого email)
+    gateSubmit.disabled = false;
+    gateSubmit.style.opacity = '1';
+    // Убираем сообщение об ошибке, если оно было от проверки email
+    if (gateError.textContent.includes('уже зарегистрирован')) {
+      gateError.textContent = '';
+    }
+    // Скрываем спиннер
+    const spinner = document.getElementById('email-check-spinner');
+    if (spinner) spinner.style.display = 'none';
+    // ============================================
   });
+});
+
+// Проверка email при вводе (только в режиме регистрации)
+gateEmail.addEventListener('input', () => {
+  if (!isRegisterMode) return; // только при регистрации
+  const email = gateEmail.value.trim();
+
+  // Базовая валидация формата
+  const isValidEmail = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/.test(email);
+  if (!isValidEmail && email) {
+    gateError.textContent = 'Введите корректный email';
+    isEmailTaken = false;
+    // разблокируем кнопку, если она была заблокирована
+    const submitBtn = document.getElementById('gate-submit-btn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = '1';
+    }
+    return;
+  } else if (
+    isValidEmail &&
+    gateError.textContent === 'Введите корректный email'
+  ) {
+    gateError.textContent = '';
+  }
+
+  // Отменяем предыдущий таймер
+  if (emailCheckDebounceTimer) clearTimeout(emailCheckDebounceTimer);
+  if (!email) {
+    updateEmailAvailabilityStatus(false);
+    lastCheckedEmail = '';
+    return;
+  }
+
+  // Если email не изменился с последней проверки, не проверяем повторно
+  if (email === lastCheckedEmail) return;
+  lastCheckedEmail = email;
+
+  // Показываем индикатор загрузки (можно добавить спиннер)
+  // (опционально) добавить элемент рядом с полем
+
+  emailCheckDebounceTimer = setTimeout(async () => {
+    const taken = await checkEmailAvailability(email);
+    updateEmailAvailabilityStatus(taken);
+  }, 500); // задержка 500 мс
 });
 
 // Переключение видимости пароля для основного поля
@@ -229,6 +344,13 @@ async function handleAuth(email, password, confirm, isRegister) {
   try {
     if (isRegister) {
       console.log('📝 Registering new user...');
+
+      // Проверка занятости email перед регистрацией
+      if (isEmailTaken) {
+        gateError.textContent =
+          'Этот email уже зарегистрирован. Войдите или используйте другой.';
+        return;
+      }
 
       // ── Проверяем уникальность username ──
       const { data: taken } = await supabase
@@ -317,7 +439,7 @@ sendResetBtn.addEventListener('click', async () => {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) throw error;
     window.toast?.(
-      'Письмо для сброса пароля отправлено! Проверьте почту.',
+      'Если такой email зарегистрирован, мы отправили ссылку для сброса пароля.',
       'success',
     );
     resetModal.classList.remove('open');
@@ -338,25 +460,25 @@ dropdownLogout.addEventListener('click', async () => {
 
   console.log('🚪 Начинаем выход...');
 
-  // 1. Синхронизируем слова
-  if (window.currentUserId && navigator.onLine) {
-    try {
-      await window.syncPendingWords?.();
-    } catch (e) {}
+  // Синхронизируем слова и профиль, но не блокируем выход, если ошибка
+  try {
+    if (window.currentUserId && navigator.onLine) {
+      await Promise.allSettled([
+        window.syncPendingWords?.() || Promise.resolve(),
+        window.syncProfileToServer?.() || Promise.resolve(),
+      ]);
+      console.log('✅ Данные синхронизированы перед выходом');
+    }
+  } catch (e) {
+    console.warn('⚠️ Ошибка при синхронизации, но выход продолжается', e);
+  } finally {
+    window.currentUserId = null;
+    profileLoaded = false;
+    // isProfileLoading = false; // удалено - переменная не определена
+    // lastLoadedUserId = null; // удалено - переменная не определена
+
+    await supabase.auth.signOut();
   }
-
-  // 2. Синхронизируем профиль ПРЯМО СЕЙЧАС
-  if (window.currentUserId && navigator.onLine) {
-    console.log('💾 Принудительно сохраняем профиль перед выходом...');
-    await window.syncProfileToServer?.();
-  }
-
-  window.currentUserId = null;
-  profileLoaded = false;
-  // isProfileLoading = false; // удалено - переменная не определена
-  // lastLoadedUserId = null; // удалено - переменная не определена
-
-  await supabase.auth.signOut();
 });
 
 // Меню пользователя
@@ -404,31 +526,19 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user;
 
   // === ЗАПУСК ПРОФИЛЯ ===
-  if (
-    event === 'INITIAL_SESSION' &&
-    user &&
-    user.email_confirmed_at &&
-    !profileLoaded &&
-    !profileLoadPromise
-  ) {
-    profileLoadPromise = loadUserProfile(user).finally(() => {
-      profileLoaded = true;
-      profileLoadPromise = null;
-      lastProfileLoadTime = Date.now(); // Update load time
-    });
-  } else if (
-    event === 'SIGNED_IN' &&
-    user &&
-    user.email_confirmed_at &&
-    !profileLoaded &&
-    !profileLoadPromise
-  ) {
-    console.log('⚠️ INITIAL_SESSION был пустым → загружаем по SIGNED_IN');
-    profileLoadPromise = loadUserProfile(user).finally(() => {
-      profileLoaded = true;
-      profileLoadPromise = null;
-      lastProfileLoadTime = Date.now(); // Update load time
-    });
+  const shouldLoadProfile =
+    user && user.email_confirmed_at && !profileLoaded && !profileLoadPromise;
+
+  if (shouldLoadProfile) {
+    // Если уже есть активный promise – не создаём новый
+    if (!profileLoadPromise) {
+      console.log('🔄 Загружаем профиль...');
+      profileLoadPromise = loadUserProfile(user).finally(() => {
+        profileLoaded = true;
+        profileLoadPromise = null;
+        lastProfileLoadTime = Date.now();
+      });
+    }
   } else if (event === 'TOKEN_REFRESHED' && user) {
     console.log(
       '✅ TOKEN_REFRESHED — профиль не перезагружаем (избегаем бага #4)',

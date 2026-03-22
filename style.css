@@ -4042,6 +4042,7 @@ html.dark .badge-learned {
 
 /* Волна в карточках слов - выглядит как кнопка */
 .word-card .audio-wave {
+  display: flex;
   background: var(--bg);
   border: 2px solid var(--border);
   cursor: pointer;
@@ -4054,6 +4055,7 @@ html.dark .badge-learned {
 
 /* wave не сжимается в bank-карточке */
 .word-bank-card .audio-wave {
+  display: flex;
   flex-shrink: 0;
   min-width: 44px;
 }
@@ -4067,6 +4069,7 @@ html.dark .badge-learned {
 
 /* Дополнительная защита для идиом-банка */
 #idiom-bank-wrap .word-bank-card .audio-wave {
+  display: flex;
   flex-shrink: 0;
   min-width: 44px;
 }
