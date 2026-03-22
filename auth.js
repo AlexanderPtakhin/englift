@@ -187,8 +187,7 @@ function clearGateForm() {
   const spinner = document.getElementById('email-check-spinner');
   if (spinner) spinner.style.display = 'none';
 
-  // на случай если юзер передумал регистрироваться
-  localStorage.removeItem('englift_pending_username');
+  // НЕ удаляем pending_username - он нужен для loadUserProfile
 }
 
 // Функция обновления табов
@@ -304,11 +303,12 @@ document
   });
 
 // Обработка входа/регистрации
-async function handleAuth(email, password, confirm, isRegister) {
+async function handleAuth(email, password, confirm, isRegister, username) {
   console.log('🚀 handleAuth called with:', {
     email,
     hasPassword: !!password,
     isRegister,
+    username,
   });
 
   if (!email || !password) {
@@ -322,15 +322,13 @@ async function handleAuth(email, password, confirm, isRegister) {
   }
 
   // ── Валидация username при регистрации ──
-  let chosenUsername = '';
   if (isRegister) {
-    chosenUsername = gateUsername.value.trim();
-    if (!chosenUsername) {
+    if (!username) {
       gateError.textContent = 'Введи имя пользователя';
       gateUsername.focus();
       return;
     }
-    if (!/^[a-zA-Z0-9_-]{3,20}$/.test(chosenUsername)) {
+    if (!/^[a-zA-Z0-9_-]{3,20}$/.test(username)) {
       gateError.textContent = 'Имя: 3–20 символов, только буквы, цифры, _ и -';
       gateUsername.focus();
       return;
@@ -356,28 +354,27 @@ async function handleAuth(email, password, confirm, isRegister) {
       const { data: taken } = await supabase
         .from('profiles')
         .select('id')
-        .eq('username', chosenUsername)
+        .eq('username', username)
         .maybeSingle();
 
       if (taken) {
-        gateError.textContent = `Никнейм «${chosenUsername}» уже занят`;
+        gateError.textContent = `Никнейм «${username}» уже занят`;
         gateUsername.focus();
         return;
       }
 
       // ── Сохраняем выбранный username чтобы loadUserProfile его подхватил ──
-      localStorage.setItem('englift_pending_username', chosenUsername);
+      console.log('💾 Сохраняем pending_username:', username);
+      localStorage.setItem('englift_pending_username', username);
+      console.log(
+        '✅ pending_username сохранён, проверка:',
+        localStorage.getItem('englift_pending_username'),
+      );
 
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       if (data.user) {
-        // Показываем блок неподтверждённого email
         showEmailNotVerified(data.user.email);
-        // Можно также показать toast для дополнительного внимания
-        window.toast?.(
-          '📧 Письмо для подтверждения отправлено. Проверьте почту (и папку "Спам").',
-          'success',
-        );
       }
       clearGateForm();
     } else {
@@ -393,14 +390,57 @@ async function handleAuth(email, password, confirm, isRegister) {
     }
   } catch (err) {
     console.log('❌ Auth error:', err);
+    console.log(
+      '❌ До удаления pending_username:',
+      localStorage.getItem('englift_pending_username'),
+    );
     const msgs = {
       email_already_exists: 'Этот email уже занят',
       invalid_email: 'Неверный формат email',
       weak_password: 'Пароль слишком короткий (мин. 6 символов)',
       invalid_credentials: 'Неверный email или пароль',
+      'Invalid login credentials': 'Неверный email или пароль',
+      'Invalid email credentials': 'Неверный email или пароль',
+      'User already registered': 'Пользователь уже зарегистрирован',
+      'Password should be at least 6 characters':
+        'Пароль должен быть минимум 6 символов',
+      'Unable to validate email address: invalid format':
+        'Неверный формат email',
+      'Email not confirmed': 'Email не подтверждён',
+      'Invalid password': 'Неверный пароль',
+      'User not found': 'Пользователь не найден',
     };
-    gateError.textContent = msgs[err.message] || err.message;
+
+    // Если есть прямой перевод - используем его, иначе пробуем универсальный перевод
+    let errorMessage = msgs[err.message];
+    if (!errorMessage) {
+      // Универсальный перевод для английских сообщений
+      errorMessage = err.message
+        .replace(/Invalid login credentials/g, 'Неверный email или пароль')
+        .replace(/Invalid email credentials/g, 'Неверный email или пароль')
+        .replace(/User already registered/g, 'Пользователь уже зарегистрирован')
+        .replace(
+          /Password should be at least \d+ characters/g,
+          'Пароль должен быть минимум 6 символов',
+        )
+        .replace(
+          /Unable to validate email address: invalid format/g,
+          'Неверный формат email',
+        )
+        .replace(/Email not confirmed/g, 'Email не подтверждён')
+        .replace(/Invalid password/g, 'Неверный пароль')
+        .replace(/User not found/g, 'Пользователь не найден')
+        .replace(/email_already_exists/g, 'Этот email уже занят')
+        .replace(/invalid_email/g, 'Неверный формат email')
+        .replace(/weak_password/g, 'Пароль слишком короткий (мин. 6 символов)');
+    }
+
+    gateError.textContent = errorMessage || err.message;
     localStorage.removeItem('englift_pending_username'); // сбрасываем если ошибка
+    console.log(
+      '❌ После удаления pending_username:',
+      localStorage.getItem('englift_pending_username'),
+    );
   } finally {
     gateSubmit.disabled = false;
     gateSubmit.textContent = isRegister ? 'Создать аккаунт' : 'Войти';
@@ -419,6 +459,7 @@ gateSubmit.addEventListener('click', () => {
     gatePassword.value.trim(),
     gateConfirm.value.trim(),
     isRegisterMode,
+    gateUsername.value.trim(),
   );
 });
 
@@ -662,6 +703,10 @@ resendEmailBtn.addEventListener('click', async () => {
 async function loadUserProfile(user) {
   if (!user) return;
 
+  // Читаем pending_username
+  const savedUsername = localStorage.getItem('englift_pending_username');
+  console.log('🔍 loadUserProfile: savedUsername =', savedUsername);
+
   // Защита от рекурсии
   if (window._profileLoadInProgress) {
     console.warn('⚠️ Загрузка профиля уже выполняется, пропускаем');
@@ -687,13 +732,14 @@ async function loadUserProfile(user) {
       // Создаём новый профиль
       const today = new Date().toISOString().split('T')[0];
 
-      // Используем выбранный username или генерируем из email
-      const savedUsername = localStorage.getItem('englift_pending_username');
+      // Используем уже существующую переменную savedUsername (из начала функции)
       const username =
         savedUsername ||
         user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') +
           Math.floor(Math.random() * 1000);
+      console.log('🔍 Итоговый username для нового профиля:', username);
       localStorage.removeItem('englift_pending_username'); // чистим сразу после использования
+      console.log('✅ pending_username удалён после использования');
 
       const defaultProfile = {
         username: username,
@@ -717,6 +763,25 @@ async function loadUserProfile(user) {
       await saveUserData(user.id, defaultProfile);
       window.applyProfileData?.(defaultProfile);
     } else {
+      // Профиль уже существует – проверим, нужно ли обновить username
+      if (savedUsername && savedUsername !== serverProfile.username) {
+        console.log(
+          `🔄 Обновляем username с "${serverProfile.username}" на "${savedUsername}"`,
+        );
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ username: savedUsername })
+          .eq('id', user.id);
+        if (updateError) {
+          console.error('Ошибка обновления username:', updateError);
+        } else {
+          // Успешно обновили, обновляем объект профиля
+          serverProfile.username = savedUsername;
+          console.log('✅ Username успешно обновлён на:', savedUsername);
+        }
+        // Удаляем pending_username после использования
+        localStorage.removeItem('englift_pending_username');
+      }
       window.applyProfileData?.(serverProfile);
     }
   } catch (err) {
