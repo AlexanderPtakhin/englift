@@ -427,7 +427,9 @@
       return;
     }
 
-    tooltip.className = '';
+    if (tooltip) {
+      tooltip.className = '';
+    }
     ring.style.opacity = '1';
     arrow.style.display = 'block';
 

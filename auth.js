@@ -551,6 +551,14 @@ resendEmailBtn.addEventListener('click', async () => {
 // Функция загрузки профиля (простая версия)
 async function loadUserProfile(user) {
   if (!user) return;
+
+  // Защита от рекурсии
+  if (window._profileLoadInProgress) {
+    console.warn('⚠️ Загрузка профиля уже выполняется, пропускаем');
+    return;
+  }
+  window._profileLoadInProgress = true;
+
   window.currentUserId = user.id;
 
   try {
@@ -605,6 +613,8 @@ async function loadUserProfile(user) {
     console.error('Ошибка загрузки профиля:', err);
     window.toast?.('Не удалось загрузить профиль', 'danger');
   } finally {
+    // Всегда очищаем флаг загрузки
+    window._profileLoadInProgress = false;
     // Вызываем колбэк, что профиль загружен
     window.onProfileFullyLoaded?.();
   }
@@ -646,3 +656,6 @@ logoutFromUnverifiedBtn.addEventListener('click', () => {
     hideAuthGate();
   }
 })();
+
+// Делаем loadUserProfile глобальной для доступа из script.js
+window.loadUserProfile = loadUserProfile;

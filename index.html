@@ -625,7 +625,10 @@
                     <span class="material-symbols-outlined">style</span>
                   </div>
 
-                  <div class="exercise-name">Флеш-карточки</div>
+                  <div class="exercise-name">Карточки</div>
+                  <div class="exercise-desc" style="display: none">
+                    Переворачивай и запоминай
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="multi">
@@ -633,7 +636,10 @@
                     <span class="material-symbols-outlined">quiz</span>
                   </div>
 
-                  <div class="exercise-name">Множественный выбор</div>
+                  <div class="exercise-name">Выбор</div>
+                  <div class="exercise-desc" style="display: none">
+                    Найди правильный вариант
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="type">
@@ -641,7 +647,10 @@
                     <span class="material-symbols-outlined">keyboard</span>
                   </div>
 
-                  <div class="exercise-name">Напиши перевод</div>
+                  <div class="exercise-name">Напиши</div>
+                  <div class="exercise-desc" style="display: none">
+                    Введи перевод слова
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="dictation">
@@ -650,6 +659,9 @@
                   </div>
 
                   <div class="exercise-name">Диктант</div>
+                  <div class="exercise-desc" style="display: none">
+                    Напиши, что слышишь
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="speech">
@@ -659,7 +671,10 @@
                     >
                   </div>
 
-                  <div class="exercise-name">Произнеси вслух</div>
+                  <div class="exercise-name">Скажи</div>
+                  <div class="exercise-desc" style="display: none">
+                    Тренируй произношение
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="speech-sentence">
@@ -669,7 +684,10 @@
                     >
                   </div>
 
-                  <div class="exercise-name">Слушай и говори предложения</div>
+                  <div class="exercise-name">Фраза</div>
+                  <div class="exercise-desc" style="display: none">
+                    Прослушай и повтори предложение
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="match">
@@ -677,7 +695,10 @@
                     <span class="material-symbols-outlined">extension</span>
                   </div>
 
-                  <div class="exercise-name">Найди пары</div>
+                  <div class="exercise-name">Пары</div>
+                  <div class="exercise-desc" style="display: none">
+                    Соедини слово и перевод
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="builder">
@@ -685,7 +706,10 @@
                     <span class="material-symbols-outlined">construction</span>
                   </div>
 
-                  <div class="exercise-name">Собери слово</div>
+                  <div class="exercise-name">Собери</div>
+                  <div class="exercise-desc" style="display: none">
+                    Составь слово из букв
+                  </div>
                 </div>
 
                 <div class="exercise-card" data-ex="context">
@@ -693,7 +717,10 @@
                     <span class="material-symbols-outlined">psychology</span>
                   </div>
 
-                  <div class="exercise-name">Контекстная догадка</div>
+                  <div class="exercise-name">Контекст</div>
+                  <div class="exercise-desc" style="display: none">
+                    Пойми слово по смыслу
+                  </div>
                 </div>
               </div>
             </div>
@@ -1796,6 +1823,13 @@
         </div>
       </div>
     </div>
+
+    <!-- GLOBAL FEEDBACK SHEET -->
+    <div class="fb-sheet" id="fb-sheet">
+      <div class="fb-sheet-bar"></div>
+      <div class="fb-sheet-inner" id="fb-sheet-inner"></div>
+    </div>
+    <div class="fb-backdrop" id="fb-backdrop"></div>
 
     <script src="homophones.js"></script>
     <script src="tour.js"></script>

@@ -75,6 +75,7 @@ window.HOMOPHONES = {
   counsel: ['council'],
   current: ['currant'],
   currant: ['current'],
+  cat: ['kat', 'khat', 'cot', 'catt'],
   // D
   days: ['daze'],
   daze: ['days'],
@@ -274,7 +275,7 @@ window.HOMOPHONES = {
   see: ['sea'],
   seas: ['seize', 'sees'],
   sees: ['seize', 'seas'],
-  seize: ['size', 'seas', 'sees'],
+  seize: ['size', 'seas', 'sees', 'cease', 'seze', 'seeze', 'siz', 'cheese'],
   size: ['seize', 'sighs'],
   sighs: ['size'],
   sew: ['so', 'sow'],
@@ -363,11 +364,34 @@ window.HOMOPHONES = {
 window.isHomophone = function (spoken, correct) {
   const s = spoken.toLowerCase().trim();
   const c = correct.toLowerCase().trim();
+
+  console.log(`🔍 isHomophone проверка: spoken="${s}", correct="${c}"`);
+
   const homoList = window.HOMOPHONES[s];
-  if (homoList && homoList.includes(c)) return true;
+  console.log(`🔍 isHomophone: HOMOPHONES["${s}"] =`, homoList);
+
+  if (homoList && homoList.includes(c)) {
+    console.log(
+      `✅ isHomophone: "${s}" найден в словаре с омофонами, включает "${c}"`,
+    );
+    return true;
+  }
+
   // Обратная проверка
   const reverseList = window.HOMOPHONES[c];
-  if (reverseList && reverseList.includes(s)) return true;
+  console.log(
+    `🔍 isHomophone: обратная проверка HOMOPHONES["${c}"] =`,
+    reverseList,
+  );
+
+  if (reverseList && reverseList.includes(s)) {
+    console.log(
+      `✅ isHomophone: "${c}" найден в словаре с омофонами, включает "${s}"`,
+    );
+    return true;
+  }
+
+  console.log(`❌ isHomophone: омофоны не найдены для "${s}" и "${c}"`);
   return false;
 };
 
