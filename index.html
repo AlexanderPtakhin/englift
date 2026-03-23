@@ -1305,10 +1305,74 @@
             <span class="material-symbols-outlined">emoji_events</span>
 
             <h3>Лидерборд</h3>
+            <div class="lb-period-tabs">
+              <button
+                class="lb-tab active"
+                data-period="week"
+                onclick="switchLbPeriod(this)"
+              >
+                Неделя
+              </button>
+              <button
+                class="lb-tab"
+                data-period="month"
+                onclick="switchLbPeriod(this)"
+              >
+                Месяц
+              </button>
+              <button
+                class="lb-tab"
+                data-period="all"
+                onclick="switchLbPeriod(this)"
+              >
+                Всё
+              </button>
+            </div>
           </div>
 
           <div id="friends-leaderboard-list" class="friends-leaderboard-list">
             <div class="loading-spinner"></div>
+          </div>
+        </div>
+
+        <!-- ЛЕНТА АКТИВНОСТИ ДРУЗЕЙ -->
+        <div class="friends-activity-section">
+          <div class="daily-cap-header">
+            <span class="material-symbols-outlined">notifications</span>
+            <h3>Активность друзей</h3>
+          </div>
+          <div id="friend-activity-feed" class="friend-activity-feed">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+
+        <!-- ИНВАЙТ-ССЫЛКА -->
+        <div class="invite-block">
+          <button
+            class="btn btn-primary"
+            id="generate-invite-btn"
+            onclick="generateInviteLink()"
+          >
+            <span class="material-symbols-outlined">share</span>
+            Пригласить друга
+          </button>
+          <div
+            id="invite-link-box"
+            style="display: none"
+            class="invite-link-row"
+          >
+            <input id="invite-link-input" class="form-control" readonly />
+            <button
+              class="btn btn-secondary btn-sm"
+              onclick="
+                navigator.clipboard.writeText(
+                  document.getElementById('invite-link-input').value,
+                );
+                window.toast?.('Скопировано!', 'success');
+              "
+            >
+              <span class="material-symbols-outlined">content_copy</span>
+            </button>
           </div>
         </div>
 

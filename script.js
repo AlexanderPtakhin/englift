@@ -3815,6 +3815,21 @@ function gainXP(amount, reason = '') {
 
   renderBadges();
 
+  // Записываем в лог XP
+  if (window.currentUserId) {
+    supabase
+      .from('xp_log')
+      .insert({
+        user_id: window.currentUserId,
+        amount: amount,
+        created_at: new Date().toISOString(),
+      })
+      .then(({ error }) => {
+        if (error) console.warn('Failed to log XP:', error);
+      })
+      .catch(e => console.warn('Failed to log XP:', e));
+  }
+
   console.log(
     '✅ gainXP завершен, новый уровень:',
 
@@ -9035,9 +9050,10 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
         window.dailyReviewCount = 0;
         window.lastReviewResetDate = new Date().toISOString().split('T')[0];
 
-        // 5. Обновляем интерфейс
-        refreshUI();
-        renderIdioms();
+        // 5. Обновляем списки если они открыты
+        loadLeaderboard?.('week');
+        loadFriendActivity?.();
+
         // Сохраняем все поля профиля после сброса
         markProfileDirty('xp', 0);
         markProfileDirty('level', 1);
@@ -10709,17 +10725,18 @@ function nextExercise() {
       options = options.sort(() => Math.random() - 0.5);
 
       // --- Автоозвучка ---
+      // В упражнении "multi" отключаем автоматическую озвучку
       // Озвучиваем только если вопрос на английском (EN→RU) и не для идиом с определением
-      if (autoPron && !isRUEN && !(isIdiom && field === 'definition')) {
-        if (isIdiom) {
-          setTimeout(() => {
-            if (w.audio) playIdiomAudio(w.audio);
-            else speakText(w.idiom);
-          }, 300);
-        } else {
-          setTimeout(() => window.speakWord(w), 300);
-        }
-      }
+      // if (autoPron && !isRUEN && !(isIdiom && field === 'definition')) {
+      //   if (isIdiom) {
+      //     setTimeout(() => {
+      //       if (w.audio) playIdiomAudio(w.audio);
+      //       else speakText(w.idiom);
+      //     }, 300);
+      //   } else {
+      //     setTimeout(() => window.speakWord(w), 300);
+      //   }
+      // }
 
       if (exContent) {
         exContent.innerHTML = `
@@ -10734,7 +10751,7 @@ function nextExercise() {
 
 
 
-            ${!isRUEN && !(isIdiom && field === 'definition') ? `<button class="btn-audio" id="mc-audio-btn"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+            ${!isRUEN && !(isIdiom && field === 'definition') ? '' : ''}
 
 
 
@@ -10757,19 +10774,19 @@ function nextExercise() {
         `;
       }
 
-      if (!isRUEN && !(isIdiom && field === 'definition')) {
-        const mcAudioBtn = document.getElementById('mc-audio-btn');
-
-        if (mcAudioBtn) {
-          mcAudioBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            if (isIdiom) {
-              if (w.audio) playIdiomAudio(w.audio);
-              else speakText(w.idiom);
-            } else window.speakWord(w);
-          });
-        }
-      }
+      // Кнопка аудио убрана из упражнения "multi"
+      // if (!isRUEN && !(isIdiom && field === 'definition')) {
+      //   const mcAudioBtn = document.getElementById('mc-audio-btn');
+      //   if (mcAudioBtn) {
+      //     mcAudioBtn.addEventListener('click', e => {
+      //       e.stopPropagation();
+      //       if (isIdiom) {
+      //         if (w.audio) playIdiomAudio(w.audio);
+      //         else speakText(w.idiom);
+      //       } else window.speakWord(w);
+      //     });
+      //   }
+      // }
 
       if (exContent) {
         exContent.querySelectorAll('.mc-btn').forEach(b =>
@@ -10785,6 +10802,11 @@ function nextExercise() {
             if (!ok) {
               b.classList.add('wrong');
               playSound('wrong');
+              // Озвучиваем правильный ответ и при неправильном выборе
+              if (isIdiom) {
+                if (w.audio) playIdiomAudio(w.audio);
+                else speakText(w.idiom);
+              } else window.speakWord(w);
             }
 
             if (ok) {
@@ -15793,10 +15815,248 @@ async function loadFriendsDataNew() {
 }
 
 function renderFriendsTab() {
-  renderFriendsLeaderboard();
+  loadLeaderboard('week'); // Загружаем недельный лидерборд по умолчанию
+  loadFriendActivity(); // Загружаем ленту активности друзей
   renderFriendsList();
   renderFriendsRequests();
   updateFriendsBadges();
+}
+
+// --- ЛЕНТА АКТИВНОСТИ ДРУЗЕЙ ---
+async function loadFriendActivity() {
+  const container = document.getElementById('friend-activity-feed');
+  if (!container) return;
+
+  // Получаем друзей
+  const { data: friendships } = await supabase
+    .from('friendships')
+    .select('friend_id')
+    .eq('user_id', window.currentUserId)
+    .eq('status', 'accepted');
+
+  const friendIds = (friendships || []).map(f => f.friend_id);
+  if (!friendIds.length) {
+    container.innerHTML = `<p style="color:var(--muted);font-size:0.9rem">Пока нет друзей</p>`;
+    return;
+  }
+
+  // Получаем профили друзей
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('username, level, streak, badges, total_words')
+    .in('id', friendIds);
+
+  const events = [];
+
+  profiles?.forEach(p => {
+    if (p.streak >= 3) {
+      events.push({
+        icon: '🔥',
+        text: `<b>${p.username}</b> поддерживает стрик уже <b>${p.streak} дней</b>`,
+      });
+    }
+    if (p.level >= 5 && p.level % 5 === 0) {
+      events.push({
+        icon: '🏆',
+        text: `<b>${p.username}</b> достиг уровня <b>${p.level}</b>`,
+      });
+    }
+    if (p.badges?.length) {
+      const last = p.badges[p.badges.length - 1];
+      events.push({
+        icon: '🎖️',
+        text: `<b>${p.username}</b> получил бейдж «${last}»`,
+      });
+    }
+    if (p.total_words > 0) {
+      events.push({
+        icon: '📚',
+        text: `<b>${p.username}</b> изучает <b>${p.total_words}</b> слов`,
+      });
+    }
+  });
+
+  if (!events.length) {
+    container.innerHTML = `<p style="color:var(--muted);font-size:0.9rem">Друзья пока молчат 😴</p>`;
+    return;
+  }
+
+  container.innerHTML = events
+    .slice(0, 8)
+    .map(
+      e => `
+    <div class="activity-item">
+      <span class="activity-icon">${e.icon}</span>
+      <span class="activity-text">${e.text}</span>
+    </div>
+  `,
+    )
+    .join('');
+
+  // Удалена строка container.innerHTML = eventHTML;
+}
+
+// --- ЛИДЕРБОРД С ПЕРИОДАМИ ---
+async function loadLeaderboard(period = 'week') {
+  const container = document.getElementById('friends-leaderboard-list');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-spinner"></div>';
+
+  try {
+    // Получаем друзей
+    const { data: friendships } = await supabase
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', window.currentUserId)
+      .eq('status', 'accepted');
+
+    const friendIds = (friendships || []).map(f => f.friend_id);
+    const allIds = [window.currentUserId, ...friendIds];
+
+    let scores = [];
+
+    if (period === 'all') {
+      // Просто берём XP из profiles
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username, xp, level')
+        .in('id', allIds);
+
+      scores = (data || []).map(p => ({ ...p, periodXp: p.xp }));
+    } else {
+      // Считаем XP за период из xp_log
+      const since =
+        period === 'week'
+          ? new Date(Date.now() - 7 * 86400000).toISOString()
+          : new Date(Date.now() - 30 * 86400000).toISOString();
+
+      const { data: logs } = await supabase
+        .from('xp_log')
+        .select('user_id, amount')
+        .in('user_id', allIds)
+        .gte('created_at', since);
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, username, xp, level')
+        .in('id', allIds);
+
+      // Суммируем XP по юзерам
+      const xpMap = {};
+      (logs || []).forEach(l => {
+        xpMap[l.user_id] = (xpMap[l.user_id] || 0) + l.amount;
+      });
+
+      scores = (profilesData || []).map(p => ({
+        ...p,
+        periodXp: xpMap[p.id] || 0,
+      }));
+    }
+
+    // Сортируем
+    scores.sort((a, b) => b.periodXp - a.periodXp);
+    renderLeaderboard(scores, period);
+  } catch (err) {
+    container.innerHTML = `<p style="color:var(--muted);text-align:center">Ошибка загрузки</p>`;
+    console.error(err);
+  }
+}
+
+function renderLeaderboard(scores, period) {
+  const container = document.getElementById('friends-leaderboard-list');
+
+  if (!scores.length) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:2rem;color:var(--muted)">
+        <span style="font-size:2rem">👥</span>
+        <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
+      </div>`;
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  container.innerHTML = scores
+    .map((user, i) => {
+      const isMe = user.id === window.currentUserId;
+      const medal = medals[i] || `${i + 1}`;
+      const label =
+        period === 'all'
+          ? 'XP всего'
+          : period === 'week'
+            ? 'XP за неделю'
+            : 'XP за месяц';
+
+      return `
+      <div class="lb-row ${isMe ? 'lb-row--me' : ''}" data-userid="${user.id}">
+        <div class="lb-rank">${medal}</div>
+        <div class="lb-avatar">${user.username?.[0]?.toUpperCase() || '?'}</div>
+        <div class="lb-info">
+          <div class="lb-name">${user.username || 'Аноним'} ${isMe ? '<span class="lb-you-badge">Ты</span>' : ''}</div>
+          <div class="lb-level">Уровень ${user.level || 1}</div>
+        </div>
+        <div class="lb-xp">
+          <div class="lb-xp-num">${user.periodXp.toLocaleString()}</div>
+          <div class="lb-xp-label">${label}</div>
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+function switchLbPeriod(btn) {
+  document
+    .querySelectorAll('.lb-tab')
+    .forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  loadLeaderboard(btn.dataset.period);
+}
+
+// ===== ГЕНЕРАЦИЯ ИНВАЙТ-ССЫЛОК =====
+
+async function generateInviteLink() {
+  const btn = document.getElementById('generate-invite-btn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Генерируем...';
+
+  try {
+    // Проверяем, есть ли уже инвайт
+    let { data: existing } = await supabase
+      .from('invites')
+      .select('id')
+      .eq('inviter_id', window.currentUserId)
+      .maybeSingle();
+
+    let inviteId = existing?.id;
+
+    if (!inviteId) {
+      const { data, error } = await supabase
+        .from('invites')
+        .insert({ inviter_id: window.currentUserId })
+        .select('id')
+        .single();
+      if (error) throw error;
+      inviteId = data.id;
+    }
+
+    const link = `${location.origin}/?invite=${inviteId}`;
+    await navigator.clipboard.writeText(link);
+    window.toast?.('Ссылка скопирована! 🎉', 'success');
+
+    // Показываем ссылку в UI
+    const box = document.getElementById('invite-link-box');
+    const input = document.getElementById('invite-link-input');
+    if (box && input) {
+      input.value = link;
+      box.style.display = 'flex';
+    }
+  } catch (err) {
+    window.toast?.('Ошибка: ' + err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Пригласить друга';
+  }
 }
 
 // --- ЛИДЕРБОРД ---
@@ -15889,7 +16149,7 @@ function renderFriendsList() {
     container.innerHTML = `
       <div class="friends-empty">
         <span class="material-symbols-outlined">people</span>
-        <p>Пока нет друзей — найди их через поиск</p>
+        <p>Пока нет друзей — найди их через поиск или пригласи по ссылке!</p>
       </div>`;
     return;
   }
@@ -16100,6 +16360,118 @@ async function openFriendModal(friendId) {
   currentModal = modal;
   // Анимация открытия
   requestAnimationFrame(() => modal.classList.add('open'));
+}
+
+// ===== НОВЫЙ ЛИДЕРБОРД С ПЕРИОДАМИ =====
+
+async function loadLeaderboard(period = 'week') {
+  const container = document.getElementById('friends-leaderboard-list');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-spinner"></div>';
+
+  try {
+    // Получаем друзей через db.js функцию
+    const friends = await getFriends(window.currentUserId);
+    const friendIds = friends.map(f => f.id);
+    const allIds = [window.currentUserId, ...friendIds];
+
+    let scores = [];
+
+    if (period === 'all') {
+      // Берём XP из profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, xp, level')
+        .in('id', allIds);
+
+      scores = (profiles || []).map(p => ({ ...p, periodXp: p.xp || 0 }));
+    } else {
+      // Считаем XP за период из xp_log
+      const since =
+        period === 'week'
+          ? new Date(Date.now() - 7 * 86400000).toISOString()
+          : new Date(Date.now() - 30 * 86400000).toISOString();
+
+      const { data: logs } = await supabase
+        .from('xp_log')
+        .select('user_id, amount')
+        .in('user_id', allIds)
+        .gte('created_at', since);
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, xp, level')
+        .in('id', allIds);
+
+      const xpMap = {};
+      (logs || []).forEach(l => {
+        xpMap[l.user_id] = (xpMap[l.user_id] || 0) + l.amount;
+      });
+
+      scores = (profiles || []).map(p => ({
+        ...p,
+        periodXp: xpMap[p.id] || 0,
+      }));
+    }
+
+    scores.sort((a, b) => b.periodXp - a.periodXp);
+    renderLeaderboard(scores, period);
+  } catch (err) {
+    console.error('loadLeaderboard error:', err);
+    container.innerHTML =
+      '<p style="color:var(--muted);text-align:center">Ошибка загрузки</p>';
+  }
+}
+
+function renderLeaderboard(scores, period) {
+  const container = document.getElementById('friends-leaderboard-list');
+  if (!container) return;
+
+  if (!scores.length) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:2rem;color:var(--muted)">
+        <span style="font-size:2rem">👥</span>
+        <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
+      </div>`;
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  container.innerHTML = scores
+    .map((user, i) => {
+      const isMe = user.id === window.currentUserId;
+      const medal = medals[i] || `${i + 1}`;
+      const label =
+        period === 'all'
+          ? 'XP всего'
+          : period === 'week'
+            ? 'XP за неделю'
+            : 'XP за месяц';
+
+      return `
+      <div class="lb-row ${isMe ? 'lb-row--me' : ''}" data-userid="${user.id}">
+        <div class="lb-rank">${medal}</div>
+        <div class="lb-avatar">${user.username?.[0]?.toUpperCase() || '?'}</div>
+        <div class="lb-info">
+          <div class="lb-name">${user.username || 'Аноним'} ${isMe ? '<span class="lb-you-badge">Ты</span>' : ''}</div>
+          <div class="lb-level">Уровень ${user.level || 1}</div>
+        </div>
+        <div class="lb-xp">
+          <div class="lb-xp-num">${user.periodXp.toLocaleString()}</div>
+          <div class="lb-xp-label">${label}</div>
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+function switchLbPeriod(btn) {
+  document
+    .querySelectorAll('.lb-tab')
+    .forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  loadLeaderboard(btn.dataset.period);
 }
 
 // --- ЗАЯВКИ ---
@@ -16390,6 +16762,52 @@ function updateFriendsBadges() {
     }
   }
 }
+
+// --- ИНВАЙТ ФУНКЦИИ ---
+window.generateInviteLink = async function () {
+  const btn = document.getElementById('generate-invite-btn');
+  btn.disabled = true;
+  btn.textContent = 'Генерируем...';
+
+  try {
+    // Проверяем есть ли уже инвайт
+    let { data: existing } = await supabase
+      .from('invites')
+      .select('id')
+      .eq('inviter_id', window.currentUserId)
+      .single();
+
+    let inviteId = existing?.id;
+
+    // Если нет — создаём
+    if (!inviteId) {
+      const { data, error } = await supabase
+        .from('invites')
+        .insert({ inviter_id: window.currentUserId })
+        .select('id')
+        .single();
+      if (error) throw error;
+      inviteId = data.id;
+    }
+
+    const link = `${location.origin}/?invite=${inviteId}`;
+    await navigator.clipboard.writeText(link);
+    window.toast?.('Ссылка скопирована! 🎉', 'success');
+
+    // Показываем ссылку в UI
+    const box = document.getElementById('invite-link-box');
+    const input = document.getElementById('invite-link-input');
+    if (box && input) {
+      input.value = link;
+      box.style.display = 'flex';
+    }
+  } catch (err) {
+    window.toast?.('Ошибка: ' + err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Пригласить друга';
+  }
+};
 
 // --- INIT TAB ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -16711,5 +17129,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return result;
   };
 })();
+
+// ===== ГЛОБАЛЬНЫЕ ЭКСПОРТЫ ДЛЯ HTML =====
+window.switchLbPeriod = switchLbPeriod;
+window.loadLeaderboard = loadLeaderboard;
+window.loadFriendActivity = loadFriendActivity;
+window.loadFriendsDataNew = loadFriendsDataNew;
+window.generateInviteLink = generateInviteLink;
 
 switchTab('words');

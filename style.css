@@ -13470,6 +13470,174 @@ button.floating-add-btn:hover .material-symbols-outlined,
   margin-top: 1rem;
 }
 
+/* Табы периодов лидерборда */
+.lb-period-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.lb-tab {
+  background: none;
+  border: none;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lb-tab.active {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  margin-bottom: 0.5rem;
+  background: var(--card);
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.lb-row:hover {
+  border-color: var(--border);
+  transform: translateX(3px);
+}
+
+.lb-row--me {
+  background: rgba(var(--primary-rgb), 0.06);
+  border-color: rgba(var(--primary-rgb), 0.25) !important;
+}
+
+.lb-rank {
+  font-size: 1.4rem;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.lb-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.lb-info {
+  flex: 1;
+}
+.lb-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.lb-level {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.lb-you-badge {
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 20px;
+}
+
+.lb-xp {
+  text-align: right;
+}
+.lb-xp-num {
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+.lb-xp-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ЛЕНТА АКТИВНОСТИ ДРУЗЕЙ */
+.friends-activity-section {
+  margin-bottom: 1.5rem;
+}
+
+.friend-activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 0.88rem;
+  animation: fadeUp 0.3s ease;
+}
+
+.activity-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.activity-text {
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.activity-text b {
+  color: var(--primary);
+}
+
+/* ИНВАЙТ-БЛОК */
+.invite-block {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.invite-link-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  animation: fadeUp 0.3s ease;
+}
+
+.invite-link-row .form-control {
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: text;
+}
+
 /* Топ-3 */
 .lb-top3 {
   display: grid;

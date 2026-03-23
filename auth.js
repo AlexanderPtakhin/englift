@@ -371,6 +371,9 @@ async function handleAuth(email, password, confirm, isRegister, username) {
         localStorage.getItem('englift_pending_username'),
       );
 
+      // Сохраняем invite, если есть
+      captureInviteFromUrl();
+
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       if (data.user) {
@@ -606,6 +609,9 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
     window.renderBadges?.();
 
+    // Проверяем инвайты для залогиненных пользователей
+    setTimeout(() => checkPendingInviteFromUrl(), 1000);
+
     // Загружаем слова ТОЛЬКО если профиль уже загружен и слова еще не загружены
     if (profileLoaded && !wordsLoaded) {
       wordsLoaded = true;
@@ -721,7 +727,7 @@ async function loadUserProfile(user) {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') throw error;
 
@@ -762,6 +768,13 @@ async function loadUserProfile(user) {
       };
       await saveUserData(user.id, defaultProfile);
       window.applyProfileData?.(defaultProfile);
+
+      // Применяем инвайт, если есть
+      const pendingInvite = localStorage.getItem('englift_pending_invite');
+      if (pendingInvite) {
+        await applyInvite(pendingInvite, user.id);
+        localStorage.removeItem('englift_pending_invite');
+      }
     } else {
       // Профиль уже существует – проверим, нужно ли обновить username
       if (savedUsername && savedUsername !== serverProfile.username) {
@@ -820,6 +833,177 @@ logoutFromUnverifiedBtn.addEventListener('click', () => {
   profileLoaded = false;
   supabase.auth.signOut();
 });
+
+// ===== INVITE HANDLING =====
+
+// Сохраняем invite ID при регистрации
+function captureInviteFromUrl() {
+  const inviteId = new URLSearchParams(location.search).get('invite');
+  if (inviteId) {
+    localStorage.setItem('englift_pending_invite', inviteId);
+  }
+}
+
+// Применяем инвайт после создания профиля
+async function applyInvite(inviteId, newUserId) {
+  try {
+    // Получаем данные инвайта
+    const { data: invite, error } = await supabase
+      .from('invites')
+      .select('inviter_id, uses')
+      .eq('id', inviteId)
+      .maybeSingle();
+
+    if (error || !invite) return;
+    if (invite.inviter_id === newUserId) return; // сам себя не добавляем
+
+    // Проверяем, не друзья ли уже
+    const { data: existing } = await supabase
+      .from('friendships')
+      .select('id')
+      .or(
+        `user_id.eq.${invite.inviter_id},friend_id.eq.${invite.inviter_id},user_id.eq.${newUserId},friend_id.eq.${newUserId}`,
+      )
+      .maybeSingle();
+
+    if (existing) return;
+
+    // Создаём дружбу в обе стороны
+    await supabase.from('friendships').insert([
+      { user_id: invite.inviter_id, friend_id: newUserId, status: 'accepted' },
+      { user_id: newUserId, friend_id: invite.inviter_id, status: 'accepted' },
+    ]);
+
+    // Увеличиваем счётчик использований
+    await supabase
+      .from('invites')
+      .update({ uses: (invite.uses || 0) + 1 })
+      .eq('id', inviteId);
+
+    console.log(`✅ Invite applied: ${inviteId}`);
+
+    // Обновляем UI друзей если пользователь уже залогинен
+    if (window.currentUserId) {
+      if (typeof loadLeaderboard === 'function') loadLeaderboard('week');
+      if (typeof loadFriendActivity === 'function') loadFriendActivity();
+      if (typeof loadFriendsDataNew === 'function') loadFriendsDataNew();
+    }
+  } catch (e) {
+    console.warn('applyInvite error:', e);
+  }
+}
+
+// ===== ОБРАБОТКА ИНВАЙТОВ ДЛЯ ЗАЛОГИНЕННЫХ ПОЛЬЗОВАТЕЛЕЙ =====
+
+async function checkPendingInviteFromUrl() {
+  const inviteId = new URLSearchParams(location.search).get('invite');
+  if (!inviteId || !window.currentUserId) return;
+
+  // Убираем параметр из URL без перезагрузки
+  const cleanUrl = location.origin + location.pathname;
+  window.history.replaceState({}, '', cleanUrl);
+
+  try {
+    // Получаем данные инвайта
+    const { data: invite, error } = await supabase
+      .from('invites')
+      .select('inviter_id, profiles(username)')
+      .eq('id', inviteId)
+      .maybeSingle();
+
+    if (error || !invite) return;
+
+    // Сам себе не шлём
+    if (invite.inviter_id === window.currentUserId) return;
+
+    // Проверяем, не друзья ли уже
+    const { data: existing } = await supabase
+      .from('friendships')
+      .select('id')
+      .or(
+        `user_id.eq.${window.currentUserId},friend_id.eq.${window.currentUserId},user_id.eq.${invite.inviter_id},friend_id.eq.${invite.inviter_id}`,
+      )
+      .maybeSingle();
+
+    if (existing) {
+      window.toast?.('Вы уже друзья с этим пользователем 😄', 'warning');
+      return;
+    }
+
+    // Показываем модалку подтверждения
+    const inviterName = invite.profiles?.username || 'Пользователь';
+    showInviteConfirmModal(inviterName, invite.inviter_id, inviteId);
+  } catch (e) {
+    console.warn('checkPendingInviteFromUrl error:', e);
+  }
+}
+
+function showInviteConfirmModal(inviterName, inviterId, inviteId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-backdrop open';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:380px;text-align:center">
+      <div style="font-size:3rem;margin-bottom:0.75rem">👋</div>
+      <h3 style="margin-bottom:0.5rem">Заявка в друзья</h3>
+      <p style="color:var(--muted);margin-bottom:1.5rem">
+        <b style="color:var(--text)">${inviterName}</b> хочет добавить тебя в друзья!
+      </p>
+      <div style="display:flex;gap:0.75rem">
+        <button class="btn btn-primary" style="flex:1" id="invite-accept-btn">
+          <span class="material-symbols-outlined">check</span>
+          Принять
+        </button>
+        <button class="btn btn-secondary" style="flex:1" id="invite-decline-btn">
+          <span class="material-symbols-outlined">close</span>
+          Отклонить
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  document.getElementById('invite-accept-btn').onclick = async () => {
+    await acceptInviteFriendship(inviterId, inviteId);
+    modal.remove();
+  };
+
+  document.getElementById('invite-decline-btn').onclick = () => {
+    modal.remove();
+    window.toast?.('Заявка отклонена', 'warning');
+  };
+}
+
+async function acceptInviteFriendship(inviterId, inviteId) {
+  try {
+    // Создаём дружбу в обе стороны
+    await supabase.from('friendships').insert([
+      {
+        user_id: inviterId,
+        friend_id: window.currentUserId,
+        status: 'accepted',
+      },
+      {
+        user_id: window.currentUserId,
+        friend_id: inviterId,
+        status: 'accepted',
+      },
+    ]);
+
+    // Обновляем счётчик использований инвайта
+    const { data: inv } = await supabase
+      .from('invites')
+      .select('uses')
+      .eq('id', inviteId)
+      .maybeSingle();
+
+    window.toast?.('Вы теперь друзья! 🎉', 'success');
+
+    // Обновляем UI друзей
+    await loadFriendsDataNew();
+  } catch (e) {
+    window.toast?.('Ошибка: ' + e.message, 'danger');
+  }
+}
 
 // Немедленная проверка сессии при загрузке
 (async () => {

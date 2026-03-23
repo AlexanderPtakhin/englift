@@ -351,23 +351,26 @@ export async function getFriends(userId) {
     return [];
   }
 
-  // Преобразуем в массив друзей (другой пользователь)
-  const friends = data.map(f => {
+  // Преобразуем в массив друзей (другой пользователь) с дедупликацией
+  const friendsMap = new Map();
+  data.forEach(f => {
     const friend = f.user_id === userId ? f.friend_profile : f.user_profile;
-    return {
-      id: friend.id,
-      username: friend.username,
-      xp: friend.xp,
-      level: friend.level,
-      streak: friend.streak,
-      lastActive: friend.laststreakdate,
-      total_words: friend.total_words,
-      total_idioms: friend.total_idioms,
-      learned_words: friend.learned_words,
-    };
+    if (friend && !friendsMap.has(friend.id)) {
+      friendsMap.set(friend.id, {
+        id: friend.id,
+        username: friend.username,
+        xp: friend.xp,
+        level: friend.level,
+        streak: friend.streak,
+        lastActive: friend.laststreakdate,
+        total_words: friend.total_words,
+        total_idioms: friend.total_idioms,
+        learned_words: friend.learned_words,
+      });
+    }
   });
 
-  return friends;
+  return Array.from(friendsMap.values());
 }
 
 /**
@@ -448,7 +451,7 @@ export async function getFriendsLeaderboard(userId) {
       'id, username, xp, level, streak, total_words, total_idioms, learned_words',
     )
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error(
