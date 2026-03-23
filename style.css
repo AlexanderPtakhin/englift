@@ -6,6 +6,33 @@ body {
   position: relative;
 }
 
+/* Fallback для Material Symbols иконок */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Если шрифт не загрузился, показываем текстовый fallback */
+.material-symbols-outlined:not(:defined) {
+  font-family: monospace;
+  font-size: 16px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  padding: 2px 4px;
+  color: #666;
+}
+
 /* Loading state для устранения мерцания темы */
 
 body.loading main,
@@ -9660,32 +9687,25 @@ html.dark .due-soon {
 
 .user-dropdown {
   position: absolute;
-
   top: 100%;
-
   right: 0;
-
   background: var(--card);
-
-  border: 2px solid var(--border);
-
-  border-radius: 10px;
-
-  padding: 0.75rem 1rem;
-
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem;
   min-width: 200px;
-
-  box-shadow: var(--shadow-hover);
-
   z-index: 1000;
-
-  margin-top: 0.5rem;
-
-  display: flex;
-
-  flex-direction: column;
-
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
   gap: 0.25rem;
+  display: none;
+}
+
+.user-dropdown[style*='display: block'] {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .user-dropdown::before {

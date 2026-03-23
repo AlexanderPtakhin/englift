@@ -1,10 +1,13 @@
-// tour.js — EngLift Onboarding Tour
+// tour.js — EngLift Onboarding Tour (полная версия с исходными стилями)
 (function () {
   const TOUR_KEY = 'englift_tour_v1_done';
-  const MOBILE_BP = 830; // breakpoint из твоего CSS
-  const MOBILE_NAV_H = 66; // высота .mobile-bottom-nav из CSS
+  const MOBILE_BP = 830;
+  const MOBILE_NAV_H = 66;
 
   const isMobile = () => window.innerWidth <= MOBILE_BP;
+
+  // Флаг активности тура
+  if (window._tourActive === undefined) window._tourActive = false;
 
   const STEPS = [
     {
@@ -22,7 +25,6 @@
       title: '<span class="material-symbols-outlined">menu_book</span> Словарь',
       text: 'Здесь хранятся все твои слова. Фильтруй по тегам, CEFR-уровням, сортируй как удобно.',
       onBefore: () => {
-        // Убеждаемся что на вкладке слов
         document.querySelector('.nav-btn[data-tab="words"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
       },
@@ -31,9 +33,8 @@
       target: () => document.querySelector('#wotd-wrap'),
       title:
         '<span class="material-symbols-outlined">auto_awesome</span> Банк слов',
-      text: 'Каждый раз при открытии — новое слово из огромной базы. Можно сразу добавить к себе в словарь одной кнопкой.',
+      text: 'Каждый раз при открытии — новое слово из огромной базы. Уровень слов можно настроить в меню пользователя (A1–C2). Сразу добавляй к себе в словарь одной кнопкой!',
       onBefore: () => {
-        // Остаемся на вкладке слов
         document.querySelector('.nav-btn[data-tab="words"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
       },
@@ -44,12 +45,10 @@
         '<span class="material-symbols-outlined">add_circle</span> Добавить слово',
       text: 'Одна кнопка — и форма открыта. Перевод, транскрипция и пример подтянутся из словаря автоматически.',
       onBefore: () => {
-        // Остаемся на вкладке слов
         document.querySelector('.nav-btn[data-tab="words"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
       },
     },
-    // ШАГ 4 — кнопка аудио на карточке
     {
       target: () =>
         document.querySelector(
@@ -67,7 +66,6 @@
         if (expanded) expanded.click();
       },
     },
-    // ШАГ 5 — раскрытие карточки, пример и аудио примера
     {
       target: () =>
         document.querySelector('#words-grid .word-card[data-id="__demo__"]') ||
@@ -79,16 +77,24 @@
       onBefore() {
         document.querySelector('.nav-btn[data-tab="words"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
-        // раскрываем с задержкой — после того как rAF пересоберёт DOM
         setTimeout(() => {
           const demoCard =
             document.querySelector(
               '#words-grid .word-card[data-id="__demo__"]',
             ) || document.querySelector('#words-grid .word-card');
-          if (demoCard && !demoCard.classList.contains('expanded')) {
+          if (demoCard && !demoCard.classList.contains('expanded'))
             demoCard.click();
-          }
         }, 160);
+      },
+    },
+    {
+      target: () => document.querySelector('.filter-pills'),
+      title:
+        '<span class="material-symbols-outlined">filter_alt</span> Фильтры и сортировка',
+      text: 'Сортируй слова по дате, алфавиту, сложности. Фильтруй по статусу (учу/знаю) или по тегу.',
+      onBefore: () => {
+        document.querySelector('.nav-btn[data-tab="words"]')?.click();
+        document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
       },
     },
     {
@@ -100,7 +106,6 @@
         '<span class="material-symbols-outlined">theater_comedy</span> Идиомы',
       text: 'Отдельный раздел для идиом и устойчивых выражений. Та же механика, отдельная база.',
       onBefore: () => {
-        // Переключаемся на вкладку идиом
         document.querySelector('.nav-btn[data-tab="idioms"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="idioms"]')?.click();
       },
@@ -111,7 +116,6 @@
       text: 'То же самое для идиом — случайная подборка из большой базы. Листай, добавляй что понравилось.',
       delay: 500,
       onBefore: () => {
-        // Убеждаемся что на вкладке идиом
         document.querySelector('.nav-btn[data-tab="idioms"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="idioms"]')?.click();
       },
@@ -125,7 +129,6 @@
         '<span class="material-symbols-outlined">rocket_launch</span> Практика',
       text: '9 типов упражнений: флэш-карты, тест, диктовка, речь, конструктор и другие. Умный SM-2 алгоритм сам решает что показать.',
       onBefore: () => {
-        // Переключаемся на вкладку практики
         document.querySelector('.nav-btn[data-tab="practice"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="practice"]')?.click();
       },
@@ -137,9 +140,8 @@
           : document.querySelector('.nav-btn[data-tab="stats"]'),
       title:
         '<span class="material-symbols-outlined">monitoring</span> Прогресс',
-      text: 'XP, уровень, стрик, недельный график, CEFR и бейджи. Всё чтобы не забросить.',
+      text: 'XP, уровень, стрик, недельный график, CEFR и бейджи. Ежедневные цели и лимит повторений помогут не забросить.',
       onBefore: () => {
-        // Переключаемся на вкладку статистики
         document.querySelector('.nav-btn[data-tab="stats"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="stats"]')?.click();
       },
@@ -152,7 +154,6 @@
       title: '<span class="material-symbols-outlined">group</span> Друзья',
       text: 'Добавляй друзей и соревнуйся в лидерборде по XP. Конкуренция мотивирует!',
       onBefore: () => {
-        // Переключаемся на вкладку друзей
         document.querySelector('.nav-btn[data-tab="friends"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="friends"]')?.click();
       },
@@ -161,30 +162,28 @@
       target: () => document.querySelector('#user-avatar'),
       title:
         '<span class="material-symbols-outlined">settings</span> Настройки',
-      text: 'Нажми на аватарку — там можно сменить голос озвучки, выбрать тему оформления и настроить лимит повторений в день.',
+      text: 'Нажми на аватарку — здесь можно сменить голос озвучки, выбрать тему оформления, настроить лимит повторений в день и даже выбрать уровень слов в рекомендациях (A1–C2).',
       onBefore() {
-        // закрыть дропдаун если вдруг открыт
         const dropdown = document.getElementById('user-dropdown');
         if (dropdown) dropdown.style.display = 'none';
-        STEPS[10].target = document.querySelector('#user-avatar');
+        STEPS[12].target = document.querySelector('#user-avatar');
       },
     },
     {
       target: null,
       title:
         '<span class="material-symbols-outlined">celebration</span> Готово!',
-      text: 'Добавь первое слово прямо сейчас — и пусть стрик никогда не обнулится 🔥',
+      text: 'Нажми на кнопку «+» справа внизу, чтобы добавить своё первое слово! 🚀',
       position: 'center',
       isLast: true,
       onBefore: () => {
-        // Возвращаемся на вкладку словаря для финального шага
         document.querySelector('.nav-btn[data-tab="words"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
       },
     },
   ];
 
-  // ─── DEMO WORD FUNCTIONS ───────────────────────────────────
+  // ─── DEMO WORD FUNCTIONS ───────────────────────────
   function addDemoWord() {
     if (!window.words) return;
     if (window.words.find(w => w.id === '__demo__')) return;
@@ -226,7 +225,6 @@
       }
     };
 
-    // Патчим renderWords — перед каждым рендером проверяем что demo на месте
     if (!window._tourOriginalRenderWords) {
       window._tourOriginalRenderWords = window.renderWords;
       window.renderWords = function (...args) {
@@ -240,20 +238,52 @@
   }
 
   function removeDemoWord() {
-    // Снимаем патч
+    console.log('🔍 TOUR: Удаляем демо-слово');
+
     if (window._tourOriginalRenderWords) {
+      console.log('🔍 TOUR: Восстанавливаем оригинальный renderWords');
       window.renderWords = window._tourOriginalRenderWords;
       window._tourOriginalRenderWords = null;
     }
-    if (!window.words) return;
-    window.words = window.words.filter(w => w.id !== '__demo__');
-    window.renderWords?.();
+
+    if (!window.words) {
+      console.log('🔍 TOUR: window.words не найден');
+      return;
+    }
+
+    const demoWordIndex = window.words.findIndex(w => w.id === '__demo__');
+    if (demoWordIndex !== -1) {
+      console.log('🔍 TOUR: Находим демо-слово, удаляем');
+      window.words.splice(demoWordIndex, 1);
+    } else {
+      console.log('🔍 TOUR: Демо-слово не найдено в массиве');
+    }
+
+    console.log('🔍 TOUR: Перерисовываем слова без демо');
+    // Принудительно вызываем рендер, даже если renderWords не оригинальный
+    if (window.renderWords) window.renderWords();
   }
 
-  // ─── BUILD DOM ────────────────────────────────────────────
+  // ─── BUILD DOM ────────────────────────────────────
   function buildTour() {
-    addDemoWord(); // ← добавить сюда
-    // ждем отрисовки демо-слова
+    // ЖЁСТКАЯ ОЧИСТКА СТАРЫХ ЭЛЕМЕНТОВ ТУРА
+    ['tour-overlay', 'tour-ring', 'tour-tooltip', 'tour-styles'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    if (window._tourResizeObserver) {
+      window._tourResizeObserver.disconnect();
+      window._tourResizeObserver = null;
+    }
+
+    addDemoWord();
+
+    window._demoWordInterval = setInterval(() => {
+      if (window.words && !window.words.find(w => w.id === '__demo__')) {
+        addDemoWord();
+      }
+    }, 500);
+
     setTimeout(() => {
       injectStyles();
 
@@ -312,10 +342,10 @@
       document.addEventListener('keydown', onKey);
 
       goTo(0);
-    }, 300); // ждем отрисовки демо-слова
+    }, 300);
   }
 
-  // ─── STATE & RENDER ───────────────────────────────────────
+  // ─── STATE & RENDER ───────────────────────────────
   const state = { step: 0 };
 
   function goTo(idx) {
@@ -324,7 +354,6 @@
     const step = STEPS[idx];
     if (step.onBefore) {
       step.onBefore();
-      // используем step.delay если есть, иначе дефолтные 120ms
       setTimeout(() => renderStep(step, idx), step.delay ?? 120);
       return;
     }
@@ -349,11 +378,9 @@
     const skipContainer = document.getElementById('tour-skip-container');
 
     if (step.isLast) {
-      // Финальный шаг: скрываем навигацию, показываем только "Начать"
       nav.style.display = 'none';
       skipContainer.style.display = 'none';
 
-      // Создаем кнопку "Начать" по центру
       const finishBtn = document.createElement('button');
       finishBtn.id = 'tour-finish';
       finishBtn.innerHTML =
@@ -361,16 +388,13 @@
       finishBtn.className = 'finish';
       finishBtn.onclick = () => endTour(true);
 
-      // Заменяем футер
       const footer = document.getElementById('tour-footer');
       footer.innerHTML = '';
       footer.appendChild(finishBtn);
     } else {
-      // Обычный шаг: показываем навигацию
       nav.style.display = 'flex';
       skipContainer.style.display = 'flex';
 
-      // Восстанавливаем стандартную структуру футера если была изменена
       const footer = document.getElementById('tour-footer');
       if (!footer.querySelector('#tour-nav')) {
         footer.innerHTML = `
@@ -381,7 +405,6 @@
           </div>
         `;
 
-        // Перепривязываем события
         document.getElementById('tour-prev').onclick = () =>
           goTo(state.step - 1);
         document.getElementById('tour-next').onclick = () => {
@@ -399,15 +422,20 @@
     positionTooltip(step);
   }
 
-  // ─── SMART POSITIONING ────────────────────────────────────
+  // ─── SMART POSITIONING (полная оригинальная версия) ────────────────────
   function positionTooltip(step, silent = false) {
     const tooltip = document.getElementById('tour-tooltip');
     const ring = document.getElementById('tour-ring');
     const hole = document.getElementById('tour-hole');
     const arrow = document.getElementById('tour-arrow');
-    const target = step.target ? step.target() : null;
+    const target =
+      typeof step.target === 'function' ? step.target() : step.target;
 
-    // fade only при смене шага, не при resize
+    if (!tooltip || !ring || !hole || !arrow) {
+      console.warn('Tour elements not found, skipping positioning');
+      return;
+    }
+
     if (!silent) {
       tooltip.style.opacity = '0';
       tooltip.style.transform = 'translateY(8px) scale(0.97)';
@@ -417,7 +445,6 @@
       }, 50);
     }
 
-    // ── центральный шаг (без подсветки) ──
     if (!target || step.position === 'center') {
       tooltip.className = 'center';
       ring.style.opacity = '0';
@@ -427,25 +454,20 @@
       return;
     }
 
-    if (tooltip) {
-      tooltip.className = '';
-    }
+    if (tooltip) tooltip.className = '';
     ring.style.opacity = '1';
     arrow.style.display = 'block';
 
     const r = target.getBoundingClientRect();
 
-    // На мобиле скроллим таргет в видимую зону перед позиционированием
     if (isMobile()) {
       target.scrollIntoView({ block: 'nearest', behavior: 'instant' });
     }
 
-    // SVG hole + ring - чистый PAD или ноль для элементов у края
     const PAD_FULL = 10;
     const VW = window.visualViewport?.width ?? window.innerWidth;
     const VH = window.visualViewport?.height ?? window.innerHeight;
 
-    // Если элемент у любого края — убираем отступ полностью
     const nearEdge =
       r.left < PAD_FULL ||
       r.top < PAD_FULL ||
@@ -466,50 +488,40 @@
       height: r.height + PAD * 2 + 'px',
     });
 
-    // Размеры и ограничения
     const TW = Math.min(320, window.innerWidth - 32);
-    // Ставим ширину сразу — браузер посчитает реальную высоту
     tooltip.style.width = TW + 'px';
-    const TH = tooltip.offsetHeight || 220; // ← реальная высота, не гадаем
+    const TH = tooltip.offsetHeight || 220;
     const GAP = 16;
     const M = 16;
 
-    // Нижняя граница: на мобиле отнимаем высоту навбара
     const bottomLimit = isMobile() ? VH - MOBILE_NAV_H - M : VH - M;
 
-    // Места выше и ниже элемента
     const spaceBelow = bottomLimit - (r.bottom + PAD + GAP);
     const spaceAbove = r.top - PAD - GAP - M;
 
-    // Ставим снизу только если реально помещается
     const placeBelow = spaceBelow >= TH || spaceBelow > spaceAbove;
 
     let top, left, arrowClass;
     if (placeBelow) {
       top = r.bottom + PAD + GAP;
-      arrowClass = 'up'; // стрелка сверху тултипа ↑ указывает на элемент выше
+      arrowClass = 'up';
     } else {
       top = r.top - PAD - GAP - TH;
-      arrowClass = 'down'; // стрелка снизу тултипа ↓ указывает на элемент ниже
+      arrowClass = 'down';
     }
 
-    // Центрируем по горизонтали относительно элемента
     left = r.left + r.width / 2 - TW / 2;
 
-    // Умный клампинг с учетом размера тултипа
     left = Math.max(M, Math.min(left, VW - TW - M));
     top = Math.max(M, Math.min(top, bottomLimit - TH));
 
-    // Если тултип все равно вылезает справа - прижимаем к краю
     if (left + TW > VW - M) {
       left = VW - TW - M;
     }
-    // Если вылезает слева - прижимаем к левому краю
     if (left < M) {
       left = M;
     }
 
-    // Убеждаемся что низ тултипа не залезает в зону мобильного меню
     const safeBottom = isMobile() ? VH - MOBILE_NAV_H - M : VH - M;
     if (top + TH > safeBottom) {
       top = safeBottom - TH - 4;
@@ -517,19 +529,16 @@
 
     tooltip.style.top = `${top}px`;
     tooltip.style.left = `${left}px`;
-    tooltip.style.width = `${TW}px`; // уже выставлен выше, но для ясности
+    tooltip.style.width = `${TW}px`;
 
-    // Позиция стрелки: указываем на центр целевого элемента
     const targetCenter = r.left + r.width / 2;
     const tooltipLeft = left;
     const arrowX = targetCenter - tooltipLeft;
 
-    // Ограничиваем стрелку в пределах тултипа
     const arrowPos = Math.max(16, Math.min(arrowX - 6, TW - 28));
     arrow.className = arrowClass;
     arrow.style.left = `${arrowPos}px`;
 
-    // Следим за изменением размеров таргета
     if (window._tourResizeObserver) {
       window._tourResizeObserver.disconnect();
     }
@@ -543,7 +552,7 @@
             typeof currentStep.target === 'function'
               ? currentStep.target()
               : currentStep.target;
-          if (currentTarget === target) positionTooltip(currentStep, true); // ← silent=true
+          if (currentTarget === target) positionTooltip(currentStep, true);
         }, 80);
       });
       window._tourResizeObserver.observe(target);
@@ -552,16 +561,55 @@
 
   // ─── END ──────────────────────────────────────────────────
   function endTour(completed) {
+    console.log('🔍 TOUR: Вызываем endTour, completed:', completed);
+
     document.removeEventListener('keydown', onKey);
-    ['tour-overlay', 'tour-ring', 'tour-tooltip', 'tour-styles'].forEach(id =>
-      document.getElementById(id)?.remove(),
-    );
+
+    // Агрессивная очистка всех элементов тура
+    const tourElements = [
+      'tour-overlay',
+      'tour-ring',
+      'tour-tooltip',
+      'tour-styles',
+    ];
+    tourElements.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        console.log('🔍 TOUR: Удаляем элемент:', id);
+        el.remove();
+      }
+    });
+
+    // Дополнительная очистка через querySelector
+    document.querySelectorAll('[id^="tour-"]').forEach(el => {
+      console.log('🔍 TOUR: Дополнительно удаляем:', el.id);
+      el.remove();
+    });
+
     window._tourResizeObserver?.disconnect();
     window._tourResizeObserver = null;
+
+    // Сначала очищаем интервал демо-слова
+    if (window._demoWordInterval) {
+      console.log('🔍 TOUR: Очищаем интервал демо-слова');
+      clearInterval(window._demoWordInterval);
+      window._demoWordInterval = null;
+    }
+
+    // Сбрасываем состояние
+    state.active = false;
+    state.step = 0;
+
     removeDemoWord();
 
-    // Всегда сохраняем — неважно, завершил или пропустил
-    localStorage.setItem(TOUR_KEY, '1');
+    // Снимаем флаг активности
+    window._tourActive = false;
+
+    if (window.currentUserId && window.markProfileDirty) {
+      window.markProfileDirty('has_seen_tour', true);
+      if (window.user_settings) window.user_settings.has_seen_tour = true;
+      if (window.syncProfileNow) window.syncProfileNow();
+    }
 
     if (completed) {
       window.spawnConfetti?.();
@@ -583,7 +631,7 @@
     if (e.key === 'Escape') endTour(false);
   }
 
-  // ─── STYLES ───────────────────────────────────────────────
+  // ─── STYLES (оригинальные из первой версии) ───────────────────────────────
   function injectStyles() {
     const s = document.createElement('style');
     s.id = 'tour-styles';
@@ -637,7 +685,7 @@
         transition: none;
       }
       #tour-arrow.up   { top: -7px;    border-right: none; border-bottom: none; }
-      #tour-arrow.down { bottom: -7px; border-left: none;  border-top: none;  }
+      #tour-arrow.down { bottom: -7px; border-left: none;  border-top: none; }
       #tour-header {
         display: flex; align-items: center; gap: 8px;
         margin-bottom: 10px;
@@ -686,9 +734,9 @@
         border: none; cursor: pointer;
         font-family: inherit; font-weight: 700;
         font-size: .8rem; border-radius: 10px;
-        padding: 7px 14px;
+        padding:7px 14px;
         transition: opacity .15s, transform .15s;
-        min-width: 44px; /* одинаковый размер кнопок */
+        min-width: 44px;
         display: flex; 
         align-items: center; 
         justify-content: center;
@@ -704,7 +752,7 @@
       }
       #tour-next.finish {
         background: linear-gradient(135deg, var(--primary), var(--primary-light));
-        padding: 7px 18px;
+        padding:7px 18px;
         min-width: auto;
       }
       #tour-finish {
@@ -759,22 +807,28 @@
 
   // ─── INIT ─────────────────────────────────────────────────
   window.startTour = function () {
-    localStorage.removeItem(TOUR_KEY);
-    ['tour-overlay', 'tour-ring', 'tour-tooltip', 'tour-styles'].forEach(id =>
-      document.getElementById(id)?.remove(),
-    );
+    if (window._tourActive) {
+      console.warn('🔍 TOUR: Тур уже активен, повторный запуск игнорируется');
+      return;
+    }
+    window._tourActive = true;
+    // Полная очистка перед запуском
+    ['tour-overlay', 'tour-ring', 'tour-tooltip', 'tour-styles'].forEach(id => {
+      document.getElementById(id)?.remove();
+    });
     buildTour();
   };
 
   function tryStart() {
-    if (localStorage.getItem(TOUR_KEY)) return;
+    if (!window.user_settings) return;
+    if (window.user_settings.has_seen_tour) return;
     if (document.body.classList.contains('authenticated')) {
-      setTimeout(buildTour, 900);
+      setTimeout(window.startTour, 900);
     } else {
       const obs = new MutationObserver(() => {
         if (document.body.classList.contains('authenticated')) {
           obs.disconnect();
-          setTimeout(buildTour, 900);
+          setTimeout(window.startTour, 900);
         }
       });
       obs.observe(document.body, {

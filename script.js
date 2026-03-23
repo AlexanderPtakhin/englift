@@ -1094,9 +1094,13 @@ window.applyTheme = function (baseTheme = 'lavender', dark = false) {
     themeIcon.textContent = dark ? 'sunny' : 'dark_mode';
   }
 
-  // Помечаем профиль грязным для синхронизации с сервером
+  // Помечаем профиль грязный для синхронизации с сервером
   if (window.currentUserId) {
     markProfileDirty('darktheme', dark);
+    console.log(
+      '💾 Сохраняем usersettings (включая reviewLimit):',
+      window.user_settings,
+    );
     markProfileDirty('usersettings', window.user_settings);
   }
 
@@ -1300,6 +1304,10 @@ async function syncProfileNow() {
   if (pendingProfileUpdates.size === 0) return;
 
   const updates = Object.fromEntries(pendingProfileUpdates);
+  console.log(
+    '💾 Отправляем профиль на сервер:',
+    JSON.stringify(updates, null, 2),
+  );
   pendingProfileUpdates.clear(); // чистим до запроса
 
   try {
@@ -1393,17 +1401,19 @@ function scheduleDelayedSync(delay = 30000) {
     console.log('🔄 Запускаем отложенную синхронизацию слов');
 
     try {
-      const user = await getCurrentUser();
+      // Временно закомментировано чтобы не мешать редиректу
+      // const user = await getCurrentUser();
 
-      if (user) {
-        await syncWordsToServer();
+      console.log('⚠️ getCurrentUser временно отключен для отладки редиректа');
 
-        console.log('✅ Отложенная синхронизация завершена');
-      } else {
-        console.log('❌ Нет пользователя для синхронизации');
-      }
-    } catch (error) {
-      console.error('❌ Ошибка отложенной синхронизации:', error);
+      // if (user) {
+      //   await syncWordsToServer();
+      //   console.log('✅ Отложенная синхронизация завершена');
+      // } else {
+      //   console.log('⚠️ Нет пользователя для синхронизации');
+      // }
+    } catch (e) {
+      console.error('❌ Ошибка отложенной синхронизации:', e);
     }
   }, delay);
 
@@ -2179,20 +2189,46 @@ function applyProfileData(data) {
 
   window.updateStreak?.({
     count: data.streak ?? 0,
-    lastDate: data.laststreakdate ?? null,
+    lastDate: data.laststreakdate,
   });
 
   if (data.dailyprogress) {
     console.log('🔍 Применяем dailyprogress:', data.dailyprogress);
-    window.updateDailyProgress?.(data.dailyprogress);
+    window.dailyProgress = data.dailyprogress; // ← исправлено: большая P
+  } else {
+    console.log('🔍 Создаем новый dailyprogress');
+    const today = new Date().toISOString().split('T')[0];
+    window.dailyProgress = {
+      review: 0,
+      add_new: 0,
+      completed: false,
+      lastReset: today,
+      practice_time: 0,
+    };
   }
 
+  // Восстанавливаем счётчик упражнений за день
   if (data.dailyreviewcount !== undefined) {
     window.dailyReviewCount = data.dailyreviewcount;
+    console.log('🔍 Восстановили dailyReviewCount:', window.dailyReviewCount);
+  } else {
+    window.dailyReviewCount = 0;
+    console.log('🔍 Установили dailyReviewCount по умолчанию:', 0);
   }
 
+  // Восстанавливаем дату последнего сброса
   if (data.lastreviewreset) {
     window.lastReviewResetDate = data.lastreviewreset;
+    console.log(
+      '🔍 Восстановили lastReviewResetDate:',
+      window.lastReviewResetDate,
+    );
+  } else {
+    window.lastReviewResetDate = new Date().toISOString().split('T')[0];
+    console.log(
+      '🔍 Установили lastReviewResetDate по умолчанию:',
+      window.lastReviewResetDate,
+    );
   }
 
   // Настройки пользователя
@@ -2203,9 +2239,21 @@ function applyProfileData(data) {
     showPhonetic: data.usersettings?.showPhonetic ?? true,
     baseTheme: data.usersettings?.baseTheme || 'lavender',
     dark: data.usersettings?.dark ?? false,
-    bankWordLevel: data.usersettings?.bankWordLevel || 'all', // ← добавить
-    ...(data.usersettings || {}),
+    bankWordLevel: data.usersettings?.bankWordLevel || 'all',
+    ...data.usersettings,
   };
+
+  // Применяем флаг тура из данных профиля
+  console.log('🔍 TOUR: Загружаем has_seen_tour из профиля:', {
+    has_seen_tour_from_profile: data.has_seen_tour,
+    usersettings_has_seen_tour: data.usersettings?.has_seen_tour,
+    final_value: data.has_seen_tour ?? false,
+  });
+  window.user_settings.has_seen_tour = data.has_seen_tour ?? false;
+  console.log(
+    '🔍 TOUR: Установлен window.user_settings.has_seen_tour:',
+    window.user_settings.has_seen_tour,
+  );
 
   // Применяем тему
   console.log('🎨 Применяем тему из данных:', {
@@ -2853,6 +2901,10 @@ async function resetDailyGoalsIfNeeded() {
     };
 
     // Mark profile as dirty to ensure reset is saved
+    console.log(
+      '💾 Сохраняем dailyprogress (сброс целей):',
+      window.dailyProgress,
+    );
     markProfileDirty('dailyprogress', window.dailyProgress);
 
     // Update UI to show reset goals immediately
@@ -3427,6 +3479,10 @@ async function addWord(
     resetDailyGoalsIfNeeded();
 
     window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
+    console.log(
+      '💾 Сохраняем dailyprogress (добавлено слово):',
+      window.dailyProgress,
+    );
     markProfileDirty('dailyprogress', window.dailyProgress);
 
     checkDailyGoalsCompletion();
@@ -5610,6 +5666,10 @@ if (themeCheckbox) {
     window.user_settings.dark =
       document.documentElement.classList.contains('dark');
     if (window.currentUserId) {
+      console.log(
+        '💾 Сохраняем usersettings (переключение темы):',
+        window.user_settings,
+      );
       markProfileDirty('usersettings', window.user_settings);
       markProfileDirty('darktheme', window.user_settings.dark);
     }
@@ -8737,6 +8797,10 @@ if (speechModalSave && themeSelect) {
 
     // 4. Сохраняем настройки через markProfileDirty
     if (window.currentUserId) {
+      console.log(
+        '💾 Сохраняем usersettings (изменение лимита):',
+        window.user_settings,
+      );
       markProfileDirty('usersettings', window.user_settings);
     }
 
@@ -10237,6 +10301,7 @@ function showResults() {
     );
     window.dailyProgress.practicetime =
       (window.dailyProgress.practicetime || 0) + practiceMinutes;
+    console.log('💾 Сохраняем dailyprogress (практика):', window.dailyProgress);
     markProfileDirty('dailyprogress', window.dailyProgress);
     window.lastProfileUpdate = Date.now();
     checkDailyGoalsCompletion();
@@ -11964,6 +12029,10 @@ function recordAnswer(correct, exerciseType) {
     window.dailyProgress.review = (window.dailyProgress.review || 0) + 1;
 
     // Mark profile as dirty to ensure progress is saved
+    console.log(
+      '💾 Сохраняем dailyprogress (повторение):',
+      window.dailyProgress,
+    );
     markProfileDirty('dailyprogress', window.dailyProgress);
 
     // Update UI to show progress immediately
@@ -13144,6 +13213,7 @@ async function renderRandomBankWord() {
       // === ОБНОВЛЕНИЕ ЕЖЕДНЕВНЫХ ЦЕЛЕЙ ===
       resetDailyGoalsIfNeeded();
       window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
+      console.log('💾 Сохраняем dailyprogress (импорт):', window.dailyProgress);
       markProfileDirty('dailyprogress', window.dailyProgress);
       markProfileDirty('total_words', window.words.length);
       checkDailyGoalsCompletion();
@@ -15320,12 +15390,7 @@ window.onProfileFullyLoaded = async function () {
   }
 
   // Сначала убираем loading класс - разрешаем показ контента
-
   document.body.classList.remove('loading');
-
-  // Добавляем authenticated чтобы скрыть auth-gate
-
-  document.body.classList.add('authenticated');
 
   // Тема уже применена в applyProfileData, не переопределяем!
 
@@ -15355,6 +15420,18 @@ window.onProfileFullyLoaded = async function () {
     } catch (e) {
       console.error('onProfileFullyLoaded', e);
     }
+  }
+
+  // Запуск тура, если ещё не был показан
+  if (window.currentUserId && !window.user_settings?.has_seen_tour) {
+    setTimeout(() => {
+      window.startTour?.();
+    }, 800);
+  } else {
+    console.log(
+      '🔍 TOUR: Тур не запускаем, т.к. has_seen_tour =',
+      window.user_settings?.has_seen_tour,
+    );
   }
 
   // Загружаем идиомы
@@ -17135,6 +17212,10 @@ window.switchLbPeriod = switchLbPeriod;
 window.loadLeaderboard = loadLeaderboard;
 window.loadFriendActivity = loadFriendActivity;
 window.loadFriendsDataNew = loadFriendsDataNew;
+
+// Глобальные экспорты для тур-системы
+window.markProfileDirty = markProfileDirty;
+window.syncProfileNow = syncProfileNow;
 window.generateInviteLink = generateInviteLink;
 
 switchTab('words');

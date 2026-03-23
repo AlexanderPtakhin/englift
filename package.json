@@ -1,9 +1,12 @@
 {
   "name": "englift",
-  "source": "index.html",
+  "source": [
+    "index.html",
+    "login.html"
+  ],
   "scripts": {
-    "start": "parcel --open chrome",
-    "build": "parcel build index.html --public-url / --no-scope-hoist --no-content-hash && copy sw.js dist\\sw.js && copy .htaccess dist\\.htaccess"
+    "start": "parcel . --port 1234 --open chrome",
+    "build": "parcel build index.html login.html --public-url / --no-scope-hoist --no-content-hash && copy sw.js dist\\sw.js && copy .htaccess dist\\.htaccess"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",
