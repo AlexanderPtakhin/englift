@@ -6,9 +6,17 @@ body {
   position: relative;
 }
 
-/* Fallback для Material Symbols иконок */
+/* Локальный Material Symbols Outlined шрифт */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block; /* Не показывать текст до загрузки */
+  src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
+}
+
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined', sans-serif;
+  font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -19,18 +27,8 @@ body {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
-}
-
-/* Если шрифт не загрузился, показываем текстовый fallback */
-.material-symbols-outlined:not(:defined) {
-  font-family: monospace;
-  font-size: 16px;
-  background: #f0f0f0;
-  border-radius: 4px;
-  padding: 2px 4px;
-  color: #666;
+  font-feature-settings: 'liga';
 }
 
 /* Loading state для устранения мерцания темы */

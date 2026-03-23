@@ -1,6 +1,42 @@
 import { supabase } from './supabase.js';
 
 import {
+  esc,
+  safeAttr,
+  pluralize,
+  stripParens,
+  normalizeRussian,
+  checkAnswerWithNormalization,
+  levenshteinDistance,
+  parseAnswerVariants,
+  generateId,
+  debounce,
+  toast,
+  showLoading,
+  hideLoading,
+  setButtonLoading,
+  getAudioContext,
+  playSound,
+  playAudio,
+  playIdiomAudio,
+  speakText,
+  getVoice,
+  triggerConfetti,
+  triggerSadRain,
+  triggerFewDrops,
+  triggerLightRain,
+  triggerSmallConfetti,
+  triggerGoodConfetti,
+  spawnConfetti,
+  spawnSadRain,
+  spawnFewDrops,
+  spawnLightRain,
+  spawnSmallConfetti,
+  spawnGoodConfetti,
+  spawnEpicConfetti,
+} from './js/utils.js';
+
+import {
   loadWords,
   saveWords,
   loadIdioms,
@@ -73,161 +109,9 @@ const CONSTANTS = {
 
 const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
-// Конфетти при перфекте
-function triggerConfetti() {
-  if (typeof confetti === 'function') {
-    // Первый выстрел - звёзды
-    confetti({
-      particleCount: 120,
-      spread: 90,
-      shapes: ['star'],
-      colors: ['#FFD700', '#FFA500', '#FF6347'],
-      scalar: 1.2,
-      startVelocity: 55,
-      origin: { y: 0.6 },
-    });
+// Функции triggerConfetti, triggerSadRain, triggerFewDrops перенесены в js/utils.js
 
-    // Второй выстрел - фирменные цвета через 200мс
-    setTimeout(() => {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        colors: ['#6C63FF', '#22C55E', '#F59E0B', '#EC4899'],
-        scalar: 0.8,
-        startVelocity: 45,
-        origin: { y: 0.5 },
-      });
-    }, 200);
-
-    // Третий выстрел - боковые вспышки через 400мс
-    setTimeout(() => {
-      // Левая сторона
-      confetti({
-        particleCount: 60,
-        angle: 60,
-        spread: 55,
-        colors: ['#6C63FF', '#F59E0B'],
-        scalar: 0.6,
-        origin: { x: 0.2, y: 0.4 },
-      });
-
-      // Правая сторона
-      confetti({
-        particleCount: 60,
-        angle: 120,
-        spread: 55,
-        colors: ['#22C55E', '#EC4899'],
-        scalar: 0.6,
-        origin: { x: 0.8, y: 0.4 },
-      });
-    }, 400);
-  }
-}
-
-// Грустный дождь при 0-20%
-function triggerSadRain() {
-  if (typeof confetti === 'function') {
-    for (let i = 0; i < 15; i++) {
-      setTimeout(() => {
-        confetti({
-          particleCount: 3,
-          spread: 30,
-          shapes: ['circle'],
-          colors: ['#94A3B8'],
-          scalar: 0.3,
-          startVelocity: 20,
-          gravity: 2,
-          decay: 0.95,
-          origin: { x: Math.random(), y: 0.3 },
-        });
-      }, i * 100);
-    }
-  }
-}
-
-// Несколько капель при 21-40%
-function triggerFewDrops() {
-  if (typeof confetti === 'function') {
-    for (let i = 0; i < 8; i++) {
-      setTimeout(() => {
-        confetti({
-          particleCount: 5,
-          spread: 45,
-          shapes: ['circle'],
-          colors: ['#60A5FA'],
-          scalar: 0.4,
-          startVelocity: 25,
-          gravity: 1.5,
-          origin: { x: Math.random(), y: 0.2 },
-        });
-      }, i * 150);
-    }
-  }
-}
-
-// Лёгкий дождик при 41-60%
-function triggerLightRain() {
-  if (typeof confetti === 'function') {
-    for (let i = 0; i < 12; i++) {
-      setTimeout(() => {
-        confetti({
-          particleCount: 8,
-          spread: 60,
-          shapes: ['square', 'circle'],
-          colors: ['#F59E0B', '#FBBF24'],
-          scalar: 0.5,
-          startVelocity: 30,
-          gravity: 1.2,
-          origin: { x: Math.random(), y: 0.1 },
-        });
-      }, i * 120);
-    }
-  }
-}
-
-// Маленький салют при 61-80%
-function triggerSmallConfetti() {
-  if (typeof confetti === 'function') {
-    confetti({
-      particleCount: 60,
-      spread: 80,
-      shapes: ['square', 'circle'],
-      colors: ['#F59E0B', '#10B981'],
-      scalar: 0.7,
-      startVelocity: 40,
-      origin: { y: 0.6 },
-    });
-  }
-}
-
-// Хороший салют при 81-94%
-function triggerGoodConfetti() {
-  if (typeof confetti === 'function') {
-    // Первый выстрел
-    confetti({
-      particleCount: 80,
-      spread: 90,
-      shapes: ['square', 'circle'],
-      colors: ['#6C63FF', '#22C55E'],
-      scalar: 0.9,
-      startVelocity: 45,
-      origin: { y: 0.5 },
-    });
-
-    // Второй выстрел через 150мс
-    setTimeout(() => {
-      confetti({
-        particleCount: 50,
-        spread: 70,
-        shapes: ['circle'],
-        colors: ['#EC4899', '#F59E0B'],
-        scalar: 0.6,
-        startVelocity: 35,
-        origin: { y: 0.4 },
-      });
-    }, 150);
-  }
-}
+// Функции triggerLightRain, triggerSmallConfetti, triggerGoodConfetti перенесены в js/utils.js
 
 // =============================================
 
@@ -830,18 +714,6 @@ window.pendingIdiomUpdates = pendingIdiomUpdates;
 
 // =============================================
 
-// Функция нормализации русского текста (е/ё)
-function normalizeRussian(text) {
-  return text.replace(/ё/g, 'е').replace(/Ё/g, 'Е').toLowerCase().trim();
-}
-
-// Функция проверки ответа с учетом е/ё
-function checkAnswerWithNormalization(userAnswer, correctAnswer) {
-  const normalizedUser = normalizeRussian(userAnswer);
-  const normalizedCorrect = normalizeRussian(correctAnswer);
-  return normalizedUser === normalizedCorrect;
-}
-
 function normalizeWord(word) {
   return {
     ...word,
@@ -910,59 +782,7 @@ window.checkAnswerWithNormalization = checkAnswerWithNormalization;
 
 // =============================================
 
-function playAudio(filename, onEnd) {
-  if (!filename) {
-    if (onEnd) onEnd();
-    return console.warn('Нет файла аудио');
-  }
-
-  // Определяем папку в зависимости от настроек голоса
-  const voicePreference = window.user_settings?.voice || 'female';
-  const audioFolder = voicePreference === 'male' ? '/audio-male/' : '/audio/';
-
-  const audio = new Audio(`${audioFolder}${filename}`);
-
-  audio.volume = 1.0;
-
-  audio.onended = () => {
-    if (onEnd) onEnd();
-  };
-
-  audio.play().catch(err => {
-    console.warn('Браузер заблокировал автозвук:', err);
-    window.toast?.('Нажми ещё раз на динамик', 'info');
-    if (onEnd) onEnd(); // убираем волну в случае ошибки
-  });
-}
-
-function playIdiomAudio(filename, onEnd) {
-  console.log('🎵 playIdiomAudio called with:', filename);
-  if (!filename) {
-    if (onEnd) onEnd();
-    return console.warn('Нет файла аудио для идиомы');
-  }
-
-  // Определяем папку в зависимости от настроек голоса
-  const voicePreference = window.user_settings?.voice || 'female';
-  const audioFolder =
-    voicePreference === 'male' ? '/audio-idioms/' : '/female-idioms/';
-  const audioPath = `${audioFolder}${filename}`;
-  console.log('🎵 Audio path:', audioPath);
-  const audio = new Audio(audioPath);
-
-  audio.volume = 1.0;
-
-  audio.onended = () => {
-    console.log('🎵 Audio ended');
-    if (onEnd) onEnd();
-  };
-
-  audio.play().catch(err => {
-    console.warn('🎵 Audio play error:', err);
-    window.toast?.('Нажми ещё раз на динамик', 'info');
-    if (onEnd) onEnd(); // убираем волну в случае ошибки
-  });
-}
+// Функции playAudio и playIdiomAudio перенесены в js/utils.js
 
 // Глобальные функции для всего сайта
 
@@ -1713,22 +1533,15 @@ async function loadIdiomsBank() {
 loadWordsFromLocalStorage();
 loadIdiomsFromLocalStorage(); // сразу после объявления window.idioms
 
-// Debounce функция для оптимизации renderStats
+// Debounce функция перенесена в js/utils.js
 
-function debounce(fn, delay) {
-  let timer;
-
-  return (...args) => {
-    clearTimeout(timer);
-
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
+import { debounce } from './js/utils.js';
 
 const debouncedRenderStats = debounce(renderStats, 800);
 
 // Функции debouncedSaveUserData и immediateSaveUserData удалены - заменены на markProfileDirty
 
+// ...
 // ============================================================
 
 // DELAYED SYNC SYSTEM (offline-first)
@@ -2697,88 +2510,6 @@ function normalizeTags(tagsString) {
     )
 
     .slice(0, CONSTANTS.LIMITS.MAX_TAGS); // Максимум 10 тегов
-}
-
-// ============================================================
-
-// LOADING INDICATORS
-
-// ============================================================
-
-function showLoading(message = 'Загрузка...') {
-  const overlay = document.createElement('div');
-
-  overlay.className = 'loading-overlay';
-
-  overlay.id = 'loading-overlay';
-
-  overlay.innerHTML = `
-
-
-
-
-
-
-
-    <div class="loading-modal">
-
-
-
-
-
-
-
-      <div class="loading-spinner"></div>
-
-
-
-
-
-
-
-      <div>${esc(message)}</div>
-
-
-
-
-
-
-
-    </div>
-
-
-
-
-
-
-
-  `;
-
-  document.body.appendChild(overlay);
-}
-
-function hideLoading() {
-  const overlay = document.getElementById('loading-overlay');
-
-  if (overlay) overlay.remove();
-}
-
-// Делаем функции глобальными для доступа из других модулей
-
-window.showLoading = showLoading;
-
-window.hideLoading = hideLoading;
-
-function setButtonLoading(button, loading = true) {
-  if (loading) {
-    button.classList.add('loading');
-
-    button.disabled = true;
-  } else {
-    button.classList.remove('loading');
-
-    button.disabled = false;
-  }
 }
 
 // ============================================================
@@ -3871,7 +3602,7 @@ function gainXP(amount, reason = '') {
 
   renderBadges();
 
-  // Записываем в лог XP
+  // Записываем в лог XP (без reason)
   if (window.currentUserId) {
     supabase
       .from('xp_log')
@@ -4333,15 +4064,7 @@ function updStreak() {
 
 // ============================================================
 
-// Оптимизированный AudioContext для звуков
-
-function getAudioContext() {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-
-  return audioContext;
-}
+// Функция getAudioContext перенесена в js/utils.js
 
 // ============================================================
 
@@ -4718,45 +4441,7 @@ function showLimitModal(limit) {
   }, 10000);
 }
 
-function toast(msg, type = '', icon = '') {
-  console.log('Toast вызван:', msg, type, icon);
-  const el = document.createElement('div');
-
-  el.className = 'toast' + (type ? ' ' + type : '');
-
-  if (icon) {
-    el.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: middle; margin-right: 8px;">${icon}</span>${msg}`;
-  } else {
-    el.textContent = msg;
-  }
-
-  const toastBox = document.getElementById('toast-box');
-  if (!toastBox) {
-    console.error('Toast box не найден!');
-    return;
-  }
-
-  toastBox.appendChild(el);
-  console.log('Toast добавлен в DOM');
-
-  // Увеличиваем время для важных сообщений
-
-  const isImportant =
-    msg.includes('лимит') || msg.includes('Лимит') || type === 'danger';
-
-  const duration = isImportant ? 6000 : 4000; // 6 секунд для лимитов, 4 для обычных
-
-  setTimeout(() => {
-    el.style.opacity = '0';
-
-    el.style.transition = 'opacity .3s';
-
-    setTimeout(() => el.remove(), 320);
-  }, duration);
-}
-
-// Делаем toast доступной глобально
-window.toast = toast;
+// Функция toast перенесена в js/utils.js
 
 // ============================================================
 
@@ -5282,122 +4967,6 @@ function recalculateCefrLevels() {
   });
 
   window.cefrLevels = levels;
-}
-
-// Confetti animation for completed daily goals
-
-function spawnConfetti() {
-  const colors = ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-  const confettiCount = 50;
-
-  for (let i = 0; i < confettiCount; i++) {
-    setTimeout(() => {
-      const confetti = document.createElement('div');
-
-      confetti.style.cssText = `
-
-
-
-
-
-
-
-        position: fixed;
-
-
-
-
-
-
-
-        top: 50%;
-
-
-
-
-
-
-
-        left: 50%;
-
-
-
-
-
-
-
-        width: 10px;
-
-
-
-
-
-
-
-        height: 10px;
-
-
-
-
-
-
-
-        background: ${colors[Math.floor(Math.random() * colors.length)]};
-
-
-
-
-
-
-
-        border-radius: 50%;
-
-
-
-
-
-
-
-        pointer-events: none;
-
-
-
-
-
-
-
-        z-index: 9999;
-
-
-
-
-
-
-
-        animation: confetti-fall ${2 + Math.random() * 2}s ease-out forwards;
-
-
-
-
-
-
-
-        transform: translate(-50%, -50%);
-
-
-
-
-
-
-
-      `;
-
-      document.body.appendChild(confetti);
-
-      setTimeout(() => confetti.remove(), 4000);
-    }, i * 30);
-  }
 }
 
 // Add confetti animation styles
@@ -8474,69 +8043,7 @@ function showPreview() {
   }
 }
 
-// Функция для получения голоса в зависимости от настроек
-function getVoice() {
-  const voicePreference = window.user_settings?.voice || 'female';
-
-  // Получаем доступные голоса
-  const voices = speechSynthesis.getVoices();
-  if (!voices.length) {
-    // Голоса ещё не загружены, вернём null
-    return null;
-  }
-
-  // Ищем подходящий голос
-  let targetVoice = null;
-
-  if (voicePreference === 'male') {
-    // Ищем мужской голос
-    targetVoice = voices.find(
-      voice =>
-        voice.lang.includes('en') &&
-        (voice.name.includes('Male') ||
-          voice.name.includes('male') ||
-          voice.name.includes('David') ||
-          voice.name.includes('Alex') ||
-          voice.name.includes('Daniel')),
-    );
-  } else {
-    // Ищем женский голос
-    targetVoice = voices.find(
-      voice =>
-        voice.lang.includes('en') &&
-        (voice.name.includes('Female') ||
-          voice.name.includes('female') ||
-          voice.name.includes('Samantha') ||
-          voice.name.includes('Karen') ||
-          voice.name.includes('Monica') ||
-          voice.name.includes('Zira')),
-    );
-  }
-
-  // Если не нашли конкретный, берем любой английский
-  if (!targetVoice) {
-    targetVoice = voices.find(voice => voice.lang.includes('en'));
-  }
-
-  console.log('🗣️ getVoice returned:', targetVoice);
-  return targetVoice;
-}
-
-// Функция для озвучки текста с учетом настроек голоса
-function speakText(text) {
-  console.log('🗣️ speakText called with:', text);
-  if (!window.speechSynthesis) {
-    console.error('❌ speechSynthesis not supported');
-    return;
-  }
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  const voice = getVoice();
-  if (voice) utterance.voice = voice;
-  utterance.onerror = e => console.error('TTS error:', e);
-  speechSynthesis.speak(utterance);
-  return utterance;
-}
+// Функции getVoice и speakText перенесены в js/utils.js
 
 // Инициализация голосов при загрузке
 if (speechSynthesis.onvoiceschanged !== undefined) {
@@ -12130,730 +11637,46 @@ document.getElementById('setup-btn').addEventListener('click', () => {
 
 // CONFETTI ANIMATIONS
 
-// ============================================================
-
-// 0% - Грустный дождь (полный провал)
-
-function spawnSadRain() {
-  document.querySelectorAll('.sad-drop').forEach(p => p.remove());
-
-  for (let i = 0; i < 30; i++) {
-    const p = document.createElement('div');
-
-    const s = 4 + Math.random() * 6;
-
-    p.className = 'sad-drop';
-
-    p.style.cssText = `
-
-
-
-
-
-
-
-      left:${Math.random() * 100}vw;
-
-
-
-
-
-
-
-      top:-20px;
-
-
-
-
-
-
-
-      width:${s}px;
-
-
-
-
-
-
-
-      height:${s * 2}px;
-
-
-
-
-
-
-
-      background:linear-gradient(to bottom, #94a3b8, #64748b);
-
-
-
-
-
-
-
-      border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
-
-
-
-
-
-
-
-      animation-duration:${3 + Math.random() * 2}s;
-
-
-
-
-
-
-
-      animation-delay:${Math.random() * 1}s;
-
-
-
-
-
-
-
-      opacity: 0.6;
-
-
-
-
-
-
-
-    `;
-
-    document.body.appendChild(p);
-
-    setTimeout(() => p.remove(), 5000);
-  }
-}
-
-// 1-20% - Несколько капель (почти провал)
-
-function spawnFewDrops() {
-  document.querySelectorAll('.sad-drop').forEach(p => p.remove());
-
-  for (let i = 0; i < 10; i++) {
-    const p = document.createElement('div');
-
-    const s = 3 + Math.random() * 4;
-
-    p.className = 'sad-drop';
-
-    p.style.cssText = `
-
-
-
-
-
-
-
-      left:${Math.random() * 100}vw;
-
-
-
-
-
-
-
-      top:-20px;
-
-
-
-
-
-
-
-      width:${s}px;
-
-
-
-
-
-
-
-      height:${s * 2}px;
-
-
-
-
-
-
-
-      background:linear-gradient(to bottom, #cbd5e1, #94a3b8);
-
-
-
-
-
-
-
-      border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
-
-
-
-
-
-
-
-      animation-duration:${4 + Math.random() * 1}s;
-
-
-
-
-
-
-
-      animation-delay:${Math.random() * 0.5}s;
-
-
-
-
-
-
-
-      opacity: 0.5;
-
-
-
-
-
-
-
-    `;
-
-    document.body.appendChild(p);
-
-    setTimeout(() => p.remove(), 5000);
-  }
-}
-
-// 21-50% - Легкий дождик (посредственно)
-
-function spawnLightRain() {
-  document.querySelectorAll('.sad-drop').forEach(p => p.remove());
-
-  for (let i = 0; i < 20; i++) {
-    const p = document.createElement('div');
-
-    const s = 3 + Math.random() * 5;
-
-    p.className = 'sad-drop';
-
-    p.style.cssText = `
-
-
-
-
-
-
-
-      left:${Math.random() * 100}vw;
-
-
-
-
-
-
-
-      top:-20px;
-
-
-
-
-
-
-
-      width:${s}px;
-
-
-
-
-
-
-
-      height:${s * 2}px;
-
-
-
-
-
-
-
-      background:linear-gradient(to bottom, #94a3b8, #64748b);
-
-
-
-
-
-
-
-      border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
-
-
-
-
-
-
-
-      animation-duration:${3.5 + Math.random() * 1.5}s;
-
-
-
-
-
-
-
-      animation-delay:${Math.random() * 0.8}s;
-
-
-
-
-
-
-
-      opacity: 0.7;
-
-
-
-
-
-
-
-    `;
-
-    document.body.appendChild(p);
-
-    setTimeout(() => p.remove(), 5000);
-  }
-}
-
-// 51-80% - Маленький салют (неплохо)
-
-function spawnSmallConfetti() {
-  document.querySelectorAll('.confetti-piece').forEach(p => p.remove());
-
-  const colors = ['#6C63FF', '#22C55E', '#F59E0B'];
-
-  for (let i = 0; i < 40; i++) {
-    const p = document.createElement('div');
-
-    const s = 5 + Math.random() * 8;
-
-    p.className = 'confetti-piece';
-
-    p.style.cssText = `
-
-
-
-
-
-
-
-      left:${Math.random() * 100}vw;
-
-
-
-
-
-
-
-      top:-20px;
-
-
-
-
-
-
-
-      width:${s}px;
-
-
-
-
-
-
-
-      height:${s}px;
-
-
-
-
-
-
-
-      background:${colors[Math.floor(Math.random() * colors.length)]};
-
-
-
-
-
-
-
-      border-radius:${Math.random() > 0.5 ? '50%' : '3px'};
-
-
-
-
-
-
-
-      animation-duration:${2 + Math.random() * 1.5}s;
-
-
-
-
-
-
-
-      animation-delay:${Math.random() * 0.6}s;
-
-
-
-
-
-
-
-      opacity: 0.8;
-
-
-
-
-
-
-
-    `;
-
-    document.body.appendChild(p);
-
-    setTimeout(() => p.remove(), 3500);
-  }
-}
-
-// 81-99% - Хороший салют (отлично)
-
-function spawnGoodConfetti() {
-  document.querySelectorAll('.confetti-piece').forEach(p => p.remove());
-
-  const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1'];
-
-  for (let i = 0; i < 70; i++) {
-    const p = document.createElement('div');
-
-    const s = 6 + Math.random() * 10;
-
-    p.className = 'confetti-piece';
-
-    p.style.cssText = `
-
-
-
-
-
-
-
-      left:${Math.random() * 100}vw;
-
-
-
-
-
-
-
-      top:-20px;
-
-
-
-
-
-
-
-      width:${s}px;
-
-
-
-
-
-
-
-      height:${s}px;
-
-
-
-
-
-
-
-      background:${colors[Math.floor(Math.random() * colors.length)]};
-
-
-
-
-
-
-
-      border-radius:${Math.random() > 0.5 ? '50%' : '3px'};
-
-
-
-
-
-
-
-      animation-duration:${1.5 + Math.random() * 2}s;
-
-
-
-
-
-
-
-      animation-delay:${Math.random() * 0.5}s;
-
-
-
-
-
-
-
-      opacity: 0.9;
-
-
-
-
-
-
-
-    `;
-
-    document.body.appendChild(p);
-
-    setTimeout(() => p.remove(), 4000);
-  }
-}
-
-// 100% - Эпичный салют + фейерверк (идеально)
-
-function spawnEpicConfetti() {
-  document.querySelectorAll('.confetti-piece').forEach(p => p.remove());
-
-  document.querySelectorAll('.firework').forEach(p => p.remove());
-
-  const colors = [
-    '#FFD700',
-
-    '#FF6B6B',
-
-    '#4ECDC4',
-
-    '#45B7D1',
-
-    '#96CEB4',
-
-    '#FFEAA7',
-
-    '#FF1744',
-
-    '#D500F9',
-  ];
-
-  // Больше конфетти для идеального результата
-
-  for (let i = 0; i < 150; i++) {
-    const p = document.createElement('div');
-
-    const s = 8 + Math.random() * 12;
-
-    p.className = 'confetti-piece';
-
-    p.style.cssText = `
-
-
-
-
-
-
-
-      left:${Math.random() * 100}vw;
-
-
-
-
-
-
-
-      top:-20px;
-
-
-
-
-
-
-
-      width:${s}px;
-
-
-
-
-
-
-
-      height:${s}px;
-
-
-
-
-
-
-
-      background:${colors[Math.floor(Math.random() * colors.length)]};
-
-
-
-
-
-
-
-      border-radius:${Math.random() > 0.5 ? '50%' : '3px'};
-
-
-
-
-
-
-
-      animation-duration:${1 + Math.random() * 2}s;
-
-
-
-
-
-
-
-      animation-delay:${Math.random() * 0.3}s;
-
-
-
-
-
-
-
-      opacity: 1;
-
-
-
-
-
-
-
-      box-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
-
-
-
-
-
-
-
-    `;
-
-    document.body.appendChild(p);
-
-    setTimeout(() => p.remove(), 4000);
-  }
-
-  // Добавляем фейерверки
-
-  setTimeout(() => {
-    for (let i = 0; i < 5; i++) {
-      setTimeout(() => {
-        const f = document.createElement('div');
-
-        f.className = 'firework';
-
-        const x = 20 + Math.random() * 60; // 20-80% ширины экрана
-
-        f.style.cssText = `
-
-
-
-
-
-
-
-          left:${x}vw;
-
-
-
-
-
-
-
-          top:30vh;
-
-
-
-
-
-
-
-          width:4px;
-
-
-
-
-
-
-
-          height:4px;
-
-
-
-
-
-
-
-          background:#FFD700;
-
-
-
-
-
-
-
-          border-radius:50%;
-
-
-
-
-
-
-
-          animation:fireworkBurst 1s ease-out forwards;
-
-
-
-
-
-
-
-        `;
-
-        document.body.appendChild(f);
-
-        setTimeout(() => f.remove(), 1000);
-      }, i * 200);
-    }
-  }, 500);
-}
+// Функции перенесены в js/utils.js
 
 // Старые функции для совместимости
 
 function spawnVictoryConfetti() {
   spawnGoodConfetti();
+}
+
+function spawnConfetti() {
+  spawnVictoryConfetti();
+}
+
+function spawnGoodConfetti() {
+  // Добавляем конфетти
+
+  setTimeout(() => {
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const p = document.createElement('div');
+
+        p.className = 'confetti';
+
+        const x = 20 + Math.random() * 60; // 20-80% ширины экрана
+
+        p.style.cssText = `
+          left:${x}vw;
+          top:30vh;
+          width:4px;
+          height:4px;
+          background:#FFD700;
+          border-radius:50%;
+          animation:confettiBurst 1s ease-out forwards;
+        `;
+
+        document.body.appendChild(p);
+
+        setTimeout(() => p.remove(), 4000);
+      }, i * 200);
+    }
+  }, 500);
 }
 
 function spawnConfetti() {
@@ -13500,31 +12323,7 @@ renderStats();
 
 // === ЗВУКИ ===
 
-function playSound(type) {
-  try {
-    const ctx = getAudioContext();
-
-    // Возобновляем аудиоконтекст если он приостановлен
-
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
-
-    if (type === 'correct') {
-      // Play success sound MP3 file
-      const audio = new Audio('sound/sucsess.mp3');
-      audio.volume = 0.1;
-      audio.play().catch(e => console.error('Error playing success sound:', e));
-    } else {
-      // Play wrong sound MP3 file
-      const audio = new Audio('sound/wrong.mp3');
-      audio.volume = 0.1;
-      audio.play().catch(e => console.error('Error playing wrong sound:', e));
-    }
-  } catch (e) {
-    console.error('Error playing sound:', e);
-  }
-}
+// Функция playSound перенесена в js/utils.js
 
 function runMatchExercise(initialWords, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');

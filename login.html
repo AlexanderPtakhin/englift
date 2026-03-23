@@ -1,145 +1,279 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Вход в EngLift</title>
-    <meta name="theme-color" content="#6C63FF">
-    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+    <meta name="theme-color" content="#6C63FF" />
+    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap"
+    />
     <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="api.js"></script>
     <script src="homophones.js"></script>
     <script type="module" src="login.js"></script>
     <style>
-        /* Дополнительные стили только для страницы входа, чтобы центрировать форму */
-        body {
-            background: var(--bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 1rem;
-        }
-        .auth-gate {
-            position: static;
-            background: none;
-            backdrop-filter: none;
-            opacity: 1;
-            animation: none;
-        }
-        .auth-gate-container {
-            max-width: 440px;
-            width: 100%;
-            margin: 0 auto;
-        }
+      /* Дополнительные стили только для страницы входа, чтобы центрировать форму */
+      body {
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 1rem;
+      }
+      .auth-gate {
+        position: static;
+        background: none;
+        backdrop-filter: none;
+        opacity: 1;
+        animation: none;
+      }
+      .auth-gate-container {
+        max-width: 440px;
+        width: 100%;
+        margin: 0 auto;
+      }
     </style>
-</head>
-<body class="loading">
+  </head>
+  <body class="loading">
     <!-- Блок auth-gate — основная форма -->
     <div class="auth-gate" id="auth-gate">
-        <div class="auth-gate-container">
-            <div class="auth-gate-logo">
-                <div class="logo">Eng<span>Lift</span></div>
-            </div>
-            <div class="auth-gate-subtitle">EngLift — твой личный взлёт в английском</div>
-
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-mode="login">Вход</button>
-                <button class="auth-tab" data-mode="register">Регистрация</button>
-            </div>
-
-            <div class="form-group">
-                <label>Email</label>
-                <div class="input-with-icon">
-                    <span class="material-symbols-outlined input-icon">mail</span>
-                    <input class="form-control" type="email" id="gate-email" placeholder="your@email.com" autocomplete="email">
-                    <div id="email-check-spinner" class="loading-spinner" style="display: none; width: 16px; height: 16px; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);"></div>
-                </div>
-            </div>
-
-            <div class="form-group" id="gate-username-group" style="display: none">
-                <label>Имя пользователя</label>
-                <div class="input-with-icon">
-                    <span class="material-symbols-outlined input-icon">badge</span>
-                    <input class="form-control" type="text" id="gate-username" placeholder="например: cooluser42" autocomplete="username" maxlength="20">
-                </div>
-                <small id="gate-username-hint" style="color: var(--muted); font-size: 0.78rem; margin-top: 4px; display: block;">3–20 символов: буквы, цифры, _ и -</small>
-            </div>
-
-            <div class="form-group">
-                <label>Пароль</label>
-                <div class="input-with-icon">
-                    <span class="material-symbols-outlined input-icon">lock</span>
-                    <div class="password-field-wrapper">
-                        <input class="form-control" type="password" id="gate-password" placeholder="Минимум 6 символов" autocomplete="current-password">
-                        <button type="button" class="password-toggle" id="gate-password-toggle"><span class="material-symbols-outlined">visibility</span></button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-group" id="gate-confirm-group" style="display: none">
-                <label>Подтвердите пароль</label>
-                <div class="input-with-icon">
-                    <span class="material-symbols-outlined input-icon">lock</span>
-                    <div class="password-field-wrapper">
-                        <input class="form-control" type="password" id="gate-confirm-password" placeholder="Повторите пароль" autocomplete="new-password">
-                        <button type="button" class="password-toggle" id="gate-confirm-toggle"><span class="material-symbols-outlined">visibility</span></button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="gate-error" style="color: var(--danger); font-size: 0.85rem; font-weight: 700; min-height: 1.2rem; margin-bottom: 0.75rem;"></div>
-
-            <div style="display: flex; flex-direction: column; gap: 0.75rem">
-                <button class="btn btn-primary btn-lg" style="width: 100%" id="gate-submit-btn">Войти</button>
-            </div>
-
-            <div class="forgot-link">
-                <button class="btn btn-link" id="forgot-password-btn">Забыли пароль?</button>
-            </div>
+      <div class="auth-gate-container">
+        <div class="auth-gate-logo">
+          <div class="logo">Eng<span>Lift</span></div>
         </div>
+        <div class="auth-gate-subtitle">
+          EngLift — твой личный взлёт в английском
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-mode="login">Вход</button>
+          <button class="auth-tab" data-mode="register">Регистрация</button>
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">mail</span>
+            <input
+              class="form-control"
+              type="email"
+              id="gate-email"
+              placeholder="your@email.com"
+              autocomplete="email"
+            />
+            <div
+              id="email-check-spinner"
+              class="loading-spinner"
+              style="
+                display: none;
+                width: 16px;
+                height: 16px;
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+              "
+            ></div>
+          </div>
+        </div>
+
+        <div class="form-group" id="gate-username-group" style="display: none">
+          <label>Имя пользователя</label>
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">badge</span>
+            <input
+              class="form-control"
+              type="text"
+              id="gate-username"
+              placeholder="например: cooluser42"
+              autocomplete="username"
+              maxlength="20"
+            />
+          </div>
+          <small
+            id="gate-username-hint"
+            style="
+              color: var(--muted);
+              font-size: 0.78rem;
+              margin-top: 4px;
+              display: block;
+            "
+            >3–20 символов: буквы, цифры, _ и -</small
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Пароль</label>
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">lock</span>
+            <div class="password-field-wrapper">
+              <input
+                class="form-control"
+                type="password"
+                id="gate-password"
+                placeholder="Минимум 6 символов"
+                autocomplete="current-password"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                id="gate-password-toggle"
+              >
+                <span class="material-symbols-outlined">visibility</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" id="gate-confirm-group" style="display: none">
+          <label>Подтвердите пароль</label>
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">lock</span>
+            <div class="password-field-wrapper">
+              <input
+                class="form-control"
+                type="password"
+                id="gate-confirm-password"
+                placeholder="Повторите пароль"
+                autocomplete="new-password"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                id="gate-confirm-toggle"
+              >
+                <span class="material-symbols-outlined">visibility</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="gate-error"
+          style="
+            color: var(--danger);
+            font-size: 0.85rem;
+            font-weight: 700;
+            min-height: 1.2rem;
+            margin-bottom: 0.75rem;
+          "
+        ></div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem">
+          <button
+            class="btn btn-primary btn-lg"
+            style="width: 100%"
+            id="gate-submit-btn"
+          >
+            Войти
+          </button>
+        </div>
+
+        <div class="forgot-link">
+          <button class="btn btn-link" id="forgot-password-btn">
+            Забыли пароль?
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Блок для неподтверждённого email -->
-    <div class="email-not-verified" id="email-not-verified" style="display: none">
-        <div class="auth-gate-container">
-            <h2 style="margin-bottom: 1rem"><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">mail</span>Подтверждение email</h2>
-            <p style="margin-bottom: 1rem">На адрес <strong id="unverified-email"></strong> отправлено письмо с ссылкой для подтверждения.</p>
-            <p style="margin-bottom: 1.5rem">Пожалуйста, перейдите по ссылке в письме, чтобы активировать аккаунт.</p>
-            <div style="display: flex; gap: 1rem; justify-content: center">
-                <button class="btn btn-secondary" id="resend-email-btn">Отправить письмо повторно</button>
-                <button class="btn btn-primary" id="logout-from-unverified">Выйти</button>
-            </div>
+    <div
+      class="email-not-verified"
+      id="email-not-verified"
+      style="display: none"
+    >
+      <div class="auth-gate-container">
+        <h2 style="margin-bottom: 1rem">
+          <span
+            class="material-symbols-outlined"
+            style="vertical-align: middle; margin-right: 8px"
+            >mail</span
+          >Подтверждение email
+        </h2>
+        <p style="margin-bottom: 1rem">
+          На адрес <strong id="unverified-email"></strong> отправлено письмо с
+          ссылкой для подтверждения.
+        </p>
+        <p style="margin-bottom: 1.5rem">
+          Пожалуйста, перейдите по ссылке в письме, чтобы активировать аккаунт.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center">
+          <button class="btn btn-secondary" id="resend-email-btn">
+            Отправить письмо повторно
+          </button>
+          <button class="btn btn-primary" id="logout-from-unverified">
+            Выйти
+          </button>
         </div>
+      </div>
     </div>
 
     <!-- Модалка сброса пароля -->
     <div class="modal-backdrop" id="reset-password-modal">
-        <div class="auth-gate-container" style="max-width: 420px">
-            <h3 style="color: var(--text); text-align: center; margin-bottom: 1rem">
-                <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px; color: var(--primary);">lock_reset</span>
-                Восстановление пароля
-            </h3>
-            <p style="color: var(--muted); margin-bottom: 1.5rem; text-align: center">Введите email, на который зарегистрирован аккаунт. Мы отправим ссылку для сброса пароля.</p>
-            <div class="form-group">
-                <label style="color: var(--text); font-weight: 600">Email</label>
-                <div class="input-with-icon">
-                    <span class="material-symbols-outlined input-icon">mail</span>
-                    <input type="email" id="reset-email" class="form-control" placeholder="your@email.com" autocomplete="email">
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-primary btn-lg" style="flex: 1" id="send-reset-btn"><span class="material-symbols-outlined" style="margin-right: 8px">send</span>Отправить</button>
-                <button class="btn btn-secondary" style="flex: 1" id="cancel-reset-btn"><span class="material-symbols-outlined" style="margin-right: 8px">close</span>Отмена</button>
-            </div>
+      <div class="auth-gate-container" style="max-width: 420px">
+        <h3 style="color: var(--text); text-align: center; margin-bottom: 1rem">
+          <span
+            class="material-symbols-outlined"
+            style="
+              vertical-align: middle;
+              margin-right: 8px;
+              color: var(--primary);
+            "
+            >lock_reset</span
+          >
+          Восстановление пароля
+        </h3>
+        <p
+          style="color: var(--muted); margin-bottom: 1.5rem; text-align: center"
+        >
+          Введите email, на который зарегистрирован аккаунт. Мы отправим ссылку
+          для сброса пароля.
+        </p>
+        <div class="form-group">
+          <label style="color: var(--text); font-weight: 600">Email</label>
+          <div class="input-with-icon">
+            <span class="material-symbols-outlined input-icon">mail</span>
+            <input
+              type="email"
+              id="reset-email"
+              class="form-control"
+              placeholder="your@email.com"
+              autocomplete="email"
+            />
+          </div>
         </div>
+        <div class="modal-actions">
+          <button
+            class="btn btn-primary btn-lg"
+            style="flex: 1"
+            id="send-reset-btn"
+          >
+            <span class="material-symbols-outlined" style="margin-right: 8px"
+              >send</span
+            >Отправить
+          </button>
+          <button
+            class="btn btn-secondary"
+            style="flex: 1"
+            id="cancel-reset-btn"
+          >
+            <span class="material-symbols-outlined" style="margin-right: 8px"
+              >close</span
+            >Отмена
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="toast-box"></div>
-</body>
+  </body>
 </html>

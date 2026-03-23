@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js';
-import { saveUserData } from './db.js'; // для сохранения профиля при регистрации (вызывается в loadUserProfile, но мы не используем loadUserProfile; оставим импорт на случай)
+import { saveUserData } from './db.js'; // для сохранения профиля при регистрации
 
 // DOM элементы
 const authGate = document.getElementById('auth-gate');

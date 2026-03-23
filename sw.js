@@ -1,4 +1,4 @@
-const CACHE_NAME = 'englift-v8';
+const CACHE_NAME = 'englift-v11';
 
 // Обработка команды на немедленную активацию
 self.addEventListener('message', event => {
@@ -64,8 +64,8 @@ self.addEventListener('fetch', event => {
 
       return fetch(event.request)
         .then(response => {
-          // Кэшируем только успешные ответы
-          if (response.ok) {
+          // Кэшируем только успешные ответы и не кэшируем частичные ответы (status 206)
+          if (response.ok && response.status !== 206) {
             const clone = response.clone();
             caches
               .open(CACHE_NAME)
