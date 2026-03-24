@@ -227,24 +227,40 @@ export async function markMessagesRead(userId, friendId) {
 
 // ========== Сравнение словарей ==========
 export async function compareDictionaries(userId, friendId) {
-  // Загружаем слова и идиомы
-  const { data: userWords } = await supabase
-    .from('user_words')
-    .select('en, ru, tags')
-    .eq('user_id', userId);
-  const { data: friendWords } = await supabase
-    .from('user_words')
-    .select('en, ru, tags')
-    .eq('user_id', friendId);
+  console.log('compareDictionaries called with:', { userId, friendId });
 
-  const { data: userIdioms } = await supabase
-    .from('user_idioms')
-    .select('idiom, meaning, tags')
+  // Загружаем слова и идиомы
+  const { data: userWords, error: userWordsError } = await supabase
+    .from('user_words')
+    .select('*')
     .eq('user_id', userId);
-  const { data: friendIdioms } = await supabase
-    .from('user_idioms')
-    .select('idiom, meaning, tags')
+  if (userWordsError) console.error('userWordsError:', userWordsError);
+  console.log('User words count:', userWords?.length, userWords?.slice(0, 3));
+
+  const { data: friendWords, error: friendWordsError } = await supabase
+    .from('user_words')
+    .select('*')
     .eq('user_id', friendId);
+  if (friendWordsError) console.error('friendWordsError:', friendWordsError);
+  console.log(
+    'Friend words count:',
+    friendWords?.length,
+    friendWords?.slice(0, 3),
+  );
+
+  const { data: userIdioms, error: userIdiomsError } = await supabase
+    .from('user_idioms')
+    .select('*')
+    .eq('user_id', userId);
+  if (userIdiomsError) console.error('userIdiomsError:', userIdiomsError);
+  console.log('User idioms count:', userIdioms?.length);
+
+  const { data: friendIdioms, error: friendIdiomsError } = await supabase
+    .from('user_idioms')
+    .select('*')
+    .eq('user_id', friendId);
+  if (friendIdiomsError) console.error('friendIdiomsError:', friendIdiomsError);
+  console.log('Friend idioms count:', friendIdioms?.length);
 
   // Формируем множества и карты
   const userWordSet = new Set(userWords.map(w => w.en.toLowerCase()));

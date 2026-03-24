@@ -1211,8 +1211,8 @@
             <span>Заявки</span>
 
             <span
-              class="friends-req-badge"
-              id="friends-req-badge"
+              class="badge"
+              id="requests-badge"
               style="display: none"
               >0</span
             >
@@ -1318,22 +1318,12 @@
         <!-- Чаты -->
         <div class="friends-panel" id="fpanel-chat">
           <div id="chat-friends-list" class="friends-leaderboard-list"></div>
-          <div id="chat-messages" style="display: none">
+          <div id="chat-messages" style="display: none;">
             <div id="chat-header"></div>
-            <div id="chat-messages-list" class="friend-activity-feed"></div>
-            <div
-              class="chat-input-row"
-              style="display: flex; gap: 0.5rem; margin-top: 1rem"
-            >
-              <input
-                type="text"
-                id="chat-message-input"
-                class="form-control"
-                placeholder="Написать сообщение..."
-              />
-              <button id="chat-send-btn" class="btn btn-primary">
-                Отправить
-              </button>
+            <div id="chat-messages-list" class="chat-messages-list"></div>
+            <div class="chat-input-row">
+              <input type="text" id="chat-message-input" class="form-control" placeholder="Написать сообщение...">
+              <button id="chat-send-btn" class="btn-pill btn-pill--secondary">Отправить</button>
             </div>
           </div>
         </div>

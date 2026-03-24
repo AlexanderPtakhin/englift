@@ -164,6 +164,9 @@ function hideLoading() {
 
 window.hideLoading = hideLoading;
 
+// Экспорт toast для использования в других модулях
+window.toast = toast;
+
 function setButtonLoading(button, loading = true) {
   if (loading) {
     button.classList.add('loading');
@@ -446,6 +449,9 @@ function triggerFewDrops() {
       }, i * 100);
     }
   }
+
+  // Звук неудачи
+  playSound('sound/fail.mp3');
 }
 
 // Лёгкий дождик при 41-60%
@@ -464,6 +470,9 @@ function triggerLightRain() {
       }, i * 120);
     }
   }
+
+  // Звук неудачи
+  playSound('sound/fail.mp3');
 }
 
 // Маленький салют при 61-80%
