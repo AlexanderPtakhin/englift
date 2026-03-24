@@ -211,8 +211,9 @@ function playAudio(filename, onEnd) {
     if (onEnd) onEnd();
     return console.warn('Нет файла аудио');
   }
-
-  const audio = new Audio(`audio/${filename}`);
+  const voice = window.user_settings?.voice || 'female';
+  const folder = voice === 'male' ? 'audio-male/' : 'audio/';
+  const audio = new Audio(`${folder}${filename}`);
 
   audio.addEventListener('ended', () => {
     if (onEnd) onEnd();
@@ -235,8 +236,9 @@ function playIdiomAudio(filename, onEnd) {
     if (onEnd) onEnd();
     return console.warn('Нет файла аудио для идиомы');
   }
-
-  const audio = new Audio(`audio/idioms/${filename}`);
+  const voice = window.user_settings?.voice || 'female';
+  const folder = voice === 'male' ? 'audio-idioms/' : 'female-idioms/';
+  const audio = new Audio(`${folder}${filename}`);
 
   audio.addEventListener('ended', () => {
     if (onEnd) onEnd();
@@ -264,17 +266,24 @@ function playSound(type) {
       ctx.resume();
     }
 
+    let audioPath;
     if (type === 'correct') {
-      // Play success sound MP3 file
-      const audio = new Audio('sound/sucsess.mp3');
-      audio.volume = 0.1;
-      audio.play().catch(e => console.error('Error playing success sound:', e));
+      audioPath = 'sound/sucsess.mp3';
+    } else if (type === 'wrong') {
+      audioPath = 'sound/wrong.mp3';
     } else {
-      // Play wrong sound MP3 file
-      const audio = new Audio('sound/wrong.mp3');
-      audio.volume = 0.1;
-      audio.play().catch(e => console.error('Error playing wrong sound:', e));
+      // Произвольный путь к файлу
+      audioPath = type;
     }
+
+    console.log('🔊 Playing sound:', audioPath);
+    const audio = new Audio(audioPath);
+    // Для звука победы делаем громче
+    audio.volume =
+      audioPath.includes('victory.mp3') || audioPath.includes('fail.mp3')
+        ? 0.3
+        : 0.1;
+    audio.play().catch(e => console.error('Error playing sound:', e));
   } catch (e) {
     console.error('Error playing sound:', e);
   }
@@ -395,6 +404,9 @@ function triggerConfetti() {
       });
     }, 400);
   }
+
+  // Звук победы
+  playSound('sound/victory.mp3');
 }
 
 // Грустный дождь при 0-20%
@@ -413,6 +425,9 @@ function triggerSadRain() {
       }, i * 80);
     }
   }
+
+  // Звук неудачи
+  playSound('sound/fail.mp3');
 }
 
 // Несколько капель при 21-40%
@@ -461,6 +476,9 @@ function triggerSmallConfetti() {
       colors: ['#6C63FF', '#22C55E', '#F59E0B'],
     });
   }
+
+  // Звук победы
+  playSound('sound/victory.mp3');
 }
 
 // Хороший салют при 81-94%
@@ -496,6 +514,9 @@ function triggerGoodConfetti() {
       });
     }, 400);
   }
+
+  // Звук победы
+  playSound('sound/victory.mp3');
 }
 
 // Confetti animation for completed daily goals

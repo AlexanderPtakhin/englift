@@ -127,7 +127,7 @@
           : document.querySelector('.nav-btn[data-tab="practice"]'),
       title:
         '<span class="material-symbols-outlined">rocket_launch</span> Практика',
-      text: '9 типов упражнений: флэш-карты, тест, диктовка, речь, конструктор и другие. Умный SM-2 алгоритм сам решает что показать.',
+      text: '9 типов упражнений: флэш-карты, тесты, диктовка, распознавание речи, конструктор предложений и другие. Умный SM-2 алгоритм сам решает что показать.',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="practice"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="practice"]')?.click();
@@ -147,12 +147,23 @@
       },
     },
     {
+      target: () => document.querySelector('.daily-goals-section'),
+      title:
+        '<span class="material-symbols-outlined">track_changes</span> Ежедневные цели',
+      text: 'Выполняй ежедневные цели (добавить слова, поучиться, получить точность 95%) и получай XP награды. Это помогает поддерживать регулярность!',
+      delay: 300,
+      onBefore: () => {
+        document.querySelector('.nav-btn[data-tab="stats"]')?.click();
+        document.querySelector('.mobile-nav-btn[data-tab="stats"]')?.click();
+      },
+    },
+    {
       target: () =>
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="friends"]')
           : document.querySelector('.nav-btn[data-tab="friends"]'),
       title: '<span class="material-symbols-outlined">group</span> Друзья',
-      text: 'Добавляй друзей и соревнуйся в лидерборде по XP. Конкуренция мотивирует!',
+      text: 'Добавляй друзей, общайся в чате, создавай совместные челленджи, следи за прогрессом в ленте активности, соревнуйся в лидерборде по XP за неделю/месяц/всё время. Получай бейджи за достижения и смотри что нового у друзей!',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="friends"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="friends"]')?.click();
@@ -162,11 +173,11 @@
       target: () => document.querySelector('#user-avatar'),
       title:
         '<span class="material-symbols-outlined">settings</span> Настройки',
-      text: 'Нажми на аватарку — здесь можно сменить голос озвучки, выбрать тему оформления, настроить лимит повторений в день и даже выбрать уровень слов в рекомендациях (A1–C2).',
+      text: 'Нажми на аватарку — здесь можно сменить голос озвучки, выбрать тему оформления, настроить лимит повторений и даже выбрать уровень слов в рекомендациях (A1–C2).',
       onBefore() {
         const dropdown = document.getElementById('user-dropdown');
         if (dropdown) dropdown.style.display = 'none';
-        STEPS[12].target = document.querySelector('#user-avatar');
+        STEPS[14].target = document.querySelector('#user-avatar');
       },
     },
     {

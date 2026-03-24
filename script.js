@@ -677,6 +677,43 @@ const BADGES_DEF = [
     rarity: 'legendary',
     xp: 1500,
   },
+  // ===== Социальные бейджи =====
+  {
+    id: 'friends_3',
+    name: 'Дружелюбный',
+    description: 'Добавьте 3 друзей',
+    icon: 'group',
+    condition: data => data.friendsCount >= 3,
+    progress: data => ({ current: Math.min(data.friendsCount, 3), target: 3 }),
+    category: 'social',
+    rarity: 'common',
+    xp: 50,
+  },
+  {
+    id: 'friends_10',
+    name: 'Социальный',
+    description: 'Добавьте 10 друзей',
+    icon: 'groups',
+    condition: data => data.friendsCount >= 10,
+    progress: data => ({
+      current: Math.min(data.friendsCount, 10),
+      target: 10,
+    }),
+    category: 'social',
+    rarity: 'rare',
+    xp: 150,
+  },
+  {
+    id: 'inviter',
+    name: 'Приглашающий',
+    description: 'Пригласите 3 друзей через ссылку',
+    icon: 'share',
+    condition: data => data.invitedCount >= 3,
+    progress: data => ({ current: Math.min(data.invitedCount, 3), target: 3 }),
+    category: 'social',
+    rarity: 'rare',
+    xp: 100,
+  },
 ];
 
 // Global flags
@@ -1439,6 +1476,23 @@ loadIdiomsFromLocalStorage(); // сразу после объявления wind
 // Debounce функция перенесена в js/utils.js
 
 import { debounce } from './js/utils.js';
+import {
+  getFriends,
+  getFriendRequests,
+  getOutgoingRequests,
+  getLeaderboard,
+  getAllActiveChallenges,
+  updateAllChallengesProgress,
+  createChallenge,
+  joinChallenge,
+  updateChallengeProgress,
+  sendGift,
+  getGiftsReceived,
+  sendMessage,
+  getMessages,
+  markMessagesRead,
+  compareDictionaries,
+} from './js/social.js';
 
 const debouncedRenderStats = debounce(renderStats, 800);
 
@@ -1695,6 +1749,13 @@ function showFeedback({
   onIncorrect,
   isSpeechExercise = false,
 }) {
+  console.log('🎭 showFeedback вызван с параметрами:', {
+    isCorrect,
+    hasOnCorrect: !!onCorrect,
+    hasOnIncorrect: !!onIncorrect,
+    isSpeechExercise,
+  });
+
   const sheet = document.getElementById('fb-sheet');
   const inner = document.getElementById('fb-sheet-inner');
   const backdrop = document.getElementById('fb-backdrop');
@@ -1754,20 +1815,36 @@ function showFeedback({
 
   sheet.classList.add('show');
   backdrop.classList.add('show');
+  console.log('📋 Фидбек добавлен в DOM, классы:', sheet.classList.toString());
 
   const nextBtn = inner.querySelector('.fb-next-btn');
   if (nextBtn) {
     nextBtn.onclick = () => {
+      console.log('🔘 Кнопка "Дальше" нажата, isCorrect:', isCorrect);
       if (isCorrect) {
-        if (onCorrect) onCorrect();
-        else window.proceedToNext();
+        if (onCorrect) {
+          console.log('✅ Вызываем onCorrect колбэк');
+          onCorrect();
+        } else {
+          console.log('⚠️ onCorrect не передан, используем proceedToNext');
+          window.proceedToNext();
+        }
       } else {
         // Если передан onIncorrect — вызываем его
-        if (onIncorrect) onIncorrect();
+        if (onIncorrect) {
+          console.log('❌ Вызываем onIncorrect колбэк');
+          onIncorrect();
+        }
         // Иначе, если это голосовое упражнение — просто закрываем лист
-        else if (isSpeechExercise) hideFeedbackSheet();
+        else if (isSpeechExercise) {
+          console.log('🎤 Голосовое упражнение, просто закрываем');
+          hideFeedbackSheet();
+        }
         // В остальных случаях переходим к следующему вопросу
-        else window.proceedToNext();
+        else {
+          console.log('⚠️ onIncorrect не передан, используем proceedToNext');
+          window.proceedToNext();
+        }
       }
     };
   }
@@ -3123,6 +3200,11 @@ async function addWord(
 
     gainXP(5, 'новое слово');
 
+    // Обновляем прогресс челленджей
+    if (window.currentUserId && window.updateAllChallengesProgress) {
+      window.updateAllChallengesProgress(window.currentUserId, 'words', 1);
+    }
+
     visibleLimit = 30; // сброс при добавлении слова
 
     // Обновляем счетчики слов в профиле
@@ -3338,6 +3420,11 @@ async function addIdiom(
   renderIdioms(); // обновляем отображение
   gainXP(5, 'новая идиома');
 
+  // Обновляем прогресс челленджей
+  if (window.currentUserId && window.updateAllChallengesProgress) {
+    window.updateAllChallengesProgress(window.currentUserId, 'words', 1);
+  }
+
   markProfileDirty('total_idioms', window.idioms.length);
   markProfileDirty(
     'learned_words',
@@ -3492,6 +3579,11 @@ function gainXP(amount, reason = '') {
 
   toast('+' + amount + ' XP' + (reason ? ' · ' + reason : ''), 'xp', 'bolt');
 
+  // Обновляем прогресс челленджей
+  if (window.currentUserId && window.updateAllChallengesProgress) {
+    window.updateAllChallengesProgress(window.currentUserId, 'xp', amount);
+  }
+
   // Сохраняем профиль через dirty flag
   console.log('💾 Вызываем markProfileDirty из gainXP');
 
@@ -3552,6 +3644,8 @@ function checkBadges(perfectSession) {
     xp: xpData.xp,
     level: xpData.level,
     streak: streak.count,
+    friendsCount: friendsData.friends.length,
+    invitedCount: window.currentUserProfile?.invited_count || 0,
   };
 
   BADGES_DEF.forEach(def => {
@@ -3952,6 +4046,11 @@ function updStreak() {
   streak.lastDate = today;
 
   console.log('🔥 Новый streak:', streak);
+
+  // Обновляем прогресс челленджей
+  if (window.currentUserId && window.updateAllChallengesProgress) {
+    window.updateAllChallengesProgress(window.currentUserId, 'streak', 1);
+  }
 
   markProfileDirty('streak', streak.count);
   markProfileDirty('laststreakdate', streak.lastDate);
@@ -8335,62 +8434,59 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
 
 document.getElementById('clear-words-btn')?.addEventListener('click', () => {
   showConfirmModal(
-    'Вы уверены, что хотите стереть ВСЕ слова? Это действие нельзя отменить.',
-
+    'Вы уверены, что хотите удалить ВСЕ слова и идиомы? Это действие нельзя отменить. Ваш уровень, XP, стрик и бейджи сохранятся.',
     'стереть',
-
     'стереть',
-
     async () => {
       try {
-        console.log('🗑️ Начинаем стирание всех слов...');
+        console.log('🗑️ Начинаем стирание всех слов и идиом...');
 
-        // 1. Очищаем локальные слова
-
+        // 1. Очищаем локальные слова и идиомы
         window.words = [];
-
+        window.idioms = [];
         localStorage.removeItem('englift_words');
-
+        localStorage.removeItem('englift_idioms');
         renderCache.clear();
 
         // 2. Удаляем слова с сервера
-
         if (window.currentUserId) {
           const { error, count } = await supabase
-
             .from('user_words')
-
             .delete({ count: 'exact' })
-
             .eq('user_id', window.currentUserId);
-
-          if (error) {
-            console.error('❌ Ошибка удаления слов с сервера:', error);
-
-            toast('Ошибка при удалении слов с сервера', 'danger');
-
-            return;
-          }
-
-          console.log(`✅ Удалено ${count} слов с сервера`);
+          if (error) console.error('❌ Ошибка удаления слов с сервера:', error);
+          else console.log(`✅ Удалено ${count} слов с сервера`);
         }
 
-        // 3. Очищаем очередь синхронизации
+        // 3. Удаляем идиомы с сервера
+        if (window.currentUserId) {
+          const { error, count } = await supabase
+            .from('user_idioms')
+            .delete({ count: 'exact' })
+            .eq('user_id', window.currentUserId);
+          if (error)
+            console.error('❌ Ошибка удаления идиом с сервера:', error);
+          else console.log(`✅ Удалено ${count} идиом с сервера`);
+        }
 
+        // 4. Очищаем очереди синхронизации
         pendingWordUpdates.clear();
+        pendingIdiomUpdates.clear();
 
-        // 4. Обновляем интерфейс
-
+        // 5. Обновляем интерфейс
         refreshUI();
+        renderIdioms(); // обновляем список идиом
+        updateIdiomsCount(); // обновляем счётчик
 
+        // Обновляем счётчики в профиле
         markProfileDirty('total_words', 0);
+        markProfileDirty('total_idioms', 0);
         markProfileDirty('learned_words', 0);
 
-        toast('✅ Все слова успешно стерты!', 'success');
+        toast('✅ Весь словарь (слова + идиомы) очищен!', 'success');
       } catch (error) {
-        console.error('❌ Ошибка при стирании слов:', error);
-
-        toast('Ошибка при стирании слов', 'danger');
+        console.error('❌ Ошибка при стирании:', error);
+        toast('Ошибка при очистке словаря', 'danger');
       }
     },
   );
@@ -9431,7 +9527,8 @@ function showResults() {
   const startBtn = document.getElementById('start-btn');
   if (startBtn) {
     startBtn.disabled = false;
-    startBtn.innerHTML = `<span class="material-symbols-outlined">rocket_launch</span>`;
+    startBtn.innerHTML =
+      '<span class="material-symbols-outlined">rocket_launch</span> Начать';
   }
 
   const practiceEx = document.getElementById('practice-ex');
@@ -9463,42 +9560,42 @@ function showResults() {
       ? {
           icon: 'emoji_events',
           color: '#16a34a',
-          title: 'Абсолютный перфект!',
-          sub: 'Ты знаешь каждое слово этой сессии',
+          title: 'Легенда!',
+          sub: 'Ты на пике формы!',
         }
       : resPct >= 80
         ? {
             icon: 'local_fire_department',
             color: '#fff',
-            title: 'Огонь!',
-            sub: 'Почти идеально — ещё чуть-чуть!',
+            title: 'Супер результат!',
+            sub: 'Ты на правильном пути!',
           }
         : resPct >= 60
           ? {
               icon: 'trending_up',
               color: '#fff',
-              title: 'Хороший результат',
-              sub: 'Продолжай в том же духе',
+              title: 'Солидно!',
+              sub: 'Результат, которым можно гордиться!',
             }
           : resPct >= 40
             ? {
                 icon: 'fitness_center',
                 color: '#fff',
-                title: 'Есть прогресс!',
-                sub: 'Повтори ошибки — будет отлично',
+                title: 'Не сдавайся!',
+                sub: 'Практика делает совершенным!',
               }
             : resPct > 0
               ? {
                   icon: 'spa',
                   color: '#fff',
-                  title: 'Сложная сессия',
-                  sub: 'Это нормально — главное практика',
+                  title: 'Начало пути!',
+                  sub: 'Все гении когда-то начинали!',
                 }
               : {
                   icon: 'sentiment_very_dissatisfied',
                   color: '#fff',
-                  title: 'Ну и ну...',
-                  sub: 'Зато честно. Начни сначала!',
+                  title: 'Свежий старт!',
+                  sub: 'Теперь ты знаешь, над чем работать!',
                 };
 
   // ── Градиент героя по результату ─────────────────────────────
@@ -10344,11 +10441,10 @@ function nextExercise() {
         answer = stripParens(isRUEN ? w.en : w.ru);
       }
 
-      // Отключаем автоозвучку в упражнении "Напиши перевод"
-
-      // if (autoPron && !isRUEN && speechSupported)
-
-      //   setTimeout(() => speak(w.en), 300);
+      // Автоозвучка для EN→RU
+      if (autoPron && !isRUEN && speechSupported) {
+        setTimeout(() => window.speakWord(w), 300);
+      }
 
       if (exContent) {
         exContent.innerHTML = `
@@ -10376,25 +10472,16 @@ function nextExercise() {
         `;
       }
 
-      // Убираем обработчик аудио кнопки - кнопки больше нет
-
-      // if (!isRUEN && speechSupported) {
-
-      //   const taAudioBtn = document.getElementById('ta-audio-btn');
-
-      //   if (taAudioBtn) {
-
-      //     taAudioBtn.addEventListener('click', e => {
-
-      //       e.stopPropagation();
-
-      //       speakBtn(w.en, e.currentTarget);
-
-      //     });
-
-      //   }
-
-      // }
+      // Обработчик аудио кнопки
+      if (!isRUEN && speechSupported) {
+        const taAudioBtn = document.getElementById('ta-audio-btn');
+        if (taAudioBtn) {
+          taAudioBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            window.speakWord(w);
+          });
+        }
+      }
 
       const input = document.getElementById('ta-input');
 
@@ -10405,6 +10492,7 @@ function nextExercise() {
 
         if (submit) {
           const checkAnswer = () => {
+            console.log('🔥 checkAnswer вызван');
             const userAnswer = input.value.trim().toLowerCase();
             const normalizedUserAnswer = normalizeRussian(userAnswer);
             const isCorrect = isIdiom
@@ -10423,15 +10511,21 @@ function nextExercise() {
                   ),
                 );
 
+            console.log('🔍 Ответ пользователя:', userAnswer);
+            console.log('🔍 Правильный ответ:', answer);
+            console.log('🔍 Результат проверки:', isCorrect);
+
             if (input) input.disabled = true;
             if (submit) submit.disabled = true;
 
             if (isCorrect) {
+              console.log('✅ Ответ правильный, показываем фидбек');
               getFeedbackHTML(
                 w,
                 true,
                 null,
                 () => {
+                  console.log('🔄 Колбэк onCorrect вызван');
                   hideFeedbackSheet();
                   recordAnswer(true, t);
                   sIdx++;
@@ -10445,7 +10539,9 @@ function nextExercise() {
               } else window.speakWord(w);
               playSound('correct');
             } else {
+              console.log('❌ Ответ неправильный, показываем фидбек');
               getFeedbackHTML(w, false, null, null, () => {
+                console.log('🔄 Колбэк onIncorrect вызван');
                 hideFeedbackSheet();
                 recordAnswer(false, t);
                 sIdx++;
@@ -10455,10 +10551,17 @@ function nextExercise() {
             }
           };
 
-          submit.addEventListener('click', checkAnswer);
+          submit.addEventListener('click', () => {
+            console.log('🖱️ Клик по кнопке "Проверить"');
+            checkAnswer();
+          });
 
           input.addEventListener('keydown', e => {
-            if (e.key === 'Enter') checkAnswer();
+            if (e.key === 'Enter') {
+              console.log('⌨️ Нажат Enter в поле вводе');
+              e.stopPropagation();
+              checkAnswer();
+            }
           });
         }
       }
@@ -10511,6 +10614,7 @@ function nextExercise() {
 
         if (dictSubmit) {
           const check = () => {
+            console.log('🔥 check (dictation) вызван');
             const val = dictInput.value
               .trim()
               .toLowerCase()
@@ -10523,12 +10627,18 @@ function nextExercise() {
               checkAnswerWithNormalization(normalizedVal, v.toLowerCase()),
             );
 
+            console.log('🔍 Ответ пользователя:', val);
+            console.log('🔍 Правильный ответ:', w.en);
+            console.log('🔍 Результат проверки:', ok);
+
             if (ok) {
+              console.log('✅ Ответ правильный, показываем фидбек');
               getFeedbackHTML(
                 w,
                 true,
                 null,
                 () => {
+                  console.log('🔄 Колбэк onCorrect (dictation) вызван');
                   hideFeedbackSheet();
                   recordAnswer(true, t);
                   sIdx++;
@@ -10538,7 +10648,9 @@ function nextExercise() {
               );
               playSound('correct');
             } else {
+              console.log('❌ Ответ неправильный, показываем фидбек');
               getFeedbackHTML(w, false, null, null, () => {
+                console.log('🔄 Колбэк onIncorrect (dictation) вызван');
                 hideFeedbackSheet();
                 recordAnswer(false, t);
                 sIdx++;
@@ -10551,10 +10663,17 @@ function nextExercise() {
             if (dictSubmit) dictSubmit.disabled = true;
           };
 
-          dictSubmit.addEventListener('click', check);
+          dictSubmit.addEventListener('click', () => {
+            console.log('🖱️ Клик по кнопке "Проверить" (dictation)');
+            check();
+          });
 
           dictInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter') check();
+            if (e.key === 'Enter') {
+              console.log('⌨️ Нажат Enter в поле ввода (dictation)');
+              e.stopPropagation();
+              check();
+            }
           });
         }
       }
@@ -11400,6 +11519,15 @@ function recordAnswer(correct, exerciseType) {
 
   updStreak();
 
+  // Обновляем прогресс челленджей для practice_time
+  if (window.currentUserId && window.updateAllChallengesProgress) {
+    window.updateAllChallengesProgress(
+      window.currentUserId,
+      'practice_time',
+      1,
+    );
+  }
+
   // В режиме экзамена подсчитываем отвеченные вопросы
 
   if (practiceMode === 'exam') {
@@ -11444,6 +11572,15 @@ function recordAnswer(correct, exerciseType) {
       window.dailyProgress,
     );
     markProfileDirty('dailyprogress', window.dailyProgress);
+
+    // Обновляем прогресс челленджей
+    if (window.currentUserId && window.updateAllChallengesProgress) {
+      window.updateAllChallengesProgress(
+        window.currentUserId,
+        'practice_time',
+        1,
+      );
+    }
 
     // Update UI to show progress immediately
     refreshUI();
@@ -14072,130 +14209,136 @@ document.addEventListener('visibilitychange', () => {
 // Глобальный хук — вызывается из auth.js когда ВСЁ готово
 
 window.onProfileFullyLoaded = async function () {
-  window.profileFullyLoaded = true; // ← добавь эту строку
+  try {
+    console.log('✅ onProfileFullyLoaded вызван');
+    window.profileFullyLoaded = true; // ← добавь эту строку
 
-  console.log('✅ profileFullyLoaded = true');
+    console.log('✅ profileFullyLoaded = true');
 
-  console.log('🚀 onProfileFullyLoaded — убираем loading и применяем тему');
+    console.log('🚀 onProfileFullyLoaded — убираем loading и применяем тему');
 
-  console.log('🔍 user_settings:', window.user_settings);
+    console.log('🔍 user_settings:', window.user_settings);
 
-  console.log('🔍 currentUserId:', window.currentUserId);
+    console.log('🔍 currentUserId:', window.currentUserId);
 
-  // Сразу скрываем индикатор загрузки, даже если слова ещё грузятся
-  const loader = document.getElementById('loading-indicator');
-  if (loader) {
-    loader.style.opacity = '0';
-    setTimeout(() => {
-      loader.style.display = 'none';
-    }, 300);
-  }
+    // Синхронизируем измененные слова с сервера
 
-  // Сначала убираем loading класс - разрешаем показ контента
-  document.body.classList.remove('loading');
+    console.log('🚀 Начинаем инициализацию приложения...');
 
-  // Тема уже применена в applyProfileData, не переопределяем!
+    // ✅ Оставь только это:
 
-  // Синхронизируем измененные слова с сервера
+    if (window.authExports?.loadWordsOnce && window.currentUserId) {
+      try {
+        const {
+          data: { user },
+        } = await window.authExports.auth.getUser();
 
-  console.log('🚀 Начинаем инициализацию приложения...');
+        if (!user) return;
 
-  // ✅ Оставь только это:
+        await new Promise(resolve => {
+          window.authExports.loadWordsOnce(remoteWords => {
+            window.words = (remoteWords || []).map(normalizeWord);
 
-  if (window.authExports?.loadWordsOnce && window.currentUserId) {
-    try {
-      const {
-        data: { user },
-      } = await window.authExports.auth.getUser();
+            localStorage.setItem('englift_words', JSON.stringify(window.words));
 
-      if (!user) return;
-
-      await new Promise(resolve => {
-        window.authExports.loadWordsOnce(remoteWords => {
-          window.words = (remoteWords || []).map(normalizeWord);
-
-          localStorage.setItem('englift_words', JSON.stringify(window.words));
-
-          resolve();
+            resolve();
+          });
         });
-      });
-    } catch (e) {
-      console.error('onProfileFullyLoaded', e);
+      } catch (e) {
+        console.error('onProfileFullyLoaded', e);
+      }
     }
-  }
 
-  // Запуск тура, если ещё не был показан
-  if (window.currentUserId && !window.user_settings?.has_seen_tour) {
-    setTimeout(() => {
-      window.startTour?.();
-    }, 800);
-  } else {
-    console.log(
-      '🔍 TOUR: Тур не запускаем, т.к. has_seen_tour =',
-      window.user_settings?.has_seen_tour,
-    );
-  }
+    // Запуск тура, если ещё не был показан
+    if (window.currentUserId && !window.user_settings?.has_seen_tour) {
+      setTimeout(() => {
+        window.startTour?.();
+      }, 800);
+    } else {
+      console.log(
+        '🔍 TOUR: Тур не запускаем, т.к. has_seen_tour =',
+        window.user_settings?.has_seen_tour,
+      );
+    }
 
-  // Загружаем идиомы
-  if (window.authExports?.loadIdiomsOnce && window.currentUserId) {
-    try {
-      await new Promise(resolve => {
-        window.authExports.loadIdiomsOnce(remoteIdioms => {
-          window.idioms = (remoteIdioms || []).map(normalizeIdiom);
-          localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
-          updateIdiomsCount(); // обновляем счётчик после загрузки
-          resolve();
+    // Загружаем идиомы
+    if (window.authExports?.loadIdiomsOnce && window.currentUserId) {
+      try {
+        await new Promise(resolve => {
+          window.authExports.loadIdiomsOnce(remoteIdioms => {
+            window.idioms = (remoteIdioms || []).map(normalizeIdiom);
+            localStorage.setItem(
+              'englift_idioms',
+              JSON.stringify(window.idioms),
+            );
+            updateIdiomsCount(); // обновляем счётчик после загрузки
+            resolve();
+          });
         });
-      });
-    } catch (e) {
-      console.error('Ошибка загрузки идиом', e);
+      } catch (e) {
+        console.error('Ошибка загрузки идиом', e);
+      }
     }
-  }
 
-  // После загрузки рендерим (если активна вкладка идиом)
-  if (document.getElementById('tab-idioms')?.classList.contains('active')) {
-    renderIdioms();
-  }
+    // После загрузки рендерим (если активна вкладка идиом)
+    if (document.getElementById('tab-idioms')?.classList.contains('active')) {
+      renderIdioms();
+    }
 
-  // Update due badge for idioms
-  updateDueBadge();
+    // Update due badge for idioms
+    updateDueBadge();
 
-  // Скрываем индикатор загрузки только после завершения синхронизации
-  const indicator = document.getElementById('loading-indicator');
+    // Запускаем Realtime подписки
+    subscribeToMessages();
+    subscribeToFriendRequests();
 
-  if (indicator) {
-    console.log('👁️ Скрываем индикатор загрузки');
+    // Делаем функции доступными глобально
+    window.getAllActiveChallenges = getAllActiveChallenges;
+    window.updateAllChallengesProgress = updateAllChallengesProgress;
+    window.createChallenge = createChallenge;
+    window.joinChallenge = joinChallenge;
+    window.getFriends = getFriends;
+    window.getFriendRequests = getFriendRequests;
+    window.getOutgoingRequests = getOutgoingRequests;
+    window.getLeaderboard = getLeaderboard;
 
-    indicator.style.opacity = '0';
+    // Обновляем бейджи
+    await updateFriendsNavBadge();
+
+    if (!window.currentUserId) {
+      console.log('⚠️ Пользователь не авторизован, пропускаем загрузку слов');
+    }
+
+    renderWords();
 
     setTimeout(() => {
-      indicator.style.display = 'none';
+      renderStats();
+    }, 100);
 
-      console.log('✅ Индикатор загрузки скрыт');
-    }, 300);
-  } else {
-    console.warn('⚠️ Индикатор загрузки не найден');
+    renderXP();
+
+    renderBadges();
+
+    updateDueBadge();
+
+    renderWeekChart();
+
+    renderRandomBankWord();
+  } catch (err) {
+    console.error('❌ Ошибка в onProfileFullyLoaded:', err);
+  } finally {
+    // Принудительно скрываем индикатор загрузки в любом случае
+    const loader = document.getElementById('loading-indicator');
+    if (loader) {
+      console.log('👁️ Скрываем индикатор загрузки (finally блок)');
+      loader.style.opacity = '0';
+      setTimeout(() => {
+        loader.style.display = 'none';
+        console.log('✅ Индикатор загрузки скрыт (finally блок)');
+      }, 300);
+    }
+    document.body.classList.remove('loading');
   }
-
-  if (!window.currentUserId) {
-    console.log('⚠️ Пользователь не авторизован, пропускаем загрузку слов');
-  }
-
-  renderWords();
-
-  setTimeout(() => {
-    renderStats();
-  }, 100);
-
-  renderXP();
-
-  renderBadges();
-
-  updateDueBadge();
-
-  renderWeekChart();
-
-  renderRandomBankWord();
 };
 
 // Если был пропущенный вызов – выполняем сейчас
@@ -14548,18 +14691,22 @@ async function loadFriendsDataNew() {
     return;
   }
   try {
-    const [friends, incoming, outgoing, leaderboard] = await Promise.all([
+    const [friends, requests, outgoing, leaderboard] = await Promise.all([
       getFriends(window.currentUserId),
-      getIncomingRequests(window.currentUserId),
+      getFriendRequests(window.currentUserId),
       getOutgoingRequests(window.currentUserId),
-      getFriendsLeaderboard(window.currentUserId),
+      getLeaderboard('week'),
     ]);
+
     friendsData = {
       friends: friends || [],
-      requests: incoming || [],
+      requests: requests || [],
       outgoing: outgoing || [],
       leaderboard: leaderboard || [],
     };
+
+    // Обновляем бейдж на кнопке "Друзья"
+    updateFriendsNavBadge();
   } catch (e) {
     console.error('loadFriendsDataNew error', e);
     friendsData = { friends: [], requests: [], outgoing: [], leaderboard: [] };
@@ -14589,7 +14736,7 @@ async function loadFriendActivity() {
 
   const friendIds = (friendships || []).map(f => f.friend_id);
   if (!friendIds.length) {
-    container.innerHTML = `<p style="color:var(--muted);font-size:0.9rem">Пока нет друзей</p>`;
+    container.innerHTML = `<p style="color:var(--muted);font-size:0.9rem"><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 1.2rem; margin-right: 0.3rem;">person_off</span>Пока нет друзей</p>`;
     return;
   }
 
@@ -14604,46 +14751,72 @@ async function loadFriendActivity() {
   profiles?.forEach(p => {
     if (p.streak >= 3) {
       events.push({
-        icon: '🔥',
+        icon: 'local_fire_department',
         text: `<b>${p.username}</b> поддерживает стрик уже <b>${p.streak} дней</b>`,
       });
     }
     if (p.level >= 5 && p.level % 5 === 0) {
       events.push({
-        icon: '🏆',
+        icon: 'emoji_events',
         text: `<b>${p.username}</b> достиг уровня <b>${p.level}</b>`,
       });
     }
     if (p.badges?.length) {
       const last = p.badges[p.badges.length - 1];
-      events.push({
-        icon: '🎖️',
-        text: `<b>${p.username}</b> получил бейдж «${last}»`,
-      });
+      const badgeDef = BADGES_DEF.find(b => b.id === last);
+      if (badgeDef) {
+        events.push({
+          icon: 'military_tech',
+          text: `<b>${p.username}</b> получил бейдж «${badgeDef.name}»`,
+          badgeId: last,
+          badgeName: badgeDef.name,
+          badgeIcon: badgeDef.icon,
+          badgeDescription: badgeDef.description,
+        });
+      }
     }
     if (p.total_words > 0) {
       events.push({
-        icon: '📚',
+        icon: 'menu_book',
         text: `<b>${p.username}</b> изучает <b>${p.total_words}</b> слов`,
       });
     }
   });
 
   if (!events.length) {
-    container.innerHTML = `<p style="color:var(--muted);font-size:0.9rem">Друзья пока молчат 😴</p>`;
+    container.innerHTML = `<p style="color:var(--muted);font-size:0.9rem"><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 1.2rem; margin-right: 0.3rem;">bedtime</span>Друзья пока молчат</p>`;
     return;
   }
 
   container.innerHTML = events
     .slice(0, 8)
-    .map(
-      e => `
+    .map(e => {
+      if (e.badgeId) {
+        // Особое отображение для бейджей с иконкой в тексте
+        return `
     <div class="activity-item">
-      <span class="activity-icon">${e.icon}</span>
+      <span class="activity-icon">
+        <span class="material-symbols-outlined">${e.icon}</span>
+      </span>
+      <span class="activity-text">
+        <b>${e.text.split('<b>')[1].split('</b>')[0]}</b> получил бейдж 
+        <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--primary); vertical-align: middle; margin: 0 0.2rem;">${e.badgeIcon}</span>
+        <b>«${e.badgeName}»</b>
+      </span>
+    </div>
+  `;
+      } else {
+        // Стандартное отображение для других событий
+        return `
+    <div class="activity-item">
+      <span class="activity-icon">
+        <span class="material-symbols-outlined">${e.icon}</span>
+      </span>
       <span class="activity-text">${e.text}</span>
     </div>
-  `,
-    )
+  `;
+      }
+    })
     .join('');
 
   // Удалена строка container.innerHTML = eventHTML;
@@ -14721,13 +14894,13 @@ function renderLeaderboard(scores, period) {
   if (!scores.length) {
     container.innerHTML = `
       <div style="text-align:center;padding:2rem;color:var(--muted)">
-        <span style="font-size:2rem">👥</span>
+        <span class="material-symbols-outlined" style="font-size: 3rem;">group_off</span>
         <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
       </div>`;
     return;
   }
 
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['looks_one', 'looks_two', 'looks_3'];
 
   container.innerHTML = scores
     .map((user, i) => {
@@ -14742,7 +14915,9 @@ function renderLeaderboard(scores, period) {
 
       return `
       <div class="lb-row ${isMe ? 'lb-row--me' : ''}" data-userid="${user.id}">
-        <div class="lb-rank">${medal}</div>
+        <div class="lb-rank">
+          ${i < 3 ? `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: ${i === 0 ? 'var(--primary)' : i === 1 ? 'var(--muted)' : 'var(--warning)'};">${medal}</span>` : medal}
+        </div>
         <div class="lb-avatar">${user.username?.[0]?.toUpperCase() || '?'}</div>
         <div class="lb-info">
           <div class="lb-name">${user.username || 'Аноним'} ${isMe ? '<span class="lb-you-badge">Ты</span>' : ''}</div>
@@ -15045,6 +15220,10 @@ async function openFriendModal(friendId) {
           <span class="material-symbols-outlined">compare</span>
           Сравнить словари
         </button>
+        <button class="modal-action-btn" id="send-gift-btn">
+          <span class="material-symbols-outlined">card_giftcard</span>
+          Подарить XP
+        </button>
         <button class="modal-action-btn danger" id="remove-friend">
           <span class="material-symbols-outlined">person_remove</span>
           Удалить из друзей
@@ -15104,15 +15283,73 @@ async function openFriendModal(friendId) {
     // TODO: реализовать челлендж
   };
 
-  modal.querySelector('#compare-words').onclick = () => {
-    toast(`🔍 Сравнение словарей с ${friend.username} (в разработке)`, 'info');
-    // TODO: показать общие слова
+  modal.querySelector('#compare-words').onclick = async () => {
+    const result = await compareDictionaries(window.currentUserId, friendId);
+    showComparisonModal(result, friend.username);
+  };
+
+  modal.querySelector('#send-gift-btn').onclick = () => {
+    showGiftModal(friendId, friend.username);
   };
 
   document.body.appendChild(modal);
   currentModal = modal;
   // Анимация открытия
   requestAnimationFrame(() => modal.classList.add('open'));
+}
+
+function showGiftModal(friendId, friendName) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-backdrop open';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>Подарить XP ${friendName}</h3>
+        <button class="modal-close">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="gift-amount">Количество XP (1-100)</label>
+          <input type="number" id="gift-amount" class="form-control" placeholder="10" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label for="gift-message">Сообщение (необязательно)</label>
+          <textarea id="gift-message" class="form-control" placeholder="За отличные успехи!" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancel-gift">Отмена</button>
+        <button class="btn btn-primary" id="send-gift">Подарить</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Обработчики
+  modal.querySelector('.modal-close').onclick = () => modal.remove();
+  modal.querySelector('#cancel-gift').onclick = () => modal.remove();
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.remove();
+  });
+
+  modal.querySelector('#send-gift').onclick = async () => {
+    const amount = parseInt(modal.querySelector('#gift-amount').value, 10);
+    const message = modal.querySelector('#gift-message').value.trim();
+
+    if (isNaN(amount) || amount < 1 || amount > 100) {
+      toast('Введите корректное количество XP (1-100)', 'warning');
+      return;
+    }
+
+    try {
+      await sendGift(window.currentUserId, friendId, amount, message);
+      toast(`Отправлено ${amount} XP!`, 'success');
+      modal.remove();
+      renderGifts(); // Обновляем список подарков
+    } catch (e) {
+      toast('Ошибка отправки: ' + e.message, 'danger');
+    }
+  };
 }
 
 // ===== НОВЫЙ ЛИДЕРБОРД С ПЕРИОДАМИ =====
@@ -15183,13 +15420,13 @@ function renderLeaderboard(scores, period) {
   if (!scores.length) {
     container.innerHTML = `
       <div style="text-align:center;padding:2rem;color:var(--muted)">
-        <span style="font-size:2rem">👥</span>
+        <span class="material-symbols-outlined" style="font-size: 3rem;">group_off</span>
         <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
       </div>`;
     return;
   }
 
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['looks_one', 'looks_two', 'looks_3'];
 
   container.innerHTML = scores
     .map((user, i) => {
@@ -15204,7 +15441,9 @@ function renderLeaderboard(scores, period) {
 
       return `
       <div class="lb-row ${isMe ? 'lb-row--me' : ''}" data-userid="${user.id}">
-        <div class="lb-rank">${medal}</div>
+        <div class="lb-rank">
+          ${i < 3 ? `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: ${i === 0 ? 'var(--primary)' : i === 1 ? 'var(--muted)' : 'var(--warning)'};">${medal}</span>` : medal}
+        </div>
         <div class="lb-avatar">${user.username?.[0]?.toUpperCase() || '?'}</div>
         <div class="lb-info">
           <div class="lb-name">${user.username || 'Аноним'} ${isMe ? '<span class="lb-you-badge">Ты</span>' : ''}</div>
@@ -15883,6 +16122,664 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 })();
 
+// ========== Инициализация социальных вкладок ==========
+async function renderChallenges() {
+  const container = document.getElementById('challenges-list');
+  if (!container) return;
+  try {
+    const challenges = await window.getAllActiveChallenges(
+      window.currentUserId,
+    );
+    if (!challenges.length) {
+      container.innerHTML =
+        '<div class="friends-empty"><span class="material-symbols-outlined">sports_score</span><p>Нет активных челленджей. Создай свой!</p></div>';
+      return;
+    }
+    container.innerHTML = challenges
+      .map(
+        ch => `
+      <div class="lb-row" data-challenge="${ch.id}">
+        <div class="lb-rank">🏆</div>
+        <div class="lb-info">
+          <div class="lb-name">${esc(ch.title)}</div>
+          <div class="lb-level">
+            Тип: ${ch.type === 'xp' ? 'XP' : ch.type === 'words' ? 'слова' : ch.type === 'streak' ? 'дни' : 'мин практики'} · 
+            Цель: ${ch.target} · 
+            До ${new Date(ch.end_date).toLocaleDateString('ru-RU')}
+          </div>
+          <div class="lb-level">Прогресс: ${ch.userProgress} / ${ch.target}</div>
+        </div>
+        <div class="lb-xp">
+          <div class="lb-xp-num">${Math.round((ch.userProgress / ch.target) * 100)}%</div>
+          <div class="lb-xp-label">участников: ${ch.participantsCount}</div>
+        </div>
+        <div class="challenge-actions">
+          ${
+            ch.creator_id === window.currentUserId
+              ? `<button class="btn-icon delete-challenge-btn" data-id="${ch.id}" title="Удалить челлендж"><span class="material-symbols-outlined">delete</span></button>`
+              : ''
+          }
+          ${
+            !ch.isParticipant && ch.creator_id !== window.currentUserId
+              ? `<button class="btn-icon join-challenge-btn" data-id="${ch.id}" title="Присоединиться"><span class="material-symbols-outlined">person_add</span></button>`
+              : ''
+          }
+          ${
+            ch.isParticipant && ch.creator_id !== window.currentUserId
+              ? `<button class="btn-icon leave-challenge-btn" data-id="${ch.id}" title="Покинуть"><span class="material-symbols-outlined">exit_to_app</span></button>`
+              : ''
+          }
+        </div>
+      </div>
+    `,
+      )
+      .join('');
+
+    // Обработчики
+    container.querySelectorAll('.delete-challenge-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+
+        // Показываем красивую модалку
+        const modal = document.getElementById('delete-challenge-modal');
+        modal.classList.add('open');
+
+        // Обработчики для модалки
+        const confirmBtn = document.getElementById('confirm-delete-challenge');
+        const cancelBtn = document.getElementById('cancel-delete-challenge');
+
+        const cleanup = () => {
+          modal.classList.remove('open');
+          confirmBtn.removeEventListener('click', handleConfirm);
+          cancelBtn.removeEventListener('click', cleanup);
+        };
+
+        const handleConfirm = async () => {
+          await supabase.from('challenges').delete().eq('id', id);
+          await supabase
+            .from('challenge_participants')
+            .delete()
+            .eq('challenge_id', id);
+          toast('Челлендж удалён', 'success');
+          renderChallenges();
+          cleanup();
+        };
+
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', cleanup);
+
+        // Закрытие по клику на фон
+        modal.addEventListener('click', e => {
+          if (e.target === modal) cleanup();
+        });
+      });
+    });
+
+    container.querySelectorAll('.join-challenge-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        await window.joinChallenge(id, window.currentUserId);
+        toast('Вы присоединились к челленджу!', 'success');
+        renderChallenges();
+      });
+    });
+
+    container.querySelectorAll('.leave-challenge-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        await supabase
+          .from('challenge_participants')
+          .delete()
+          .eq('challenge_id', id)
+          .eq('user_id', window.currentUserId);
+        toast('Вы покинули челлендж', 'warning');
+        renderChallenges();
+      });
+    });
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<div class="friends-empty">Ошибка загрузки</div>';
+  }
+}
+
+async function renderGifts() {
+  const container = document.getElementById('gifts-list');
+  if (!container) return;
+  try {
+    const gifts = await getGiftsReceived(window.currentUserId);
+    if (!gifts.length) {
+      container.innerHTML =
+        '<div class="friends-empty"><span class="material-symbols-outlined">card_giftcard</span><p>Подарки пока не приходят</p></div>';
+      return;
+    }
+    container.innerHTML = gifts
+      .map(
+        g => `
+      <div class="lb-row">
+        <div class="lb-rank">🎁</div>
+        <div class="lb-info">
+          <div class="lb-name">${esc(g.sender.username)}</div>
+          <div class="lb-level">+${g.amount} XP</div>
+          ${g.message ? `<div class="lb-level" style="font-size:0.8rem">«${esc(g.message)}»</div>` : ''}
+        </div>
+        <div class="lb-xp">
+          <div class="lb-xp-num">${new Date(g.created_at).toLocaleDateString('ru-RU')}</div>
+        </div>
+      </div>
+    `,
+      )
+      .join('');
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<div class="friends-empty">Ошибка загрузки</div>';
+  }
+}
+
+// Чат
+let currentChatFriend = null;
+
+async function renderChatFriends() {
+  const container = document.getElementById('chat-friends-list');
+  if (!container) return;
+  if (!friendsData.friends.length) {
+    container.innerHTML =
+      '<div class="friends-empty"><span class="material-symbols-outlined">chat</span><p>Добавь друзей, чтобы начать чат</p></div>';
+    return;
+  }
+  container.innerHTML = friendsData.friends
+    .map(
+      f => `
+    <div class="lb-row" data-friend="${f.id}" style="cursor:pointer">
+      <div class="lb-rank">💬</div>
+      <div class="lb-info">
+        <div class="lb-name">${esc(f.username)}</div>
+      </div>
+      <div class="lb-xp">
+        <span id="unread-badge-${f.id}" class="badge" style="display:none">0</span>
+      </div>
+    </div>
+  `,
+    )
+    .join('');
+
+  // Обработка клика на друга
+  container.querySelectorAll('.lb-row[data-friend]').forEach(row => {
+    row.addEventListener('click', () => {
+      const friendId = row.dataset.friend;
+      openChatWithFriend(friendId);
+    });
+  });
+
+  // Обновляем общий бейдж непрочитанных
+  updateTotalUnreadBadge();
+}
+
+async function openChatWithFriend(friendId) {
+  const friend = friendsData.friends.find(f => f.id === friendId);
+  if (!friend) return;
+  currentChatFriend = friendId;
+
+  const chatContainer = document.getElementById('chat-messages');
+  const friendsList = document.getElementById('chat-friends-list');
+  const header = document.getElementById('chat-header');
+  const messagesList = document.getElementById('chat-messages-list');
+
+  // Показываем чат, скрываем список друзей
+  friendsList.style.display = 'none';
+  chatContainer.style.display = 'block';
+
+  header.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center">
+    <h3>Чат с ${esc(friend.username)}</h3>
+    <button class="btn-icon" id="close-chat-btn">✖</button>
+  </div>`;
+
+  document.getElementById('close-chat-btn').onclick = () => {
+    chatContainer.style.display = 'none';
+    friendsList.style.display = 'block';
+    currentChatFriend = null;
+  };
+
+  // Загружаем сообщения
+  const messages = await getMessages(window.currentUserId, friendId);
+  messagesList.innerHTML = messages
+    .map(
+      m => `
+    <div class="activity-item" style="justify-content:${m.sender_id === window.currentUserId ? 'flex-end' : 'flex-start'}">
+      <div class="activity-text" style="background:${m.sender_id === window.currentUserId ? 'var(--primary)' : 'var(--bg)'}; padding:0.5rem 1rem; border-radius:18px; max-width:80%">
+        ${esc(m.text)}
+        <div style="font-size:0.7rem; opacity:0.6">${new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+    </div>
+  `,
+    )
+    .join('');
+
+  // Отметить прочитанными
+  await markMessagesRead(window.currentUserId, friendId);
+  // Обновляем бейдж непрочитанных (опционально)
+  updateUnreadCounts();
+
+  // Прокрутка вниз
+  messagesList.scrollTo({ top: messagesList.scrollHeight, behavior: 'smooth' });
+
+  // Отправка сообщения
+  const input = document.getElementById('chat-message-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+  const sendMessageHandler = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    try {
+      await sendMessage(window.currentUserId, friendId, text);
+      input.value = '';
+      // Обновляем чат
+      await openChatWithFriend(friendId);
+    } catch (e) {
+      toast('Ошибка отправки', 'danger');
+    }
+  };
+  sendBtn.onclick = sendMessageHandler;
+  input.onkeydown = e => {
+    if (e.key === 'Enter') sendMessageHandler();
+  };
+}
+
+async function updateUnreadCounts() {
+  const userId = window.currentUserId;
+  if (!userId) return;
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('sender_id, count(*)')
+    .eq('receiver_id', userId)
+    .eq('read', false);
+
+  if (error) {
+    console.error('updateUnreadCounts error:', error);
+    return;
+  }
+
+  // Обновляем бейджи в списке чатов
+  data.forEach(row => {
+    const badge = document.getElementById(`unread-badge-${row.sender_id}`);
+    if (badge) {
+      badge.textContent = row.count;
+      badge.style.display = 'inline-flex';
+    }
+  });
+
+  // Обновляем общий бейдж на пилюле "Чаты"
+  updateTotalUnreadBadge();
+
+  // Обновляем бейдж на кнопке "Друзья"
+  updateFriendsNavBadge();
+}
+
+async function updateTotalUnreadBadge() {
+  const userId = window.currentUserId;
+  if (!userId) return;
+
+  const { count, error } = await supabase
+    .from('messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('receiver_id', userId)
+    .eq('read', false);
+
+  if (error) {
+    console.error('updateTotalUnreadBadge error:', error);
+    return;
+  }
+
+  const badge = document.getElementById('chat-unread-badge');
+  if (badge) {
+    badge.textContent = count > 0 ? count : '';
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+// Обновление бейджа на кнопке "Друзья" (сообщения + заявки)
+async function updateFriendsNavBadge() {
+  const userId = window.currentUserId;
+  if (!userId) return;
+
+  try {
+    // Считаем входящие заявки
+    const { count: requestsCount } = await supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .eq('friend_id', userId)
+      .eq('status', 'pending');
+
+    // Считаем непрочитанные сообщения
+    const { count: unreadCount } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('receiver_id', userId)
+      .eq('read', false);
+
+    const total = (requestsCount || 0) + (unreadCount || 0);
+    const display = total > 0 ? (total > 9 ? '9+' : total) : '';
+
+    const desktopBadge = document.getElementById('friends-req-badge');
+    const mobileBadge = document.getElementById('mobile-friends-req-badge');
+
+    if (desktopBadge) {
+      desktopBadge.textContent = display;
+      desktopBadge.style.display = total > 0 ? 'flex' : 'none';
+    }
+    if (mobileBadge) {
+      mobileBadge.textContent = display;
+      mobileBadge.style.display = total > 0 ? 'flex' : 'none';
+    }
+  } catch (e) {
+    console.error('updateFriendsNavBadge error:', e);
+  }
+}
+
+// Функция показа модального окна сравнения словарей
+function showComparisonModal(data, friendName) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-backdrop open';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Сравнение словарей с ${esc(friendName)}</h3>
+        <button class="modal-close">✖</button>
+      </div>
+      <div style="margin-bottom:1rem">
+        <h4>Общие слова (${data.words.common.length})</h4>
+        <div class="badges-grid-mini">${data.words.common.map(w => `<span class="badge-mini">${esc(w.en)}</span>`).join('') || '—'}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <h4>Недостающие слова (${data.words.missing.length})</h4>
+        <div class="badges-grid-mini">${data.words.missing.map(w => `<span class="badge-mini" style="cursor:pointer" data-en="${esc(w.en)}">${esc(w.en)}</span>`).join('') || '—'}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <h4>Ваши уникальные слова (${data.words.unique.length})</h4>
+        <div class="badges-grid-mini">${data.words.unique.map(w => `<span class="badge-mini">${esc(w.en)}</span>`).join('') || '—'}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <h4>Общие идиомы (${data.idioms.common.length})</h4>
+        <div class="badges-grid-mini">${data.idioms.common.map(i => `<span class="badge-mini">${esc(i.idiom)}</span>`).join('') || '—'}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <h4>Недостающие идиомы (${data.idioms.missing.length})</h4>
+        <div class="badges-grid-mini">${data.idioms.missing.map(i => `<span class="badge-mini" style="cursor:pointer" data-idiom="${esc(i.idiom)}">${esc(i.idiom)}</span>`).join('') || '—'}</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="add-missing-words">Добавить все недостающие слова</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector('.modal-close').onclick = () => modal.remove();
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.remove();
+  });
+
+  // Добавить слова при клике
+  document.getElementById('add-missing-words').onclick = async () => {
+    let added = 0;
+    for (const w of data.words.missing) {
+      // Создаём слово через addWord
+      const success = await window.addWord?.(
+        w.en,
+        w.ru,
+        w.ex,
+        w.tags || [],
+        w.phonetic,
+        w.examples,
+        w.audio,
+        w.examplesAudio,
+      );
+      if (success) added++;
+    }
+    for (const i of data.idioms.missing) {
+      const success = await window.addIdiom?.(
+        i.idiom,
+        i.meaning,
+        i.definition,
+        i.example,
+        i.phonetic,
+        i.tags?.join(', ') || '',
+        i.audio,
+        i.examplesAudio,
+        i.example_translation,
+      );
+      if (success) added++;
+    }
+    toast(`Добавлено ${added} новых единиц!`, 'success');
+    modal.remove();
+  };
+
+  // Клик по слову для быстрого добавления
+  modal.querySelectorAll('.badge-mini[data-en]').forEach(el => {
+    el.style.cursor = 'pointer';
+    el.onclick = async () => {
+      const en = el.dataset.en;
+      const word = data.words.missing.find(w => w.en === en);
+      if (
+        word &&
+        (await window.addWord?.(
+          word.en,
+          word.ru,
+          word.ex,
+          word.tags || [],
+          word.phonetic,
+          word.examples,
+          word.audio,
+          word.examplesAudio,
+        ))
+      ) {
+        toast(`Слово "${en}" добавлено!`, 'success');
+        el.remove();
+      }
+    };
+  });
+  modal.querySelectorAll('.badge-mini[data-idiom]').forEach(el => {
+    el.style.cursor = 'pointer';
+    el.onclick = async () => {
+      const idiom = el.dataset.idiom;
+      const item = data.idioms.missing.find(i => i.idiom === idiom);
+      if (
+        item &&
+        (await window.addIdiom?.(
+          item.idiom,
+          item.meaning,
+          item.definition,
+          item.example,
+          item.phonetic,
+          item.tags?.join(', ') || '',
+          item.audio,
+          item.examplesAudio,
+          item.example_translation,
+        ))
+      ) {
+        toast(`Идиома "${idiom}" добавлена!`, 'success');
+        el.remove();
+      }
+    };
+  });
+}
+
+// Добавляем вызов рендера вкладок при загрузке
+window.renderChallenges = renderChallenges;
+window.renderGifts = renderGifts;
+window.renderChatFriends = renderChatFriends;
+window.updateUnreadCounts = updateUnreadCounts;
+
+// ========== Кнопка создания челленджа ==========
+document
+  .getElementById('create-challenge-btn')
+  ?.addEventListener('click', () => {
+    document.getElementById('create-challenge-modal').classList.add('open');
+    document.body.classList.add('modal-open');
+  });
+
+// Подключаем рендер к переключению вкладок
+document.querySelectorAll('[data-fpill]').forEach(pill => {
+  pill.addEventListener('click', () => {
+    const target = pill.dataset.fpill;
+    if (target === 'challenges') renderChallenges();
+    else if (target === 'gifts') renderGifts();
+    else if (target === 'chat') renderChatFriends();
+  });
+});
+
+// ============================================================
+// REALTIME ПОДПИСКИ
+// ============================================================
+
+let messagesChannel = null;
+let friendshipsChannel = null;
+
+function subscribeToMessages() {
+  if (messagesChannel) {
+    messagesChannel.unsubscribe();
+  }
+
+  const userId = window.currentUserId;
+  if (!userId) return;
+
+  messagesChannel = supabase
+    .channel('messages-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${userId}`,
+      },
+      async payload => {
+        const message = payload.new;
+        const senderId = message.sender_id;
+
+        // Получаем имя отправителя
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', senderId)
+          .single();
+
+        // Показываем уведомление
+        toast(
+          `📩 Новое сообщение от ${profile?.username || 'пользователя'}`,
+          'info',
+          'chat',
+        );
+
+        // Обновляем бейджи непрочитанных
+        await updateUnreadCounts();
+
+        // Если открыта вкладка чатов, обновляем список друзей для чата
+        if (
+          document.getElementById('fpanel-chat')?.classList.contains('active')
+        ) {
+          renderChatFriends();
+        }
+
+        // Если сейчас открыт чат с этим отправителем, обновляем историю
+        if (currentChatFriend === senderId) {
+          await openChatWithFriend(senderId);
+        }
+      },
+    )
+    .subscribe();
+}
+
+function subscribeToFriendRequests() {
+  if (friendshipsChannel) {
+    friendshipsChannel.unsubscribe();
+  }
+
+  const userId = window.currentUserId;
+  if (!userId) return;
+
+  friendshipsChannel = supabase
+    .channel('friendships-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'friendships',
+        filter: `friend_id=eq.${userId}`,
+      },
+      payload => {
+        toast('📨 Новая заявка в друзья!', 'info', 'group_add');
+        loadFriendsDataNew(); // перезагружаем данные
+        updateFriendsNavBadge(); // обновляем бейдж
+      },
+    )
+    .subscribe();
+}
+
+// Модальное окно создания челленджа
+const createChallengeModal = document.getElementById('create-challenge-modal');
+const createChallengeBtn = document.getElementById('create-challenge-btn');
+const closeChallengeModal = document.getElementById('close-challenge-modal');
+const cancelChallengeBtn = document.getElementById('cancel-challenge-btn');
+
+createChallengeBtn?.addEventListener('click', () => {
+  createChallengeModal.classList.add('open');
+  document.body.classList.add('modal-open');
+});
+
+function closeChallengeModalFunc() {
+  createChallengeModal.classList.remove('open');
+  document.body.classList.remove('modal-open');
+}
+
+closeChallengeModal?.addEventListener('click', closeChallengeModalFunc);
+cancelChallengeBtn?.addEventListener('click', closeChallengeModalFunc);
+
+document
+  .getElementById('confirm-create-challenge')
+  ?.addEventListener('click', async () => {
+    const title = document.getElementById('challenge-title').value.trim();
+    const type = document.getElementById('challenge-type').value;
+    let target = parseInt(
+      document.getElementById('challenge-target').value,
+      10,
+    );
+    const days = parseInt(document.getElementById('challenge-days').value, 10);
+
+    if (!title) {
+      toast('Введите название', 'warning');
+      return;
+    }
+    if (isNaN(target) || target <= 0) {
+      toast('Цель должна быть положительным числом', 'warning');
+      return;
+    }
+    if (isNaN(days) || days <= 0) {
+      toast('Длительность должна быть положительной', 'warning');
+      return;
+    }
+
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + days);
+
+    try {
+      const newChallenge = await createChallenge(
+        window.currentUserId,
+        title,
+        type,
+        target,
+        endDate.toISOString().split('T')[0],
+      );
+      await joinChallenge(newChallenge.id, window.currentUserId);
+      toast('Челлендж создан!', 'success');
+      closeChallengeModalFunc();
+      renderChallenges();
+    } catch (e) {
+      toast('Ошибка создания: ' + e.message, 'danger');
+    }
+  });
+
 // ===== ГЛОБАЛЬНЫЕ ЭКСПОРТЫ ДЛЯ HTML =====
 window.switchLbPeriod = switchLbPeriod;
 window.loadLeaderboard = loadLeaderboard;
@@ -15903,3 +16800,57 @@ initTheme();
 setupThemeToggle();
 
 switchTab('words');
+
+// Fallback: если через 6 секунд индикатор всё ещё виден – скрываем принудительно
+setTimeout(() => {
+  const loader = document.getElementById('loading-indicator');
+  if (loader && loader.style.display !== 'none') {
+    console.warn('⚠️ Принудительное скрытие индикатора загрузки по таймауту');
+    loader.style.opacity = '0';
+    setTimeout(() => {
+      loader.style.display = 'none';
+    }, 300);
+    document.body.classList.remove('loading');
+  }
+}, 6000);
+
+// Обработчик нажатия Enter в фидбеке (bottom sheet)
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const activeEl = document.activeElement;
+    console.log(
+      '🌐 Глобальный обработчик Enter, activeElement:',
+      activeEl?.tagName,
+      activeEl?.id,
+    );
+
+    // Если активный элемент — поле ввода (input, textarea), не перехватываем Enter
+    if (
+      activeEl &&
+      (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')
+    ) {
+      console.log('🚫 Фокус в поле ввода, пропускаем глобальный обработчик');
+      return;
+    }
+
+    const sheet = document.getElementById('fb-sheet');
+    console.log('🔍 Фидбек лист:', sheet?.classList.toString());
+
+    if (sheet && sheet.classList.contains('show')) {
+      console.log('✅ Фидбек показан, ищем кнопки');
+      const nextBtn = sheet.querySelector('.fb-next-btn');
+      if (nextBtn) {
+        console.log('🔘 Нажимаем кнопку "Дальше"');
+        nextBtn.click();
+      } else {
+        const resetBtn = sheet.querySelector('.fb-reset-btn');
+        if (resetBtn) {
+          console.log('🔄 Нажимаем кнопку "Сбросить"');
+          resetBtn.click();
+        }
+      }
+    } else {
+      console.log('❌ Фидбек не показан');
+    }
+  }
+});

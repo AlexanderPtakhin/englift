@@ -1600,13 +1600,11 @@ nav {
   font-size: 0.68rem;
   font-weight: 700;
   border-radius: 10px;
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 4px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  z-index: 15;
-  line-height: 1;
 }
 
 /* Мобильный навбар — точно как у идиом */
@@ -1623,7 +1621,7 @@ nav {
   font-size: 0.65rem;
   font-weight: 700;
   border-radius: 9px;
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 3px;
@@ -1683,7 +1681,7 @@ nav {
 /* Specific centering for due-count badge */
 
 #due-count {
-  display: flex !important;
+  display: flex;
 
   align-items: center !important;
 
@@ -5819,7 +5817,7 @@ html.dark .badge-learned {
 
   padding: 1.5rem;
 
-  margin-top: 2.5rem;
+  margin-top: 0.1rem;
 
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
@@ -14964,6 +14962,11 @@ body.bs-open .bs-trigger-arrow {
   box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
+.res-action-btn--repeat:hover .material-symbols-outlined {
+  color: white !important;
+  filter: none !important;
+}
+
 .res-action-btn--setup {
   background: transparent;
   border-color: var(--border);
@@ -15895,5 +15898,346 @@ body.bs-open .bs-trigger-arrow {
   .fb-next-btn {
     /* На мобайле тоже не растягиваем на всю ширину */
     align-self: flex-end;
+  }
+}
+
+/* ============================================================
+   СОЦИАЛЬНЫЕ МОДУЛИ (челленджи, подарки, чат)
+   ============================================================ */
+
+/* Общие для списков */
+#challenges-list .lb-row,
+#gifts-list .lb-row,
+#chat-friends-list .lb-row {
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+#challenges-list .lb-row:hover,
+#gifts-list .lb-row:hover,
+#chat-friends-list .lb-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-hover);
+}
+
+/* Панель чата */
+#chat-messages {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+}
+#chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border);
+}
+#chat-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+#close-chat-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+#close-chat-btn:hover {
+  color: var(--danger);
+}
+#chat-messages-list {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.chat-input-row .form-control {
+  flex: 1;
+}
+.chat-input-row .btn {
+  flex-shrink: 0;
+}
+/* Адаптация для мобильных */
+@media (max-width: 600px) {
+  #chat-messages-list {
+    max-height: 60vh;
+  }
+  .chat-input-row {
+    flex-wrap: wrap;
+  }
+  .chat-input-row .form-control {
+    width: 100%;
+  }
+  .chat-input-row .btn {
+    width: 100%;
+  }
+}
+
+/* Модальное окно сравнения словарей */
+.modal-box .badges-grid-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.modal-box .badge-mini[data-en],
+.modal-box .badge-mini[data-idiom] {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.modal-box .badge-mini[data-en]:hover,
+.modal-box .badge-mini[data-idiom]:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+.modal-box h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.75rem 0 0.25rem;
+}
+.modal-box h4:first-of-type {
+  margin-top: 0;
+}
+
+/* Бейджи непрочитанных сообщений */
+.lb-row .badge {
+  position: static;
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  background: var(--danger);
+  color: white;
+  font-size: 0.7rem;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  margin-left: 8px;
+}
+
+/* Сообщения в чате без бордера */
+#chat-messages-list .activity-text {
+  border: none !important;
+}
+
+#chat-messages-list .activity-item {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  gap: 0.5rem !important;
+}
+
+/* Красивый скроллбар для чата как в Telegram */
+#chat-messages-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chat-messages-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#chat-messages-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  width: 6px;
+}
+
+#chat-messages-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Для тёмной темы */
+@media (prefers-color-scheme: dark) {
+  #chat-messages-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  #chat-messages-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Кнопки действий челленджей */
+.challenge-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.challenge-actions .btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  transition: all 0.2s;
+}
+
+.challenge-actions .btn-icon:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.challenge-actions .btn-icon.delete-challenge-btn:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+/* Info box для модалки создания челленджа */
+.info-box {
+  background: var(--bg);
+  border-left: 4px solid var(--primary);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Кастомный скроллбар для чата */
+#chat-messages-list::-webkit-scrollbar {
+  width: 6px;
+}
+#chat-messages-list::-webkit-scrollbar-track {
+  background: var(--border);
+  border-radius: 3px;
+}
+#chat-messages-list::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.res-action-btn .material-symbols-outlined {
+  color: inherit;
+}
+
+/* Тултипы для бейджей в активности друзей */
+.badge-tooltip {
+  position: relative;
+  display: inline-block;
+  transition: opacity 0.2s ease;
+}
+
+.badge-tooltip:hover {
+  opacity: 1 !important;
+}
+
+/* Создаем тултип с помощью CSS */
+.badge-tooltip::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-alt);
+  color: var(--text);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  max-width: 200px;
+  white-space: normal;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.badge-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 115%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--bg-alt);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.badge-tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.badge-tooltip:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Адаптивность для вкладок лидерборда */
+@media (max-width: 450px) {
+  .lb-period-tabs {
+    gap: 0.1rem;
+    padding: 2px;
+  }
+
+  .lb-tab {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: 50px;
+  }
+}
+
+@media (max-width: 392px) {
+  .lb-period-tabs {
+    flex-wrap: wrap;
+    gap: 0.1rem;
+    max-width: 120px;
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  .lb-tab {
+    padding: 0.2rem 0.4rem;
+    font-size: 0;
+    text-align: center;
+    min-width: 35px;
+    flex: 1;
+    line-height: 1;
+  }
+
+  .lb-tab::after {
+    content: attr(data-short);
+    font-size: 0.7rem;
+    display: block;
   }
 }

@@ -183,7 +183,7 @@
             <div class="dropdown-item" id="dropdown-start-tour">
               <span class="material-symbols-outlined">explore</span>
 
-              <span>Тур по приложению</span>
+              <span>Обзор</span>
             </div>
 
             <div
@@ -1107,10 +1107,6 @@
           <p>Добавьте первую идиому, чтобы запомнить её!</p>
 
           <br />
-
-          <button class="btn btn-primary btn-lg" id="empty-add-idiom-btn">
-            <span class="material-symbols-outlined">add</span> Добавить идиому
-          </button>
         </div>
       </div>
 
@@ -1128,6 +1124,7 @@
               <button
                 class="lb-tab active"
                 data-period="week"
+                data-short="Нед"
                 onclick="switchLbPeriod(this)"
               >
                 Неделя
@@ -1135,6 +1132,7 @@
               <button
                 class="lb-tab"
                 data-period="month"
+                data-short="Мес"
                 onclick="switchLbPeriod(this)"
               >
                 Месяц
@@ -1142,6 +1140,7 @@
               <button
                 class="lb-tab"
                 data-period="all"
+                data-short="Все"
                 onclick="switchLbPeriod(this)"
               >
                 Всё
@@ -1224,6 +1223,24 @@
 
             <span>Поиск</span>
           </button>
+
+          <button class="pill" id="pill-challenges" data-fpill="challenges">
+            <span class="material-symbols-outlined">sports_score</span>
+            <span>Челленджи</span>
+          </button>
+          <button class="pill" id="pill-gifts" data-fpill="gifts">
+            <span class="material-symbols-outlined">card_giftcard</span>
+            <span>Подарки</span>
+          </button>
+          <button class="pill" id="pill-chat" data-fpill="chat">
+            <span class="material-symbols-outlined">chat</span>
+            <span>Чаты</span>
+            <span
+              class="badge"
+              id="chat-unread-badge"
+              style="display: none"
+            ></span>
+          </button>
         </div>
 
         <!-- ПАНЕЛЬ: СПИСОК ДРУЗЕЙ -->
@@ -1279,6 +1296,47 @@
 
           <div id="friends-search-results-new"></div>
         </div>
+
+        <!-- Челленджи -->
+        <div class="friends-panel" id="fpanel-challenges">
+          <div id="challenges-list" class="friends-leaderboard-list">
+            Загрузка...
+          </div>
+          <div style="margin-top: 1rem">
+            <button class="btn btn-primary" id="create-challenge-btn">
+              <span class="material-symbols-outlined">add</span> Создать
+              челлендж
+            </button>
+          </div>
+        </div>
+
+        <!-- Подарки -->
+        <div class="friends-panel" id="fpanel-gifts">
+          <div id="gifts-list" class="friends-leaderboard-list"></div>
+        </div>
+
+        <!-- Чаты -->
+        <div class="friends-panel" id="fpanel-chat">
+          <div id="chat-friends-list" class="friends-leaderboard-list"></div>
+          <div id="chat-messages" style="display: none">
+            <div id="chat-header"></div>
+            <div id="chat-messages-list" class="friend-activity-feed"></div>
+            <div
+              class="chat-input-row"
+              style="display: flex; gap: 0.5rem; margin-top: 1rem"
+            >
+              <input
+                type="text"
+                id="chat-message-input"
+                class="form-control"
+                placeholder="Написать сообщение..."
+              />
+              <button id="chat-send-btn" class="btn btn-primary">
+                Отправить
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -1293,6 +1351,99 @@
     <button class="floating-add-btn" id="floating-add-idiom-btn">
       <span class="material-symbols-outlined">theater_comedy</span>
     </button>
+
+    <!-- Модальное окно создания челленджа -->
+    <div class="modal-backdrop" id="create-challenge-modal">
+      <div class="modal-box" style="max-width: 500px">
+        <div class="modal-header">
+          <h3>Создать челлендж</h3>
+          <button class="modal-close" id="close-challenge-modal">✖</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Название челленджа</label>
+            <input
+              type="text"
+              id="challenge-title"
+              class="form-control"
+              placeholder="Например: 100 XP за неделю"
+            />
+          </div>
+          <div class="form-group">
+            <label>Тип</label>
+            <select id="challenge-type" class="form-control">
+              <option value="xp">Опыт (XP)</option>
+              <option value="words">Новые слова + идиомы</option>
+              <option value="streak">Стрик (дней подряд)</option>
+              <option value="practice_time">Время практики (минут)</option>
+            </select>
+            <small class="form-text" style="color: var(--muted)"
+              >Что нужно набрать для победы?</small
+            >
+          </div>
+          <div class="form-group">
+            <label>Цель</label>
+            <input
+              type="text"
+              id="challenge-target"
+              class="form-control"
+              placeholder="100"
+              value="100"
+            />
+          </div>
+          <div class="form-group">
+            <label>Длительность (дней)</label>
+            <input
+              type="text"
+              id="challenge-days"
+              class="form-control"
+              placeholder="7"
+              value="7"
+            />
+          </div>
+          <div class="form-group">
+            <div class="info-box">
+              <strong>ℹ️ Как это работает?</strong><br />
+              • Челлендж начинается сегодня и длится указанное количество
+              дней.<br />
+              • Прогресс обновляется автоматически: когда вы получаете XP,
+              добавляете слова или увеличиваете стрик.<br />
+              • Как только вы достигаете цели – получаете награду 50 XP!<br />
+              • Вы можете приглашать друзей присоединиться к челленджу после
+              создания.
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button
+            type="submit"
+            class="btn-primary"
+            id="confirm-create-challenge"
+          >
+            Создать
+          </button>
+          <button type="button" class="btn-secondary" id="cancel-challenge-btn">
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно удаления челленджа -->
+    <div class="modal-backdrop" id="delete-challenge-modal">
+      <div class="modal-box">
+        <h3>Удалить челлендж?</h3>
+        <p>Это действие нельзя отменить. Все участники будут удалены из челленджа.</p>
+        <div class="modal-actions">
+          <button class="btn-icon" id="confirm-delete-challenge">
+            <span class="material-symbols-outlined">check</span>
+          </button>
+          <button class="btn-icon" id="cancel-delete-challenge">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Модальное окно добавления идиомы -->
 
@@ -1335,28 +1486,6 @@
             <input
               class="form-control"
               type="text"
-              id="modal-idiom-definition"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Пример</label>
-
-            <input class="form-control" type="text" id="modal-idiom-ex" />
-          </div>
-
-          <div class="form-group">
-            <label>Перевод примера</label>
-
-            <input
-              class="form-control"
-              type="text"
-              id="modal-idiom-ex-translation"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Теги через запятую</label>
 
             <input class="form-control" type="text" id="modal-idiom-tags" />
           </div>
@@ -1591,16 +1720,18 @@
                   пароль
                 </button>
               </div>
+              
+              <div class="form-group" style="text-align: center; margin-top: 1.5rem;">
+                <button class="btn-primary" id="speech-modal-save">
+                  <span class="material-symbols-outlined">save</span>
+                  Сохранить
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="modal-actions">
-          <button class="btn-primary" id="speech-modal-save">
-            <span class="material-symbols-outlined">save</span>
-
-            Сохранить
-          </button>
         </div>
 
         <div class="danger-actions">
@@ -1612,7 +1743,7 @@
           <button class="danger-btn" id="clear-words-btn">
             <span class="material-symbols-outlined">delete_forever</span>
 
-            Очистить все слова навсегда
+            Очистить весь словарь (слова + идиомы)
           </button>
 
           <!-- Новая кнопка сброса прогресса -->

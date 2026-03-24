@@ -71,7 +71,17 @@ async function loadUserProfile(user) {
 
       const pendingInvite = localStorage.getItem('englift_pending_invite');
       if (pendingInvite) {
-        await applyInvite(pendingInvite, user.id);
+        const { data: invite } = await supabase
+          .from('invites')
+          .select('inviter_id')
+          .eq('id', pendingInvite)
+          .maybeSingle();
+        if (invite && invite.inviter_id !== user.id) {
+          await supabase
+            .from('profiles')
+            .update({ invited_by: invite.inviter_id })
+            .eq('id', user.id);
+        }
         localStorage.removeItem('englift_pending_invite');
       }
     } else {
@@ -93,6 +103,7 @@ async function loadUserProfile(user) {
     console.error('Ошибка загрузки профиля:', err);
     window.toast?.('Не удалось загрузить профиль', 'danger');
   } finally {
+    console.log('🔚 loadUserProfile завершён, вызываем onProfileFullyLoaded');
     window._profileLoadInProgress = false;
     window.onProfileFullyLoaded?.();
   }
@@ -345,6 +356,11 @@ async function acceptInviteFriendship(inviterId, inviteId) {
 // Обработчики для меню профиля
 let dropdownTimeout = null;
 
+// Определяем мобильное устройство
+function isMobile() {
+  return window.innerWidth <= 768 || 'ontouchstart' in window;
+}
+
 function showDropdown() {
   const dropdown = document.getElementById('user-dropdown');
   if (dropdown) {
@@ -370,28 +386,40 @@ userAvatar?.addEventListener('click', e => {
   const dropdown = document.getElementById('user-dropdown');
   if (dropdown) {
     const isVisible = dropdown.style.display !== 'none';
-    if (isVisible) {
-      hideDropdown();
+    if (isMobile()) {
+      // На мобильных: первый клик открывает, второй закрывает
+      if (isVisible) {
+        hideDropdown();
+      } else {
+        showDropdown();
+      }
     } else {
-      showDropdown();
+      // На десктопе toggle как обычно
+      if (isVisible) {
+        hideDropdown();
+      } else {
+        showDropdown();
+      }
     }
   }
 });
 
-// Наведение на аватар - показать меню
-userAvatar?.addEventListener('mouseenter', showDropdown);
+// Для десктопа: наведение на аватар - показать меню
+if (!isMobile()) {
+  userAvatar?.addEventListener('mouseenter', showDropdown);
 
-// Уход с аватара - скрыть меню с задержкой
-userAvatar?.addEventListener('mouseleave', hideDropdown);
+  // Уход с аватара - скрыть меню с задержкой
+  userAvatar?.addEventListener('mouseleave', hideDropdown);
 
-// Наведение на меню - отменить скрытие
-const userDropdown = document.getElementById('user-dropdown');
-userDropdown?.addEventListener('mouseenter', () => {
-  clearTimeout(dropdownTimeout);
-});
+  // Наведение на меню - отменить скрытие
+  const userDropdown = document.getElementById('user-dropdown');
+  userDropdown?.addEventListener('mouseenter', () => {
+    clearTimeout(dropdownTimeout);
+  });
 
-// Уход с меню - скрыть
-userDropdown?.addEventListener('mouseleave', hideDropdown);
+  // Уход с меню - скрыть
+  userDropdown?.addEventListener('mouseleave', hideDropdown);
+}
 
 // Клик вне меню - скрыть
 document.addEventListener('click', e => {
@@ -405,19 +433,19 @@ document.addEventListener('click', e => {
   }
 });
 
-// Для мобильных: touch события
-userAvatar?.addEventListener('touchstart', e => {
-  e.stopPropagation();
-  const dropdown = document.getElementById('user-dropdown');
-  if (dropdown) {
-    const isVisible = dropdown.style.display !== 'none';
-    if (isVisible) {
-      hideDropdown();
-    } else {
-      showDropdown();
+// Для мобильных: скролл - скрыть меню
+if (isMobile()) {
+  let scrollTimeout;
+  window.addEventListener('scroll', () => {
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown && dropdown.style.display !== 'none') {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        dropdown.style.display = 'none';
+      }, 100);
     }
-  }
-});
+  });
+}
 
 // Обработчик запуска тура
 document
