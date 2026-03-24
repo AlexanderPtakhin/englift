@@ -9,6 +9,28 @@ import {
   deleteIdiomFromDb,
 } from './db.js';
 
+// Импортируем и экспортируем функции темы глобально
+import {
+  applyTheme,
+  updateThemeIcon,
+  initTheme,
+  setupThemeToggle,
+} from './js/theme.js';
+window.applyTheme = applyTheme;
+window.updateThemeIcon = updateThemeIcon;
+window.initTheme = initTheme;
+window.setupThemeToggle = setupThemeToggle;
+
+// Глобальный перехват ошибок для отладки
+window.addEventListener('error', function (event) {
+  console.error('Глобальная ошибка:', event.error);
+  window.toast?.(
+    'Ошибка: ' + (event.error?.message || event.message),
+    'danger',
+  );
+  window.forceHideLoader?.();
+});
+
 // Экспортируем для использования в других скриптах
 window.authExports = {
   auth: supabase.auth,
@@ -74,3 +96,25 @@ if (document.readyState === 'loading') {
   import('./auth.js');
   import('./script.js');
 }
+
+// Принудительное скрытие спиннера через 10 секунд на случай ошибок
+setTimeout(() => {
+  console.log('Проверка спиннера через 10 секунд');
+  const loader = document.getElementById('loading-indicator');
+  if (loader && loader.style.display !== 'none') {
+    console.warn('Спиннер всё ещё виден, скрываем принудительно');
+    window.forceHideLoader?.();
+    window.toast?.(
+      'Приложение загружается долго. Проверьте интернет.',
+      'warning',
+    );
+  }
+}, 10000);
+
+// Универсальный таймаут для скрытия спиннера через 8 секунд
+setTimeout(() => {
+  if (document.getElementById('loading-indicator')) {
+    console.warn('Спиннер всё ещё виден, удаляем принудительно');
+    window.forceHideLoader?.();
+  }
+}, 8000);

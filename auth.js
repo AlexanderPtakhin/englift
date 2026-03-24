@@ -101,11 +101,20 @@ async function loadUserProfile(user) {
     }
   } catch (err) {
     console.error('Ошибка загрузки профиля:', err);
-    window.toast?.('Не удалось загрузить профиль', 'danger');
+    window.toast?.(
+      'Не удалось загрузить профиль: ' + (err.message || err),
+      'danger',
+    );
+    // Всегда вызываем onProfileFullyLoaded, чтобы спиннер скрылся
+    if (typeof window.onProfileFullyLoaded === 'function') {
+      window.onProfileFullyLoaded();
+    }
   } finally {
     console.log('🔚 loadUserProfile завершён, вызываем onProfileFullyLoaded');
     window._profileLoadInProgress = false;
-    window.onProfileFullyLoaded?.();
+    if (typeof window.onProfileFullyLoaded === 'function') {
+      window.onProfileFullyLoaded();
+    }
   }
 }
 

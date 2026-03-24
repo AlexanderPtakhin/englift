@@ -10,8 +10,7 @@
   },
   "dependencies": {
     "@material-symbols/font-400": "^0.42.3",
-    "@supabase/supabase-js": "^2.99.1",
-    "firebase": "^10.14.1"
+    "@supabase/supabase-js": "^2.99.1"
   },
   "devDependencies": {
     "@parcel/packager-raw-url": "^2.16.4",

@@ -281,11 +281,14 @@ function playSound(type) {
 
     console.log('🔊 Playing sound:', audioPath);
     const audio = new Audio(audioPath);
-    // Для звука победы делаем громче
-    audio.volume =
-      audioPath.includes('victory.mp3') || audioPath.includes('fail.mp3')
+    // Устанавливаем громкость в зависимости от файла
+    audio.volume = audioPath.includes('winner.mp3')
+      ? 0.4
+      : audioPath.includes('victory.mp3')
         ? 0.3
-        : 0.1;
+        : audioPath.includes('lite.mp3') || audioPath.includes('fail.mp3')
+          ? 0.3
+          : 0.1;
     audio.play().catch(e => console.error('Error playing sound:', e));
   } catch (e) {
     console.error('Error playing sound:', e);
@@ -302,6 +305,11 @@ function getAudioContext() {
 
 // Функция для получения голоса в зависимости от настроек
 function getVoice() {
+  if (!('speechSynthesis' in window)) {
+    console.warn('speechSynthesis не поддерживается');
+    return null;
+  }
+
   const voicePreference = window.user_settings?.voice || 'female';
 
   // Получаем доступные голоса
@@ -345,8 +353,8 @@ function getVoice() {
 // Функция для озвучки текста с учетом настроек голоса
 function speakText(text) {
   console.log('🗣️ speakText called with:', text);
-  if (!window.speechSynthesis) {
-    console.error('❌ speechSynthesis not supported');
+  if (!('speechSynthesis' in window)) {
+    console.warn('speechSynthesis не поддерживается');
     return;
   }
 
@@ -409,7 +417,7 @@ function triggerConfetti() {
   }
 
   // Звук победы
-  playSound('sound/victory.mp3');
+  playSound('sound/winner.mp3');
 }
 
 // Грустный дождь при 0-20%
@@ -451,7 +459,7 @@ function triggerFewDrops() {
   }
 
   // Звук неудачи
-  playSound('sound/fail.mp3');
+  playSound('sound/lite.mp3');
 }
 
 // Лёгкий дождик при 41-60%
@@ -472,7 +480,7 @@ function triggerLightRain() {
   }
 
   // Звук неудачи
-  playSound('sound/fail.mp3');
+  playSound('sound/lite.mp3');
 }
 
 // Маленький салют при 61-80%

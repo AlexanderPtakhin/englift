@@ -13092,35 +13092,6 @@ button.floating-add-btn:hover .material-symbols-outlined,
   position: relative;
 }
 
-/* Tooltip ��� ����������� ��������� */
-.progress-indicators {
-  position: relative;
-}
-
-.progress-indicators::before {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg);
-  color: var(--text);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  margin-bottom: 4px;
-  border: 1px solid var(--border);
-  z-index: 10;
-}
-
-.progress-indicators:hover::before {
-  opacity: 1;
-}
-
 /* �������� ��� ���������� ��������� */
 .progress-dot.updating {
   animation: pulse 0.6s ease-in-out;
@@ -13207,32 +13178,6 @@ button.floating-add-btn:hover .material-symbols-outlined,
 .word-card .progress-indicators {
   top: 30px;
   right: 10px;
-}
-
-/* ���������� ������ ����� �� �������� �� �������� �������� */
-.progress-indicators::before {
-  z-index: 1000;
-  position: fixed;
-  transform: translateX(-50%);
-}
-
-.progress-indicators:hover::before {
-  opacity: 1;
-}
-
-/* ���������� ������ ����� �� �������� �� �������� �������� */
-.progress-indicators {
-  position: relative;
-  z-index: 10;
-}
-
-.progress-indicators::before {
-  z-index: 1000;
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 0;
 }
 
 /* ������������� ��������� ��� �������� ��� ��������� ���� ����� */

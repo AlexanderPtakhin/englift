@@ -78,6 +78,32 @@ import idiomsBankData from './idioms.json';
 
 // =============================================
 
+// Глобальная функция для обновления текста лоадера
+window.updateLoaderText = function (text) {
+  const loaderText = document.querySelector(
+    '#loading-indicator div:last-child',
+  );
+  if (loaderText) {
+    loaderText.textContent = text;
+  }
+};
+
+// Глобальная функция для мгновенного скрытия лоадера (особенно для Opera Mobile)
+window.forceHideLoader = function () {
+  logger.log('forceHideLoader вызван');
+  const loader = document.getElementById('loading-indicator');
+  if (loader) {
+    logger.log('Найден индикатор, удаляем из DOM');
+    loader.remove(); // удаляем элемент полностью
+    logger.log('Индикатор удален из DOM');
+  } else {
+    console.warn('Индикатор загрузки не найден (возможно, уже удален)');
+  }
+  document.body.classList.remove('loading');
+};
+
+// =============================================
+
 // Debug flag - должен быть определен до использования в функциях
 
 const DEBUG =
@@ -147,9 +173,16 @@ const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
 // =============================================
 
-// Глобальные массивы данных
+('use strict');
 
-window.words = [];
+// Отключаем автоматическое восстановление скролла при обновлении страницы
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+
+// Глобальные переменные
+
+window.DEBUG = false;
 
 window.idioms = []; // глобальный массив идиом
 
@@ -269,11 +302,11 @@ let idiomsActiveFilter = 'all';
 
 // Sync and save variables
 
+let refreshScheduled = false;
+
 let isSaving = false;
 
 let badgeCheckInterval = null;
-
-let refreshScheduled = false;
 
 let retryAttempts = 0;
 
@@ -1326,9 +1359,16 @@ window.playExampleAudio = function (wordObj) {
 };
 
 // Conditional debug logging
-
 const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
+};
+
+// Умный logger для production
+const logger = {
+  log: (...args) => DEBUG && console.log(...args),
+  error: (...args) => console.error(...args), // ошибки всегда показываем
+  warn: (...args) => console.warn(...args), // предупреждения всегда
+  info: (...args) => DEBUG && console.info(...args),
 };
 
 // File import variables
@@ -1414,11 +1454,11 @@ async function syncPendingWords() {
   console.log(`✅ Синхронизировано ${wordsToSync.length} операций`);
 }
 
-function markIdiomDirty(id) {
-  const idiom = window.idioms?.find(i => i.id === id);
+function markIdiomDirty(idiomId) {
+  const idiom = window.idioms?.find(i => i.id === idiomId);
 
   if (idiom) {
-    pendingIdiomUpdates.set(id, { ...idiom });
+    pendingIdiomUpdates.set(idiomId, { ...idiom });
 
     scheduleIdiomSync();
   }
@@ -1665,6 +1705,13 @@ setInterval(() => {
   syncProfileNow();
 }, 60000);
 
+// Периодическое обновление непрочитанных сообщений раз в 30 секунд
+setInterval(() => {
+  if (window.currentUserId) {
+    updateUnreadCounts();
+  }
+}, 30000);
+
 // Синхронизация слов с сервером (унифицированная функция)
 
 async function syncWordsToServer() {
@@ -1693,21 +1740,12 @@ function scheduleDelayedSync(delay = 30000) {
 
     try {
       // Временно закомментировано чтобы не мешать редиректу
-
       // const user = await getCurrentUser();
-
-      console.log('⚠️ getCurrentUser временно отключен для отладки редиректа');
-
       // if (user) {
-
       //   await syncWordsToServer();
-
       //   console.log('✅ Отложенная синхронизация завершена');
-
       // } else {
-
       //   console.log('⚠️ Нет пользователя для синхронизации');
-
       // }
     } catch (e) {
       console.error('❌ Ошибка отложенной синхронизации:', e);
@@ -1920,6 +1958,9 @@ window.debugLimits = function () {
 // Загрузка слов из localStorage при старте
 
 function loadWordsFromLocalStorage() {
+  console.log('📚 Загружаем слова из localStorage...');
+  updateLoaderText('Загружаем словарь...');
+
   const saved = localStorage.getItem('englift_words');
 
   if (saved) {
@@ -1938,6 +1979,8 @@ function loadWordsFromLocalStorage() {
 }
 
 function loadIdiomsFromLocalStorage() {
+  console.log('📚 Загружаем идиомы из localStorage...');
+
   const saved = localStorage.getItem('englift_idioms');
 
   if (saved) {
@@ -2886,7 +2929,7 @@ function checkSpeechSimilarity(spoken, correct) {
 
   // ── ОМОФОН ──────────────────────────────────────────────────
 
-  if (isHomophone(spoken, correct)) {
+  if (window.isHomophone && window.isHomophone(spoken, correct)) {
     return { isCorrect: true, confidence: 90 };
   }
 
@@ -4194,20 +4237,20 @@ async function addWord(
   }
 }
 
-async function delWord(id) {
-  const word = window.words.find(w => w.id === id);
+async function delWord(wordId) {
+  const word = window.words.find(w => w.id === wordId);
 
   if (!word) return;
 
   // Добавляем в очередь с флагом удаления
 
-  pendingWordUpdates.set(id, { ...word, _deleted: true });
+  pendingWordUpdates.set(wordId, { ...word, _deleted: true });
 
   scheduleWordSync(); // запускаем синхронизацию
 
   // Удаляем из локального массива
 
-  window.words = window.words.filter(w => w.id !== id);
+  window.words = window.words.filter(w => w.id !== wordId);
 
   // Сохраняем в localStorage
 
@@ -4443,16 +4486,16 @@ async function addIdiom(
   return true;
 }
 
-async function delIdiom(id) {
-  const idiom = window.idioms.find(i => i.id === id);
+async function delIdiom(idiomId) {
+  const idiom = window.idioms.find(i => i.id === idiomId);
 
   if (!idiom) return;
 
-  pendingIdiomUpdates.set(id, { ...idiom, _deleted: true });
+  pendingIdiomUpdates.set(idiomId, { ...idiom, _deleted: true });
 
   scheduleIdiomSync();
 
-  window.idioms = window.idioms.filter(i => i.id !== id);
+  window.idioms = window.idioms.filter(i => i.id !== idiomId);
 
   localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
 
@@ -4471,13 +4514,13 @@ async function delIdiom(id) {
   renderIdioms();
 }
 
-async function updIdiom(id, data) {
-  const i = window.idioms.find(i => i.id === id);
+async function updIdiom(idiomId, data) {
+  const i = window.idioms.find(i => i.id === idiomId);
 
   if (i) {
     Object.assign(i, data, { updatedAt: new Date().toISOString() });
 
-    markIdiomDirty(id);
+    markIdiomDirty(idiomId);
 
     localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
 
@@ -4485,11 +4528,11 @@ async function updIdiom(id, data) {
   }
 }
 
-function updStats(id, correct, exerciseType) {
-  const w = window.words.find(w => w.id === id);
+function updStats(wordId, correct, exerciseType) {
+  const w = window.words.find(w => w.id === wordId);
 
   if (!w) {
-    console.log('❌ Слово не найдено для updStats:', id);
+    console.log('❌ Слово не найдено для updStats:', wordId);
 
     return;
   }
@@ -4566,7 +4609,7 @@ function updStats(id, correct, exerciseType) {
 
   // Отмечаем слово для пакетной синхронизации
 
-  markWordDirty(id);
+  markWordDirty(wordId);
 }
 
 // Функция для проверки и обновления бейджей
@@ -5390,14 +5433,15 @@ function renderStats() {
 
   const wordsWithStats = [];
 
-  for (const w of window.words) {
-    if (new Date(w.stats.nextReview) <= now) wordsDue++;
+  for (const wordItem of window.words) {
+    if (new Date(wordItem.stats.nextReview) <= now) wordsDue++;
 
-    if (w.stats.learned) wordsLearned++;
+    if (wordItem.stats.learned) wordsLearned++;
 
-    if (new Date(w.created_at || w.createdAt) >= weekAgo) wordsThisWeek++;
+    if (new Date(wordItem.created_at || wordItem.createdAt) >= weekAgo)
+      wordsThisWeek++;
 
-    if (w.stats?.shown > 0) wordsWithStats.push(w);
+    if (wordItem.stats?.shown > 0) wordsWithStats.push(wordItem);
   }
 
   const wordsTotal = window.words.length;
@@ -5414,14 +5458,15 @@ function renderStats() {
 
   const idiomsWithStats = [];
 
-  for (const i of window.idioms) {
-    if (new Date(i.stats?.nextReview || 0) <= now) idiomsDue++;
+  for (const idiomItem of window.idioms) {
+    if (new Date(idiomItem.stats?.nextReview || 0) <= now) idiomsDue++;
 
-    if (i.stats?.learned) idiomsLearned++;
+    if (idiomItem.stats?.learned) idiomsLearned++;
 
-    if (new Date(i.created_at || i.createdAt) >= weekAgo) idiomsThisWeek++;
+    if (new Date(idiomItem.created_at || idiomItem.createdAt) >= weekAgo)
+      idiomsThisWeek++;
 
-    if (i.stats?.shown > 0) idiomsWithStats.push(i);
+    if (idiomItem.stats?.shown > 0) idiomsWithStats.push(idiomItem);
   }
 
   const idiomsTotal = window.idioms.length;
@@ -6353,6 +6398,11 @@ function switchTab(name) {
     ? currentActivePane.id.replace('tab-', '')
     : null;
 
+  // Закрываем карточку результатов при уходе с вкладки практика
+  if (currentActiveTab === 'practice' && name !== 'practice') {
+    resetPracticeToStart();
+  }
+
   if (name === 'words') {
     visibleLimit = 30; // <-- сброс при переключении на слова
 
@@ -6363,6 +6413,14 @@ function switchTab(name) {
 
   if (name === 'practice') {
     refreshUI();
+  }
+
+  if (name === 'friends') {
+    refreshUI();
+    // Обновляем сообщения при входе на вкладку друзья
+    if (window.currentUserId) {
+      updateUnreadCounts();
+    }
   }
 
   document
@@ -7054,7 +7112,7 @@ function makeCard(w) {
 
   card.innerHTML = `
 
-    <div class="progress-indicators" data-tooltip="${tooltipText}">${indicators}</div>
+    <div class="progress-indicators">${indicators}</div>
 
     <div class="word-card-header">
 
@@ -10176,8 +10234,11 @@ function showPreview() {
 
 // Инициализация голосов при загрузке
 
-if (speechSynthesis.onvoiceschanged !== undefined) {
-  speechSynthesis.onvoiceschanged = () => {
+if (
+  'speechSynthesis' in window &&
+  window.speechSynthesis.onvoiceschanged !== undefined
+) {
+  window.speechSynthesis.onvoiceschanged = () => {
     // Голоса загружены
   };
 }
@@ -12441,6 +12502,28 @@ function showResults() {
   console.log('showResults done');
 }
 
+// Функция для сброса практики к начальному состоянию
+function resetPracticeToStart() {
+  const exerciseScreen = document.getElementById('practice-ex');
+  const startScreen = document.getElementById('practice-setup');
+  const resultsCard = document.querySelector('.results-card');
+
+  if (exerciseScreen) {
+    exerciseScreen.style.display = 'none';
+    exerciseScreen.classList.remove('keyboard-exercise');
+  }
+
+  if (startScreen) {
+    startScreen.style.display = '';
+  }
+
+  if (resultsCard) {
+    resultsCard.style.display = 'none';
+  }
+
+  cleanupExercise();
+}
+
 function cleanupExercise() {
   if (currentExerciseTimer) {
     clearInterval(currentExerciseTimer);
@@ -12857,13 +12940,13 @@ function nextExercise() {
 
     <button class="btn-pill btn-pill--secondary" id="didnt-btn">
 
-      <span class="material-symbols-outlined">close</span> Не знал
+      <span class="material-symbols-outlined">close</span> Не знаю
 
     </button>
 
     <button class="btn-pill btn-pill--secondary" id="knew-btn">
 
-      <span class="material-symbols-outlined">check</span> Знал!
+      <span class="material-symbols-outlined">check</span> Знаю
 
     </button>
 
@@ -14563,8 +14646,8 @@ function nextExercise() {
   }
 }
 
-function updIdiomStats(id, correct, exerciseType) {
-  const i = window.idioms.find(i => i.id === id);
+function updIdiomStats(idiomId, correct, exerciseType) {
+  const i = window.idioms.find(i => i.id === idiomId);
 
   if (!i) return;
 
@@ -17873,7 +17956,6 @@ window.renderWords = renderWords;
 function renderIdioms() {
   console.log(
     '🎯 renderIdioms called, idioms count:',
-
     window.idioms?.length || 0,
   );
 
@@ -18034,7 +18116,7 @@ function makeIdiomCard(i) {
 
   card.innerHTML = `
 
-    <div class="progress-indicators" data-tooltip="${tooltipText}">${indicators}</div>
+    <div class="progress-indicators">${indicators}</div>
 
     <div class="word-card-header">
 
@@ -18575,23 +18657,7 @@ window.onProfileFullyLoaded = async function () {
   } catch (err) {
     console.error('❌ Ошибка в onProfileFullyLoaded:', err);
   } finally {
-    // Принудительно скрываем индикатор загрузки в любом случае
-
-    const loader = document.getElementById('loading-indicator');
-
-    if (loader) {
-      console.log('👁️ Скрываем индикатор загрузки (finally блок)');
-
-      loader.style.opacity = '0';
-
-      setTimeout(() => {
-        loader.style.display = 'none';
-
-        console.log('✅ Индикатор загрузки скрыт (finally блок)');
-      }, 300);
-    }
-
-    document.body.classList.remove('loading');
+    window.forceHideLoader();
   }
 };
 
@@ -18638,14 +18704,7 @@ setTimeout(() => {
 
   if (indicator && indicator.style.display !== 'none') {
     console.warn('⚠️ Индикатор загрузки все еще виден, скрываем принудительно');
-
-    indicator.style.opacity = '0';
-
-    setTimeout(() => {
-      indicator.style.display = 'none';
-
-      console.log('🔒 Индикатор загрузки скрыт принудительно');
-    }, 300);
+    window.forceHideLoader();
   } else {
     console.log('✅ Индикатор загрузки уже скрыт или не найден');
   }
@@ -21451,8 +21510,10 @@ async function renderChatFriends() {
   });
 
   // Обновляем общий бейдж непрочитанных
-
   updateTotalUnreadBadge();
+
+  // Обновляем бейджи для конкретных чатов
+  updateChatBadges();
 }
 
 async function openChatWithFriend(friendId) {
@@ -21648,7 +21709,25 @@ async function updateUnreadCounts() {
     return;
   }
 
-  window.unreadMessagesCount = count || 0;
+  const previousCount = window.unreadMessagesCount || 0;
+  const newCount = count || 0;
+
+  // Показываем тост если пришли новые сообщения
+  if (newCount > previousCount && previousCount > 0) {
+    const messageCount = newCount - previousCount;
+    toast(
+      `${messageCount} новое${messageCount === 1 ? '' : 'сообщений'} в чате`,
+      'info',
+      'chat',
+    );
+  } else if (newCount > 0 && previousCount === 0) {
+    toast('Новое сообщение в чате', 'info', 'chat');
+  }
+
+  window.unreadMessagesCount = newCount;
+
+  // Обновляем бейджи для конкретных чатов
+  await updateChatBadges();
 
   // Обновляем бейдж на пилюле «Чаты»
 
@@ -21665,6 +21744,49 @@ async function updateUnreadCounts() {
   // Обновляем общий бейдж на кнопке «Друзья»
 
   updateFriendsNavBadge();
+}
+
+// Обновляем бейджи для каждого чата
+async function updateChatBadges() {
+  const userId = window.currentUserId;
+  if (!userId) return;
+
+  try {
+    // Получаем непрочитанные сообщения сгруппированные по отправителям
+    const { data, error } = await supabase
+      .from('messages')
+      .select('sender_id')
+      .eq('receiver_id', userId)
+      .eq('read', false);
+
+    if (error) {
+      console.error('updateChatBadges error:', error);
+      return;
+    }
+
+    // Считаем сообщения от каждого отправителя
+    const unreadBySender = {};
+    data.forEach(msg => {
+      unreadBySender[msg.sender_id] = (unreadBySender[msg.sender_id] || 0) + 1;
+    });
+
+    // Обновляем бейджи для каждого друга
+    friendsData.friends.forEach(friend => {
+      const badge = document.getElementById(`unread-badge-${friend.id}`);
+      const count = unreadBySender[friend.id] || 0;
+
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 9 ? '9+' : count;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    });
+  } catch (e) {
+    console.error('updateChatBadges error:', e);
+  }
 }
 
 function updateFriendsSubBadges() {
@@ -22276,12 +22398,6 @@ window.generateInviteLink = generateInviteLink;
 window.addWord = addWord;
 window.addIdiom = addIdiom;
 
-// Глобальные экспорты для темы
-
-window.applyTheme = applyTheme;
-
-window.updateThemeIcon = updateThemeIcon;
-
 // Инициализация темы
 
 initTheme();
@@ -22297,14 +22413,7 @@ setTimeout(() => {
 
   if (loader && loader.style.display !== 'none') {
     console.warn('⚠️ Принудительное скрытие индикатора загрузки по таймауту');
-
-    loader.style.opacity = '0';
-
-    setTimeout(() => {
-      loader.style.display = 'none';
-    }, 300);
-
-    document.body.classList.remove('loading');
+    window.forceHideLoader();
   }
 }, 6000);
 
