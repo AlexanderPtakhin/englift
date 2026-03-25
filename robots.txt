@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://englift.ru/sitemap.xml
+
+# Block common crawl paths
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login.html
+Disallow: /offline.html
+Disallow: /*.json$
+Disallow: /audio/
+Disallow: /audio-male/
+Disallow: /audio-idioms/
+Disallow: /female-idioms/
+Disallow: /sound/

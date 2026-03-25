@@ -15101,6 +15101,10 @@ body.bs-open .bs-trigger-arrow {
   font-size: 1.2rem;
 }
 
+.res-action-btn .material-symbols-outlined.refresh {
+  color: red !important;
+}
+
 .res-action-btn--retry {
   background: var(--danger);
   color: white;
@@ -15716,6 +15720,21 @@ body.bs-open .bs-trigger-arrow {
 }
 .btn-pill--secondary:hover:not(:disabled) .material-symbols-outlined {
   color: var(--primary);
+}
+
+.btn-pill--primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn-pill--primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.32);
+}
+.btn-pill--primary:hover:not(:disabled) .material-symbols-outlined {
+  color: #fff;
 }
 
 /* ── Flash: контейнер для кнопок ── */

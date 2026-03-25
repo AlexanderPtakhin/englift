@@ -266,7 +266,9 @@ function playSound(type) {
 
     // Возобновляем аудиоконтекст если он приостановлен
     if (ctx.state === 'suspended') {
-      ctx.resume();
+      // Не воспроизводим звук если пользователь еще не взаимодействовал с страницей
+      console.warn('🔊 AudioContext suspended - waiting for user interaction');
+      return;
     }
 
     let audioPath;
@@ -280,6 +282,9 @@ function playSound(type) {
     }
 
     console.log('🔊 Playing sound:', audioPath);
+    console.log('🔊 Volume:', audioPath.includes('message.mp3') ? 0.5 : 0.1);
+    console.log('🔊 AudioContext state:', ctx.state);
+
     const audio = new Audio(audioPath);
     // Устанавливаем громкость в зависимости от файла
     audio.volume = audioPath.includes('winner.mp3')
@@ -288,8 +293,18 @@ function playSound(type) {
         ? 0.3
         : audioPath.includes('lite.mp3') || audioPath.includes('fail.mp3')
           ? 0.3
-          : 0.1;
-    audio.play().catch(e => console.error('Error playing sound:', e));
+          : audioPath.includes('message.mp3')
+            ? 0.5 // 🔊 Увеличиваем громкость для сообщений
+            : 0.1;
+
+    console.log('🔊 Final volume:', audio.volume);
+
+    audio
+      .play()
+      .then(() => {
+        console.log('🔊 Sound played successfully!');
+      })
+      .catch(e => console.error('❌ Error playing sound:', e));
   } catch (e) {
     console.error('Error playing sound:', e);
   }

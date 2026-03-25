@@ -1,6 +1,11 @@
 import { supabase } from './supabase.js';
 import { saveUserData, loadWordsOnce } from './db.js';
 
+console.log(
+  '🔍 auth.js загружается, проверяем applyProfileData:',
+  typeof window.applyProfileData,
+);
+
 // DOM элементы для основного приложения
 const dropdownEmail = document.getElementById('dropdown-email');
 const userAvatar = document.getElementById('user-avatar');
@@ -29,6 +34,16 @@ async function loadUserProfile(user) {
   window.currentUserId = user.id;
 
   try {
+    // Защита от вызова до того, как script.js полностью загрузился
+    if (typeof window.applyProfileData !== 'function') {
+      console.warn('⚠️ applyProfileData ещё не определена — ждём 50мс');
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    console.log('🔍🔥🔥🔥 loadUserProfile НАЧАЛО 🔥🔥🔥');
+    console.log('  - user.id:', user.id);
+    console.log('  - savedUsername:', savedUsername);
+
     const { data: serverProfile, error } = await supabase
       .from('profiles')
       .select('*')
@@ -38,11 +53,36 @@ async function loadUserProfile(user) {
     if (error && error.code !== 'PGRST116') throw error;
 
     if (!serverProfile) {
+      console.log('🔍🔥🔥🔥 СЕРВЕРНЫЙ ПРОФИЛЬ НЕ НАЙДЕН 🔥🔥🔥');
+      // Проверяем, есть ли локальные данные
+      const saved = localStorage.getItem('englift_lastknown_progress');
+      console.log('  - localStorage данные:', saved);
+      if (saved) {
+        try {
+          const local = JSON.parse(saved);
+          console.log(
+            '  - распарсенные локальные данные:',
+            JSON.stringify(local, null, 2),
+          );
+          if (local.xp > 0 || local.level > 1 || local.streak > 0) {
+            console.log('🔄 Восстанавливаем локальный прогресс на сервер');
+            await saveUserData(user.id, local);
+            window.applyProfileData(local);
+            return;
+          }
+        } catch (e) {
+          console.error('Ошибка парсинга локальных данных:', e);
+        }
+      }
+      // Иначе создаём новый профиль
+      console.log('🆕🔥🔥🔥 СОЗДАЁМ НОВЫЙ ПРОФИЛЬ 🔥🔥🔥');
       const today = new Date().toISOString().split('T')[0];
       const username =
         savedUsername ||
         user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') +
           Math.floor(Math.random() * 1000);
+      console.log('  - username:', username);
+      console.log('  - today:', today);
       localStorage.removeItem('englift_pending_username');
 
       const defaultProfile = {
@@ -63,11 +103,22 @@ async function loadUserProfile(user) {
         lastreviewreset: today,
         usersettings: {
           has_seen_tour: false,
+          voice: 'female',
+          reviewLimit: 100,
+          showPhonetic: true,
+          baseTheme: 'lavender',
+          dark: false,
         },
         darktheme: false,
       };
+      console.log(
+        '  - defaultProfile:',
+        JSON.stringify(defaultProfile, null, 2),
+      );
+      console.log('  - Сохраняем на сервер...');
       await saveUserData(user.id, defaultProfile);
-      window.applyProfileData?.(defaultProfile);
+      console.log('  - Вызываем applyProfileData...');
+      window.applyProfileData(defaultProfile);
 
       const pendingInvite = localStorage.getItem('englift_pending_invite');
       if (pendingInvite) {
@@ -97,7 +148,15 @@ async function loadUserProfile(user) {
         }
         localStorage.removeItem('englift_pending_username');
       }
-      window.applyProfileData?.(serverProfile);
+
+      console.log('✅🔥🔥🔥 СЕРВЕРНЫЙ ПРОФИЛЬ НАЙДЕН 🔥🔥🔥');
+      console.log('  - serverProfile:', JSON.stringify(serverProfile, null, 2));
+
+      // Удалено дублирование кода
+
+      console.log('✅ Вызываем applyProfileData с серверным профилем');
+      window.applyProfileData(serverProfile);
+      console.log('✅ applyProfileData успешно выполнен');
     }
   } catch (err) {
     console.error('Ошибка загрузки профиля:', err);
@@ -286,17 +345,19 @@ function showInviteConfirmModal(inviterName, inviterId, inviteId) {
   modal.className = 'modal-backdrop open';
   modal.innerHTML = `
     <div class="modal-box" style="max-width:380px;text-align:center">
-      <div style="font-size:3rem;margin-bottom:0.75rem">👋</div>
-      <h3 style="margin-bottom:0.5rem">Заявка в друзья</h3>
+      <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-bottom:0.75rem">
+        <span class="material-symbols-outlined" style="font-size:2rem">person_add</span>
+        <span style="font-size:1.2rem;color:var(--text)">Заявка в друзья</span>
+      </div>
       <p style="color:var(--muted);margin-bottom:1.5rem">
         <b style="color:var(--text)">${inviterName}</b> хочет добавить тебя в друзья!
       </p>
       <div style="display:flex;gap:0.75rem">
-        <button class="btn btn-primary" style="flex:1" id="invite-accept-btn">
+        <button class="btn-pill btn-pill--secondary" style="flex:1" id="invite-accept-btn">
           <span class="material-symbols-outlined">check</span>
           Принять
         </button>
-        <button class="btn btn-secondary" style="flex:1" id="invite-decline-btn">
+        <button class="btn-pill btn-pill--secondary" style="flex:1" id="invite-decline-btn">
           <span class="material-symbols-outlined">close</span>
           Отклонить
         </button>

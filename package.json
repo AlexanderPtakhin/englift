@@ -6,7 +6,7 @@
   ],
   "scripts": {
     "start": "parcel . --port 1234 --open chrome",
-    "build": "parcel build index.html login.html --public-url / --no-scope-hoist --no-content-hash && copy sw.js dist\\sw.js && copy .htaccess dist\\.htaccess"
+    "build": "parcel build index.html login.html --public-url / --no-scope-hoist --no-content-hash && copy sw.js dist\\sw.js && copy .htaccess dist\\.htaccess && copy robots.txt dist\\robots.txt && copy sitemap.xml dist\\sitemap.xml"
   },
   "dependencies": {
     "@material-symbols/font-400": "^0.42.3",

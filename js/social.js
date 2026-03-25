@@ -59,6 +59,14 @@ export async function rejectFriendRequest(userId, friendId) {
     .eq('user_id', friendId)
     .eq('friend_id', userId);
   if (error) throw error;
+
+  // Удаляем все сообщения между пользователями при удалении друга
+  await supabase
+    .from('messages')
+    .delete()
+    .or(
+      `(sender_id.eq.${userId},receiver_id.eq.${friendId}),(sender_id.eq.${friendId},receiver_id.eq.${userId})`,
+    );
 }
 
 export async function getLeaderboard(period = 'week') {
