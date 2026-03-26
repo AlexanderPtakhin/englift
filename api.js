@@ -1,144 +1,216 @@
-// ============================================================
-// API MODULE - Только загрузка локального банка слов
-// ============================================================
+// api.js
+(function () {
+  const ALL_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  let loadingPromise = null;
+  let levelsLoaded = new Set();
+  let backgroundLoadingPromise = null;
 
-let wordBank = null;
+  async function loadLevel(level) {
+    console.log(`📥 loadLevel: Начинаем загрузку уровня ${level}`);
 
-const BANK_CACHE_KEY = 'englift_wordbank_cache';
-const BANK_VERSION_KEY = 'englift_wordbank_version';
-const CURRENT_BANK_VERSION = '2026-03-01-v5';
+    const response = await fetch(`dict-${level}.json`);
+    const words = await response.json();
 
-// Emergency fallback если JSON не загрузится
-const EMERGENCY_WORDS = [
-  {
-    en: 'go',
-    ru: 'идти / ехать',
-    phonetic: '/ɡoʊ/',
-    examples: [{ text: 'I go to the market every Sunday.', translation: '' }],
-    tags: ['A1', 'verb', 'everyday'],
-  },
-  {
-    en: 'come',
-    ru: 'приходить / приезжать',
-    phonetic: '/kʌm/',
-    examples: [{ text: 'She came home late yesterday.', translation: '' }],
-    tags: ['A1', 'verb', 'everyday'],
-  },
-  {
-    en: 'eat',
-    ru: 'есть / кушать',
-    phonetic: '/iːt/',
-    examples: [
-      { text: 'We eat dinner together as a family.', translation: '' },
-    ],
-    tags: ['A1', 'verb', 'everyday'],
-  },
-  {
-    en: 'drink',
-    ru: 'пить / напиток',
-    phonetic: '/drɪŋk/',
-    examples: [
-      { text: 'He drinks a glass of water every morning.', translation: '' },
-    ],
-    tags: ['A1', 'verb', 'everyday'],
-  },
-  {
-    en: 'sleep',
-    ru: 'спать',
-    phonetic: '/sliːp/',
-    examples: [{ text: 'I usually sleep for eight hours.', translation: '' }],
-    tags: ['A1', 'verb', 'everyday'],
-  },
-];
+    console.log(
+      `📊 loadLevel: Загружено ${words.length} слов из файла dict-${level}.json`,
+    );
+    console.log(
+      `📝 loadLevel: Первые 5 слов:`,
+      words.slice(0, 5).map(w => w.en),
+    );
 
-/**
- * Загружает банк слов — сначала пытается из dictionary.json,
- * если не получилось — fallback на EMERGENCY_WORDS
- */
-async function loadWordBank(retries = 2) {
-  if (wordBank) return wordBank;
+    // Добавляем поле cefr к каждому слову
+    const wordsWithCefr = words.map(w => ({
+      ...w,
+      cefr: level,
+    }));
 
-  // Принудительная очистка кеша для отладки
-  if (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-  ) {
-    localStorage.removeItem(BANK_CACHE_KEY);
-    localStorage.removeItem(BANK_VERSION_KEY);
-    wordBank = null;
-  }
+    console.log(
+      `🏷️ loadLevel: Добавлено поле cefr=${level} к ${wordsWithCefr.length} словам`,
+    );
 
-  // 1. Проверяем кэш
-  const cachedVersion = localStorage.getItem(BANK_VERSION_KEY);
-  const cachedData = localStorage.getItem(BANK_CACHE_KEY);
+    // Сохраняем в IndexedDB
+    await window.WordBankDB.saveWordsBatch(wordsWithCefr);
 
-  if (cachedVersion !== CURRENT_BANK_VERSION) {
-    localStorage.removeItem(BANK_CACHE_KEY);
-    localStorage.removeItem(BANK_VERSION_KEY);
-  }
+    console.log(`✅ loadLevel: Уровень ${level} успешно сохранён в IndexedDB`);
 
-  if (cachedVersion === CURRENT_BANK_VERSION && cachedData) {
-    try {
-      wordBank = JSON.parse(cachedData);
-      return wordBank;
-    } catch (e) {
-      console.warn('Кэш повреждён, загружаем заново');
-    }
-  }
+    // Проверяем сколько слов реально сохранилось
+    const db = await window.WordBankDB.openDB();
+    const tx = db.transaction('words', 'readonly');
+    const store = tx.objectStore('words');
+    const index = store.index('cefr');
 
-  // 2. Пробуем загрузить JSON
-  try {
-    const response = await fetch('./dictionary.json', { cache: 'no-cache' });
-    if (!response.ok) {
-      console.error('Failed to load dictionary:', response.status);
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const data = await response.json();
-    wordBank = data;
-    localStorage.setItem(BANK_CACHE_KEY, JSON.stringify(wordBank));
-    localStorage.setItem(BANK_VERSION_KEY, CURRENT_BANK_VERSION);
-    return wordBank;
-  } catch (error) {
-    console.error('Error loading dictionary:', error);
-    if (retries > 0) {
-      console.warn(`Retrying... (${retries} left)`);
-      return loadWordBank(retries - 1);
-    }
-    if (window.toast) {
-      window.toast(
-        '⚠️ Не удалось загрузить словарь, используются базовые слова.',
-        'warning',
+    const count = await new Promise(resolve => {
+      const req = index.count(level);
+      req.onsuccess = () => resolve(req.result);
+    });
+
+    console.log(
+      `🔍 loadLevel: Проверка - в IndexedDB ${count} слов уровня ${level}`,
+    );
+
+    if (count !== words.length) {
+      console.warn(
+        `⚠️ loadLevel: Расхождение! Файл: ${words.length}, БД: ${count}, разница: ${words.length - count}`,
       );
     }
-    wordBank = EMERGENCY_WORDS;
-    return wordBank;
-  }
-}
 
-/**
- * Получает случайное слово из банка, которого нет у пользователя
- * @returns {Promise<Object>} - Случайное слово из банка
- */
-async function getRandomNewWord() {
-  const bank = await loadWordBank();
-  if (!bank || bank.length === 0) return null;
-
-  const userWords = window.words || [];
-  const available = bank.filter(
-    item => !userWords.some(w => w.en.toLowerCase() === item.en.toLowerCase()),
-  );
-
-  if (available.length === 0) {
-    const randomWord = bank[Math.floor(Math.random() * bank.length)];
-    return randomWord;
+    levelsLoaded.add(level);
+    console.log(`✅ Уровень ${level} загружен`);
   }
 
-  const randomWord = available[Math.floor(Math.random() * available.length)];
-  return randomWord;
-}
+  async function backgroundLoad() {
+    const remaining = ALL_LEVELS.filter(lvl => !levelsLoaded.has(lvl));
+    console.log('🔄 Начинаем фоновую загрузку уровней:', remaining);
 
-// Экспортируем функции для использования в основном модуле
-window.WordAPI = {
-  loadWordBank,
-  getRandomNewWord,
-};
+    for (const level of remaining) {
+      await loadLevel(level);
+    }
+
+    // Автоматически переключаем на 'all' после загрузки всех уровней
+    if (
+      window.user_settings &&
+      window.user_settings.bankWordLevel === 'A1' &&
+      !window.user_settings.bankWordLevelExplicit
+    ) {
+      console.log('🚀 Все уровни загружены, переключаем на все слова');
+      window.user_settings.bankWordLevel = 'all';
+      window.user_settings.bankWordLevelExplicit = false;
+      window.markProfileDirty?.('usersettings', window.user_settings);
+      if (window.toast) {
+        window.toast(
+          'Теперь доступны все уровни слов! 🚀',
+          'success',
+          'auto_awesome',
+        );
+      }
+    }
+  }
+
+  // Загрузка словаря в IndexedDB (быстрый старт с A1)
+  async function loadWordBank() {
+    console.log('🔍 loadWordBank вызван');
+
+    // Проверяем доступность WordBankDB
+    if (!window.WordBankDB) {
+      console.error('❌ window.WordBankDB не доступен!');
+      return;
+    }
+
+    // Если уже загружается, ждём завершения
+    if (loadingPromise) {
+      console.log('🔍 loadWordBank: Уже загружается, ждём завершения...');
+      return loadingPromise;
+    }
+
+    loadingPromise = (async () => {
+      console.log('🔍 loadWordBank: Начинаем быструю загрузку...');
+
+      // Проверяем, загружен ли уже словарь
+      const loaded = await window.WordBankDB.isBankLoaded();
+      console.log('🔍 loadWordBank: Словарь уже загружен?', loaded);
+
+      if (loaded) {
+        console.log('✅ loadWordBank: Словарь уже загружен');
+        return;
+      }
+
+      console.log(
+        '📥 loadWordBank: Загружаем только A1 для быстрого старта...',
+      );
+
+      // Загружаем только A1 для быстрого старта
+      await loadLevel('A1');
+
+      // Запускаем фоновую загрузку остальных уровней
+      if (!backgroundLoadingPromise) {
+        backgroundLoadingPromise = backgroundLoad().catch(console.warn);
+      }
+    })();
+
+    return loadingPromise;
+  }
+
+  // Поиск слов по английскому префиксу
+  async function searchWords(prefix, limit = 15) {
+    if (!prefix) return [];
+    await loadWordBank();
+    return window.WordBankDB.searchWords(prefix, limit);
+  }
+
+  // Поиск слов по русскому префиксу
+  async function searchRussian(prefix, limit = 15) {
+    if (!prefix) return [];
+    await loadWordBank();
+    return window.WordBankDB.searchRussian(prefix, limit);
+  }
+
+  // Получение случайного слова с фильтрацией по уровню
+  async function getRandomNewWord(level = 'all') {
+    if (!window.WordBankDB) {
+      console.error('❌ window.WordBankDB не доступен в getRandomNewWord!');
+      return null;
+    }
+
+    await loadWordBank();
+    return window.WordBankDB.getRandomWord(level);
+  }
+
+  // Простая диагностика словаря
+  async function debugWordBank() {
+    console.log('🔬 debugWordBank: Начинаем диагностику...');
+
+    if (!window.WordBankDB) {
+      console.error('❌ window.WordBankDB не доступен!');
+      return null;
+    }
+
+    try {
+      const db = await window.WordBankDB.openDB();
+      const tx = db.transaction('words', 'readonly');
+      const store = tx.objectStore('words');
+
+      // Получаем все слова
+      const allWords = await new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      console.log(
+        `📊 debugWordBank: Всего слов в IndexedDB: ${allWords.length}`,
+      );
+
+      // Группируем по уровням
+      const byLevel = {};
+      for (const word of allWords) {
+        const level = word.cefr;
+        if (!byLevel[level]) byLevel[level] = [];
+        byLevel[level].push(word);
+      }
+
+      console.log('📊 debugWordBank: Распределение по уровням:');
+      for (const [level, words] of Object.entries(byLevel)) {
+        console.log(`  ${level}: ${words.length} слов`);
+      }
+
+      return {
+        total: allWords.length,
+        byLevel,
+      };
+    } catch (error) {
+      console.error('❌ debugWordBank: Ошибка диагностики:', error);
+      return null;
+    }
+  }
+
+  // Экспортируем API глобально
+  window.WordAPI = {
+    loadWordBank,
+    searchWords,
+    searchRussian,
+    getRandomNewWord,
+    debugWordBank,
+    levelsLoaded, // Для отслеживания загруженных уровней
+  };
+})();
