@@ -7895,64 +7895,99 @@ html.dark .no-speech {
 /* === SRS === */
 
 .due-now {
-  background: #fee2e2;
+  background: var(--bg);
 
-  color: #991b1b;
+  border: 1px solid var(--border);
 
-  padding: 2px 8px;
+  border-radius: 20px;
 
-  border-radius: 12px;
+  padding: 0.3rem 0.8rem;
 
-  font-size: 0.78rem;
-
-  font-weight: 700;
-}
-
-.due-soon {
-  background: #fef3c7;
-
-  color: #92400e;
-
-  padding: 2px 8px;
-
-  border-radius: 10px;
-
-  font-size: 0.78rem;
-
-  font-weight: 700;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 2px;
-}
-
-.due-later {
-  color: var(--muted);
-
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 
   font-weight: 600;
 
+  color: var(--text);
+
   display: flex;
 
   align-items: center;
 
-  gap: 2px;
+  gap: 4px;
+
+  cursor: default;
+
+  transition: all 0.2s;
 }
 
-.due-soon .material-symbols-outlined,
-.due-later .material-symbols-outlined {
-  font-size: 1rem !important;
+.due-now .material-symbols-outlined {
+  font-size: 0.75rem;
+
+  line-height: 1;
+}
+
+.due-soon {
+  background: var(--bg);
+
+  border: 1px solid var(--border);
+
+  border-radius: 20px;
+
+  padding: 0.3rem 0.8rem;
+
+  font-size: 0.75rem;
+
+  font-weight: 600;
+
+  color: var(--text);
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  cursor: default;
+
+  transition: all 0.2s;
 }
 
 .due-soon .material-symbols-outlined {
-  color: var(--warning);
+  font-size: 0.75rem;
+
+  line-height: 1;
+}
+
+.due-later {
+  background: var(--bg);
+
+  border: 1px solid var(--border);
+
+  border-radius: 20px;
+
+  padding: 0.3rem 0.8rem;
+
+  font-size: 0.75rem;
+
+  font-weight: 600;
+
+  color: var(--text);
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  cursor: default;
+
+  transition: all 0.2s;
 }
 
 .due-later .material-symbols-outlined {
-  color: var(--muted);
+  font-size: 0.75rem;
+
+  line-height: 1;
 }
 
 .srs-meta {
@@ -7984,15 +8019,19 @@ html.dark .no-speech {
 }
 
 html.dark .due-now {
-  background: #450a0a;
+  background: var(--bg);
 
-  color: #fca5a5;
+  border: 1px solid var(--border);
+
+  color: var(--text);
 }
 
 html.dark .due-soon {
-  background: #451a03;
+  background: var(--bg);
 
-  color: #fcd34d;
+  border: 1px solid var(--border);
+
+  color: var(--text);
 }
 
 /* === XP + BADGES === */
@@ -10908,7 +10947,7 @@ html.dark .goal-item.locked .goal-progress-text {
 
   gap: 0.5rem;
 
-  margin: 1rem 0;
+  margin: 1rem 0 3rem 0;
 }
 
 .tag {
