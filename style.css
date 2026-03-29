@@ -16359,6 +16359,273 @@ body.bs-open .bs-trigger-arrow {
   line-height: 1.4;
 }
 
+/* Реакции на сообщения как в Telegram */
+.chat-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.reaction:hover {
+  transform: scale(1.05);
+  border-color: var(--primary);
+}
+
+.reaction span {
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.chat-reaction-btn {
+  position: absolute;
+  bottom: 4px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.chat-bubble:hover .chat-reaction-btn {
+  opacity: 1;
+}
+
+.chat-reaction-btn .material-symbols-outlined {
+  font-size: 14px;
+  color: white;
+}
+
+/* Пикер эмодзи */
+.emoji-picker {
+  position: fixed;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  min-width: 200px;
+  backdrop-filter: blur(20px);
+}
+
+.emoji-picker-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.emoji-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.2s ease;
+}
+
+.emoji-item:hover {
+  background: var(--hover);
+  transform: scale(1.1);
+}
+
+/* Анимация реакции */
+@keyframes reactionFloat {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(0.5);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-20px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.8);
+  }
+}
+
+.animated-reaction {
+  animation: reactionFloat 1s ease-out forwards;
+}
+
+/* Анимация отправки стикера */
+@keyframes stickerSend {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-50px) scale(1.3) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-150px) scale(0.5) rotate(360deg);
+  }
+}
+
+.animated-sticker-send {
+  animation: stickerSend 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+/* Панель стикеров */
+.sticker-picker {
+  position: fixed;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  backdrop-filter: blur(20px);
+}
+
+.sticker-picker-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-align: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.sticker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 24px;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.sticker-item:hover {
+  background: var(--hover);
+  transform: scale(1.2);
+  border-radius: 12px;
+}
+
+/* Кастомный скроллбар для стикеров */
+.sticker-picker::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sticker-picker::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sticker-picker::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.sticker-picker::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+html.dark .sticker-picker::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+html.dark .sticker-picker::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Анимация для больших стикеров в сообщениях */
+.chat-message .chat-bubble:has(.sticker-message) {
+  padding: 8px;
+  background: transparent;
+  border: none;
+}
+
+.sticker-message {
+  font-size: 64px;
+  line-height: 1;
+  text-align: center;
+  animation: stickerBounce 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  transition: transform 0.2s ease;
+}
+
+.sticker-message:hover {
+  transform: scale(1.1);
+}
+
+@keyframes stickerBounce {
+  0% {
+    transform: scale(0.3) rotate(-15deg);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(0.9) rotate(-3deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.05) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
 /* Кастомный скроллбар для чата */
 #chat-messages-list::-webkit-scrollbar {
   width: 6px;

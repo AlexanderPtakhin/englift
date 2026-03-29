@@ -1,6 +1,6 @@
 // js/social.js
 import { supabase } from '../supabase.js';
-import { toast, gainXP } from './utils.js'; // gainXP нужно будет импортировать из глобального контекста, но для простоты оставим пока ссылку на window
+import { toast, gainXP, playSound } from './utils.js'; // gainXP нужно будет импортировать из глобального контекста, но для простоты оставим пока ссылку на window
 
 // ========== Друзья ==========
 export async function getFriends(userId) {
@@ -201,12 +201,26 @@ export async function getGiftsReceived(userId) {
 
 // ========== Сообщения ==========
 export async function sendMessage(senderId, receiverId, text) {
+  console.log('🔥 sendMessage called:', { senderId, receiverId, text });
+
   const { data, error } = await supabase
     .from('messages')
     .insert({ sender_id: senderId, receiver_id: receiverId, text })
     .select()
     .single();
-  if (error) throw error;
+
+  console.log('🔥 sendMessage result:', { data, error });
+
+  if (error) {
+    console.error('🔥 sendMessage error:', error);
+    throw error;
+  }
+
+  console.log('🔥 sendMessage success:', data);
+
+  // Звук отправки сообщения
+  playSound('sound/send.mp3');
+
   return data;
 }
 
@@ -285,10 +299,16 @@ export async function compareDictionaries(userId, friendId) {
 
   const commonWords = [...friendWordSet]
     .filter(w => userWordSet.has(w))
-    .map(w => friendWordMap.get(w));
+    .map(w => {
+      const word = friendWordMap.get(w);
+      return { ...word, examplesAudio: word.examples_audio || [] }; // Маппинг
+    });
   const missingWords = [...friendWordSet]
     .filter(w => !userWordSet.has(w))
-    .map(w => friendWordMap.get(w));
+    .map(w => {
+      const word = friendWordMap.get(w);
+      return { ...word, examplesAudio: word.examples_audio || [] }; // Маппинг
+    });
   const uniqueWords = [...userWordSet]
     .filter(w => !friendWordSet.has(w))
     .map(w => userWordMap.get(w));

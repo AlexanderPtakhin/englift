@@ -81,10 +81,50 @@ export async function saveUserData(uid, data) {
     return;
   }
 
+  // ─── ЗАЩИТА ОТ СБРОСА СТАТИСТИКИ ──────────────────────────────────────
+  // Перед записью читаем сервер и берём максимум по критичным полям.
+  // Даже если кто-то вызовет saveUserData(uid, {xp:0}) — на сервер
+  // никогда не уйдёт значение ниже того, что там уже лежит.
+  try {
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('xp, level, streak, badges')
+      .eq('id', uid)
+      .maybeSingle();
+
+    if (existing) {
+      data = {
+        ...data,
+        xp: Math.max(data.xp ?? 0, existing.xp ?? 0),
+        level: Math.max(data.level ?? 1, existing.level ?? 1),
+        streak: Math.max(data.streak ?? 0, existing.streak ?? 0),
+      };
+      // Бейджи объединяем — не выбрасываем старые
+      const myBadges = Array.isArray(data.badges) ? data.badges : [];
+      const oldBadges = Array.isArray(existing.badges) ? existing.badges : [];
+      data.badges = [...new Set([...myBadges, ...oldBadges])];
+
+      console.log(
+        '🛡️ saveUserData: merge с сервером → xp:',
+        data.xp,
+        'level:',
+        data.level,
+        'streak:',
+        data.streak,
+      );
+    }
+  } catch (e) {
+    console.warn(
+      '⚠️ saveUserData: не смогли прочитать сервер перед записью:',
+      e.message,
+    );
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const payload = {
-    id: uid, // ← ОБЯЗАТЕЛЬНО для upsert
+    id: uid,
     updated_at: new Date().toISOString(),
-    ...data, // xp, level, badges, streak, dailyprogress и т.д.
+    ...data,
   };
 
   console.log('📤 saveUserData → upsert профиля:', {
@@ -96,7 +136,7 @@ export async function saveUserData(uid, data) {
 
   const { error } = await supabase
     .from('profiles')
-    .upsert(payload, { onConflict: 'id' }); // ← ВОТ ЗДЕСЬ МАГИЯ
+    .upsert(payload, { onConflict: 'id' });
 
   if (error) {
     console.error('❌ Ошибка сохранения профиля:', error);

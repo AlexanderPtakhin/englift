@@ -58,11 +58,16 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     '#dropdown-theme-toggle .material-symbols-outlined',
   );
   if (themeIcon) {
-    themeIcon.textContent = dark ? 'sunny' : 'dark_mode';
+    themeIcon.textContent = dark ? 'moon' : 'dark_mode';
   }
 
   // Помечаем профиль грязный для синхронизации с сервером
-  if (window.currentUserId && window.markProfileDirty) {
+  // Фикс 1: Не дёргаем профиль при инициализации
+  if (
+    window.currentUserId &&
+    window.markProfileDirty &&
+    !window._applyingProfile
+  ) {
     window.markProfileDirty('darktheme', dark);
     console.log(
       '💾 Сохраняем usersettings (включая reviewLimit):',

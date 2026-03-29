@@ -23,7 +23,6 @@ let lastProfileLoadTime = 0;
 // Функция загрузки профиля
 async function loadUserProfile(user) {
   if (!user) return;
-
   const savedUsername = localStorage.getItem('englift_pending_username');
 
   if (window._profileLoadInProgress) {
@@ -34,15 +33,10 @@ async function loadUserProfile(user) {
   window.currentUserId = user.id;
 
   try {
-    // Защита от вызова до того, как script.js полностью загрузился
     if (typeof window.applyProfileData !== 'function') {
       console.warn('⚠️ applyProfileData ещё не определена — ждём 50мс');
       await new Promise(resolve => setTimeout(resolve, 50));
     }
-
-    console.log('🔍🔥🔥🔥 loadUserProfile НАЧАЛО 🔥🔥🔥');
-    console.log('  - user.id:', user.id);
-    console.log('  - savedUsername:', savedUsername);
 
     const { data: serverProfile, error } = await supabase
       .from('profiles')
@@ -50,43 +44,55 @@ async function loadUserProfile(user) {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error;
-
-    if (!serverProfile) {
-      console.log('🔍🔥🔥🔥 СЕРВЕРНЫЙ ПРОФИЛЬ НЕ НАЙДЕН 🔥🔥🔥');
-      // Проверяем, есть ли локальные данные
+    // КЕЙС 1: Сервер вернул ошибку (упал, нет сети, временная недоступность)
+    // → используем локальные данные, НЕ создаём новый профиль
+    if (error && error.code !== 'PGRST116') {
+      console.warn('⚠️ Ошибка сервера, пробуем локальные данные:', error.message);
       const saved = localStorage.getItem('englift_lastknown_progress');
-      console.log('  - localStorage данные:', saved);
       if (saved) {
         try {
           const local = JSON.parse(saved);
-          console.log(
-            '  - распарсенные локальные данные:',
-            JSON.stringify(local, null, 2),
-          );
-          if (local.xp > 0 || local.level > 1 || local.streak > 0) {
-            console.log('🔄 Восстанавливаем локальный прогресс на сервер');
-            await saveUserData(user.id, local);
-            window.applyProfileData(local);
-            return;
-          }
+          console.log('🔄 Сервер недоступен — применяем локальные данные, профиль НЕ сбрасываем');
+          window.applyProfileData(local);
+          return;
         } catch (e) {
           console.error('Ошибка парсинга локальных данных:', e);
         }
       }
-      // Иначе создаём новый профиль
-      console.log('🆕🔥🔥🔥 СОЗДАЁМ НОВЫЙ ПРОФИЛЬ 🔥🔥🔥');
+      // Локальных данных нет — прокидываем ошибку, НЕ создаём новый профиль
+      throw error;
+    }
+
+    // КЕЙС 2: Профиль не найден на сервере (serverProfile === null)
+    if (!serverProfile) {
+      console.log('🔍 Серверный профиль не найден');
+      const saved = localStorage.getItem('englift_lastknown_progress');
+
+      if (saved) {
+        try {
+          const local = JSON.parse(saved);
+          // Берём ЛЮБЫЕ локальные данные (даже xp=0, level=1)
+          // Это может быть существующий юзер при временном сбое сервера
+          console.log('🔄 Есть локальные данные — восстанавливаем и синхронизируем с сервером');
+          await saveUserData(user.id, local);
+          window.applyProfileData(local);
+          return;
+        } catch (e) {
+          console.error('Ошибка парсинга локальных данных:', e);
+        }
+      }
+
+      // КЕЙС 2б: Нет ни серверных, ни локальных данных → точно новый пользователь
+      console.log('🆕 Новый пользователь — создаём профиль с нуля');
       const today = new Date().toISOString().split('T')[0];
       const username =
         savedUsername ||
         user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') +
           Math.floor(Math.random() * 1000);
-      console.log('  - username:', username);
-      console.log('  - today:', today);
       localStorage.removeItem('englift_pending_username');
 
       const defaultProfile = {
-        username: username,
+        username,
         xp: 0,
         level: 1,
         badges: [],
@@ -111,13 +117,8 @@ async function loadUserProfile(user) {
         },
         darktheme: false,
       };
-      console.log(
-        '  - defaultProfile:',
-        JSON.stringify(defaultProfile, null, 2),
-      );
-      console.log('  - Сохраняем на сервер...');
+
       await saveUserData(user.id, defaultProfile);
-      console.log('  - Вызываем applyProfileData...');
       window.applyProfileData(defaultProfile);
 
       const pendingInvite = localStorage.getItem('englift_pending_invite');
@@ -136,27 +137,17 @@ async function loadUserProfile(user) {
         localStorage.removeItem('englift_pending_invite');
       }
     } else {
+      // КЕЙС 3: Серверный профиль найден — просто применяем
       if (savedUsername && savedUsername !== serverProfile.username) {
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ username: savedUsername })
           .eq('id', user.id);
-        if (updateError) {
-          console.error('Ошибка обновления username:', updateError);
-        } else {
-          serverProfile.username = savedUsername;
-        }
+        if (!updateError) serverProfile.username = savedUsername;
         localStorage.removeItem('englift_pending_username');
       }
-
-      console.log('✅🔥🔥🔥 СЕРВЕРНЫЙ ПРОФИЛЬ НАЙДЕН 🔥🔥🔥');
-      console.log('  - serverProfile:', JSON.stringify(serverProfile, null, 2));
-
-      // Удалено дублирование кода
-
-      console.log('✅ Вызываем applyProfileData с серверным профилем');
+      console.log('✅ Серверный профиль найден, применяем');
       window.applyProfileData(serverProfile);
-      console.log('✅ applyProfileData успешно выполнен');
     }
   } catch (err) {
     console.error('Ошибка загрузки профиля:', err);
@@ -164,19 +155,17 @@ async function loadUserProfile(user) {
       'Не удалось загрузить профиль: ' + (err.message || err),
       'danger',
     );
-    // Всегда вызываем onProfileFullyLoaded, чтобы спиннер скрылся
     if (typeof window.onProfileFullyLoaded === 'function') {
       window.onProfileFullyLoaded();
     }
   } finally {
-    console.log('🔚 loadUserProfile завершён, вызываем onProfileFullyLoaded');
+    console.log('🔚 loadUserProfile завершён');
     window._profileLoadInProgress = false;
     if (typeof window.onProfileFullyLoaded === 'function') {
       window.onProfileFullyLoaded();
     }
   }
 }
-
 // Применение инвайта (для друзей)
 async function applyInvite(inviteId, newUserId) {
   try {

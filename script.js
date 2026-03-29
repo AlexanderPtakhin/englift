@@ -62,6 +62,23 @@ import {
   saveIdiomToDb, // ← добавить
   deleteIdiomFromDb, // ← добавить
 } from './db.js';
+import {
+  sendMessage,
+  getMessages,
+  markMessagesRead,
+  compareDictionaries,
+  getFriends,
+  getFriendRequests,
+  getOutgoingRequests,
+  getLeaderboard,
+  getAllActiveChallenges,
+  updateAllChallengesProgress,
+  createChallenge,
+  joinChallenge,
+  updateChallengeProgress,
+  sendGift,
+  getGiftsReceived,
+} from './js/social.js';
 // Импортируем банк идиом
 import idiomsBankData from './idioms.json';
 // =============================================
@@ -277,7 +294,10 @@ window.applyProfileData = function (data) {
     baseTheme: window.user_settings.baseTheme,
     dark: window.user_settings.dark,
   });
+  // Фикс 1: Устанавливаем флаг, чтобы applyTheme не дёргала профиль при инициализации
+  window._applyingProfile = true;
   window.applyTheme(window.user_settings.baseTheme, window.user_settings.dark);
+  window._applyingProfile = false;
   window.lastProfileUpdate = data.updated_at
     ? new Date(data.updated_at).getTime()
     : Date.now();
@@ -386,6 +406,11 @@ let isLoadingMore = false;
 let intersectionObserver = null;
 let renderCache = new Map();
 let searchDebounceTimer = null;
+// Variables for infinite scroll optimization
+let currentFilteredWords = []; // отфильтрованный и отсортированный список слов
+let currentFilteredIdioms = []; // отфильтрованный и отсортированный список идиом
+let renderedWordsCount = 0; // количество отрендеренных слов в текущей сетке
+let renderedIdiomsCount = 0; // количество отрендеренных идиом в текущей сетке
 // Idioms variables
 let idiomsVisibleLimit = 30;
 let idiomsIsLoadingMore = false;
@@ -1188,6 +1213,9 @@ function scheduleProfileSync() {
   }, 500);
   console.log('✅🔥🔥🔥 scheduleProfileSync ЗАВЕРШЕН 🔥🔥🔥');
 }
+// Флаги для предотвращения параллельных синхронизаций
+let syncInProgress = false;
+
 async function syncProfileNow() {
   console.log('🚀🔥🔥🔥 syncProfileNow НАЧАЛО 🔥🔥🔥');
   console.log('  - window.currentUserId:', window.currentUserId);
@@ -1196,10 +1224,19 @@ async function syncProfileNow() {
     '  - pendingProfileUpdates:',
     JSON.stringify(Array.from(pendingProfileUpdates.entries()), null, 2),
   );
-  if (!window.currentUserId) {
-    console.log('  ❌ Нет currentUserId, выходим');
+
+  // Фикс 2: Предотвращаем параллельные вызовы и пустые синхронизации
+  if (syncInProgress) {
+    console.log('❌ Синхронизация уже в процессе, выходим');
     return;
   }
+
+  if (pendingProfileUpdates.size === 0) {
+    console.log('❌ Нет обновлений, выходим');
+    return;
+  }
+
+  syncInProgress = true;
   if (pendingProfileUpdates.size === 0) {
     console.log('  ❌ Нет обновлений, выходим');
     return;
@@ -1241,17 +1278,24 @@ async function syncProfileNow() {
         pendingProfileUpdates.set(k, v);
       }
     });
-    // Повторная попытка с экспоненциальной задержкой (максимум 60 сек)
-    let retryDelay = Math.min(
-      60000,
-      Math.pow(2, window._profileRetryCount || 0) * 1000,
-    );
-    console.log('  🔄 Повторная попытка через', retryDelay, 'мс');
-    window._profileRetryCount = (window._profileRetryCount || 0) + 1;
-    setTimeout(() => {
-      console.log('  🔄 Повторный вызов syncProfileNow()');
-      syncProfileNow();
-    }, retryDelay);
+    // Фикс 3: Повторная попытка только если есть что ретраить
+    if (pendingProfileUpdates.size > 0) {
+      let retryDelay = Math.min(
+        60000,
+        Math.pow(2, window._profileRetryCount || 0) * 1000,
+      );
+      console.log('  🔄 Повторная попытка через', retryDelay, 'мс');
+      window._profileRetryCount = (window._profileRetryCount || 0) + 1;
+      setTimeout(() => {
+        console.log('  🔄 Повторный вызов syncProfileNow()');
+        syncProfileNow();
+      }, retryDelay);
+    } else {
+      console.log('  ✅ Нечего ретраить, выходим');
+    }
+  } finally {
+    // Фикс 2: Всегда сбрасываем флаг синхронизации
+    syncInProgress = false;
   }
   console.log('✅🔥🔥🔥 syncProfileNow ЗАВЕРШЕН 🔥🔥🔥');
 }
@@ -1465,23 +1509,6 @@ function loadIdiomsFromLocalStorage() {
   } else {
     window.idioms = [];
   }
-  // Добавим тестовую идиому для отладки
-  if (window.idioms.length === 0) {
-    const testIdiom = {
-      id: generateId(),
-      idiom: 'Test Idiom',
-      meaning: 'Тестовая идиома',
-      definition: 'Это тестовая идиома для проверки',
-      example: 'This is a test idiom example.',
-      example_translation: 'Это пример тестовой идиомы.',
-      phonetic: 'tɛst ˈaɪdiəm',
-      tags: ['тест', 'отладка'],
-      audio: '9e3049ecdac760ae41bba8d10e3410ce.mp3',
-      examplesAudio: ['8014da9fc5f5462c4c25c14718756ebd_ex1.mp3'],
-    };
-    window.idioms.push(testIdiom);
-    localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
-  }
   updateIdiomsCount(); // обновляем счётчик после загрузки из localStorage
 }
 async function loadIdiomsBank() {
@@ -1519,23 +1546,6 @@ loadWordsFromLocalStorage();
 loadIdiomsFromLocalStorage(); // сразу после объявления window.idioms
 // Debounce функция перенесена в js/utils.js
 import { debounce } from './js/utils.js';
-import {
-  getFriends,
-  getFriendRequests,
-  getOutgoingRequests,
-  getLeaderboard,
-  getAllActiveChallenges,
-  updateAllChallengesProgress,
-  createChallenge,
-  joinChallenge,
-  updateChallengeProgress,
-  sendGift,
-  getGiftsReceived,
-  sendMessage,
-  getMessages,
-  markMessagesRead,
-  compareDictionaries,
-} from './js/social.js';
 const debouncedRenderStats = debounce(renderStats, 800);
 // Функции debouncedSaveUserData и immediateSaveUserData удалены - заменены на markProfileDirty
 // ...
@@ -3899,70 +3909,123 @@ function setupNetworkMonitoring() {
   // Начальный статус
   // updateNetworkStatus();
 }
-function renderWords() {
+function renderWords(appendOnly = false) {
   const grid = document.getElementById('words-grid');
   const empty = document.getElementById('empty-words');
   const trigger = document.getElementById('load-more-trigger');
-  const loadingMore = document.getElementById('loading-more');
-  // Отключаем старый наблюдатель (на всякий случай)
-  if (intersectionObserver) {
-    intersectionObserver.disconnect();
-    intersectionObserver = null;
+
+  // 1. Вычисляем отфильтрованный и отсортированный список
+  let list = window.words;
+  if (activeFilter === 'learning') list = list.filter(w => !w.stats.learned);
+  if (activeFilter === 'learned') list = list.filter(w => w.stats.learned);
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    list = list.filter(
+      w =>
+        w.en.toLowerCase().includes(q) ||
+        w.ru.toLowerCase().includes(q) ||
+        w.tags.some(t => t.toLowerCase().includes(q)),
+    );
   }
-  requestAnimationFrame(() => {
-    let list = window.words;
-    // Фильтры
-    if (activeFilter === 'learning') list = list.filter(w => !w.stats.learned);
-    if (activeFilter === 'learned') list = list.filter(w => w.stats.learned);
-    if (searchQ) {
-      const q = searchQ.toLowerCase();
-      list = list.filter(
-        w =>
-          w.en.toLowerCase().includes(q) ||
-          w.ru.toLowerCase().includes(q) ||
-          w.tags.some(t => t.toLowerCase().includes(q)),
-      );
-    }
-    if (tagFilter)
-      list = list.filter(w =>
-        w.tags.map(t => t.toLowerCase()).includes(tagFilter),
-      );
-    list = sortWords(list, sortBy);
-    updateDueBadge();
-    const subtitleEl = document.getElementById('words-subtitle');
-    if (subtitleEl) {
-      subtitleEl.textContent =
-        list.length !== window.words.length
-          ? `(${list.length} из ${window.words.length})`
-          : `— ${pluralize(window.words.length, 'слово', 'слова', 'слов')}`;
-    }
-    if (!list.length) {
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      if (trigger) trigger.style.display = 'none';
-      if (loadingMore) loadingMore.style.display = 'none';
-      return;
-    }
-    empty.style.display = 'none';
-    const visibleList = list.slice(0, visibleLimit);
-    const fragment = document.createDocumentFragment();
-    visibleList.forEach(w => {
-      const card = getCachedCard(w);
-      fragment.appendChild(card);
-    });
+  if (tagFilter) {
+    list = list.filter(w =>
+      w.tags.map(t => t.toLowerCase()).includes(tagFilter),
+    );
+  }
+  list = sortWords(list, sortBy);
+  currentFilteredWords = list;
+
+  // 2. Обновляем подзаголовок
+  const subtitleEl = document.getElementById('words-subtitle');
+  if (subtitleEl) {
+    subtitleEl.textContent =
+      list.length !== window.words.length
+        ? `(${list.length} из ${window.words.length})`
+        : `— ${pluralize(window.words.length, 'слово', 'слова', 'слов')}`;
+  }
+
+  // 3. Если список пуст
+  if (!list.length) {
     grid.innerHTML = '';
-    grid.appendChild(fragment);
-    updateTagFilterIndicator();
-    if (list.length > visibleLimit) {
-      if (trigger) trigger.style.display = 'block';
-      if (loadingMore) loadingMore.style.display = 'none'; // скрываем индикатор загрузки
-      setupLoadMoreObserver(list.length);
-    } else {
-      if (trigger) trigger.style.display = 'none';
-      if (loadingMore) loadingMore.style.display = 'none';
+    empty.style.display = 'block';
+    if (trigger) trigger.style.display = 'none';
+    renderedWordsCount = 0;
+    return;
+  }
+  empty.style.display = 'none';
+
+  // 4. Полный рендер (appendOnly = false)
+  if (!appendOnly) {
+    visibleLimit = Math.min(visibleLimit, list.length);
+    renderedWordsCount = 0;
+    grid.innerHTML = '';
+
+    const end = Math.min(visibleLimit, list.length);
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < end; i++) {
+      const card = getCachedCard(list[i]);
+      fragment.appendChild(card);
     }
-  });
+    grid.appendChild(fragment);
+    renderedWordsCount = end;
+
+    // Настраиваем триггер для бесконечной прокрутки
+    if (renderedWordsCount >= list.length) {
+      if (trigger) trigger.style.display = 'none';
+    } else {
+      if (trigger) trigger.style.display = 'block';
+    }
+    // Пересоздаём наблюдатель
+    setupLoadMoreObserver(list.length);
+  } else {
+    // 5. Добавляем только новые карточки
+    appendMoreWords();
+  }
+
+  updateTagFilterIndicator();
 }
+
+function appendMoreWords() {
+  const grid = document.getElementById('words-grid');
+  const trigger = document.getElementById('load-more-trigger');
+  if (!currentFilteredWords.length) return;
+
+  const start = renderedWordsCount;
+  const end = Math.min(visibleLimit, currentFilteredWords.length);
+  if (start >= end) return;
+
+  const fragment = document.createDocumentFragment();
+  for (let i = start; i < end; i++) {
+    const word = currentFilteredWords[i];
+    const card = getCachedCard(word);
+    fragment.appendChild(card);
+  }
+  grid.appendChild(fragment);
+  renderedWordsCount = end;
+
+  // Скрываем триггер, если достигнут конец
+  if (renderedWordsCount >= currentFilteredWords.length) {
+    if (trigger) trigger.style.display = 'none';
+  } else {
+    if (trigger) trigger.style.display = 'block';
+  }
+}
+
+function loadMoreWords() {
+  if (isLoadingMore) return;
+  if (renderedWordsCount >= currentFilteredWords.length) return;
+
+  isLoadingMore = true;
+  visibleLimit = Math.min(
+    visibleLimit + PAGE_SIZE,
+    currentFilteredWords.length,
+  );
+  appendMoreWords();
+  setTimeout(() => {
+    isLoadingMore = false;
+  }, 100);
+}
+
 // Инкрементальное добавление слова в DOM без полного рендера
 function addWordToDOM(word) {
   const grid = document.getElementById('words-grid');
@@ -4009,34 +4072,22 @@ function updateWordsCount() {
 function setupLoadMoreObserver(totalCount) {
   const trigger = document.getElementById('load-more-trigger');
   if (!trigger) return;
-  // Если наблюдатель уже есть – отключаем и создаём новый (чтобы не дублировать)
-  if (intersectionObserver) {
-    intersectionObserver.disconnect();
-  }
+
+  if (intersectionObserver) intersectionObserver.disconnect();
+
   intersectionObserver = new IntersectionObserver(
     entries => {
       entries.forEach(entry => {
-        // Если триггер виден и мы не грузим прямо сейчас
-        if (entry.isIntersecting && !isLoadingMore) {
-          isLoadingMore = true;
-          // Показываем индикатор загрузки
-          const loadingMore = document.getElementById('loading-more');
-          if (loadingMore) loadingMore.style.display = 'block';
-          // Подгружаем следующую порцию
-          visibleLimit += PAGE_SIZE;
-          renderWords(); // перерендерим с новым лимитом
-          // сброс после рендера с увеличенной задержкой
-          setTimeout(() => {
-            isLoadingMore = false;
-          }, 500);
+        if (
+          entry.isIntersecting &&
+          !isLoadingMore &&
+          renderedWordsCount < currentFilteredWords.length
+        ) {
+          loadMoreWords();
         }
       });
     },
-    {
-      root: null, // относительно окна
-      threshold: 0.1, // срабатывает, когда 10% триггера видно
-      rootMargin: '50px', // подгружаем чуть заранее, чтобы не было видно пустоты
-    },
+    { root: null, threshold: 0.1, rootMargin: '50px' },
   );
   intersectionObserver.observe(trigger);
 }
@@ -9863,7 +9914,7 @@ window.renderXP = renderXP; // обновление XP
 window.renderBadges = renderBadges;
 window.renderStats = renderStats;
 window.renderWords = renderWords;
-function renderIdioms() {
+function renderIdioms(appendOnly = false) {
   console.log(
     '🎯 renderIdioms called, idioms count:',
     window.idioms?.length || 0,
@@ -9871,72 +9922,116 @@ function renderIdioms() {
   const grid = document.getElementById('idioms-grid');
   const empty = document.getElementById('empty-idioms');
   const trigger = document.getElementById('idioms-load-more-trigger');
-  const loadingMore = document.getElementById('idioms-loading-more');
+
   if (!grid) return; // на случай если вкладка ещё не создана
-  // Отключаем старый наблюдатель
-  if (idiomsIntersectionObserver) {
-    idiomsIntersectionObserver.disconnect();
-    idiomsIntersectionObserver = null;
+
+  let list = window.idioms;
+  if (idiomsActiveFilter === 'learning')
+    list = list.filter(i => !i.stats?.learned);
+  if (idiomsActiveFilter === 'learned')
+    list = list.filter(i => i.stats?.learned);
+  if (idiomsSearchQuery) {
+    const q = idiomsSearchQuery.toLowerCase();
+    list = list.filter(
+      i =>
+        i.idiom.toLowerCase().includes(q) ||
+        i.meaning.toLowerCase().includes(q) ||
+        (i.tags && i.tags.some(t => t.toLowerCase().includes(q))),
+    );
   }
-  requestAnimationFrame(() => {
-    let list = window.idioms;
-    // Фильтр по статусу (all/learning/learned)
-    if (idiomsActiveFilter === 'learning') {
-      list = list.filter(i => !i.stats?.learned);
-    } else if (idiomsActiveFilter === 'learned') {
-      list = list.filter(i => i.stats?.learned);
-    }
-    // Фильтр по поиску
-    if (idiomsSearchQuery) {
-      const q = idiomsSearchQuery.toLowerCase();
-      list = list.filter(
-        i =>
-          i.idiom.toLowerCase().includes(q) ||
-          i.meaning.toLowerCase().includes(q) ||
-          (i.tags && i.tags.some(t => t.toLowerCase().includes(q))),
-      );
-    }
-    // Фильтр по тегам (если нужен)
-    if (idiomsTagFilter) {
-      list = list.filter(
-        i =>
-          i.tags && i.tags.map(t => t.toLowerCase()).includes(idiomsTagFilter),
-      );
-    }
-    // Сортировка
-    list = sortIdioms(list, idiomsSortBy);
-    // Обновляем счётчики - бейджи убраны из навигации
-    // updateDueBadge() вызовется ниже в renderIdioms
-    document.getElementById('idioms-subtitle').textContent =
+  if (idiomsTagFilter) {
+    list = list.filter(
+      i => i.tags && i.tags.map(t => t.toLowerCase()).includes(idiomsTagFilter),
+    );
+  }
+  list = sortIdioms(list, idiomsSortBy);
+  currentFilteredIdioms = list;
+
+  const subtitleEl = document.getElementById('idioms-subtitle');
+  if (subtitleEl) {
+    subtitleEl.textContent =
       list.length !== window.idioms.length
         ? `(${list.length} из ${window.idioms.length})`
         : `— ${window.idioms.length} идиом`;
-    if (!list.length) {
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      if (trigger) trigger.style.display = 'none';
-      if (loadingMore) loadingMore.style.display = 'none';
-      return;
-    }
-    empty.style.display = 'none';
-    const visibleList = list.slice(0, idiomsVisibleLimit);
-    const fragment = document.createDocumentFragment();
-    visibleList.forEach(i => fragment.appendChild(makeIdiomCard(i)));
+  }
+
+  if (!list.length) {
     grid.innerHTML = '';
-    grid.appendChild(fragment);
-    if (list.length > idiomsVisibleLimit) {
-      if (trigger) trigger.style.display = 'block';
-      if (loadingMore) loadingMore.style.display = 'none';
-      setupIdiomsLoadMoreObserver(list.length);
-    } else {
-      if (trigger) trigger.style.display = 'none';
-      if (loadingMore) loadingMore.style.display = 'none';
+    empty.style.display = 'block';
+    if (trigger) trigger.style.display = 'none';
+    renderedIdiomsCount = 0;
+    return;
+  }
+  empty.style.display = 'none';
+
+  if (!appendOnly) {
+    idiomsVisibleLimit = Math.min(idiomsVisibleLimit, list.length);
+    renderedIdiomsCount = 0;
+    grid.innerHTML = '';
+
+    const end = Math.min(idiomsVisibleLimit, list.length);
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < end; i++) {
+      const card = makeIdiomCard(list[i]);
+      fragment.appendChild(card);
     }
-  });
+    grid.appendChild(fragment);
+    renderedIdiomsCount = end;
+
+    if (renderedIdiomsCount >= list.length) {
+      if (trigger) trigger.style.display = 'none';
+    } else {
+      if (trigger) trigger.style.display = 'block';
+    }
+    setupIdiomsLoadMoreObserver(list.length);
+  } else {
+    appendMoreIdioms();
+  }
+
   // Update due badge
   updateDueBadge();
 }
 window.renderIdioms = renderIdioms;
+
+function appendMoreIdioms() {
+  const grid = document.getElementById('idioms-grid');
+  const trigger = document.getElementById('idioms-load-more-trigger');
+  if (!currentFilteredIdioms.length) return;
+
+  const start = renderedIdiomsCount;
+  const end = Math.min(idiomsVisibleLimit, currentFilteredIdioms.length);
+  if (start >= end) return;
+
+  const fragment = document.createDocumentFragment();
+  for (let i = start; i < end; i++) {
+    const card = makeIdiomCard(currentFilteredIdioms[i]);
+    fragment.appendChild(card);
+  }
+  grid.appendChild(fragment);
+  renderedIdiomsCount = end;
+
+  if (renderedIdiomsCount >= currentFilteredIdioms.length) {
+    if (trigger) trigger.style.display = 'none';
+  } else {
+    if (trigger) trigger.style.display = 'block';
+  }
+}
+
+function loadMoreIdioms() {
+  if (isLoadingMore) return;
+  if (renderedIdiomsCount >= currentFilteredIdioms.length) return;
+
+  isLoadingMore = true;
+  idiomsVisibleLimit = Math.min(
+    idiomsVisibleLimit + PAGE_SIZE,
+    currentFilteredIdioms.length,
+  );
+  appendMoreIdioms();
+  setTimeout(() => {
+    isLoadingMore = false;
+  }, 100);
+}
+
 function makeIdiomCard(i) {
   const card = document.createElement('div');
   card.className = 'word-card word-card--idiom';
@@ -10081,19 +10176,18 @@ function updateIdiomExpandedContent(card) {
 function setupIdiomsLoadMoreObserver(totalCount) {
   const trigger = document.getElementById('idioms-load-more-trigger');
   if (!trigger) return;
+
   if (idiomsIntersectionObserver) idiomsIntersectionObserver.disconnect();
+
   idiomsIntersectionObserver = new IntersectionObserver(
     entries => {
       entries.forEach(entry => {
-        if (entry.isIntersecting && !idiomsIsLoadingMore) {
-          idiomsIsLoadingMore = true;
-          const loadingMore = document.getElementById('idioms-loading-more');
-          if (loadingMore) loadingMore.style.display = 'block';
-          idiomsVisibleLimit += 20; // PAGE_SIZE
-          renderIdioms();
-          setTimeout(() => {
-            idiomsIsLoadingMore = false;
-          }, 500);
+        if (
+          entry.isIntersecting &&
+          !isLoadingMore &&
+          renderedIdiomsCount < currentFilteredIdioms.length
+        ) {
+          loadMoreIdioms();
         }
       });
     },
@@ -12016,6 +12110,316 @@ async function renderGifts() {
 }
 // Чат
 let currentChatFriend = null;
+
+// Реакции на сообщения
+const EMOJI_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥', '👏', '🎉'];
+
+// Стикеры
+const STICKERS = [
+  '😀',
+  '😃',
+  '😄',
+  '😁',
+  '😆',
+  '😅',
+  '🤣',
+  '😂',
+  '🙂',
+  '🙃',
+  '😉',
+  '😊',
+  '😇',
+  '🥰',
+  '😍',
+  '🤩',
+  '😘',
+  '😗',
+  '😚',
+  '😙',
+  '😋',
+  '😛',
+  '😜',
+  '🤪',
+  '😝',
+  '🤗',
+  '🤭',
+  '🤫',
+  '🤔',
+  '🤐',
+  '🤨',
+  '😐',
+  '😑',
+  '😶',
+  '😏',
+  '😒',
+  '🙄',
+  '😬',
+  '🤥',
+  '😌',
+  '😔',
+  '😪',
+  '🤤',
+  '😴',
+  '😷',
+  '🤒',
+  '🤕',
+  '🤢',
+  '👍',
+  '👎',
+  '👌',
+  '✌️',
+  '🤞',
+  '🤟',
+  '🤘',
+  '🤙',
+  '👈',
+  '👉',
+  '👆',
+  '👇',
+  '☝️',
+  '✋',
+  '🤚',
+  '🖐️',
+  '🖖',
+  '👋',
+  '🤙',
+  '💪',
+  '🙏',
+  '🎉',
+  '🎊',
+  '🎈',
+  '🔥',
+  '💯',
+  '⭐',
+  '🌟',
+  '✨',
+  '💥',
+  '💫',
+  '🎯',
+];
+
+window.messageReactions = {}; // Хранилище реакций { messageId: { emoji: [userIds] } }
+
+function renderMessageReactions(messageId) {
+  const reactions = window.messageReactions[messageId] || {};
+  return Object.entries(reactions)
+    .map(
+      ([emoji, userIds]) => `
+      <div class="reaction" onclick="toggleReaction('${messageId}', '${emoji}')">
+        <span>${emoji}</span>
+        <span class="reaction-count">${userIds.length}</span>
+      </div>
+    `,
+    )
+    .join('');
+}
+
+window.toggleReaction = function (messageId, emoji) {
+  if (!window.messageReactions[messageId]) {
+    window.messageReactions[messageId] = {};
+  }
+
+  if (!window.messageReactions[messageId][emoji]) {
+    window.messageReactions[messageId][emoji] = [];
+  }
+
+  const userIdIndex = window.messageReactions[messageId][emoji].indexOf(
+    window.currentUserId,
+  );
+
+  if (userIdIndex > -1) {
+    // Удаляем реакцию
+    window.messageReactions[messageId][emoji].splice(userIdIndex, 1);
+    if (window.messageReactions[messageId][emoji].length === 0) {
+      delete window.messageReactions[messageId][emoji];
+    }
+  } else {
+    // Добавляем реакцию с анимацией
+    window.messageReactions[messageId][emoji].push(window.currentUserId);
+    animateReaction(messageId, emoji);
+  }
+
+  // Обновляем отображение
+  const reactionsContainer = document.getElementById(`reactions-${messageId}`);
+  if (reactionsContainer) {
+    reactionsContainer.innerHTML = renderMessageReactions(messageId);
+
+    // Прокручиваем чат вниз если это последнее сообщение
+    const messagesList = document.getElementById('chat-messages-list');
+    if (messagesList) {
+      setTimeout(() => {
+        messagesList.scrollTop = messagesList.scrollHeight;
+      }, 100);
+    }
+  }
+};
+
+window.toggleReactionPicker = function (messageId) {
+  // Закрываем предыдущий пикер если открыт
+  const existingPicker = document.querySelector('.emoji-picker');
+  if (existingPicker) {
+    existingPicker.remove();
+    return;
+  }
+
+  // Создаем пикер эмодзи
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  picker.innerHTML = `
+    <div class="emoji-picker-header">Реакции</div>
+    <div class="emoji-grid">
+      ${EMOJI_REACTIONS.map(
+        emoji => `
+        <div class="emoji-item" onclick="toggleReaction('${messageId}', '${emoji}'); this.closest('.emoji-picker').remove()">
+          ${emoji}
+        </div>
+      `,
+      ).join('')}
+    </div>
+  `;
+
+  // Позиционируем пикер около сообщения
+  const messageElement = document.querySelector(
+    `[data-message-id="${messageId}"]`,
+  );
+
+  if (messageElement) {
+    const rect = messageElement.getBoundingClientRect();
+    const pickerWidth = 240; // примерная ширина пикера
+
+    picker.style.position = 'fixed';
+    picker.style.top = `${rect.top - 80}px`; // выше сообщения
+    picker.style.left = `${rect.left + rect.width / 2 - pickerWidth / 2}px`; // центрируем
+    picker.style.zIndex = '10000';
+    picker.style.transform = 'translateY(-10px)'; // небольшое смещение вверх
+    document.body.appendChild(picker);
+
+    // Закрываем при клике вне
+    setTimeout(() => {
+      document.addEventListener('click', function closePicker(e) {
+        if (!picker.contains(e.target)) {
+          picker.remove();
+          document.removeEventListener('click', closePicker);
+        }
+      });
+    }, 100);
+  }
+};
+
+function animateReaction(messageId, emoji) {
+  const messageElement = document.querySelector(
+    `[data-message-id="${messageId}"]`,
+  );
+  if (!messageElement) return;
+
+  // Создаем анимированную реакцию
+  const animatedEmoji = document.createElement('div');
+  animatedEmoji.className = 'animated-reaction';
+  animatedEmoji.textContent = emoji;
+  animatedEmoji.style.cssText = `
+    position: absolute;
+    font-size: 24px;
+    animation: reactionFloat 1s ease-out forwards;
+    pointer-events: none;
+    z-index: 1000;
+  `;
+
+  const rect = messageElement.getBoundingClientRect();
+  animatedEmoji.style.left = `${rect.left + Math.random() * rect.width}px`;
+  animatedEmoji.style.top = `${rect.top}px`;
+
+  document.body.appendChild(animatedEmoji);
+
+  setTimeout(() => animatedEmoji.remove(), 1000);
+}
+
+// Звуковые эффекты для чата - удалены, используем playSound из utils.js
+
+// Анимация отправки стикера - отключена
+function animateStickerSend() {
+  // Ничего не делаем, просто заглушка
+}
+
+window.toggleStickerPicker = function (friendId) {
+  // Закрываем предыдущий пикер если открыт
+  const existingPicker = document.querySelector('.sticker-picker');
+  if (existingPicker) {
+    existingPicker.remove();
+    return;
+  }
+
+  // Создаем пикер стикеров
+  const picker = document.createElement('div');
+  picker.className = 'sticker-picker';
+  picker.innerHTML = `
+    <div class="sticker-picker-header">Стикеры</div>
+    <div class="sticker-grid">
+      ${STICKERS.map(
+        sticker => `
+        <div class="sticker-item" onclick="console.log('🔥 Sticker clicked:', '${sticker}'); sendSticker('${friendId}', '${sticker}'); this.closest('.sticker-picker').remove()">
+          ${sticker}
+        </div>
+      `,
+      ).join('')}
+    </div>
+  `;
+
+  // Позиционируем пикер
+  const stickerBtn = document.getElementById('chat-sticker-btn');
+  if (stickerBtn) {
+    const rect = stickerBtn.getBoundingClientRect();
+    const pickerWidth = 300;
+    const viewportWidth = window.innerWidth;
+
+    let leftPosition = rect.left - 150;
+
+    // Проверяем чтобы не вылезал за левый край
+    if (leftPosition < 10) {
+      leftPosition = 10;
+    }
+
+    // Проверяем чтобы не вылезал за правый край
+    if (leftPosition + pickerWidth > viewportWidth - 10) {
+      leftPosition = viewportWidth - pickerWidth - 10;
+    }
+
+    picker.style.position = 'fixed';
+    picker.style.bottom = `${window.innerHeight - rect.top + 5}px`;
+    picker.style.left = `${leftPosition}px`;
+    picker.style.zIndex = '10000';
+    document.body.appendChild(picker);
+
+    // Закрываем при клике вне
+    setTimeout(() => {
+      document.addEventListener('click', function closePicker(e) {
+        if (!picker.contains(e.target) && e.target !== stickerBtn) {
+          picker.remove();
+          document.removeEventListener('click', closePicker);
+        }
+      });
+    }, 100);
+  }
+};
+
+window.sendSticker = async function (friendId, sticker) {
+  console.log('🔥 sendSticker called:', { friendId, sticker });
+
+  try {
+    await sendMessage(window.currentUserId, friendId, sticker);
+    console.log('🔥 sendMessage success, updating chat...');
+
+    // Обновляем чат с анимацией
+    await openChatWithFriend(friendId);
+    console.log('🔥 Chat updated');
+
+    // Анимация отправки стикера
+    animateStickerSend();
+  } catch (e) {
+    console.error('🔥 sendSticker error:', e);
+    toast('Ошибка отправки стикера: ' + e.message, 'danger');
+  }
+};
+
 async function renderChatFriends() {
   const container = document.getElementById('chat-friends-list');
   if (!container) return;
@@ -12147,11 +12551,17 @@ async function openChatWithFriend(friendId) {
   messagesList.innerHTML = messages
     .map(msg => {
       const isOutgoing = msg.sender_id === window.currentUserId;
+      const isSticker =
+        /^\p{Emoji}$/u.test(msg.text.trim()) && msg.text.length === 2;
+
       return `
-      <div class="chat-message ${isOutgoing ? 'chat-message--outgoing' : 'chat-message--incoming'}">
+      <div class="chat-message ${isOutgoing ? 'chat-message--outgoing' : 'chat-message--incoming'}" data-message-id="${msg.id}" onclick="toggleReactionPicker('${msg.id}')">
         <div class="chat-bubble">
-          ${esc(msg.text)}
-          <div class="chat-time">${new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+          ${isSticker ? `<div class="sticker-message">${msg.text}</div>` : esc(msg.text)}
+          ${!isSticker ? `<div class="chat-time">${new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+          <div class="chat-reactions" id="reactions-${msg.id}">
+            ${renderMessageReactions(msg.id)}
+          </div>
         </div>
       </div>
     `;
@@ -12166,6 +12576,8 @@ async function openChatWithFriend(friendId) {
   // Отправка сообщения
   const input = document.getElementById('chat-message-input');
   const sendBtn = document.getElementById('chat-send-btn');
+  const stickerBtn = document.getElementById('chat-sticker-btn');
+
   const sendMessageHandler = async () => {
     const text = input.value.trim();
     if (!text) return;
@@ -12178,11 +12590,21 @@ async function openChatWithFriend(friendId) {
       toast('Ошибка отправки', 'danger');
     }
   };
+
   sendBtn.onclick = sendMessageHandler;
   input.onkeydown = e => {
-    if (e.key === 'Enter') sendMessageHandler();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendMessageHandler();
+    }
   };
+
+  // Обработчик для стикеров
+  if (stickerBtn) {
+    stickerBtn.onclick = () => toggleStickerPicker(friendId);
+  }
 }
+
 async function updateUnreadCounts() {
   const userId = window.currentUserId;
   if (!userId) return;
@@ -12798,3 +13220,66 @@ document.addEventListener('keydown', e => {
     }
   }
 });
+
+// ============================================================
+// TESTING: Infinite Scroll Debug Functions
+// ============================================================
+
+// Глобальная функция для тестирования бесконечной прокрутки слов
+window.testInfiniteScrollWords = function () {
+  console.log('🧪 Testing infinite scroll for WORDS');
+  console.log('📊 Current state:');
+  console.log('  - window.words.length:', window.words.length);
+  console.log('  - currentFilteredWords.length:', currentFilteredWords.length);
+  console.log('  - renderedWordsCount:', renderedWordsCount);
+  console.log('  - visibleLimit:', visibleLimit);
+  console.log('  - isLoadingMore:', isLoadingMore);
+
+  // Принудительно вызываем загрузку следующей порции
+  if (renderedWordsCount < currentFilteredWords.length) {
+    console.log('🔄 Manually triggering loadMoreWords...');
+    loadMoreWords();
+  } else {
+    console.log('✅ All words are already rendered');
+  }
+};
+
+// Глобальная функция для тестирования бесконечной прокрутки идиом
+window.testInfiniteScrollIdioms = function () {
+  console.log('🧪 Testing infinite scroll for IDIOMS');
+  console.log('📊 Current state:');
+  console.log('  - window.idioms.length:', window.idioms.length);
+  console.log(
+    '  - currentFilteredIdioms.length:',
+    currentFilteredIdioms.length,
+  );
+  console.log('  - renderedIdiomsCount:', renderedIdiomsCount);
+  console.log('  - idiomsVisibleLimit:', idiomsVisibleLimit);
+  console.log('  - isLoadingMore:', isLoadingMore);
+
+  // Принудительно вызываем загрузку следующей порции
+  if (renderedIdiomsCount < currentFilteredIdioms.length) {
+    console.log('🔄 Manually triggering loadMoreIdioms...');
+    loadMoreIdioms();
+  } else {
+    console.log('✅ All idioms are already rendered');
+  }
+};
+
+// Глобальная функция для сброса и проверки полного рендера
+window.testFullRenderWords = function () {
+  console.log('🔄 Testing full render of WORDS');
+  renderWords(false); // Полный рендер
+};
+
+window.testFullRenderIdioms = function () {
+  console.log('🔄 Testing full render of IDIOMS');
+  renderIdioms(false); // Полный рендер
+};
+
+console.log('✅ Infinite scroll implementation completed!');
+console.log('🧪 Test functions available:');
+console.log('  - testInfiniteScrollWords()');
+console.log('  - testInfiniteScrollIdioms()');
+console.log('  - testFullRenderWords()');
+console.log('  - testFullRenderIdioms()');
