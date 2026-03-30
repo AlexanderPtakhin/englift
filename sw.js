@@ -1,4 +1,4 @@
-const CACHE_NAME = 'englift-v14';
+const CACHE_NAME = 'englift-v00-06';
 
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -60,44 +60,76 @@ self.addEventListener('install', event => {
       }
 
       console.log('✅ SW install завершён успешно');
-    })()
+      await self.skipWaiting(); // Переносим сюда - после кэширования
+    })(),
   );
-
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => 
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then(keys =>
+        Promise.all(
+          keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)),
+        ),
+      )
+      .then(() => self.clients.claim()),
   );
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
-  if (event.request.url.includes('supabase.co') || 
-      event.request.url.includes('/audio/') || 
-      event.request.url.includes('/audio-male/') ||
-      event.request.url.includes('/audio-idioms/')) {
+  if (
+    event.request.url.includes('supabase.co') ||
+    event.request.url.includes('/audio/') ||
+    event.request.url.includes('/audio-male/') ||
+    event.request.url.includes('/audio-idioms/')
+  ) {
     return;
   }
 
+  const url = new URL(event.request.url);
+
+  // Для JS и CSS — сначала сеть (network-first)
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
+    return;
+  }
+
+  // Для остальных (HTML, иконки, JSON) — cache-first
   event.respondWith(
     caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).then(res => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return res;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/offline.html');
-        }
-        return new Response('Offline', { status: 503 });
-      });
-    })
+      return (
+        cached ||
+        fetch(event.request)
+          .then(res => {
+            if (res && res.status === 200) {
+              const clone = res.clone();
+              caches
+                .open(CACHE_NAME)
+                .then(cache => cache.put(event.request, clone));
+            }
+            return res;
+          })
+          .catch(() => {
+            if (event.request.mode === 'navigate') {
+              return caches.match('/offline.html');
+            }
+            return new Response('Offline', { status: 503 });
+          })
+      );
+    }),
   );
 });

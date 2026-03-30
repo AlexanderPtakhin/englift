@@ -373,16 +373,10 @@ export async function rejectFriendRequest(userId, friendId) {
  * Получить список друзей (status = accepted)
  */
 export async function getFriends(userId) {
-  const { data, error } = await supabase
+  // 1. Получаем все связи со статусом accepted
+  const { data: friendships, error } = await supabase
     .from('friendships')
-    .select(
-      `
-      user_id,
-      friend_id,
-      user_profile:profiles!friendships_user_id_fkey(id, username, xp, level, streak, laststreakdate, total_words, total_idioms, learned_words),
-      friend_profile:profiles!friendships_friend_id_fkey(id, username, xp, level, streak, laststreakdate, total_words, total_idioms, learned_words)
-    `,
-    )
+    .select('user_id, friend_id')
     .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
     .eq('status', 'accepted');
 
@@ -391,26 +385,27 @@ export async function getFriends(userId) {
     return [];
   }
 
-  // Преобразуем в массив друзей (другой пользователь) с дедупликацией
-  const friendsMap = new Map();
-  data.forEach(f => {
-    const friend = f.user_id === userId ? f.friend_profile : f.user_profile;
-    if (friend && !friendsMap.has(friend.id)) {
-      friendsMap.set(friend.id, {
-        id: friend.id,
-        username: friend.username,
-        xp: friend.xp,
-        level: friend.level,
-        streak: friend.streak,
-        lastActive: friend.laststreakdate,
-        total_words: friend.total_words,
-        total_idioms: friend.total_idioms,
-        learned_words: friend.learned_words,
-      });
-    }
-  });
+  if (!friendships.length) return [];
 
-  return Array.from(friendsMap.values());
+  // 2. Извлекаем ID друзей
+  const friendIds = friendships.map(f =>
+    f.user_id === userId ? f.friend_id : f.user_id,
+  );
+
+  // 3. Получаем профили друзей
+  const { data: profiles, error: profileError } = await supabase
+    .from('profiles')
+    .select(
+      'id, username, xp, level, streak, laststreakdate, total_words, total_idioms, learned_words',
+    )
+    .in('id', friendIds);
+
+  if (profileError) {
+    console.error('Error fetching friend profiles:', profileError);
+    return [];
+  }
+
+  return profiles;
 }
 
 /**
@@ -419,12 +414,7 @@ export async function getFriends(userId) {
 export async function getIncomingRequests(userId) {
   const { data, error } = await supabase
     .from('friendships')
-    .select(
-      `
-      user_id,
-      user_profile:profiles!friendships_user_id_fkey(id, username, xp, level, streak, total_words, total_idioms, learned_words)
-    `,
-    )
+    .select('user_id')
     .eq('friend_id', userId)
     .eq('status', 'pending');
 
@@ -433,16 +423,26 @@ export async function getIncomingRequests(userId) {
     return [];
   }
 
-  return data.map(f => ({
-    id: f.user_id,
-    username: f.user_profile.username,
-    xp: f.user_profile.xp,
-    level: f.user_profile.level,
-    streak: f.user_profile.streak,
-    total_words: f.user_profile.total_words,
-    total_idioms: f.user_profile.total_idioms,
-    learned_words: f.user_profile.learned_words,
-  }));
+  if (!data.length) return [];
+
+  const senderIds = data.map(req => req.user_id);
+
+  const { data: profiles, error: profileError } = await supabase
+    .from('profiles')
+    .select(
+      'id, username, xp, level, streak, total_words, total_idioms, learned_words',
+    )
+    .in('id', senderIds);
+
+  if (profileError) {
+    console.error(
+      'Error fetching profiles for incoming requests:',
+      profileError,
+    );
+    return [];
+  }
+
+  return profiles;
 }
 
 /**
@@ -451,12 +451,7 @@ export async function getIncomingRequests(userId) {
 export async function getOutgoingRequests(userId) {
   const { data, error } = await supabase
     .from('friendships')
-    .select(
-      `
-      friend_id,
-      friend_profile:profiles!friendships_friend_id_fkey(id, username, xp, level, streak, total_words, total_idioms, learned_words)
-    `,
-    )
+    .select('friend_id')
     .eq('user_id', userId)
     .eq('status', 'pending');
 
@@ -465,16 +460,26 @@ export async function getOutgoingRequests(userId) {
     return [];
   }
 
-  return data.map(f => ({
-    id: f.friend_id,
-    username: f.friend_profile.username,
-    xp: f.friend_profile.xp,
-    level: f.friend_profile.level,
-    streak: f.friend_profile.streak,
-    total_words: f.friend_profile.total_words,
-    total_idioms: f.friend_profile.total_idioms,
-    learned_words: f.friend_profile.learned_words,
-  }));
+  if (!data.length) return [];
+
+  const receiverIds = data.map(req => req.friend_id);
+
+  const { data: profiles, error: profileError } = await supabase
+    .from('profiles')
+    .select(
+      'id, username, xp, level, streak, total_words, total_idioms, learned_words',
+    )
+    .in('id', receiverIds);
+
+  if (profileError) {
+    console.error(
+      'Error fetching profiles for outgoing requests:',
+      profileError,
+    );
+    return [];
+  }
+
+  return profiles;
 }
 
 /**

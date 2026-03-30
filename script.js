@@ -139,6 +139,14 @@ const CONSTANTS = {
   },
 };
 const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
+
+// Автоматическая перезагрузка при обновлении Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('🔄 Service Worker обновился, перезагружаем страницу');
+    window.location.reload();
+  });
+}
 // =============================================
 // applyProfileData — ПЕРЕНОСИМ В САМОЕ НАЧАЛО (чтобы auth.js видел её сразу)
 // =============================================
