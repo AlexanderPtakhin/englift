@@ -1342,6 +1342,14 @@ function updateFloatingChatButton() {
   const btn = document.getElementById('floating-chat-btn');
   const badge = document.getElementById('floating-chat-badge');
   if (!btn) return;
+
+  // Если открыт чат, кнопку скрываем
+  if (currentChatFriend) {
+    btn.style.display = 'none';
+    badge.style.display = 'none';
+    return;
+  }
+
   if (window.unreadMessagesCount > 0) {
     btn.style.display = 'flex';
     badge.textContent =
@@ -3742,6 +3750,18 @@ function switchTab(name) {
   const currentActiveTab = currentActivePane
     ? currentActivePane.id.replace('tab-', '')
     : null;
+
+  // Закрываем чат при уходе с вкладки друзья
+  if (currentActiveTab === 'friends' && name !== 'friends') {
+    const chatContainer = document.getElementById('chat-messages');
+    const friendsList = document.getElementById('chat-friends-list');
+    if (chatContainer && friendsList) {
+      chatContainer.style.display = 'none';
+      friendsList.style.display = 'block';
+      currentChatFriend = null;
+    }
+  }
+
   // Закрываем карточку результатов при уходе с вкладки практика
   if (currentActiveTab === 'practice' && name !== 'practice') {
     resetPracticeToStart();
@@ -6688,6 +6708,22 @@ function startSession(cfg) {
     console.log('⚠️ Session already active, ignoring startSession call');
     return;
   }
+
+  // Проверяем, выбрано ли хотя бы одно упражнение
+  const selectedArray =
+    practiceMode === 'idioms' ? selectedIdiomExercises : selectedWordExercises;
+  if (selectedArray.length === 0) {
+    toast('Выберите хотя бы одно упражнение!', 'warning');
+    // Разблокируем кнопку
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerHTML =
+        '<span class="material-symbols-outlined">rocket_launch</span> Начать';
+    }
+    return;
+  }
+
   window.isSessionActive = true;
   document.body.classList.add('exercise-active'); // ← добавлено
   // Добавляем обработчик ошибок для всей функции
@@ -11489,8 +11525,11 @@ function renderLeaderboard(scores, period) {
       </div>`;
     return;
   }
+
+  // Ограничиваем до топ-5
+  const topScores = scores.slice(0, 5);
   const medals = ['looks_one', 'looks_two', 'looks_3'];
-  container.innerHTML = scores
+  container.innerHTML = topScores
     .map((user, i) => {
       const isMe = user.id === window.currentUserId;
       const medal = medals[i] || `${i + 1}`;
@@ -12343,113 +12382,8 @@ const STICKERS = [
   '🎯',
 ];
 
-window.messageReactions = {}; // Хранилище реакций { messageId: { emoji: [userIds] } }
-
-function renderMessageReactions(messageId) {
-  const reactions = window.messageReactions[messageId] || {};
-  return Object.entries(reactions)
-    .map(
-      ([emoji, userIds]) => `
-      <div class="reaction" onclick="toggleReaction('${messageId}', '${emoji}')">
-        <span>${emoji}</span>
-        <span class="reaction-count">${userIds.length}</span>
-      </div>
-    `,
-    )
-    .join('');
-}
-
-window.toggleReaction = function (messageId, emoji) {
-  if (!window.messageReactions[messageId]) {
-    window.messageReactions[messageId] = {};
-  }
-
-  if (!window.messageReactions[messageId][emoji]) {
-    window.messageReactions[messageId][emoji] = [];
-  }
-
-  const userIdIndex = window.messageReactions[messageId][emoji].indexOf(
-    window.currentUserId,
-  );
-
-  if (userIdIndex > -1) {
-    // Удаляем реакцию
-    window.messageReactions[messageId][emoji].splice(userIdIndex, 1);
-    if (window.messageReactions[messageId][emoji].length === 0) {
-      delete window.messageReactions[messageId][emoji];
-    }
-  } else {
-    // Добавляем реакцию с анимацией
-    window.messageReactions[messageId][emoji].push(window.currentUserId);
-    animateReaction(messageId, emoji);
-  }
-
-  // Обновляем отображение
-  const reactionsContainer = document.getElementById(`reactions-${messageId}`);
-  if (reactionsContainer) {
-    reactionsContainer.innerHTML = renderMessageReactions(messageId);
-
-    // Прокручиваем чат вниз если это последнее сообщение
-    const messagesList = document.getElementById('chat-messages-list');
-    if (messagesList) {
-      setTimeout(() => {
-        messagesList.scrollTop = messagesList.scrollHeight;
-      }, 100);
-    }
-  }
-};
-
-window.toggleReactionPicker = function (messageId) {
-  // Закрываем предыдущий пикер если открыт
-  const existingPicker = document.querySelector('.emoji-picker');
-  if (existingPicker) {
-    existingPicker.remove();
-    return;
-  }
-
-  // Создаем пикер эмодзи
-  const picker = document.createElement('div');
-  picker.className = 'emoji-picker';
-  picker.innerHTML = `
-    <div class="emoji-picker-header">Реакции</div>
-    <div class="emoji-grid">
-      ${EMOJI_REACTIONS.map(
-        emoji => `
-        <div class="emoji-item" onclick="toggleReaction('${messageId}', '${emoji}'); this.closest('.emoji-picker').remove()">
-          ${emoji}
-        </div>
-      `,
-      ).join('')}
-    </div>
-  `;
-
-  // Позиционируем пикер около сообщения
-  const messageElement = document.querySelector(
-    `[data-message-id="${messageId}"]`,
-  );
-
-  if (messageElement) {
-    const rect = messageElement.getBoundingClientRect();
-    const pickerWidth = 240; // примерная ширина пикера
-
-    picker.style.position = 'fixed';
-    picker.style.top = `${rect.top - 80}px`; // выше сообщения
-    picker.style.left = `${rect.left + rect.width / 2 - pickerWidth / 2}px`; // центрируем
-    picker.style.zIndex = '10000';
-    picker.style.transform = 'translateY(-10px)'; // небольшое смещение вверх
-    document.body.appendChild(picker);
-
-    // Закрываем при клике вне
-    setTimeout(() => {
-      document.addEventListener('click', function closePicker(e) {
-        if (!picker.contains(e.target)) {
-          picker.remove();
-          document.removeEventListener('click', closePicker);
-        }
-      });
-    }, 100);
-  }
-};
+// Старые функции реакций удалены, теперь используется новый подход с мгновенным обновлением
+// через reactionsMap в замыкании openChatWithFriend и updateReactionLocally
 
 function animateReaction(messageId, emoji) {
   const messageElement = document.querySelector(
@@ -12549,19 +12483,95 @@ window.toggleStickerPicker = function (friendId) {
 window.sendSticker = async function (friendId, sticker) {
   console.log('🔥 sendSticker called:', { friendId, sticker });
 
-  try {
-    await sendMessage(window.currentUserId, friendId, sticker);
-    console.log('🔥 sendMessage success, updating chat...');
+  // Проверяем, открыт ли чат с этим другом
+  if (currentChatFriend !== friendId) {
+    // Если чат не открыт, используем старый подход
+    try {
+      await sendMessage(window.currentUserId, friendId, sticker);
+      console.log('🔥 sendMessage success');
+      toast('Стикер отправлен!', 'success');
+      playSound('sound/send.mp3');
+    } catch (e) {
+      console.error('🔥 sendSticker error:', e);
+      toast('Ошибка отправки стикера: ' + e.message, 'danger');
+    }
+    return;
+  }
 
-    // Обновляем чат с анимацией
-    await openChatWithFriend(friendId);
-    console.log('🔥 Chat updated');
+  // Если чат открыт, используем мгновенное добавление
+  const messagesList = document.getElementById('chat-messages-list');
+  if (!messagesList || !messagesList._updateReactionLocally) {
+    // Если нет доступа к функциям чата, используем старый подход
+    try {
+      await sendMessage(window.currentUserId, friendId, sticker);
+      await openChatWithFriend(friendId);
+    } catch (e) {
+      console.error('🔥 sendSticker error:', e);
+      toast('Ошибка отправки стикера: ' + e.message, 'danger');
+    }
+    return;
+  }
+
+  // Мгновенное добавление стикера
+  const tempId = `temp-${Date.now()}`;
+  const now = new Date();
+
+  const messageHtml = `
+    <div class="chat-message chat-message--outgoing" data-message-id="${tempId}">
+      <div class="chat-bubble">
+        <div class="sticker-message">${sticker}</div>
+        <div class="chat-reactions" id="reactions-${tempId}"></div>
+      </div>
+    </div>
+  `;
+
+  messagesList.insertAdjacentHTML('beforeend', messageHtml);
+  messagesList.scrollTo({ top: messagesList.scrollHeight, behavior: 'smooth' });
+
+  // Добавляем обработчик клика на новый стикер
+  const newMessageEl = messagesList.lastElementChild;
+  newMessageEl.addEventListener('click', e => {
+    if (e.target.closest('.reaction')) return;
+    showReactionPicker(tempId, messagesList._updateReactionLocally);
+  });
+
+  try {
+    const sentMessage = await sendMessage(
+      window.currentUserId,
+      friendId,
+      sticker,
+    );
+    console.log('🔥 Стикер успешно отправлен:', sentMessage);
+
+    // Заменяем временный ID на реальный
+    const tempMessageEl = document.querySelector(
+      `[data-message-id="${tempId}"]`,
+    );
+    if (tempMessageEl) {
+      tempMessageEl.dataset.messageId = sentMessage.id;
+      tempMessageEl.querySelector('.chat-reactions').id =
+        `reactions-${sentMessage.id}`;
+
+      // Обновляем обработчик клика
+      tempMessageEl.addEventListener('click', e => {
+        if (e.target.closest('.reaction')) return;
+        showReactionPicker(sentMessage.id, messagesList._updateReactionLocally);
+      });
+    }
 
     // Анимация отправки стикера
     animateStickerSend();
   } catch (e) {
     console.error('🔥 sendSticker error:', e);
     toast('Ошибка отправки стикера: ' + e.message, 'danger');
+
+    // Удаляем временное сообщение при ошибке
+    const tempMessageEl = document.querySelector(
+      `[data-message-id="${tempId}"]`,
+    );
+    if (tempMessageEl) {
+      tempMessageEl.remove();
+    }
   }
 };
 
@@ -12716,6 +12726,75 @@ async function openChatWithFriend(friendId) {
     }
   }
 
+  // Функция для локального обновления реакции в DOM
+  const updateReactionLocally = (messageId, emoji, change) => {
+    const messageEl = document.querySelector(
+      `.chat-message[data-message-id="${messageId}"]`,
+    );
+    if (!messageEl) return;
+
+    const reactionsContainer = messageEl.querySelector(
+      `#reactions-${messageId}`,
+    );
+    if (!reactionsContainer) return;
+
+    const reactionEl = reactionsContainer.querySelector(
+      `.reaction[data-emoji="${emoji}"]`,
+    );
+    if (reactionEl) {
+      const countSpan = reactionEl.querySelector('.reaction-count');
+      let currentCount = parseInt(countSpan.textContent, 10) || 0;
+      const newCount = currentCount + change;
+      if (newCount <= 0) {
+        reactionEl.remove(); // удаляем, если 0
+      } else {
+        countSpan.textContent = newCount;
+      }
+    } else if (change === 1) {
+      // Нужно добавить новый элемент реакции
+      const newReaction = document.createElement('div');
+      newReaction.className = 'reaction';
+      newReaction.dataset.messageId = messageId;
+      newReaction.dataset.emoji = emoji;
+      newReaction.innerHTML = `<span>${emoji}</span><span class="reaction-count">1</span>`;
+      reactionsContainer.appendChild(newReaction);
+      // добавим обработчик клика на новую реакцию
+      newReaction.addEventListener('click', async e => {
+        e.stopPropagation();
+        await handleReactionToggle(messageId, emoji, updateReactionLocally);
+      });
+    }
+    // Обновляем локальную карту (чтобы при следующем клике не было рассинхрона)
+    if (!reactionsMap[messageId]) reactionsMap[messageId] = {};
+    if (!reactionsMap[messageId][emoji]) reactionsMap[messageId][emoji] = [];
+    if (change === 1) {
+      reactionsMap[messageId][emoji].push(window.currentUserId);
+    } else if (change === -1) {
+      const idx = reactionsMap[messageId][emoji].indexOf(window.currentUserId);
+      if (idx !== -1) reactionsMap[messageId][emoji].splice(idx, 1);
+      if (reactionsMap[messageId][emoji].length === 0) {
+        delete reactionsMap[messageId][emoji];
+      }
+    }
+
+    // Прокручиваем чат вниз, если это последнее сообщение и контейнер вырос
+    const messagesList = document.getElementById('chat-messages-list');
+    if (messagesList) {
+      const isLastMessage = messageEl === messagesList.lastElementChild;
+      if (isLastMessage) {
+        setTimeout(() => {
+          messagesList.scrollTo({
+            top: messagesList.scrollHeight,
+            behavior: 'smooth',
+          });
+        }, 100);
+      }
+    }
+  };
+
+  // Сохраняем updateReactionLocally для глобального доступа
+  messagesList._updateReactionLocally = updateReactionLocally;
+
   // Рендерим сообщения
   messagesList.innerHTML = messages
     .map(msg => {
@@ -12761,7 +12840,7 @@ async function openChatWithFriend(friendId) {
     msgEl.addEventListener('click', e => {
       // Не открываем пикер, если клик по реакции
       if (e.target.closest('.reaction')) return;
-      showReactionPicker(messageId);
+      showReactionPicker(messageId, updateReactionLocally);
     });
 
     msgEl.querySelectorAll('.reaction').forEach(reactEl => {
@@ -12771,7 +12850,7 @@ async function openChatWithFriend(friendId) {
         const emoji = reactEl.dataset.emoji;
         const messageId = reactEl.dataset.messageId;
         console.log('🔥 Данные реакции:', { emoji, messageId });
-        await handleReactionToggle(messageId, emoji);
+        await handleReactionToggle(messageId, emoji, updateReactionLocally);
       });
     });
   });
@@ -12780,16 +12859,89 @@ async function openChatWithFriend(friendId) {
   const sendBtn = document.getElementById('chat-send-btn');
   const stickerBtn = document.getElementById('chat-sticker-btn');
 
+  // Функция для локального добавления сообщения в DOM
+  const addMessageLocally = (text, isSticker = false) => {
+    const tempId = `temp-${Date.now()}`;
+    const now = new Date();
+
+    const messageHtml = `
+      <div class="chat-message chat-message--outgoing" data-message-id="${tempId}">
+        <div class="chat-bubble">
+          ${isSticker ? `<div class="sticker-message">${text}</div>` : esc(text)}
+          ${!isSticker ? `<div class="chat-time">${now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+          <div class="chat-reactions" id="reactions-${tempId}"></div>
+        </div>
+      </div>
+    `;
+
+    messagesList.insertAdjacentHTML('beforeend', messageHtml);
+
+    // Прокручиваем вниз
+    messagesList.scrollTo({
+      top: messagesList.scrollHeight,
+      behavior: 'smooth',
+    });
+
+    // Добавляем обработчик клика на новое сообщение
+    const newMessageEl = messagesList.lastElementChild;
+    newMessageEl.addEventListener('click', e => {
+      if (e.target.closest('.reaction')) return;
+      showReactionPicker(tempId, updateReactionLocally);
+    });
+
+    return tempId;
+  };
+
+  // Обработчик отправки сообщения
   const sendMessageHandler = async () => {
     const text = input.value.trim();
     if (!text) return;
+
+    const isSticker = /^\p{Emoji}$/u.test(text.trim()) && text.length === 2;
+
+    // Оптимистично добавляем сообщение в DOM
+    const tempId = addMessageLocally(text, isSticker);
+    input.value = '';
+
     try {
-      await sendMessage(window.currentUserId, friendId, text);
-      input.value = '';
-      // Обновляем чат
-      await openChatWithFriend(friendId);
+      const sentMessage = await sendMessage(
+        window.currentUserId,
+        friendId,
+        text,
+      );
+      console.log('🔥 Сообщение успешно отправлено:', sentMessage);
+
+      // Заменяем временный ID на реальный
+      const tempMessageEl = document.querySelector(
+        `[data-message-id="${tempId}"]`,
+      );
+      if (tempMessageEl) {
+        tempMessageEl.dataset.messageId = sentMessage.id;
+        tempMessageEl.querySelector('.chat-reactions').id =
+          `reactions-${sentMessage.id}`;
+
+        // Добавляем обработчики на реакции (если они появятся)
+        tempMessageEl.addEventListener('click', e => {
+          if (e.target.closest('.reaction')) return;
+          showReactionPicker(sentMessage.id, updateReactionLocally);
+        });
+      }
+
+      // Обновляем reactionsMap для нового сообщения
+      if (!reactionsMap[sentMessage.id]) {
+        reactionsMap[sentMessage.id] = {};
+      }
     } catch (e) {
+      console.error('Ошибка отправки сообщения:', e);
       toast('Ошибка отправки', 'danger');
+
+      // Удаляем временное сообщение при ошибке
+      const tempMessageEl = document.querySelector(
+        `[data-message-id="${tempId}"]`,
+      );
+      if (tempMessageEl) {
+        tempMessageEl.remove();
+      }
     }
   };
 
@@ -12805,6 +12957,14 @@ async function openChatWithFriend(friendId) {
   if (stickerBtn) {
     stickerBtn.onclick = () => toggleStickerPicker(friendId);
   }
+
+  // Прокручиваем страницу к полю ввода сообщения
+  setTimeout(() => {
+    const input = document.getElementById('chat-message-input');
+    if (input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
 }
 
 async function updateUnreadCounts() {
@@ -12846,7 +13006,9 @@ async function updateUnreadCounts() {
     playSound('sound/message.mp3');
   }
   window.unreadMessagesCount = newCount;
-  updateFloatingChatButton(); // ← добавить сюда
+  if (newCount > 0) {
+    updateFloatingChatButton(); // Показываем только если есть сообщения
+  }
   // Обновляем бейджи для конкретных чатов
   await updateChatBadges();
   // Обновляем бейдж на пилюле «Чаты»
@@ -13222,6 +13384,18 @@ document
 document.querySelectorAll('[data-fpill]').forEach(pill => {
   pill.addEventListener('click', () => {
     const target = pill.dataset.fpill;
+
+    // Закрываем чат при переключении на challenges или gifts
+    if (target === 'challenges' || target === 'gifts') {
+      const chatContainer = document.getElementById('chat-messages');
+      const friendsList = document.getElementById('chat-friends-list');
+      if (chatContainer && friendsList) {
+        chatContainer.style.display = 'none';
+        friendsList.style.display = 'block';
+        currentChatFriend = null;
+      }
+    }
+
     if (target === 'challenges') renderChallenges();
     else if (target === 'gifts') renderGifts();
     else if (target === 'chat') renderChatFriends();
@@ -13233,6 +13407,49 @@ document.querySelectorAll('[data-fpill]').forEach(pill => {
 let messagesChannel = null;
 let friendshipsChannel = null;
 let reactionsChannel = null;
+// Глобальная функция для пикера реакций (используется для входящих сообщений)
+window.showReactionPickerGlobal = function (messageId) {
+  // Проверяем, есть ли активный чат с доступным updateReactionLocally
+  const messagesList = document.getElementById('chat-messages-list');
+  if (messagesList && messagesList._updateReactionLocally) {
+    showReactionPicker(messageId, messagesList._updateReactionLocally);
+  } else {
+    // Если нет, используем базовую версию без мгновенного обновления
+    showReactionPicker(messageId);
+  }
+};
+
+// Функция для добавления входящего сообщения локально (для real-time)
+const addIncomingMessageLocally = (message, senderUsername) => {
+  const messagesList = document.getElementById('chat-messages-list');
+  if (!messagesList) return;
+
+  const isSticker =
+    /^\p{Emoji}$/u.test(message.text.trim()) && message.text.length === 2;
+
+  const messageHtml = `
+    <div class="chat-message chat-message--incoming" data-message-id="${message.id}">
+      <div class="chat-bubble">
+        ${isSticker ? `<div class="sticker-message">${message.text}</div>` : esc(message.text)}
+        ${!isSticker ? `<div class="chat-time">${new Date(message.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+        <div class="chat-reactions" id="reactions-${message.id}"></div>
+      </div>
+    </div>
+  `;
+
+  messagesList.insertAdjacentHTML('beforeend', messageHtml);
+
+  // Прокручиваем вниз
+  messagesList.scrollTo({ top: messagesList.scrollHeight, behavior: 'smooth' });
+
+  // Добавляем обработчик клика на новое сообщение
+  const newMessageEl = messagesList.lastElementChild;
+  newMessageEl.addEventListener('click', e => {
+    if (e.target.closest('.reaction')) return;
+    showReactionPickerGlobal(message.id);
+  });
+};
+
 function subscribeToMessages() {
   if (messagesChannel) {
     messagesChannel.unsubscribe();
@@ -13273,9 +13490,9 @@ function subscribeToMessages() {
         ) {
           renderChatFriends();
         }
-        // Если сейчас открыт чат с этим отправителем, обновляем историю
+        // Если сейчас открыт чат с этим отправителем, добавляем сообщение локально
         if (currentChatFriend === senderId) {
-          await openChatWithFriend(senderId);
+          addIncomingMessageLocally(message, profile?.username);
         }
       },
     )
@@ -13522,7 +13739,7 @@ console.log('  - testFullRenderIdioms()');
 
 const EMOJI_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥', '👏', '🎉'];
 
-async function showReactionPicker(messageId) {
+async function showReactionPicker(messageId, updateReactionLocally) {
   // Закрываем предыдущий пикер
   const existing = document.querySelector('.emoji-picker');
   if (existing) existing.remove();
@@ -13561,7 +13778,35 @@ async function showReactionPicker(messageId) {
   picker.querySelectorAll('.emoji-item').forEach(item => {
     item.addEventListener('click', async () => {
       const emoji = item.dataset.emoji;
-      await handleReactionToggle(messageId, emoji);
+      // Определяем состояние по DOM - если реакция есть, значит пользователь уже добавил её
+      const messageEl = document.querySelector(
+        `.chat-message[data-message-id="${messageId}"]`,
+      );
+      const reactionEl = messageEl?.querySelector(
+        `.reaction[data-emoji="${emoji}"]`,
+      );
+      const isPresent = !!reactionEl;
+      const change = isPresent ? -1 : 1;
+
+      // Оптимистично обновляем DOM
+      if (updateReactionLocally) {
+        updateReactionLocally(messageId, emoji, change);
+      }
+
+      try {
+        await toggleReaction(messageId, window.currentUserId, emoji);
+        // Звук только для добавления реакции (change === 1)
+        if (change === 1) {
+          playSound('sound/send.mp3');
+        }
+      } catch (err) {
+        console.error('Ошибка при изменении реакции:', err);
+        // Откатываем локальное изменение
+        if (updateReactionLocally) {
+          updateReactionLocally(messageId, emoji, -change);
+        }
+        toast('Ошибка: не удалось изменить реакцию', 'danger');
+      }
       picker.remove();
     });
   });
@@ -13576,22 +13821,44 @@ async function showReactionPicker(messageId) {
   setTimeout(() => document.addEventListener('click', closeHandler), 0);
 }
 
-async function handleReactionToggle(messageId, emoji) {
+async function handleReactionToggle(messageId, emoji, updateReactionLocally) {
   console.log('handleReactionToggle вызван:', {
     messageId,
     emoji,
     currentUserId: window.currentUserId,
   });
+
+  // Определяем, есть ли уже реакция от текущего пользователя
+  // Для этого нужно получить доступ к reactionsMap, но он в замыкании openChatWithFriend
+  // Поэтому определяем состояние по DOM - если реакция есть, значит пользователь уже добавил её
+  const messageEl = document.querySelector(
+    `.chat-message[data-message-id="${messageId}"]`,
+  );
+  const reactionEl = messageEl?.querySelector(
+    `.reaction[data-emoji="${emoji}"]`,
+  );
+  const isPresent = !!reactionEl;
+  const change = isPresent ? -1 : 1;
+
+  // Оптимистично обновляем DOM
+  if (updateReactionLocally) {
+    updateReactionLocally(messageId, emoji, change);
+  }
+
   try {
     const result = await toggleReaction(messageId, window.currentUserId, emoji);
     console.log('Результат toggleReaction:', result);
-
-    // Небольшая задержка перед обновлением чата, чтобы Supabase успел обработать
-    setTimeout(async () => {
-      console.log('Обновляем чат после изменения реакции...');
-      await openChatWithFriend(currentChatFriend);
-    }, 100);
+    // Звук только для добавления реакции (change === 1)
+    if (change === 1) {
+      playSound('sound/send.mp3');
+    }
+    // Если результат не совпадает с ожидаемым, можно синхронизировать, но для простоты оставляем как есть
   } catch (err) {
     console.error('Ошибка при изменении реакции:', err);
+    // Откатываем локальное изменение
+    if (updateReactionLocally) {
+      updateReactionLocally(messageId, emoji, -change);
+    }
+    toast('Ошибка: не удалось изменить реакцию', 'danger');
   }
 }

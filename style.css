@@ -6946,6 +6946,27 @@ input[type='range']:active::-moz-range-thumb {
   scroll-behavior: smooth;
 }
 
+/* Глобальный кастомный скроллбар как в чате */
+*::-webkit-scrollbar {
+  width: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+html.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+html.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Кастомный скроллбар */
 .chat-messages-list::-webkit-scrollbar {
   width: 6px;
@@ -12909,6 +12930,10 @@ button.floating-add-btn:hover .material-symbols-outlined,
   color: white !important;
 }
 
+#floating-chat-btn {
+  display: none; /* Скрыта по умолчанию */
+}
+
 .floating-add-btn .material-symbols-outlined {
   font-size: 24px;
   color: white;
@@ -13714,7 +13739,13 @@ button.floating-add-btn:hover .material-symbols-outlined,
   margin-top: 1rem;
 }
 
-/* Табы периодов лидерборда */
+/* Лидерборд с фиксированной высотой */
+.friends-leaderboard-list {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: visible; /* Разрешаем выход по горизонтали для ховера */
+  padding-right: 8px; /* Отступ справа для скроллбара */
+}
 .lb-period-tabs {
   display: flex;
   gap: 0.25rem;
@@ -13833,6 +13864,9 @@ button.floating-add-btn:hover .material-symbols-outlined,
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 8px; /* Отступ справа для скроллбара */
 }
 
 .activity-item {
@@ -16164,12 +16198,15 @@ body.bs-open .bs-trigger-arrow {
 #challenges-list .lb-row:hover,
 #gifts-list .lb-row:hover,
 #chat-friends-list .lb-row:hover {
-  transform: translateY(-2px);
+  transform: scale(1.02);
   border-color: var(--primary);
   box-shadow: var(--shadow-hover);
 }
 
-/* Панель чата */
+#chat-friends-list {
+  margin-top: 1rem;
+  overflow: visible !important; /* Принудительно разрешаем выход за границы */
+}
 #chat-messages {
   background: var(--card);
   border-radius: 16px;

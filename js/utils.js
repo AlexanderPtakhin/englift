@@ -295,7 +295,12 @@ function playSound(type) {
           ? 0.3
           : audioPath.includes('message.mp3')
             ? 0.5 // 🔊 Увеличиваем громкость для сообщений
-            : 0.1;
+            : audioPath.includes('send.mp3') || audioPath.includes('add.mp3')
+              ? 0.3 // 🔊 Увеличиваем громкость для отправки и добавления
+              : audioPath.includes('sucsess.mp3') ||
+                  audioPath.includes('wrong.mp3')
+                ? 0.2 // 🔊 Ответы на упражнения
+                : 0.1;
 
     console.log('🔊 Final volume:', audio.volume);
 
