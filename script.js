@@ -78,7 +78,9 @@ import {
   updateChallengeProgress,
   sendGift,
   getGiftsReceived,
+  toggleReaction,
 } from './js/social.js';
+import { getReactionsForMessages } from './db.js';
 // Импортируем банк идиом
 import idiomsBankData from './idioms.json';
 // =============================================
@@ -427,6 +429,8 @@ let idiomsSearchQuery = '';
 let idiomsSortBy = 'date-desc';
 let idiomsTagFilter = '';
 let idiomsActiveFilter = 'all';
+// Флаг для блокировки прокрутки при переключении вкладок
+let preventTabScroll = false;
 // Sync and save variables
 let refreshScheduled = false;
 let isSaving = false;
@@ -1330,6 +1334,25 @@ window.addEventListener('beforeunload', () => {
 setInterval(() => {
   syncProfileNow();
 }, 60000);
+// Глобальные переменные
+window.unreadMessagesCount = 0;
+
+// Функция обновления плавающей кнопки
+function updateFloatingChatButton() {
+  const btn = document.getElementById('floating-chat-btn');
+  const badge = document.getElementById('floating-chat-badge');
+  if (!btn) return;
+  if (window.unreadMessagesCount > 0) {
+    btn.style.display = 'flex';
+    badge.textContent =
+      window.unreadMessagesCount > 9 ? '9+' : window.unreadMessagesCount;
+    badge.style.display = 'flex';
+  } else {
+    btn.style.display = 'none';
+    badge.style.display = 'none';
+  }
+}
+
 // Периодическое обновление непрочитанных сообщений раз в 30 секунд
 setInterval(() => {
   if (window.currentUserId) {
@@ -3761,11 +3784,40 @@ function switchTab(name) {
   if (name === 'words') refreshUI(); // уже обновлено выше, но оставим для надежности
   // Скроллим наверх при переключении вкладок (особенно для мобильных)
   if (window.innerWidth <= 768) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    console.log('🔥 switchTab: Проверка прокрутки наверх');
+    console.log('🔥 switchTab: preventTabScroll =', preventTabScroll);
+    console.log('🔥 switchTab: window.innerWidth =', window.innerWidth);
+    if (!preventTabScroll) {
+      console.log('🔥 switchTab: ВЫПОЛНЯЕМ ПРОКРУТКУ НАВЕРХ!');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      console.log('🔥 switchTab: ПРОКРУТКА НАВЕРХ ЗАБЛОКИРОВАНА');
+    }
   }
+}
+// Переключение на вкладку друзей без прокрутки и без автоматической загрузки данных
+function switchToFriendsWithoutScroll() {
+  console.log('🔥 switchToFriendsWithoutScroll: НАЧАЛО');
+  const name = 'friends';
+
+  // Скрываем активные панели, показываем нужную
+  document
+    .querySelectorAll('.nav-btn')
+    .forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document
+    .querySelectorAll('.tab-pane')
+    .forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+
+  // Обновляем мобильную навигацию
+  syncMobileNav(name);
+
+  // Обновляем видимость плавающих кнопок
+  updateFloatingButtonsForTab(name);
+  console.log('🔥 switchToFriendsWithoutScroll: КОНЕЦ');
 }
 // Экспортируем функции глобально
 window.switchTab = switchTab;
+window.switchToFriendsWithoutScroll = switchToFriendsWithoutScroll;
 window.renderWeekChart = renderWeekChart;
 document
   .querySelectorAll('.nav-btn[data-tab]')
@@ -10259,6 +10311,78 @@ addWordModalClose?.addEventListener('click', closeAddWordModal);
 addWordModal?.addEventListener('click', e => {
   if (e.target === addWordModal) closeAddWordModal();
 });
+document
+  .getElementById('floating-chat-btn')
+  ?.addEventListener('click', async () => {
+    console.log('🔥 НАЧАЛО: Клик на плавающую кнопку чата');
+    console.log('🔥 preventTabScroll до установки:', preventTabScroll);
+
+    // Устанавливаем флаг, чтобы отключить прокрутку вверх при переключении вкладки
+    preventTabScroll = true;
+    console.log('🔥 Установили preventTabScroll = true');
+
+    // 1. Переключаем вкладку без прокрутки
+    console.log('🔥 Вызываем switchToFriendsWithoutScroll()');
+    switchToFriendsWithoutScroll();
+
+    // 2. Загружаем данные друзей (асинхронно)
+    console.log('🔥 Начинаем загрузку данных друзей...');
+    await loadFriendsDataNew();
+    console.log('🔥 Данные друзей загружены');
+
+    // 3. Активируем пилюлю "Чаты"
+    console.log('🔥 Активируем пилюлю "Чаты"');
+    document
+      .querySelectorAll('[data-fpill]')
+      .forEach(p => p.classList.remove('active'));
+    const chatPill = document.querySelector('[data-fpill="chat"]');
+    if (chatPill) {
+      chatPill.classList.add('active');
+      document
+        .querySelectorAll('.friends-panel')
+        .forEach(p => p.classList.remove('active'));
+      document.getElementById('fpanel-chat').classList.add('active');
+    }
+
+    // 4. Рендерим список чатов
+    console.log('🔥 Начинаем рендеринг чатов...');
+    await renderChatFriends();
+    console.log('🔥 Чаты отрендерены');
+
+    // 5. Прокручиваем к списку чатов с задержкой, чтобы DOM успел обновиться
+    const chatList = document.getElementById('chat-friends-list');
+    if (chatList) {
+      console.log('🔥 Найден список чатов, прокручиваем через 150мс');
+      setTimeout(() => {
+        console.log('🔥 ВЫПОЛНЯЕМ ПРОКРУТКУ К СПИСКУ ЧАТОВ');
+        console.log(
+          '🔥 preventTabScroll в момент прокрутки:',
+          preventTabScroll,
+        );
+
+        // Блокируем скролл страницы на время, чтобы никакой процесс не перебил
+        document.body.style.overflow = 'hidden';
+
+        // Прокручиваем мгновенно
+        chatList.scrollIntoView({ behavior: 'instant', block: 'start' });
+
+        // Возвращаем скролл через 300 мс
+        setTimeout(() => {
+          document.body.style.overflow = '';
+        }, 300);
+      }, 150);
+    } else {
+      console.log('🔥 ОШИБКА: Список чатов не найден!');
+    }
+
+    // Снимаем флаг через 800 мс, чтобы успела завершиться прокрутка и другие процессы
+    setTimeout(() => {
+      console.log('🔥 Сбрасываем preventTabScroll = false');
+      preventTabScroll = false;
+    }, 800);
+
+    console.log('🔥 КОНЕЦ: Обработчик кнопки завершен');
+  });
 // ============================================================
 // ============================================================
 // INITIALIZATION
@@ -10605,6 +10729,7 @@ let lastScrollY = window.scrollY;
 const SCROLL_THRESHOLD = 20; // минимальное расстояние для скрытия
 const floatingWordBtn = document.getElementById('floating-add-word-btn');
 const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
+const floatingChatBtn = document.getElementById('floating-chat-btn');
 function updateFloatingButtonsVisibility() {
   const currentScrollY = window.scrollY;
   const delta = currentScrollY - lastScrollY;
@@ -10618,9 +10743,17 @@ function updateFloatingButtonsVisibility() {
     if (delta > 0) {
       // Скроллим вниз – скрываем
       activeBtn.classList.add('fab-hidden');
+      // Кнопку чата тоже скрываем при скролле вниз, если она видима
+      if (floatingChatBtn && floatingChatBtn.style.display !== 'none') {
+        floatingChatBtn.classList.add('fab-hidden');
+      }
     } else {
       // Скроллим вверх – показываем
       activeBtn.classList.remove('fab-hidden');
+      // Кнопку чата тоже показываем при скролле вверх, если она должна быть видима
+      if (floatingChatBtn && floatingChatBtn.style.display !== 'none') {
+        floatingChatBtn.classList.remove('fab-hidden');
+      }
     }
     lastScrollY = currentScrollY;
   }
@@ -10683,6 +10816,9 @@ if ('serviceWorker' in navigator) {
 // ============================================
 let activeFriendsPanel = 'list';
 async function loadFriendsDataNew() {
+  console.log('🔥 loadFriendsDataNew: НАЧАЛО');
+  console.log('🔥 loadFriendsDataNew: preventTabScroll =', preventTabScroll);
+
   if (!window.currentUserId) {
     console.log('⚠️ loadFriendsDataNew: нет userId, пропускаем');
     return;
@@ -10704,6 +10840,7 @@ async function loadFriendsDataNew() {
     await updateUnreadCounts(); // получим количество непрочитанных
     updateFriendsSubBadges(); // обновим бейджи заявок и чата
     renderFriendsTab();
+    console.log('🔥 loadFriendsDataNew: КОНЕЦ');
   } catch (e) {
     console.error('loadFriendsDataNew error', e);
     friendsData = { friends: [], requests: [], outgoing: [], leaderboard: [] };
@@ -10730,6 +10867,9 @@ async function initFriendsBadges() {
   }
 }
 function renderFriendsTab() {
+  console.log('🔥 renderFriendsTab: НАЧАЛО');
+  console.log('🔥 renderFriendsTab: preventTabScroll =', preventTabScroll);
+
   loadLeaderboard('week'); // Загружаем недельный лидерборд по умолчанию
   loadFriendActivity(); // Загружаем ленту активности друзей
   renderFriendsList();
@@ -12119,9 +12259,6 @@ async function renderGifts() {
 // Чат
 let currentChatFriend = null;
 
-// Реакции на сообщения
-const EMOJI_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥', '👏', '🎉'];
-
 // Стикеры
 const STICKERS = [
   '😀',
@@ -12431,6 +12568,11 @@ window.sendSticker = async function (friendId, sticker) {
 async function renderChatFriends() {
   const container = document.getElementById('chat-friends-list');
   if (!container) return;
+
+  // Подписываемся на сообщения и реакции
+  subscribeToMessages();
+  subscribeToReactions();
+
   if (!friendsData.friends.length) {
     container.innerHTML =
       '<div class="friends-empty"><span class="material-symbols-outlined">chat</span><p>Добавь друзей, чтобы начать чат</p></div>';
@@ -12471,6 +12613,7 @@ async function openChatWithFriend(friendId) {
   const friendsList = document.getElementById('chat-friends-list');
   const header = document.getElementById('chat-header');
   const messagesList = document.getElementById('chat-messages-list');
+
   // Показываем чат, скрываем список друзей
   friendsList.style.display = 'none';
   chatContainer.style.display = 'block';
@@ -12487,12 +12630,14 @@ async function openChatWithFriend(friendId) {
       </div>
     </div>
   `;
+
   document.getElementById('close-chat-btn').onclick = () => {
     chatContainer.style.display = 'none';
     friendsList.style.display = 'block';
     currentChatFriend = null;
   };
-  // Обработчик очистки чата
+
+  // Обработчик очистки чата (оставляем без изменений)
   document.getElementById('clear-chat-btn').onclick = () => {
     // Создаем модалку подтверждения
     const modal = document.createElement('div');
@@ -12554,33 +12699,82 @@ async function openChatWithFriend(friendId) {
       }
     };
   };
+
   // Загружаем сообщения
   const messages = await getMessages(window.currentUserId, friendId);
+  const messageIds = messages.map(m => m.id);
+  let reactionsMap = {}; // { messageId: { emoji: [userIds] } }
+
+  if (messageIds.length) {
+    const reactions = await getReactionsForMessages(messageIds);
+    // Группируем
+    for (const r of reactions) {
+      if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = {};
+      if (!reactionsMap[r.message_id][r.emoji])
+        reactionsMap[r.message_id][r.emoji] = [];
+      reactionsMap[r.message_id][r.emoji].push(r.user_id);
+    }
+  }
+
+  // Рендерим сообщения
   messagesList.innerHTML = messages
     .map(msg => {
       const isOutgoing = msg.sender_id === window.currentUserId;
       const isSticker =
         /^\p{Emoji}$/u.test(msg.text.trim()) && msg.text.length === 2;
+      const msgReactions = reactionsMap[msg.id] || {};
+
+      const reactionsHtml = Object.entries(msgReactions)
+        .map(
+          ([emoji, userIds]) => `
+        <div class="reaction" data-message-id="${msg.id}" data-emoji="${emoji}">
+          <span>${emoji}</span>
+          <span class="reaction-count">${userIds.length}</span>
+        </div>
+      `,
+        )
+        .join('');
 
       return `
-      <div class="chat-message ${isOutgoing ? 'chat-message--outgoing' : 'chat-message--incoming'}" data-message-id="${msg.id}" onclick="toggleReactionPicker('${msg.id}')">
+      <div class="chat-message ${isOutgoing ? 'chat-message--outgoing' : 'chat-message--incoming'}" data-message-id="${msg.id}">
         <div class="chat-bubble">
           ${isSticker ? `<div class="sticker-message">${msg.text}</div>` : esc(msg.text)}
           ${!isSticker ? `<div class="chat-time">${new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
           <div class="chat-reactions" id="reactions-${msg.id}">
-            ${renderMessageReactions(msg.id)}
+            ${reactionsHtml}
           </div>
         </div>
       </div>
     `;
     })
     .join('');
+
   // Отметить прочитанными
   await markMessagesRead(window.currentUserId, friendId);
-  // Обновляем бейдж непрочитанных (опционально)
-  updateUnreadCounts();
+
   // Прокрутка вниз
   messagesList.scrollTo({ top: messagesList.scrollHeight, behavior: 'smooth' });
+
+  // Вешаем обработчики на сообщения
+  messagesList.querySelectorAll('.chat-message').forEach(msgEl => {
+    const messageId = msgEl.dataset.messageId;
+    msgEl.addEventListener('click', e => {
+      // Не открываем пикер, если клик по реакции
+      if (e.target.closest('.reaction')) return;
+      showReactionPicker(messageId);
+    });
+
+    msgEl.querySelectorAll('.reaction').forEach(reactEl => {
+      reactEl.addEventListener('click', async e => {
+        e.stopPropagation();
+        console.log('🔥 Клик по реакции!', reactEl);
+        const emoji = reactEl.dataset.emoji;
+        const messageId = reactEl.dataset.messageId;
+        console.log('🔥 Данные реакции:', { emoji, messageId });
+        await handleReactionToggle(messageId, emoji);
+      });
+    });
+  });
   // Отправка сообщения
   const input = document.getElementById('chat-message-input');
   const sendBtn = document.getElementById('chat-send-btn');
@@ -12652,6 +12846,7 @@ async function updateUnreadCounts() {
     playSound('sound/message.mp3');
   }
   window.unreadMessagesCount = newCount;
+  updateFloatingChatButton(); // ← добавить сюда
   // Обновляем бейджи для конкретных чатов
   await updateChatBadges();
   // Обновляем бейдж на пилюле «Чаты»
@@ -13015,6 +13210,7 @@ window.renderChallenges = renderChallenges;
 window.renderGifts = renderGifts;
 window.renderChatFriends = renderChatFriends;
 window.updateUnreadCounts = updateUnreadCounts;
+window.updateFloatingChatButton = updateFloatingChatButton;
 // ========== Кнопка создания челленджа ==========
 document
   .getElementById('create-challenge-btn')
@@ -13036,6 +13232,7 @@ document.querySelectorAll('[data-fpill]').forEach(pill => {
 // ============================================================
 let messagesChannel = null;
 let friendshipsChannel = null;
+let reactionsChannel = null;
 function subscribeToMessages() {
   if (messagesChannel) {
     messagesChannel.unsubscribe();
@@ -13084,6 +13281,35 @@ function subscribeToMessages() {
     )
     .subscribe();
 }
+
+function subscribeToReactions() {
+  if (reactionsChannel) {
+    reactionsChannel.unsubscribe();
+  }
+  if (!window.currentUserId) return;
+  console.log('🔥 Подписываемся на реакции...');
+  reactionsChannel = supabase
+    .channel('reactions-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'reactions',
+      },
+      async payload => {
+        console.log('🔥 Получено обновление реакций:', payload);
+        // Если открыт чат с кем-то, обновляем его
+        if (currentChatFriend) {
+          console.log('🔥 Обновляем чат из-за изменения реакций');
+          await openChatWithFriend(currentChatFriend);
+        }
+      },
+    )
+    .subscribe();
+  console.log('🔥 Подписка на реакции установлена');
+}
+
 function subscribeToFriendRequests() {
   if (friendshipsChannel) {
     friendshipsChannel.unsubscribe();
@@ -13291,3 +13517,81 @@ console.log('  - testInfiniteScrollWords()');
 console.log('  - testInfiniteScrollIdioms()');
 console.log('  - testFullRenderWords()');
 console.log('  - testFullRenderIdioms()');
+
+// ========== REACTIONS FUNCTIONS ==========
+
+const EMOJI_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥', '👏', '🎉'];
+
+async function showReactionPicker(messageId) {
+  // Закрываем предыдущий пикер
+  const existing = document.querySelector('.emoji-picker');
+  if (existing) existing.remove();
+
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  picker.innerHTML = `
+    <div class="emoji-picker-header">Реакции</div>
+    <div class="emoji-grid">
+      ${EMOJI_REACTIONS.map(
+        emoji => `
+        <div class="emoji-item" data-emoji="${emoji}">${emoji}</div>
+      `,
+      ).join('')}
+    </div>
+  `;
+
+  // Позиционируем рядом с сообщением
+  const msgElement = document.querySelector(
+    `.chat-message[data-message-id="${messageId}"]`,
+  );
+  if (msgElement) {
+    const rect = msgElement.getBoundingClientRect();
+    picker.style.position = 'fixed';
+    picker.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+    picker.style.left = `${rect.left + rect.width / 2 - 100}px`;
+  } else {
+    picker.style.bottom = '50%';
+    picker.style.left = '50%';
+    picker.style.transform = 'translate(-50%, -50%)';
+  }
+
+  document.body.appendChild(picker);
+
+  // Обработчик выбора эмодзи
+  picker.querySelectorAll('.emoji-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const emoji = item.dataset.emoji;
+      await handleReactionToggle(messageId, emoji);
+      picker.remove();
+    });
+  });
+
+  // Закрыть по клику вне
+  const closeHandler = e => {
+    if (!picker.contains(e.target)) {
+      picker.remove();
+      document.removeEventListener('click', closeHandler);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeHandler), 0);
+}
+
+async function handleReactionToggle(messageId, emoji) {
+  console.log('handleReactionToggle вызван:', {
+    messageId,
+    emoji,
+    currentUserId: window.currentUserId,
+  });
+  try {
+    const result = await toggleReaction(messageId, window.currentUserId, emoji);
+    console.log('Результат toggleReaction:', result);
+
+    // Небольшая задержка перед обновлением чата, чтобы Supabase успел обработать
+    setTimeout(async () => {
+      console.log('Обновляем чат после изменения реакции...');
+      await openChatWithFriend(currentChatFriend);
+    }, 100);
+  } catch (err) {
+    console.error('Ошибка при изменении реакции:', err);
+  }
+}

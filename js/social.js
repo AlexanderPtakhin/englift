@@ -1,6 +1,7 @@
 // js/social.js
 import { supabase } from '../supabase.js';
 import { toast, gainXP, playSound } from './utils.js'; // gainXP нужно будет импортировать из глобального контекста, но для простоты оставим пока ссылку на window
+import { addReaction, removeReaction } from '../db.js';
 
 // ========== Друзья ==========
 export async function getFriends(userId) {
@@ -331,4 +332,23 @@ export async function compareDictionaries(userId, friendId) {
       unique: uniqueIdioms,
     },
   };
+}
+
+// ========== REACTIONS ==========
+
+export async function toggleReaction(messageId, userId, emoji) {
+  console.log('🔥 toggleReaction в social.js:', { messageId, userId, emoji });
+  try {
+    await addReaction(messageId, userId, emoji);
+    console.log('🔥 Реакция добавлена');
+    return 'added';
+  } catch (error) {
+    // Если ошибка "duplicate key" (код 23505), удаляем
+    if (error.code === '23505') {
+      console.log('🔥 Реакция уже существует, удаляем');
+      await removeReaction(messageId, userId, emoji);
+      return 'removed';
+    }
+    throw error;
+  }
 }

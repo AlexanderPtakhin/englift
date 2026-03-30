@@ -510,3 +510,46 @@ export async function getFriendsLeaderboard(userId) {
   const all = [myProfile, ...friends];
   return all.sort((a, b) => (b.xp || 0) - (a.xp || 0));
 }
+
+// ========== REACTIONS ==========
+
+export async function addReaction(messageId, userId, emoji) {
+  console.log('🔥 addReaction в db.js:', { messageId, userId, emoji });
+  const { error } = await supabase
+    .from('reactions')
+    .insert({ message_id: messageId, user_id: userId, emoji });
+  if (error) {
+    console.error('🔥 Ошибка addReaction:', error);
+    throw error;
+  }
+  console.log('🔥 addReaction успешен');
+}
+
+export async function removeReaction(messageId, userId, emoji) {
+  console.log('🔥 removeReaction в db.js:', { messageId, userId, emoji });
+  const { error } = await supabase
+    .from('reactions')
+    .delete()
+    .eq('message_id', messageId)
+    .eq('user_id', userId)
+    .eq('emoji', emoji);
+  if (error) {
+    console.error('🔥 Ошибка removeReaction:', error);
+    throw error;
+  }
+  console.log('🔥 removeReaction успешен');
+}
+
+/**
+ * Получает реакции для списка ID сообщений.
+ * Возвращает массив объектов { message_id, user_id, emoji }
+ */
+export async function getReactionsForMessages(messageIds) {
+  if (!messageIds.length) return [];
+  const { data, error } = await supabase
+    .from('reactions')
+    .select('message_id, user_id, emoji')
+    .in('message_id', messageIds);
+  if (error) throw error;
+  return data;
+}

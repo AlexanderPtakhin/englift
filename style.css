@@ -12904,7 +12904,8 @@ html
 
 button.floating-add-btn:hover .material-symbols-outlined,
 #floating-add-word-btn:hover .material-symbols-outlined,
-#floating-add-idiom-btn:hover .material-symbols-outlined {
+#floating-add-idiom-btn:hover .material-symbols-outlined,
+#floating-chat-btn:hover .material-symbols-outlined {
   color: white !important;
 }
 
@@ -12925,6 +12926,10 @@ button.floating-add-btn:hover .material-symbols-outlined,
   .floating-add-btn .material-symbols-outlined {
     font-size: 20px;
   }
+
+  .floating-chat-btn {
+    bottom: calc(10rem + 70px);
+  }
 }
 
 /* Скрытие/показ без прыжков */
@@ -12935,6 +12940,28 @@ button.floating-add-btn:hover .material-symbols-outlined,
   transition:
     opacity 0.2s ease,
     transform 0.2s ease;
+}
+
+/* Плавающая кнопка чата */
+.floating-chat-btn {
+  background: var(--primary);
+  bottom: 10rem;
+}
+
+.floating-chat-btn .badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--danger);
+  color: white;
+  font-size: 0.7rem;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
 }
 
 /* Стили для карточек идиом */
