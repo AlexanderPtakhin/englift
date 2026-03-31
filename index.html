@@ -2227,5 +2227,81 @@
     <script src="js/wordBankDB.js"></script>
 
     <script src="tour.js"></script>
+
+    <!-- vConsole для отладки на мобильных -->
+    <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+      // Инициализация vConsole только для мобильных устройств
+      if (
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent,
+        )
+      ) {
+        var vConsole = new window.VConsole();
+        console.log('🔥 vConsole активирован');
+
+        // Глобальный логгер для всего приложения
+        window.debugLog = function (category, message, data = null) {
+          const timestamp = new Date().toLocaleTimeString();
+          const prefix = `[${timestamp}] ${category}`;
+
+          if (data) {
+            console.log(`${prefix}: ${message}`, data);
+          } else {
+            console.log(`${prefix}: ${message}`);
+          }
+        };
+
+        // Логируем все важные события
+        window.addEventListener('load', () => {
+          debugLog('APP', 'Приложение загружено');
+        });
+
+        // Логируем навигацию
+        let lastUrl = location.href;
+        setInterval(() => {
+          if (location.href !== lastUrl) {
+            debugLog(
+              'NAVIGATION',
+              `URL изменился: ${lastUrl} → ${location.href}`,
+            );
+            lastUrl = location.href;
+          }
+        }, 1000);
+
+        // Логируем клики
+        document.addEventListener('click', e => {
+          const target = e.target.closest(
+            '[data-action], button, a, .btn, [onclick]',
+          );
+          if (target) {
+            debugLog('CLICK', `Клик на:`, {
+              element: target.tagName,
+              class: target.className,
+              id: target.id,
+              text: target.textContent?.substring(0, 50),
+            });
+          }
+        });
+
+        // Логируем ошибки
+        window.addEventListener('error', e => {
+          debugLog('ERROR', `Ошибка: ${e.message}`, {
+            filename: e.filename,
+            lineno: e.lineno,
+            colno: e.colno,
+          });
+        });
+
+        // Логируем Service Worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.addEventListener('message', e => {
+            debugLog('SW', `Сообщение от SW:`, e.data);
+          });
+        }
+
+        debugLog('DEBUG', 'Глобальный логгер инициализирован');
+      }
+    </script>
   </body>
 </html>

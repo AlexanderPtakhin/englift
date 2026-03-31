@@ -232,7 +232,7 @@ export async function getMessages(userId, friendId, limit = 50) {
     .or(
       `and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId})`,
     )
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false }) // Получаем самые новые сообщения
     .limit(limit);
   if (error) throw error;
   return data;

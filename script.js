@@ -429,8 +429,6 @@ let idiomsSearchQuery = '';
 let idiomsSortBy = 'date-desc';
 let idiomsTagFilter = '';
 let idiomsActiveFilter = 'all';
-// Флаг для блокировки прокрутки при переключении вкладок
-let preventTabScroll = false;
 // Sync and save variables
 let refreshScheduled = false;
 let isSaving = false;
@@ -1343,10 +1341,27 @@ function updateFloatingChatButton() {
   const badge = document.getElementById('floating-chat-badge');
   if (!btn) return;
 
-  // Если открыт чат, кнопку скрываем
-  if (currentChatFriend) {
-    btn.style.display = 'none';
-    badge.style.display = 'none';
+  console.log('🔥 updateFloatingChatButton:');
+  console.log('  - window.currentChatFriend:', window.currentChatFriend);
+  console.log('  - window.unreadMessagesCount:', window.unreadMessagesCount);
+  console.log('  - btn текущий display:', btn.style.display);
+
+  // Если открыт чат, кнопку скрываем только если нет непрочитанных в других чатах
+  if (window.currentChatFriend) {
+    console.log('  - Чат открыт, проверяем непрочитанные...');
+    if (window.unreadMessagesCount > 0) {
+      console.log('  - Есть непрочитанные, показываем кнопку');
+      // Показываем кнопку с бейджем оставшихся сообщений
+      btn.style.display = 'flex';
+      badge.textContent =
+        window.unreadMessagesCount > 9 ? '9+' : window.unreadMessagesCount;
+      badge.style.display = 'flex';
+    } else {
+      console.log('  - Нет непрочитанных, скрываем кнопку');
+      // Нет непрочитанных - скрываем кнопку
+      btn.style.display = 'none';
+      badge.style.display = 'none';
+    }
     return;
   }
 
@@ -3745,7 +3760,7 @@ if (!document.getElementById('confetti-styles')) {
 `;
   document.head.appendChild(confettiStyles);
 }
-function switchTab(name) {
+function switchTab(name, skipScroll = false) {
   const currentActivePane = document.querySelector('.tab-pane.active');
   const currentActiveTab = currentActivePane
     ? currentActivePane.id.replace('tab-', '')
@@ -3758,7 +3773,7 @@ function switchTab(name) {
     if (chatContainer && friendsList) {
       chatContainer.style.display = 'none';
       friendsList.style.display = 'block';
-      currentChatFriend = null;
+      window.currentChatFriend = null;
     }
   }
 
@@ -3803,36 +3818,18 @@ function switchTab(name) {
   updateFloatingButtonsForTab(name);
   if (name === 'words') refreshUI(); // уже обновлено выше, но оставим для надежности
   // Скроллим наверх при переключении вкладок (особенно для мобильных)
-  if (window.innerWidth <= 768) {
+  if (window.innerWidth <= 768 && !skipScroll) {
     console.log('🔥 switchTab: Проверка прокрутки наверх');
-    console.log('🔥 switchTab: preventTabScroll =', preventTabScroll);
     console.log('🔥 switchTab: window.innerWidth =', window.innerWidth);
-    if (!preventTabScroll) {
-      console.log('🔥 switchTab: ВЫПОЛНЯЕМ ПРОКРУТКУ НАВЕРХ!');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      console.log('🔥 switchTab: ПРОКРУТКА НАВЕРХ ЗАБЛОКИРОВАНА');
-    }
+    console.log('🔥 switchTab: ВЫПОЛНЯЕМ ПРОКРУТКУ НАВЕРХ!');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
 // Переключение на вкладку друзей без прокрутки и без автоматической загрузки данных
 function switchToFriendsWithoutScroll() {
   console.log('🔥 switchToFriendsWithoutScroll: НАЧАЛО');
-  const name = 'friends';
-
-  // Скрываем активные панели, показываем нужную
-  document
-    .querySelectorAll('.nav-btn')
-    .forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  document
-    .querySelectorAll('.tab-pane')
-    .forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-
-  // Обновляем мобильную навигацию
-  syncMobileNav(name);
-
-  // Обновляем видимость плавающих кнопок
-  updateFloatingButtonsForTab(name);
+  // Вызываем switchTab с параметром skipScroll = true
+  switchTab('friends', true);
   console.log('🔥 switchToFriendsWithoutScroll: КОНЕЦ');
 }
 // Экспортируем функции глобально
@@ -6589,6 +6586,10 @@ function handleExerciseClick(e) {
   const card = e.currentTarget;
   const exType = card.dataset.ex;
   const mode = practiceMode;
+
+  // Добавляем звук клика
+  playSound('sound/click.mp3', 0.3);
+
   const selectedArray =
     mode === 'idioms' ? selectedIdiomExercises : selectedWordExercises;
   const index = selectedArray.indexOf(exType);
@@ -10351,23 +10352,18 @@ document
   .getElementById('floating-chat-btn')
   ?.addEventListener('click', async () => {
     console.log('🔥 НАЧАЛО: Клик на плавающую кнопку чата');
-    console.log('🔥 preventTabScroll до установки:', preventTabScroll);
-
-    // Устанавливаем флаг, чтобы отключить прокрутку вверх при переключении вкладки
-    preventTabScroll = true;
-    console.log('🔥 Установили preventTabScroll = true');
 
     // 1. Переключаем вкладку без прокрутки
-    console.log('🔥 Вызываем switchToFriendsWithoutScroll()');
+    console.log('🔥 Шаг 1: Вызываем switchToFriendsWithoutScroll');
     switchToFriendsWithoutScroll();
 
-    // 2. Загружаем данные друзей (асинхронно)
-    console.log('🔥 Начинаем загрузку данных друзей...');
+    // 2. Загружаем данные друзей
+    console.log('🔥 Шаг 2: Загружаем данные друзей');
     await loadFriendsDataNew();
     console.log('🔥 Данные друзей загружены');
 
     // 3. Активируем пилюлю "Чаты"
-    console.log('🔥 Активируем пилюлю "Чаты"');
+    console.log('🔥 Шаг 3: Активируем пилюлю "Чаты"');
     document
       .querySelectorAll('[data-fpill]')
       .forEach(p => p.classList.remove('active'));
@@ -10378,47 +10374,75 @@ document
         .querySelectorAll('.friends-panel')
         .forEach(p => p.classList.remove('active'));
       document.getElementById('fpanel-chat').classList.add('active');
+      console.log('🔥 Пилюля "Чаты" активирована');
     }
 
     // 4. Рендерим список чатов
-    console.log('🔥 Начинаем рендеринг чатов...');
+    console.log('🔥 Шаг 4: Рендерим список чатов');
     await renderChatFriends();
     console.log('🔥 Чаты отрендерены');
 
-    // 5. Прокручиваем к списку чатов с задержкой, чтобы DOM успел обновиться
+    // 5. Прокручиваем к списку чатов с учетом высоты блоков сверху
+    console.log('🔥 Шаг 5: Прокручиваем к списку чатов');
     const chatList = document.getElementById('chat-friends-list');
     if (chatList) {
-      console.log('🔥 Найден список чатов, прокручиваем через 150мс');
       setTimeout(() => {
-        console.log('🔥 ВЫПОЛНЯЕМ ПРОКРУТКУ К СПИСКУ ЧАТОВ');
-        console.log(
-          '🔥 preventTabScroll в момент прокрутки:',
-          preventTabScroll,
+        console.log('🔥 Начинаем расчет позиции для прокрутки');
+
+        // Получаем высоту всех блоков над чатами
+        const leaderboard = document.querySelector(
+          '.friends-leaderboard-section',
         );
+        const activity = document.querySelector('.friends-activity-section');
+        const pills = document.querySelector('.friends-pills');
 
-        // Блокируем скролл страницы на время, чтобы никакой процесс не перебил
-        document.body.style.overflow = 'hidden';
+        console.log('🔥 Найденные блоки:');
+        console.log('  - leaderboard:', leaderboard ? 'найден' : 'не найден');
+        console.log('  - activity:', activity ? 'найден' : 'не найден');
+        console.log('  - pills:', pills ? 'найден' : 'не найден');
 
-        // Прокручиваем мгновенно
-        chatList.scrollIntoView({ behavior: 'instant', block: 'start' });
+        let offsetTop = 0;
+        if (leaderboard) {
+          offsetTop += leaderboard.offsetHeight + 20;
+          console.log('🔥 Высота лидерборда:', leaderboard.offsetHeight);
+        }
+        if (activity) {
+          offsetTop += activity.offsetHeight + 20;
+          console.log('🔥 Высота активности:', activity.offsetHeight);
+        }
+        if (pills) {
+          offsetTop += pills.offsetHeight + 20;
+          console.log('🔥 Высота пилюль:', pills.offsetHeight);
+        }
 
-        // Возвращаем скролл через 300 мс
+        console.log('🔥 Итоговый offsetTop для прокрутки:', offsetTop);
+        console.log('🔥 Текущая позиция скролла:', window.scrollY);
+
+        // Прокручиваем к началу блока чатов (теперь у него есть своя высота и скролл)
+        console.log('🔥 Прокручиваем к началу блока чатов:', offsetTop);
+
+        // Используем requestAnimationFrame для точной прокрутки
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: offsetTop,
+            behavior: 'smooth',
+          });
+        });
+
+        console.log('🔥 Команда прокрутки к началу блока чатов отправлена');
+
+        // Проверяем позицию через 500мс
         setTimeout(() => {
-          document.body.style.overflow = '';
-        }, 300);
-      }, 150);
+          console.log('🔥 Позиция после прокрутки:', window.scrollY);
+        }, 500);
+      }, 300);
     } else {
-      console.log('🔥 ОШИБКА: Список чатов не найден!');
+      console.log('🔥 ОШИБКА: chat-friends-list не найден!');
     }
-
-    // Снимаем флаг через 800 мс, чтобы успела завершиться прокрутка и другие процессы
-    setTimeout(() => {
-      console.log('🔥 Сбрасываем preventTabScroll = false');
-      preventTabScroll = false;
-    }, 800);
 
     console.log('🔥 КОНЕЦ: Обработчик кнопки завершен');
   });
+
 // ============================================================
 // ============================================================
 // INITIALIZATION
@@ -10852,8 +10876,7 @@ if ('serviceWorker' in navigator) {
 // ============================================
 let activeFriendsPanel = 'list';
 async function loadFriendsDataNew() {
-  console.log('🔥 loadFriendsDataNew: НАЧАЛО');
-  console.log('🔥 loadFriendsDataNew: preventTabScroll =', preventTabScroll);
+  console.log('🔥 loadFriendsDataNew: НАЧАLO');
 
   if (!window.currentUserId) {
     console.log('⚠️ loadFriendsDataNew: нет userId, пропускаем');
@@ -10904,7 +10927,6 @@ async function initFriendsBadges() {
 }
 function renderFriendsTab() {
   console.log('🔥 renderFriendsTab: НАЧАЛО');
-  console.log('🔥 renderFriendsTab: preventTabScroll =', preventTabScroll);
 
   loadLeaderboard('week'); // Загружаем недельный лидерборд по умолчанию
   loadFriendActivity(); // Загружаем ленту активности друзей
@@ -12296,7 +12318,7 @@ async function renderGifts() {
   }
 }
 // Чат
-let currentChatFriend = null;
+window.currentChatFriend = null;
 
 // Стикеры
 const STICKERS = [
@@ -12484,7 +12506,7 @@ window.sendSticker = async function (friendId, sticker) {
   console.log('🔥 sendSticker called:', { friendId, sticker });
 
   // Проверяем, открыт ли чат с этим другом
-  if (currentChatFriend !== friendId) {
+  if (window.currentChatFriend !== friendId) {
     // Если чат не открыт, используем старый подход
     try {
       await sendMessage(window.currentUserId, friendId, sticker);
@@ -12588,21 +12610,97 @@ async function renderChatFriends() {
       '<div class="friends-empty"><span class="material-symbols-outlined">chat</span><p>Добавь друзей, чтобы начать чат</p></div>';
     return;
   }
-  container.innerHTML = friendsData.friends
-    .map(
-      f => `
-    <div class="lb-row" data-friend="${f.id}" style="cursor:pointer">
-      <div class="lb-rank"><span class="material-symbols-outlined">chat</span></div>
-      <div class="lb-info">
-        <div class="lb-name">${esc(f.username)}</div>
+
+  // Получаем последние сообщения для каждого друга
+  const chatData = await Promise.all(
+    friendsData.friends.map(async friend => {
+      try {
+        const messages = await getMessages(window.currentUserId, friend.id);
+        const lastMessage =
+          messages && messages.length > 0
+            ? messages[messages.length - 1]
+            : null;
+        return {
+          friend,
+          lastMessage,
+          unreadCount: window.unreadCounts?.[friend.id] || 0,
+        };
+      } catch (e) {
+        console.warn('Ошибка загрузки сообщений для друга:', friend.id, e);
+        return {
+          friend,
+          lastMessage: null,
+          unreadCount: 0,
+        };
+      }
+    }),
+  );
+
+  // Сортируем по времени последнего сообщения (сначала самые новые)
+  chatData.sort((a, b) => {
+    if (!a.lastMessage && !b.lastMessage) return 0;
+    if (!a.lastMessage) return 1;
+    if (!b.lastMessage) return -1;
+    // Проверяем что created_at существует
+    const aTime = a.lastMessage.created_at;
+    const bTime = b.lastMessage.created_at;
+    if (!aTime && !bTime) return 0;
+    if (!aTime) return 1;
+    if (!bTime) return -1;
+    return new Date(bTime) - new Date(aTime);
+  });
+
+  container.innerHTML = chatData
+    .map(({ friend, lastMessage, unreadCount }) => {
+      // Форматируем последнее сообщение
+      let lastMessageText = '';
+      let lastMessageTime = '';
+
+      if (lastMessage && lastMessage.text) {
+        // Обрезаем длинное сообщение
+        lastMessageText = lastMessage.text;
+        if (lastMessageText.length > 30) {
+          lastMessageText = lastMessageText.substring(0, 30) + '...';
+        }
+
+        // Форматируем время
+        if (lastMessage.created_at) {
+          const messageDate = new Date(lastMessage.created_at);
+          const now = new Date();
+          const isToday = messageDate.toDateString() === now.toDateString();
+
+          if (isToday) {
+            lastMessageTime = messageDate.toLocaleTimeString('ru-RU', {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+          } else {
+            lastMessageTime = messageDate.toLocaleDateString('ru-RU', {
+              day: '2-digit',
+              month: '2-digit',
+            });
+          }
+        }
+      }
+
+      return `
+    <div class="lb-row" data-friend="${friend.id}" style="cursor:pointer">
+      <div class="lb-rank">
+        <div class="lb-avatar">${friend.username?.[0]?.toUpperCase() || '?'}</div>
       </div>
-      <div class="lb-xp">
-        <span id="unread-badge-${f.id}" class="badge" style="display:none">0</span>
+      <div class="lb-info" style="flex: 1">
+        <div class="lb-name">${esc(friend.username)}</div>
+        ${lastMessageText ? `<div class="lb-last-message">${esc(lastMessageText)}</div>` : '<div class="lb-last-message" style="color: var(--muted)">Нет сообщений</div>'}
+      </div>
+      <div class="lb-xp" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px">
+        ${lastMessageTime ? `<div class="lb-time">${lastMessageTime}</div>` : ''}
+        <span id="unread-badge-${friend.id}" class="badge" style="display:${unreadCount > 0 ? 'inline-block' : 'none'}">${unreadCount}</span>
       </div>
     </div>
-  `,
-    )
+  `;
+    })
     .join('');
+
   // Обработка клика на друга
   container.querySelectorAll('.lb-row[data-friend]').forEach(row => {
     row.addEventListener('click', () => {
@@ -12618,7 +12716,7 @@ async function renderChatFriends() {
 async function openChatWithFriend(friendId) {
   const friend = friendsData.friends.find(f => f.id === friendId);
   if (!friend) return;
-  currentChatFriend = friendId;
+  window.currentChatFriend = friendId;
   const chatContainer = document.getElementById('chat-messages');
   const friendsList = document.getElementById('chat-friends-list');
   const header = document.getElementById('chat-header');
@@ -12641,10 +12739,47 @@ async function openChatWithFriend(friendId) {
     </div>
   `;
 
+  // Автообновление чата каждые 10 секунд
+  let chatUpdateInterval;
+  let lastMessageCount = 0;
+  const startChatAutoUpdate = () => {
+    if (chatUpdateInterval) clearInterval(chatUpdateInterval);
+    chatUpdateInterval = setInterval(async () => {
+      if (window.currentChatFriend) {
+        console.log('🔄 Проверка новых сообщений...');
+        const messages = await getMessages(
+          window.currentUserId,
+          window.currentChatFriend,
+        );
+        const chronologicalMessages = (messages || []).reverse();
+
+        // Обновляем сообщения если есть новые
+        if (chronologicalMessages.length > messageIds.length) {
+          console.log(
+            `🔥 Обнаружено ${chronologicalMessages.length - messageIds.length} новых сообщений`,
+          );
+          await openChatWithFriend(window.currentChatFriend);
+        }
+      }
+    }, 30000); // 30 секунд как у updateUnreadCounts
+  };
+
+  const stopChatAutoUpdate = () => {
+    if (chatUpdateInterval) {
+      clearInterval(chatUpdateInterval);
+      chatUpdateInterval = null;
+    }
+  };
+
+  // Запускаем автообновление
+  startChatAutoUpdate();
+
+  // Останавливаем при закрытии чата
   document.getElementById('close-chat-btn').onclick = () => {
     chatContainer.style.display = 'none';
     friendsList.style.display = 'block';
-    currentChatFriend = null;
+    window.currentChatFriend = null;
+    stopChatAutoUpdate();
   };
 
   // Обработчик очистки чата (оставляем без изменений)
@@ -12711,8 +12846,21 @@ async function openChatWithFriend(friendId) {
   };
 
   // Загружаем сообщения
+  console.log(`🔥 Загружаем сообщения для чата с ${friendId}`);
   const messages = await getMessages(window.currentUserId, friendId);
-  const messageIds = messages.map(m => m.id);
+  console.log(`🔥 Получено сообщений:`, messages?.length || 0);
+
+  // Переворачиваем массив для хронологического порядка (от старых к новым)
+  const chronologicalMessages = (messages || []).reverse();
+
+  if (chronologicalMessages && chronologicalMessages.length > 0) {
+    console.log(`🔥 Первое сообщение:`, chronologicalMessages[0]);
+    console.log(
+      `🔥 Последнее сообщение:`,
+      chronologicalMessages[chronologicalMessages.length - 1],
+    );
+  }
+  const messageIds = chronologicalMessages.map(m => m.id);
   let reactionsMap = {}; // { messageId: { emoji: [userIds] } }
 
   if (messageIds.length) {
@@ -12796,7 +12944,15 @@ async function openChatWithFriend(friendId) {
   messagesList._updateReactionLocally = updateReactionLocally;
 
   // Рендерим сообщения
-  messagesList.innerHTML = messages
+  console.log(`🔥 Рендерим ${chronologicalMessages.length} сообщений в чате`);
+  console.log(`🔥 messagesList элемент:`, messagesList);
+
+  if (!messagesList) {
+    console.error(`🔥 ОШИБКА: messagesList не найден!`);
+    return;
+  }
+
+  messagesList.innerHTML = chronologicalMessages
     .map(msg => {
       const isOutgoing = msg.sender_id === window.currentUserId;
       const isSticker =
@@ -12828,8 +12984,20 @@ async function openChatWithFriend(friendId) {
     })
     .join('');
 
-  // Отметить прочитанными
+  console.log(
+    `🔥 Сообщения отрендерены, длина innerHTML:`,
+    messagesList.innerHTML.length,
+  );
+
+  // Отметить прочитанными и обновить бейджи
   await markMessagesRead(window.currentUserId, friendId);
+
+  // Обновляем бейджи после прочтения
+  await updateUnreadCounts();
+  await updateChatBadges();
+
+  // Обновляем плавающую кнопку
+  updateFloatingChatButton();
 
   // Прокрутка вниз
   messagesList.scrollTo({ top: messagesList.scrollHeight, behavior: 'smooth' });
@@ -13001,9 +13169,31 @@ async function updateUnreadCounts() {
       'chat',
     );
     playSound('sound/message.mp3');
+
+    // Если чат открыт с этим отправителем, обновляем его
+    if (
+      window.currentChatFriend &&
+      lastMessage?.sender_id === window.currentChatFriend
+    ) {
+      console.log('🔄 Обновляем открытый чат...');
+      setTimeout(() => {
+        openChatWithFriend(window.currentChatFriend);
+      }, 500);
+    }
   } else if (newCount > 0 && previousCount === 0) {
     toast(`Новое сообщение от ${senderName}`, 'info', 'chat');
     playSound('sound/message.mp3');
+
+    // Если чат открыт с этим отправителем, обновляем его
+    if (
+      window.currentChatFriend &&
+      lastMessage?.sender_id === window.currentChatFriend
+    ) {
+      console.log('🔄 Обновляем открытый чат...');
+      setTimeout(() => {
+        openChatWithFriend(window.currentChatFriend);
+      }, 500);
+    }
   }
   window.unreadMessagesCount = newCount;
   if (newCount > 0) {
@@ -13392,7 +13582,7 @@ document.querySelectorAll('[data-fpill]').forEach(pill => {
       if (chatContainer && friendsList) {
         chatContainer.style.display = 'none';
         friendsList.style.display = 'block';
-        currentChatFriend = null;
+        window.currentChatFriend = null;
       }
     }
 
@@ -13450,12 +13640,19 @@ const addIncomingMessageLocally = (message, senderUsername) => {
   });
 };
 
-function subscribeToMessages() {
-  if (messagesChannel) {
-    messagesChannel.unsubscribe();
-  }
+// Временно переопределяем подписку с детальными логами
+if (window._originalSubscribeMessages) {
+  messagesChannel?.unsubscribe();
+}
+window._originalSubscribeMessages = subscribeToMessages;
+
+subscribeToMessages = function () {
+  console.log('🔥 subscribeToMessages вызвана');
+  if (messagesChannel) messagesChannel.unsubscribe();
   const userId = window.currentUserId;
   if (!userId) return;
+  console.log('🔥 Подписываемся на сообщения для userId:', userId);
+
   messagesChannel = supabase
     .channel('messages-realtime')
     .on(
@@ -13469,12 +13666,25 @@ function subscribeToMessages() {
       async payload => {
         const message = payload.new;
         const senderId = message.sender_id;
+        console.log('🔥 Новое сообщение:', {
+          id: message.id,
+          text: message.text,
+          senderId,
+          currentChatFriend: window.currentChatFriend,
+          equal: window.currentChatFriend === senderId,
+          types: {
+            currentType: typeof window.currentChatFriend,
+            senderType: typeof senderId,
+          },
+        });
+
         // Получаем имя отправителя
         const { data: profile } = await supabase
           .from('profiles')
           .select('username')
           .eq('id', senderId)
           .single();
+
         // Показываем уведомление
         toast(
           `📩 Новое сообщение от ${profile?.username || 'пользователя'}`,
@@ -13482,21 +13692,104 @@ function subscribeToMessages() {
           'chat',
         );
         playSound('sound/message.mp3');
+
         // Обновляем бейджи непрочитанных
         await updateUnreadCounts();
+
+        // Если сейчас открыт чат с этим отправителем, добавляем сообщение локально
+        if (window.currentChatFriend === senderId) {
+          console.log('✅ Условие выполнено, добавляем локально');
+          addIncomingMessageLocally(message, profile?.username);
+        } else {
+          console.warn(
+            '❌ currentChatFriend !== senderId',
+            window.currentChatFriend,
+            senderId,
+          );
+        }
+      },
+    )
+    .subscribe();
+
+  console.log('✅ Подписка на сообщения установлена');
+};
+
+// Вызываем подписку сразу после переопределения
+setTimeout(() => {
+  if (window.currentUserId) {
+    subscribeToMessages();
+  }
+}, 1000);
+
+function subscribeToMessages() {
+  console.log('🔥 subscribeToMessages вызвана');
+  if (messagesChannel) {
+    messagesChannel.unsubscribe();
+  }
+  const userId = window.currentUserId;
+  if (!userId) return;
+  console.log('🔥 Подписываемся на сообщения для userId:', userId);
+
+  messagesChannel = supabase
+    .channel('messages-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${userId}`,
+      },
+      async payload => {
+        const message = payload.new;
+        const senderId = message.sender_id;
+        console.log('🔥 Новое сообщение получено:', {
+          message,
+          senderId,
+          currentChatFriend,
+        });
+
+        // Получаем имя отправителя
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', senderId)
+          .single();
+
+        // Показываем уведомление
+        toast(
+          `📩 Новое сообщение от ${profile?.username || 'пользователя'}`,
+          'info',
+          'chat',
+        );
+        playSound('sound/message.mp3');
+
+        // Обновляем бейджи непрочитанных
+        await updateUnreadCounts();
+
         // Если открыта вкладка чатов, обновляем список друзей для чата
         if (
           document.getElementById('fpanel-chat')?.classList.contains('active')
         ) {
           renderChatFriends();
         }
+
         // Если сейчас открыт чат с этим отправителем, добавляем сообщение локально
-        if (currentChatFriend === senderId) {
+        if (window.currentChatFriend === senderId) {
+          console.log('✅ Условие выполнено, добавляем локально');
           addIncomingMessageLocally(message, profile?.username);
+        } else {
+          console.warn(
+            '❌ currentChatFriend !== senderId',
+            window.currentChatFriend,
+            senderId,
+          );
         }
       },
     )
     .subscribe();
+
+  console.log('🔥 Подписка на сообщения установлена');
 }
 
 function subscribeToReactions() {

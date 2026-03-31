@@ -16205,7 +16205,76 @@ body.bs-open .bs-trigger-arrow {
 
 #chat-friends-list {
   margin-top: 1rem;
-  overflow: visible !important; /* Принудительно разрешаем выход за границы */
+  max-height: 400px; /* Ограничиваем высоту примерно на 4 элемента */
+  overflow-y: auto; /* Добавляем вертикальный скролл */
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px; /* Уменьшили отступ между чатами */
+}
+
+/* Стили для аватара в чатах */
+#chat-friends-list .lb-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+/* Стили для последнего сообщения */
+.lb-last-message {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Стили для времени сообщения */
+.lb-time {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Обновляем стили для строк чата */
+#chat-friends-list .lb-row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+#chat-friends-list .lb-row:hover {
+  background: var(--background);
+}
+
+#chat-friends-list .lb-rank {
+  flex-shrink: 0;
+}
+
+#chat-friends-list .lb-info {
+  flex: 1;
+  min-width: 0;
+}
+
+#chat-friends-list .lb-xp {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 #chat-messages {
   background: var(--card);
