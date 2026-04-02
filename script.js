@@ -3774,6 +3774,11 @@ function switchTab(name, skipScroll = false) {
       chatContainer.style.display = 'none';
       friendsList.style.display = 'block';
       window.currentChatFriend = null;
+
+      // Удаляем классы полноэкранного режима
+      const fpanelChat = document.getElementById('fpanel-chat');
+      fpanelChat.classList.remove('chat-fullscreen');
+      document.body.classList.remove('chat-open');
     }
   }
 
@@ -11805,6 +11810,22 @@ document.addEventListener('click', function (e) {
   activeFriendsPanel = pill.dataset.fpill;
   const panel = document.getElementById(`fpanel-${activeFriendsPanel}`);
   if (panel) panel.classList.add('active');
+
+  // Если переключаемся с чата на другую пилюлю, закрываем чат и убираем классы
+  if (window.currentChatFriend && activeFriendsPanel !== 'chat') {
+    const chatContainer = document.getElementById('chat-messages');
+    const friendsList = document.getElementById('chat-friends-list');
+    if (chatContainer && friendsList) {
+      chatContainer.style.display = 'none';
+      friendsList.style.display = 'block';
+      window.currentChatFriend = null;
+
+      // Удаляем классы полноэкранного режима
+      const fpanelChat = document.getElementById('fpanel-chat');
+      fpanelChat.classList.remove('chat-fullscreen');
+      document.body.classList.remove('chat-open');
+    }
+  }
 });
 // --- BADGES ---
 function updateFriendsBadges() {
@@ -12442,64 +12463,67 @@ function animateStickerSend() {
 }
 
 window.toggleStickerPicker = function (friendId) {
-  // Закрываем предыдущий пикер если открыт
-  const existingPicker = document.querySelector('.sticker-picker');
-  if (existingPicker) {
-    existingPicker.remove();
+  const existing = document.querySelector('.sticker-picker');
+  if (existing) {
+    existing.remove();
     return;
   }
 
-  // Создаем пикер стикеров
   const picker = document.createElement('div');
   picker.className = 'sticker-picker';
   picker.innerHTML = `
     <div class="sticker-picker-header">Стикеры</div>
     <div class="sticker-grid">
-      ${STICKERS.map(
-        sticker => `
-        <div class="sticker-item" onclick="console.log('🔥 Sticker clicked:', '${sticker}'); sendSticker('${friendId}', '${sticker}'); this.closest('.sticker-picker').remove()">
-          ${sticker}
-        </div>
-      `,
-      ).join('')}
+      ${STICKERS.map(sticker => `<div class="sticker-item" data-sticker="${sticker}">${sticker}</div>`).join('')}
     </div>
   `;
 
-  // Позиционируем пикер
-  const stickerBtn = document.getElementById('chat-sticker-btn');
-  if (stickerBtn) {
-    const rect = stickerBtn.getBoundingClientRect();
-    const pickerWidth = 300;
+  const triggerBtn = document.getElementById('chat-sticker-btn');
+  if (!triggerBtn) return;
+
+  document.body.appendChild(picker);
+  requestAnimationFrame(() => {
+    const rect = triggerBtn.getBoundingClientRect();
+    const pickerRect = picker.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-    let leftPosition = rect.left - 150;
+    let top = rect.bottom + 8;
+    let left = rect.left;
 
-    // Проверяем чтобы не вылезал за левый край
-    if (leftPosition < 10) {
-      leftPosition = 10;
+    if (top + pickerRect.height > viewportHeight - 8) {
+      top = rect.top - pickerRect.height - 8;
     }
+    if (top < 8) top = 8;
 
-    // Проверяем чтобы не вылезал за правый край
-    if (leftPosition + pickerWidth > viewportWidth - 10) {
-      leftPosition = viewportWidth - pickerWidth - 10;
+    if (left + pickerRect.width > viewportWidth - 8) {
+      left = viewportWidth - pickerRect.width - 8;
     }
+    if (left < 8) left = 8;
 
     picker.style.position = 'fixed';
-    picker.style.bottom = `${window.innerHeight - rect.top + 5}px`;
-    picker.style.left = `${leftPosition}px`;
-    picker.style.zIndex = '10000';
-    document.body.appendChild(picker);
+    picker.style.top = `${top}px`;
+    picker.style.left = `${left}px`;
+    picker.style.transform = 'none';
+    picker.style.zIndex = '10060';
+  });
 
-    // Закрываем при клике вне
-    setTimeout(() => {
-      document.addEventListener('click', function closePicker(e) {
-        if (!picker.contains(e.target) && e.target !== stickerBtn) {
-          picker.remove();
-          document.removeEventListener('click', closePicker);
-        }
-      });
-    }, 100);
-  }
+  picker.querySelectorAll('.sticker-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const sticker = item.dataset.sticker;
+      await sendSticker(friendId, sticker);
+      picker.remove();
+      document.removeEventListener('click', closeHandler);
+    });
+  });
+
+  const closeHandler = e => {
+    if (!picker.contains(e.target)) {
+      picker.remove();
+      document.removeEventListener('click', closeHandler);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeHandler), 0);
 };
 
 window.sendSticker = async function (friendId, sticker) {
@@ -12714,6 +12738,8 @@ async function renderChatFriends() {
   updateChatBadges();
 }
 async function openChatWithFriend(friendId) {
+  console.log('🔴 Агрессивный ресайз отключён навсегда');
+
   const friend = friendsData.friends.find(f => f.id === friendId);
   if (!friend) return;
   window.currentChatFriend = friendId;
@@ -12725,6 +12751,39 @@ async function openChatWithFriend(friendId) {
   // Показываем чат, скрываем список друзей
   friendsList.style.display = 'none';
   chatContainer.style.display = 'block';
+
+  // Если это мобильное устройство, включаем полноэкранный режим
+  if (window.innerWidth <= 830) {
+    const fpanelChat = document.getElementById('fpanel-chat');
+    if (fpanelChat) {
+      fpanelChat.classList.add('chat-fullscreen');
+      document.body.classList.add('chat-open');
+
+      console.log('📊 DEBUG: Полноэкранный чат активирован');
+      console.log('📏 Размеры окна:', {
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
+        screenWidth: screen.width,
+        screenHeight: screen.height,
+      });
+
+      // Простая прокрутка к полю ввода при фокусе
+      const messageInput = document.getElementById('chat-message-input');
+      if (messageInput) {
+        const scrollToInput = () => {
+          setTimeout(() => {
+            messageInput.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            });
+            console.log('🎯 Прокрутка к полю ввода');
+          }, 300);
+        };
+        messageInput.addEventListener('focus', scrollToInput);
+        fpanelChat._scrollHandler = scrollToInput;
+      }
+    }
+  }
   header.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
       <h3 style="margin:0">Чат с ${esc(friend.username)}</h3>
@@ -12780,6 +12839,26 @@ async function openChatWithFriend(friendId) {
     friendsList.style.display = 'block';
     window.currentChatFriend = null;
     stopChatAutoUpdate();
+
+    // Удаляем классы полноэкранного режима
+    const fpanelChat = document.getElementById('fpanel-chat');
+    fpanelChat.classList.remove('chat-fullscreen');
+    document.body.classList.remove('chat-open');
+
+    // Удаляем обработчики клавиатуры
+    if (fpanelChat._resizeHandler) {
+      window.removeEventListener('resize', fpanelChat._resizeHandler);
+      delete fpanelChat._resizeHandler;
+    }
+    if (fpanelChat._scrollHandler) {
+      const messageInput = document.getElementById('chat-message-input');
+      if (messageInput) {
+        messageInput.removeEventListener('focus', fpanelChat._scrollHandler);
+      }
+      delete fpanelChat._scrollHandler;
+    }
+    // Сбрасываем стиль высоты
+    fpanelChat.style.height = '';
   };
 
   // Обработчик очистки чата (оставляем без изменений)
@@ -14028,6 +14107,118 @@ console.log('  - testInfiniteScrollIdioms()');
 console.log('  - testFullRenderWords()');
 console.log('  - testFullRenderIdioms()');
 
+// Глобальная функция для отладки размеров чата
+window.debugChatSizes = function () {
+  console.log('🔍 === DEBUG CHAT SIZES ===');
+
+  const fpanelChat = document.getElementById('fpanel-chat');
+  const messagesEl = document.getElementById('chat-messages');
+  const messagesListEl = document.getElementById('chat-messages-list');
+  const inputRowEl = document.querySelector('.chat-input-row');
+
+  if (!fpanelChat) {
+    console.log('❌ fpanel-chat не найден');
+    return;
+  }
+
+  console.log('📊 Размеры окна:', {
+    windowWidth: window.innerWidth,
+    windowHeight: window.innerHeight,
+    screenWidth: screen.width,
+    screenHeight: screen.height,
+    isMobile: window.innerWidth <= 830,
+  });
+
+  const chatRect = fpanelChat.getBoundingClientRect();
+  console.log('📱 fpanel-chat:', {
+    width: chatRect.width,
+    height: chatRect.height,
+    top: chatRect.top,
+    left: chatRect.left,
+    bottom: chatRect.bottom,
+    right: chatRect.right,
+    computedHeight: getComputedStyle(fpanelChat).height,
+    computedDisplay: getComputedStyle(fpanelChat).display,
+    computedFlexDirection: getComputedStyle(fpanelChat).flexDirection,
+    computedPosition: getComputedStyle(fpanelChat).position,
+    hasFullscreenClass: fpanelChat.classList.contains('chat-fullscreen'),
+  });
+
+  if (messagesEl) {
+    const messagesRect = messagesEl.getBoundingClientRect();
+    console.log('📨 chat-messages:', {
+      width: messagesRect.width,
+      height: messagesRect.height,
+      top: messagesRect.top,
+      bottom: messagesRect.bottom,
+      computedFlex: getComputedStyle(messagesEl).flex,
+      computedDisplay: getComputedStyle(messagesEl).display,
+      computedFlexDirection: getComputedStyle(messagesEl).flexDirection,
+      computedMinHeight: getComputedStyle(messagesEl).minHeight,
+    });
+  } else {
+    console.log('❌ chat-messages не найден');
+  }
+
+  if (messagesListEl) {
+    const listRect = messagesListEl.getBoundingClientRect();
+    console.log('📋 chat-messages-list:', {
+      width: listRect.width,
+      height: listRect.height,
+      top: listRect.top,
+      bottom: listRect.bottom,
+      computedFlex: getComputedStyle(messagesListEl).flex,
+      computedOverflow: getComputedStyle(messagesListEl).overflow,
+      computedMinHeight: getComputedStyle(messagesListEl).minHeight,
+      scrollHeight: messagesListEl.scrollHeight,
+      clientHeight: messagesListEl.clientHeight,
+    });
+  } else {
+    console.log('❌ chat-messages-list не найден');
+  }
+
+  if (inputRowEl) {
+    const inputRect = inputRowEl.getBoundingClientRect();
+    console.log('⌨️ chat-input-row:', {
+      width: inputRect.width,
+      height: inputRect.height,
+      top: inputRect.top,
+      bottom: inputRect.bottom,
+      computedFlexShrink: getComputedStyle(inputRowEl).flexShrink,
+      computedPosition: getComputedStyle(inputRowEl).position,
+    });
+  } else {
+    console.log('❌ chat-input-row не найден');
+  }
+
+  // Проверяем свободное пространство
+  if (messagesEl && inputRowEl && messagesListEl) {
+    const messagesRect = messagesEl.getBoundingClientRect();
+    const inputRect = inputRowEl.getBoundingClientRect();
+    const listRect = messagesListEl.getBoundingClientRect();
+    const totalHeight = listRect.height + inputRect.height;
+    const availableHeight = messagesRect.height;
+    const emptySpace = availableHeight - totalHeight;
+
+    console.log('🔍 Анализ пространства:', {
+      'Высота списка сообщений': listRect.height,
+      'Высота поля ввода': inputRect.height,
+      'Суммарная высота': totalHeight,
+      'Доступная высота': availableHeight,
+      'Пустое пространство': emptySpace,
+      Проблема: emptySpace > 50 ? 'БОЛЬШОЕ ПУСТОЕ ПРОСТРАНСТВО' : 'OK',
+    });
+  }
+
+  // Проверяем body
+  console.log('🌍 Body:', {
+    computedOverflow: getComputedStyle(document.body).overflow,
+    hasChatOpenClass: document.body.classList.contains('chat-open'),
+  });
+
+  console.log('🔍 === END DEBUG ===');
+};
+
 // ========== REACTIONS FUNCTIONS ==========
 
 const EMOJI_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥', '👏', '🎉'];
@@ -14042,36 +14233,57 @@ async function showReactionPicker(messageId, updateReactionLocally) {
   picker.innerHTML = `
     <div class="emoji-picker-header">Реакции</div>
     <div class="emoji-grid">
-      ${EMOJI_REACTIONS.map(
-        emoji => `
-        <div class="emoji-item" data-emoji="${emoji}">${emoji}</div>
-      `,
-      ).join('')}
+      ${EMOJI_REACTIONS.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('')}
     </div>
   `;
 
-  // Позиционируем рядом с сообщением
-  const msgElement = document.querySelector(
+  const messageEl = document.querySelector(
     `.chat-message[data-message-id="${messageId}"]`,
   );
-  if (msgElement) {
-    const rect = msgElement.getBoundingClientRect();
+  if (!messageEl) {
+    // Если сообщение не найдено, центрируем
     picker.style.position = 'fixed';
-    picker.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-    picker.style.left = `${rect.left + rect.width / 2 - 100}px`;
-  } else {
-    picker.style.bottom = '50%';
+    picker.style.top = '50%';
     picker.style.left = '50%';
     picker.style.transform = 'translate(-50%, -50%)';
+    document.body.appendChild(picker);
+    return;
   }
 
   document.body.appendChild(picker);
+  // Ждём рендеринга, чтобы получить размеры
+  await new Promise(r => requestAnimationFrame(r));
 
-  // Обработчик выбора эмодзи
+  const rect = messageEl.getBoundingClientRect();
+  const pickerRect = picker.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let top = rect.bottom + 8;
+  let left = rect.left;
+
+  // Корректировка по вертикали
+  if (top + pickerRect.height > viewportHeight - 8) {
+    top = rect.top - pickerRect.height - 8;
+  }
+  if (top < 8) top = 8;
+
+  // Корректировка по горизонтали
+  if (left + pickerRect.width > viewportWidth - 8) {
+    left = viewportWidth - pickerRect.width - 8;
+  }
+  if (left < 8) left = 8;
+
+  picker.style.position = 'fixed';
+  picker.style.top = `${top}px`;
+  picker.style.left = `${left}px`;
+  picker.style.transform = 'none';
+  picker.style.zIndex = '10060';
+
+  // Обработчики выбора
   picker.querySelectorAll('.emoji-item').forEach(item => {
     item.addEventListener('click', async () => {
       const emoji = item.dataset.emoji;
-      // Определяем состояние по DOM - если реакция есть, значит пользователь уже добавил её
       const messageEl = document.querySelector(
         `.chat-message[data-message-id="${messageId}"]`,
       );
@@ -14081,30 +14293,23 @@ async function showReactionPicker(messageId, updateReactionLocally) {
       const isPresent = !!reactionEl;
       const change = isPresent ? -1 : 1;
 
-      // Оптимистично обновляем DOM
-      if (updateReactionLocally) {
+      if (updateReactionLocally)
         updateReactionLocally(messageId, emoji, change);
-      }
 
       try {
         await toggleReaction(messageId, window.currentUserId, emoji);
-        // Звук только для добавления реакции (change === 1)
-        if (change === 1) {
-          playSound('sound/send.mp3');
-        }
+        if (change === 1) playSound('sound/send.mp3');
       } catch (err) {
         console.error('Ошибка при изменении реакции:', err);
-        // Откатываем локальное изменение
-        if (updateReactionLocally) {
+        if (updateReactionLocally)
           updateReactionLocally(messageId, emoji, -change);
-        }
         toast('Ошибка: не удалось изменить реакцию', 'danger');
       }
       picker.remove();
+      document.removeEventListener('click', closeHandler);
     });
   });
 
-  // Закрыть по клику вне
   const closeHandler = e => {
     if (!picker.contains(e.target)) {
       picker.remove();
