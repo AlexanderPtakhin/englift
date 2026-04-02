@@ -90,7 +90,7 @@ self.addEventListener('fetch', event => {
 
   const urlObj = new URL(event.request.url);
 
-  // Пропускаем API и аудио
+  // Пропускаем API и аудио (только генерируемые аудио)
   if (
     urlObj.hostname.includes('supabase.co') ||
     urlObj.pathname.startsWith('/audio/') ||
@@ -144,15 +144,34 @@ self.addEventListener('fetch', event => {
         return cached;
       }
       log('FETCH', 'Не найдено в кэше, делаем запрос');
-      return fetch(event.request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches
-            .open(CACHE_NAME)
-            .then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      });
+      return fetch(event.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches
+              .open(CACHE_NAME)
+              .then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(error => {
+          console.warn(
+            'SW: Ошибка загрузки ресурса:',
+            event.request.url,
+            error,
+          );
+          // Возвращаем пустой ответ для аудио файлов, чтобы не ломать приложение
+          if (event.request.url.includes('/sound/')) {
+            return new Response('', { status: 200, statusText: 'OK' });
+          }
+          // Для остальных файлов пробуем вернуть из кэша или пустой ответ
+          return caches.match(event.request).then(cached => {
+            return (
+              cached ||
+              new Response('', { status: 404, statusText: 'Not Found' })
+            );
+          });
+        });
     }),
   );
 });

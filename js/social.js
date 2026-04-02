@@ -225,7 +225,8 @@ export async function sendMessage(senderId, receiverId, text) {
   return data;
 }
 
-export async function getMessages(userId, friendId, limit = 50) {
+export async function getMessages(userId, friendId, limit = 50, offset = 0) {
+  // Сначала получаем все сообщения (с учетом ограничения)
   const { data, error } = await supabase
     .from('messages')
     .select('*')
@@ -233,9 +234,12 @@ export async function getMessages(userId, friendId, limit = 50) {
       `and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId})`,
     )
     .order('created_at', { ascending: false }) // Получаем самые новые сообщения
-    .limit(limit);
+    .limit(offset + limit); // Загружаем больше, чтобы потом пропустить
+
   if (error) throw error;
-  return data;
+
+  // Возвращаем только нужный срез
+  return data.slice(offset, offset + limit);
 }
 
 export async function markMessagesRead(userId, friendId) {

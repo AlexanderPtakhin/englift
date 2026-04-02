@@ -185,16 +185,26 @@ function toast(msg, type = '', icon = '', duration = 4000) {
   console.log('Toast вызван:', msg, type, icon);
   const el = document.createElement('div');
   el.className = 'toast' + (type ? ' ' + type : '');
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+
   if (icon) {
-    el.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: middle; margin-right: 8px;">${icon}</span>${msg}`;
+    el.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: middle; margin-right: 8px;" aria-hidden="true">${icon}</span>${msg}`;
   } else {
     el.textContent = msg;
   }
+
   const toastBox = document.getElementById('toast-box');
   if (!toastBox) {
     console.warn('toast-box не найден');
     return;
   }
+
+  if (!toastBox.hasAttribute('role')) {
+    toastBox.setAttribute('role', 'status');
+    toastBox.setAttribute('aria-live', 'polite');
+  }
+
   toastBox.appendChild(el);
   setTimeout(() => {
     el.style.opacity = '0';
