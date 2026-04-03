@@ -1,5 +1,7 @@
 import { supabase } from './supabase.js';
 
+console.log('[SCRIPT] 🚀 script.js начинает загрузку');
+
 import {
   applyTheme,
   updateThemeIcon,
@@ -74,6 +76,68 @@ function toSnakeCase(obj) {
   }
   return result;
 }
+
+// ========== БЛОКИРОВКА СКРОЛЛА ДЛЯ МОДАЛОК ==========
+// Предотвращает прокрутку body когда скроллишь колесом над модалкой
+function initModalScrollLock(modalBackdrop) {
+  if (!modalBackdrop) return;
+
+  // Блокируем скролл колесом мыши на backdrop
+  modalBackdrop.addEventListener(
+    'wheel',
+    e => {
+      // Если цель события - сам backdrop (не контент модалки)
+      if (e.target === modalBackdrop) {
+        e.preventDefault();
+      }
+    },
+    { passive: false },
+  );
+
+  // Блокируем touch скролл на backdrop (для мобильных)
+  modalBackdrop.addEventListener(
+    'touchmove',
+    e => {
+      if (e.target === modalBackdrop) {
+        e.preventDefault();
+      }
+    },
+    { passive: false },
+  );
+}
+
+// Глобальная блокировка скролла для всех модалок (делегирование событий)
+document.addEventListener(
+  'wheel',
+  e => {
+    const backdrop = e.target.closest('.modal-backdrop');
+    const friendModal = e.target.closest('.friend-modal');
+    // Если скролл происходит на backdrop (не на контенте модалки)
+    if (backdrop && e.target === backdrop) {
+      e.preventDefault();
+    }
+    // Для friend-modal тоже блокируем
+    if (friendModal && e.target === friendModal) {
+      e.preventDefault();
+    }
+  },
+  { passive: false },
+);
+
+document.addEventListener(
+  'touchmove',
+  e => {
+    const backdrop = e.target.closest('.modal-backdrop');
+    const friendModal = e.target.closest('.friend-modal');
+    if (backdrop && e.target === backdrop) {
+      e.preventDefault();
+    }
+    if (friendModal && e.target === friendModal) {
+      e.preventDefault();
+    }
+  },
+  { passive: false },
+);
 
 import {
   loadWords,
@@ -247,11 +311,6 @@ async function loadFromCache() {
 
     let hasData = words.length || idioms.length;
     if (hasData) {
-      // Не вызываем refreshUI() — дождёмся профиля
-      // refreshUI(); // УБРАТЬ!
-      console.log(
-        `📦 Кеш загружен (без рендера): ${window.words.length} слов, ${window.idioms.length} идиом`,
-      );
     }
   } catch (e) {
     console.error('Ошибка загрузки кеша', e);
@@ -306,7 +365,6 @@ async function syncFromSupabase() {
       refreshUI();
       await flushCache();
     }
-    console.log('🔄 Синхронизация с Supabase завершена');
   } catch (e) {
     console.error('Ошибка синхронизации с Supabase', e);
   }
@@ -338,7 +396,6 @@ async function migrateFromLocalStorage() {
     localStorage.removeItem('englift_idioms');
   }
   localStorage.setItem('englift_cache_migrated', 'true');
-  console.log('🔄 Миграция из localStorage в IndexedDB выполнена');
 }
 
 // =============================================
@@ -402,8 +459,6 @@ const XP_PER_LEVEL = CONSTANTS.XP_PER_LEVEL;
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    console.log('🔄 Service Worker обновился, перезагружаем страницу');
-
     window.location.reload();
   });
 }
@@ -415,135 +470,30 @@ if ('serviceWorker' in navigator) {
 // =============================================
 
 window.applyProfileData = function (data) {
-  console.log('🔥🔥🔥 applyProfileData НАЧАЛО 🔥🔥🔥');
-
-  console.log('📥 Входящие данные:', JSON.stringify(data, null, 2));
-
   if (!data) {
-    console.log('❌ Данные пустые, выходим');
-
     return;
   }
 
   if (window._profileApplyingInProgress) {
-    console.log('⚠️ Уже применяется, пропускаем');
-
     return;
   }
-
-  console.log('🔍 Текущее состояние ДО применения:');
-
-  console.log('  - window.xpData:', JSON.stringify(window.xpData, null, 2));
-
-  console.log('  - window.streak:', JSON.stringify(window.streak, null, 2));
-
-  console.log(
-    '  - window.dailyProgress:',
-
-    JSON.stringify(window.dailyProgress, null, 2),
-  );
-
-  console.log('  - window.dailyReviewCount:', window.dailyReviewCount);
-
-  console.log(
-    '  - window.user_settings:',
-
-    JSON.stringify(window.user_settings, null, 2),
-  );
 
   window._profileApplyingInProgress = true;
 
   // Инициализируем глобальные объекты, если их нет
 
-  console.log('🔧 Инициализация глобальных объектов...');
-
-  // 🔥 ФИКС 1: НЕ создаём новые объекты, они уже привязаны!
-
-  if (!window.dailyProgress) {
-    console.log('  - Создаём window.dailyProgress');
-
-    window.dailyProgress = {
-      add_new: 0,
-
-      review: 0,
-
-      practice_time: 0,
-
-      completed: false,
-
-      lastReset: new Date().toISOString().split('T')[0],
-    };
-  }
-
-  if (window.dailyReviewCount === undefined) {
-    console.log('  - Устанавливаем window.dailyReviewCount = 0');
-
-    window.dailyReviewCount = 0;
-  }
-
-  if (!window.lastReviewResetDate) {
-    console.log('  - Устанавливаем window.lastReviewResetDate');
-
-    window.lastReviewResetDate = new Date().toISOString().split('T')[0];
-  }
-
-  if (!window.user_settings) {
-    console.log('  - Создаём window.user_settings');
-
-    window.user_settings = {
-      voice: 'female',
-
-      reviewLimit: 100,
-
-      showPhonetic: true,
-    };
-  }
-
   // XP и уровень – берём максимум
-
-  console.log('⚡ Обработка XP и уровня...');
-
-  console.log('  - data.xp:', data.xp, 'data.level:', data.level);
-
-  console.log(
-    '  - window.xpData.xp ДО:',
-
-    window.xpData.xp,
-
-    'window.xpData.level ДО:',
-
-    window.xpData.level,
-  );
-
   if (data.xp !== undefined && data.level !== undefined) {
     if (window.xpData.xp < data.xp) {
-      console.log('  ✅ Серверный XP выше, обновляем');
-
       window.updateXpData({
         xp: data.xp,
-
         level: data.level,
       });
     } else if (window.xpData.xp > data.xp) {
-      console.log('  🔄 Локальный XP выше, отправляем на сервер');
-
       markProfileDirty('xp', window.xpData.xp);
-
       markProfileDirty('level', window.xpData.level);
-    } else {
-      console.log('  ➡️ XP равны, ничего не делаем');
     }
   }
-
-  console.log(
-    '  - window.xpData.xp ПОСЛЕ:',
-
-    window.xpData.xp,
-
-    'window.xpData.level ПОСЛЕ:',
-
-    window.xpData.level,
-  );
 
   // Бейджи – объединяем, сохраняем уникальные
 
@@ -639,19 +589,8 @@ window.applyProfileData = function (data) {
   }
 
   // Тема
-
-  console.log('🎨 Применяем тему из данных:', {
-    baseTheme: window.user_settings.baseTheme,
-
-    dark: window.user_settings.dark,
-  });
-
-  // Фикс 1: Устанавливаем флаг, чтобы applyTheme не дёргала профиль при инициализации
-
   window._applyingProfile = true;
-
   window.applyTheme(window.user_settings.baseTheme, window.user_settings.dark);
-
   window._applyingProfile = false;
 
   window.lastProfileUpdate = data.updated_at
@@ -659,56 +598,21 @@ window.applyProfileData = function (data) {
     : Date.now();
 
   // Сохраняем в localStorage на всякий случай
-
-  console.log('💾 Сохраняем backup в localStorage...');
-
   const backup = {
     xp: window.xpData.xp,
-
     level: window.xpData.level,
-
     badges: window.xpData.badges,
-
     streak: window.streak.count,
-
     last_streak_date: window.streak.lastDate,
-
     dailyprogress: window.dailyProgress,
-
     dailyreviewcount: window.dailyReviewCount,
-
     lastreviewreset: window.lastReviewResetDate,
-
     usersettings: window.user_settings,
   };
-
-  console.log('  - backup данные:', JSON.stringify(backup, null, 2));
 
   localStorage.setItem('englift_lastknown_progress', JSON.stringify(backup));
 
   window._profileApplyingInProgress = false;
-
-  console.log('🔍 Финальное состояние ПОСЛЕ применения:');
-
-  console.log('  - window.xpData:', JSON.stringify(window.xpData, null, 2));
-
-  console.log('  - window.streak:', JSON.stringify(window.streak, null, 2));
-
-  console.log(
-    '  - window.dailyProgress:',
-
-    JSON.stringify(window.dailyProgress, null, 2),
-  );
-
-  console.log('  - window.dailyReviewCount:', window.dailyReviewCount);
-
-  console.log(
-    '  - window.user_settings:',
-
-    JSON.stringify(window.user_settings, null, 2),
-  );
-
-  console.log('✅🔥🔥🔥 applyProfileData ЗАВЕРШЕН 🔥🔥🔥');
 
   // Обновляем theme-color после применения темы
   const metaTheme = document.querySelector('meta[name="theme-color"]');
@@ -741,14 +645,6 @@ window.applyProfileData = function (data) {
     }
 
     metaTheme.content = color;
-    console.log(
-      '🎨 Theme color updated to:',
-      color,
-      'for theme:',
-      window.user_settings?.baseTheme,
-      'dark:',
-      window.user_settings?.dark,
-    );
   }
 
   refreshUI();
@@ -1961,20 +1857,15 @@ window.playExampleAudio = function (wordObj) {
 
 // Conditional debug logging
 
-const debugLog = (...args) => {
-  if (DEBUG) console.log(...args);
-};
+const debugLog = (...args) => {};
 
 // Умный logger для production
 
 const logger = {
-  log: (...args) => DEBUG && console.log(...args),
-
+  log: (...args) => {},
   error: (...args) => console.error(...args), // ошибки всегда показываем
-
   warn: (...args) => console.warn(...args), // предупреждения всегда
-
-  info: (...args) => DEBUG && console.info(...args),
+  info: (...args) => {},
 };
 
 // File import variables
@@ -2034,7 +1925,7 @@ async function syncPendingWords() {
 
         pendingWordUpdates.delete(item.id); // убираем из очереди
       } catch (e) {
-        console.error(`❌ Ошибка удаления слова "${item.en}":`, e);
+        console.error(`Ошибка удаления слова "${item.en}":`, e);
 
         // остаётся в очереди для повторной попытки
       }
@@ -2046,7 +1937,7 @@ async function syncPendingWords() {
 
         pendingWordUpdates.delete(item.id);
       } catch (e) {
-        console.error(`❌ Ошибка синхронизации слова "${item.en}":`, e);
+        console.error(`Ошибка синхронизации слова "${item.en}":`, e);
       }
     }
   }
@@ -2087,7 +1978,7 @@ async function syncPendingIdioms() {
 
         pendingIdiomUpdates.delete(item.id);
       } catch (e) {
-        console.error(`❌ Ошибка удаления идиомы "${item.idiom}":`, {
+        console.error(`Ошибка удаления идиомы "${item.idiom}":`, {
           message: e.message,
 
           details: e.details,
@@ -2103,7 +1994,7 @@ async function syncPendingIdioms() {
 
         pendingIdiomUpdates.delete(item.id);
       } catch (e) {
-        console.error(`❌ Ошибка синхронизации идиомы "${item.idiom}":`, {
+        console.error(`Ошибка синхронизации идиомы "${item.idiom}":`, {
           message: e.message,
 
           details: e.details,
@@ -2176,49 +2067,18 @@ const pendingProfileUpdates = new Map();
 let profileSyncTimer = null;
 
 function markProfileDirty(key, value) {
-  console.log('💾🔥🔥🔥 markProfileDirty НАЧАЛО 🔥🔥🔥');
-
-  console.log('  - key:', key);
-
-  console.log('  - value:', JSON.stringify(value, null, 2));
-
-  console.log(
-    '  - pendingProfileUpdates ДО:',
-
-    JSON.stringify(Array.from(pendingProfileUpdates.entries()), null, 2),
-  );
-
   pendingProfileUpdates.set(key, value);
-
-  console.log(
-    '  - pendingProfileUpdates ПОСЛЕ:',
-
-    JSON.stringify(Array.from(pendingProfileUpdates.entries()), null, 2),
-  );
-
   scheduleProfileSync();
-
-  console.log('✅🔥🔥🔥 markProfileDirty ЗАВЕРШЕН 🔥🔥🔥');
 }
 
 function scheduleProfileSync() {
-  console.log('⏰🔥🔥🔥 scheduleProfileSync НАЧАЛО 🔥🔥🔥');
-
   if (profileSyncTimer) {
-    console.log('  - Очищаем существующий таймер');
-
     clearTimeout(profileSyncTimer);
   }
 
-  console.log('  - Устанавливаем таймер на 500мс');
-
   profileSyncTimer = setTimeout(() => {
-    console.log('  ⏰ Таймер сработал, вызываем syncProfileNow()');
-
     syncProfileNow();
   }, 500);
-
-  console.log('✅🔥🔥🔥 scheduleProfileSync ЗАВЕРШЕН 🔥🔥🔥');
 }
 
 // Флаги для предотвращения параллельных синхронизаций
@@ -2226,64 +2086,33 @@ function scheduleProfileSync() {
 let syncInProgress = false;
 
 async function syncProfileNow() {
+  // Если нет userId — нечего синхронизировать
   if (!window.currentUserId) {
-    console.log('⏸ syncProfileNow пропущен: нет userId');
     return;
   }
+
+  // Если синхронизация уже идёт — не запускаем параллельную
   if (syncInProgress) {
-    console.log('❌ Синхронизация уже в процессе, выходим');
-    return;
-  }
-
-  // Проверяем интернет-соединение
-  if (!navigator.onLine) {
-    console.log('📴 syncProfileNow пропущен: нет интернета');
-    return;
-  }
-
-  console.log('🚀🔥🔥🔥 syncProfileNow НАЧАЛО 🔥🔥🔥');
-
-  console.log('  - window.currentUserId:', window.currentUserId);
-
-  console.log('  - pendingProfileUpdates.size:', pendingProfileUpdates.size);
-
-  console.log(
-    '  - pendingProfileUpdates:',
-
-    JSON.stringify(Array.from(pendingProfileUpdates.entries()), null, 2),
-  );
-
-  if (syncInProgress) {
-    console.log('❌ Синхронизация уже в процессе, выходим');
-
-    return;
-  }
-
-  if (pendingProfileUpdates.size === 0) {
-    console.log('❌ Нет обновлений, выходим');
-
     return;
   }
 
   syncInProgress = true;
 
-  if (pendingProfileUpdates.size === 0) {
-    console.log('  ❌ Нет обновлений, выходим');
+  // Проверяем интернет-соединение
+  if (!navigator.onLine) {
+    syncInProgress = false;
+    return;
+  }
 
+  if (pendingProfileUpdates.size === 0) {
+    syncInProgress = false;
     return;
   }
 
   const updates = Object.fromEntries(pendingProfileUpdates);
-
-  console.log('  - updates для отправки:', JSON.stringify(updates, null, 2));
-
-  console.log('  🧹 Чистим pendingProfileUpdates ДО запроса');
-
   pendingProfileUpdates.clear(); // чистим до запроса
 
   try {
-    console.log('  📤 Отправляем запрос на сервер...');
-
     // Добавляем таймаут для запроса
     const requestPromise = supabase
       .from('profiles')
@@ -2297,48 +2126,28 @@ async function syncProfileNow() {
     const { error } = await Promise.race([requestPromise, timeoutPromise]);
 
     if (error) {
-      console.log('  ❌ Ошибка сервера:', error);
       throw error;
     }
 
-    console.log('  ✅ Успешно сохранено на сервере');
-
     window.lastProfileUpdate = Date.now(); // обновляем метку времени (для совместимости, но не используем для сравнения)
-
-    console.log('  🔄 Сбрасываем счётчик повторных попыток');
 
     resetProfileRetryCount(); // сбрасываем счётчик повторных попыток
   } catch (err) {
-    console.error('❌ Ошибка сохранения профиля:', err);
+    console.error('Ошибка сохранения профиля:', err);
 
     window.toast?.(
       'Ошибка сохранения профиля. Изменения будут отправлены позже.',
-
       'warning',
     );
 
     // Восстанавливаем только те ключи, которые не были обновлены за время запроса
-
-    console.log('  🔄 Восстанавливаем не отправленные ключи...');
-
     Object.entries(updates).forEach(([k, v]) => {
       if (!pendingProfileUpdates.has(k)) {
-        console.log(
-          '    - Восстанавливаем ключ:',
-
-          k,
-
-          'значение:',
-
-          JSON.stringify(v),
-        );
-
         pendingProfileUpdates.set(k, v);
       }
     });
 
     // Фикс 3: Повторная попытка только если есть что ретраить
-
     if (pendingProfileUpdates.size > 0) {
       let retryDelay = Math.min(
         60000,
@@ -2346,25 +2155,17 @@ async function syncProfileNow() {
         Math.pow(2, window._profileRetryCount || 0) * 1000,
       );
 
-      console.log('  🔄 Повторная попытка через', retryDelay, 'мс');
-
       window._profileRetryCount = (window._profileRetryCount || 0) + 1;
 
       setTimeout(() => {
-        console.log('  🔄 Повторный вызов syncProfileNow()');
-
         syncProfileNow();
       }, retryDelay);
-    } else {
-      console.log('  ✅ Нечего ретраить, выходим');
     }
   } finally {
     // Фикс 2: Всегда сбрасываем флаг синхронизации
 
     syncInProgress = false;
   }
-
-  console.log('✅🔥🔥🔥 syncProfileNow ЗАВЕРШЕН 🔥🔥🔥');
 }
 
 // При успешном сохранении сбрасываем счётчик повторных попыток
@@ -2408,22 +2209,9 @@ function updateFloatingChatButton() {
 
   if (!btn) return;
 
-  console.log('🔥 updateFloatingChatButton:');
-
-  console.log('  - window.currentChatFriend:', window.currentChatFriend);
-
-  console.log('  - window.unreadMessagesCount:', window.unreadMessagesCount);
-
-  console.log('  - btn текущий display:', btn.style.display);
-
   // Если открыт чат, кнопку скрываем только если нет непрочитанных в других чатах
-
   if (window.currentChatFriend) {
-    console.log('  - Чат открыт, проверяем непрочитанные...');
-
     if (window.unreadMessagesCount > 0) {
-      console.log('  - Есть непрочитанные, показываем кнопку');
-
       // Показываем кнопку с бейджем оставшихся сообщений
 
       btn.style.display = 'flex';
@@ -2433,8 +2221,6 @@ function updateFloatingChatButton() {
 
       badge.style.display = 'flex';
     } else {
-      console.log('  - Нет непрочитанных, скрываем кнопку');
-
       // Нет непрочитанных - скрываем кнопку
 
       btn.style.display = 'none';
@@ -2676,7 +2462,6 @@ function incrementDailyCount() {
 // Универсальная функция для обновления всего интерфейса
 
 function refreshUI() {
-  console.log('🔄 refreshUI вызвана, refreshScheduled:', refreshScheduled);
   if (refreshScheduled) return;
 
   refreshScheduled = true;
@@ -3094,16 +2879,6 @@ function showFeedback({
 
   isSpeechExercise = false,
 }) {
-  console.log('🎭 showFeedback вызван с параметрами:', {
-    isCorrect,
-
-    hasOnCorrect: !!onCorrect,
-
-    hasOnIncorrect: !!onIncorrect,
-
-    isSpeechExercise,
-  });
-
   const sheet = document.getElementById('fb-sheet');
 
   const inner = document.getElementById('fb-sheet-inner');
@@ -3208,44 +2983,30 @@ function showFeedback({
 
   backdrop.classList.add('show');
 
-  console.log('📋 Фидбек добавлен в DOM, классы:', sheet.classList.toString());
-
   const nextBtn = inner.querySelector('.fb-next-btn');
 
   if (nextBtn) {
     nextBtn.onclick = () => {
-      console.log('🔘 Кнопка "Дальше" нажата, isCorrect:', isCorrect);
-
       if (isCorrect) {
         if (onCorrect) {
-          console.log('✅ Вызываем onCorrect колбэк');
-
           onCorrect();
         } else {
-          console.log('⚠️ onCorrect не передан, используем proceedToNext');
-
           window.proceedToNext();
         }
       } else {
         // Если передан onIncorrect — вызываем его
 
         if (onIncorrect) {
-          console.log('❌ Вызываем onIncorrect колбэк');
-
           onIncorrect();
         }
 
         // Иначе, если это голосовое упражнение — просто закрываем лист
         else if (isSpeechExercise) {
-          console.log('🎤 Голосовое упражнение, просто закрываем');
-
           hideFeedbackSheet();
         }
 
         // В остальных случаях переходим к следующему вопросу
         else {
-          console.log('⚠️ onIncorrect не передан, используем proceedToNext');
-
           window.proceedToNext();
         }
       }
@@ -3338,33 +3099,11 @@ function showBuilderIncorrectFeedback(resetCallback) {
 }
 
 window.proceedToNext = function () {
-  console.log('🔥 Кнопка "Дальше" нажата!');
-
-  console.log(
-    '🔍 Текущий sIdx до:',
-
-    typeof sIdx !== 'undefined' ? sIdx : 'sIdx не определен',
-  );
-
-  console.log('🔍 Текущая сессия:', window.session);
-
-  console.log('🔍 Длина сессии:', window.session?.items?.length);
-
   hideFeedbackSheet();
-
-  // Увеличиваем индекс ПЕРЕД вызовом nextExercise
 
   sIdx++;
 
-  console.log('🔍 sIdx после увеличения:', sIdx);
-
-  // Вызываем nextExercise и смотрим что будет
-
-  console.log('🚀 Вызываем nextExercise()...');
-
   nextExercise();
-
-  console.log('🔍 sIdx после nextExercise:', sIdx);
 };
 
 function getFeedbackHTML(
@@ -3693,11 +3432,7 @@ function fillFormWithData(data) {
   }
 
   if (filledFields > 0) {
-    console.log(`✓ Получено ${filledFields} поля через автодополнение слова`);
   } else {
-    console.log(
-      '⚠ Данные не найдены. Попробуйте другое слово или введите вручную',
-    );
   }
 }
 
@@ -3927,9 +3662,6 @@ window.updateDailyProgress = function (newDailyProgress) {
   window.dailyProgress = merged;
 
   // Debug: Log merged daily progress
-
-  console.log('🔍 Объединённый dailyprogress:', window.dailyProgress);
-
   renderStats();
 };
 
@@ -3952,13 +3684,6 @@ async function resetDailyGoalsIfNeeded() {
     };
 
     // Mark profile as dirty to ensure reset is saved
-
-    console.log(
-      '💾 Сохраняем dailyprogress (сброс целей):',
-
-      window.dailyProgress,
-    );
-
     markProfileDirty('dailyprogress', window.dailyProgress);
 
     // Update UI to show reset goals immediately
@@ -4088,10 +3813,7 @@ async function load() {
       const backup = localStorage.getItem('englift_lastknown_progress');
 
       if (backup) {
-
         const backupData = JSON.parse(backup);
-
-        console.log('🔄 Восстанавливаем данные из страховки:', backupData);
 
         // Восстанавливать ТОЛЬКО если backup сегодняшний
 
@@ -4149,11 +3871,7 @@ async function load() {
 
         } else {
 
-          console.log(
-
-            '🔄 Backup не сегодняшний, пропускаем восстановление dailyprogress',
-
-          );
+          // Backup не сегодняшний, пропускаем восстановление dailyprogress
 
         }
 
@@ -4210,8 +3928,6 @@ async function migrateExampleTranslations() {
     const migrationKey = 'englift_example_translations_migrated';
 
     if (localStorage.getItem(migrationKey) === 'true') {
-      console.log('📦 Миграция переводов уже выполнялась ранее');
-
       return;
     }
 
@@ -4229,8 +3945,6 @@ async function migrateExampleTranslations() {
       );
 
       if (!bankWord) {
-        console.log(`⚠️ Word "${word.en}" not found in dictionary`);
-
         return word;
       }
 
@@ -4263,8 +3977,6 @@ async function migrateExampleTranslations() {
 
     if (updated > 0) {
       toast(`Обновлено переводов для ${updated} примеров`, 'success');
-
-      console.log(`📦 Миграция завершена: обновлено ${updated} переводов`);
     }
 
     // Помечаем что миграция выполнена
@@ -4304,12 +4016,8 @@ function generateId() {
 // Функция очистки пользовательских данных из IndexedDB
 async function clearUserData() {
   try {
-    console.log('🗑️ Очищаем IndexedDB...');
-
     await clearAllWords();
     await clearAllIdioms();
-
-    console.log('✅ IndexedDB очищен');
   } catch (error) {
     console.error('❌ Ошибка очистки IndexedDB:', error);
   }
@@ -4408,20 +4116,6 @@ async function addWord(
 
   examplesAudio = null,
 ) {
-  console.log('🔄 addWord вызван с параметрами:', {
-    en,
-
-    ru,
-
-    ex,
-
-    tags,
-
-    phonetic,
-
-    examples,
-  });
-
   // Валидация входных данных
 
   if (!validateEnglish(en)) {
@@ -4528,8 +4222,6 @@ async function addWord(
     if (navigator.onLine && window.currentUserId) {
       try {
         await saveWordToDb(newWord);
-
-        console.log(`✅ Слово "${normalizedEn}" мгновенно сохранено на сервер`);
       } catch (e) {
         console.warn(
           `⚠️ Ошибка мгновенного сохранения "${normalizedEn}", добавляем в очередь`,
@@ -4540,8 +4232,6 @@ async function addWord(
         markWordDirty(newWord.id); // в очередь как запасной вариант
       }
     } else {
-      console.log('📴 Офлайн или нет пользователя – слово в очереди');
-
       markWordDirty(newWord.id);
     }
 
@@ -4558,12 +4248,6 @@ async function addWord(
     // Стрик только за упражнения, а не за добавление в словарь
 
     window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
-
-    console.log(
-      '💾 Сохраняем dailyprogress (добавлено слово):',
-
-      window.dailyProgress,
-    );
 
     markProfileDirty('dailyprogress', window.dailyProgress);
 
@@ -4593,15 +4277,9 @@ async function addWord(
 
     recalculateCefrLevels();
 
-    // Debug: Check add_new value before refreshUI
-
-    console.log('🔍 add_new после увеличения:', window.dailyProgress.add_new);
-
     // Update UI to show daily goals progress immediately
 
     refreshUI();
-
-    console.log('✅ addWord завершен успешно');
 
     return true;
   } catch (error) {
@@ -4662,8 +4340,6 @@ async function delWord(wordId) {
       // Если успешно, убираем из очереди
 
       pendingWordUpdates.delete(wordId);
-
-      console.log(`✅ Слово "${word.en}" удалено с сервера`);
     } catch (e) {
       console.error('❌ Ошибка удаления с сервера, осталось в очереди', e);
 
@@ -4725,12 +4401,6 @@ async function addIdiom(
 
   exampleTranslation = '', // Добавляем параметр для перевода примера
 ) {
-  console.log(
-    '🎯 addIdiom called with exampleTranslation:',
-
-    exampleTranslation,
-  );
-
   // Валидация
 
   if (!idiom || !idiom.trim()) {
@@ -4905,8 +4575,6 @@ function updStats(wordId, correct, exerciseType) {
   const w = window.words.find(w => w.id === wordId);
 
   if (!w) {
-    console.log('❌ Слово не найдено для updStats:', wordId);
-
     return;
   }
 
@@ -4954,17 +4622,11 @@ function updStats(wordId, correct, exerciseType) {
 
       if (w.stats.interval === 1 && newInterval <= 2) newInterval = 3;
 
-      console.log(
-        `🎯 Слово "${w.en}": ${w.stats.interval}→${newInterval} дн. (easeFactor: ${w.stats.easeFactor.toFixed(2)}, streak: ${w.stats.streak})`,
-      );
+      // Интервал обновлен
 
       w.stats.interval = newInterval;
     } else {
       // Если слово повторили раньше срока — интервал не меняем
-
-      console.log(
-        `Слово "${w.en}" повторено раньше срока, интервал не изменён`,
-      );
     }
   }
 
@@ -5008,52 +4670,15 @@ function xpNeeded(lvl) {
 }
 
 function gainXP(amount, reason = '') {
-  console.log('⭐🔥🔥🔥 gainXP НАЧАЛО 🔥🔥🔥');
-
-  console.log('  - amount:', amount);
-
-  console.log('  - reason:', reason);
-
-  console.log('  - xpData ДО:', JSON.stringify(xpData, null, 2));
-
-  console.log('⭐ gainXP вызван:', {
-    amount,
-
-    reason,
-
-    currentXP: xpData.xp,
-
-    currentLevel: xpData.level,
-  });
-
   xpData.xp += amount;
 
-  console.log('  - xpData.xp ПОСЛЕ добавления:', xpData.xp);
-
   while (xpData.xp >= xpNeeded(xpData.level)) {
-    console.log('  🎯 УРОВЕНЬ ПОВЫШАЕТСЯ!');
-
-    console.log('    - ДО:', xpData.level, 'xp:', xpData.xp);
-
     xpData.xp -= xpNeeded(xpData.level);
-
     xpData.level++;
-
-    console.log('    - ПОСЛЕ:', xpData.level, 'xp:', xpData.xp);
-
     showLevelUpBanner(xpData.level);
   }
 
-  // Немедленно обновляем интерфейс
-
-  console.log('  🔄 Вызываем renderXP()');
-
   renderXP();
-
-  // Показываем тост сразу
-
-  console.log('  📢 Показываем тост');
-
   toast('+' + amount + ' XP' + (reason ? ' · ' + reason : ''), 'xp', 'bolt');
 
   // Обновляем прогресс челленджей
@@ -5062,12 +4687,7 @@ function gainXP(amount, reason = '') {
     window.updateAllChallengesProgress(window.currentUserId, 'xp', amount);
   }
 
-  // Сохраняем профиль через dirty flag
-
-  console.log('💾 Вызываем markProfileDirty из gainXP');
-
   markProfileDirty('xp', xpData.xp);
-
   markProfileDirty('level', xpData.level);
 
   // Бейджи сохраняются в checkBadges() - дублирование не нужно
@@ -5099,16 +4719,6 @@ function gainXP(amount, reason = '') {
 
       .catch(e => console.warn('Failed to log XP:', e));
   }
-
-  console.log(
-    '✅ gainXP завершен, новый уровень:',
-
-    xpData.level,
-
-    'новый XP:',
-
-    xpData.xp,
-  );
 }
 
 function checkBadges(perfectSession) {
@@ -5206,12 +4816,6 @@ function autoCheckBadges() {
 
   if (newBadges.length > 0) {
     const newBadgeDefs = BADGES_DEF.filter(def => newBadges.includes(def.id));
-
-    console.log(
-      'Автоматически получены бейджи:',
-
-      newBadgeDefs.map(b => b.name),
-    );
   }
 }
 
@@ -5522,46 +5126,32 @@ function getProgressText(progress) {
       return `ещё ${pluralize(progress.remaining, 'идиома', 'идиомы', 'идиом')} выучить`;
 
     default:
-      return `${progress.remaining}`;
+      return '';
   }
 }
 
 function updStreak() {
-  console.log('🔥 updStreak вызван, текущий streak:', streak);
-
-  const today = new Date().toISOString().split('T')[0]; // "2026-03-05"
-
+  const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
   if (streak.lastDate === today) {
-    console.log('🔥 Сегодня streak уже обновлен');
-
     return;
   }
 
-  if (streak.lastDate === yesterday) {
-    streak.count++; // продолжаем стрик
-  } else if (
-    streak.lastDate &&
-    streak.lastDate !== yesterday &&
-    streak.lastDate !== today
+  if (
+    streak.lastDate === yesterday ||
+    (streak.lastDate &&
+      new Date(streak.lastDate) > new Date(yesterday) &&
+      new Date(streak.lastDate) < new Date(today))
   ) {
-    // 🔥 ФИКС: Пропустили дни - обнуляем стрик!
-
-    console.log('🔥 Пропуск дней detected, обнуляем streak');
-
-    streak.count = 1; // начинаем новый стрик с сегодняшнего дня
+    streak.count++;
+  } else if (!streak.lastDate) {
+    streak.count = 1;
   } else {
-    // Первый день или нет данных
-
     streak.count = 1;
   }
 
   streak.lastDate = today;
-
-  console.log('🔥 Новый streak:', streak);
-
-  // Обновляем прогресс челленджей
 
   if (window.currentUserId && window.updateAllChallengesProgress) {
     window.updateAllChallengesProgress(window.currentUserId, 'streak', 1);
@@ -5573,9 +5163,7 @@ function updStreak() {
 
   renderBadges();
 
-  checkBadges(); // ← добавляем проверку бейджей
-
-  console.log('✅ updStreak завершен');
+  checkBadges();
 }
 
 // ============================================================
@@ -6168,9 +5756,6 @@ function renderDailyGoals() {
   if (!container) return;
 
   // Debug: Log current daily progress values
-
-  console.log('🔍 Рендерим daily_goals с данными:', window.dailyProgress);
-
   let html = '';
 
   DAILY_GOALS.forEach(goal => {
@@ -6301,7 +5886,6 @@ if (!document.getElementById('confetti-styles')) {
 }
 
 function switchTab(name, skipScroll = false) {
-  console.log('🔍 switchTab вызвана с name:', name);
   const currentActivePane = document.querySelector('.tab-pane.active');
 
   const currentActiveTab = currentActivePane
@@ -6339,12 +5923,8 @@ function switchTab(name, skipScroll = false) {
   }
 
   if (name === 'words') {
-    console.log('🔍 switchTab: обрабатываем вкладку words');
     visibleLimit = 30; // <-- сброс при переключении на слова
-
     renderRandomBankWord(); // Вызываем без await, т.к. в синхронной функции
-
-    console.log('🔍 switchTab: вызываем refreshUI для words');
     refreshUI();
   }
 
@@ -6401,12 +5981,6 @@ function switchTab(name, skipScroll = false) {
   // Скроллим наверх при переключении вкладок (особенно для мобильных)
 
   if (window.innerWidth <= 768 && !skipScroll) {
-    console.log('🔥 switchTab: Проверка прокрутки наверх');
-
-    console.log('🔥 switchTab: window.innerWidth =', window.innerWidth);
-
-    console.log('🔥 switchTab: ВЫПОЛНЯЕМ ПРОКРУТКУ НАВЕРХ!');
-
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
@@ -6414,13 +5988,7 @@ function switchTab(name, skipScroll = false) {
 // Переключение на вкладку друзей без прокрутки и без автоматической загрузки данных
 
 function switchToFriendsWithoutScroll() {
-  console.log('🔥 switchToFriendsWithoutScroll: НАЧАЛО');
-
-  // Вызываем switchTab с параметром skipScroll = true
-
   switchTab('friends', true);
-
-  console.log('🔥 switchToFriendsWithoutScroll: КОНЕЦ');
 }
 
 // Экспортируем функции глобально
@@ -6531,8 +6099,6 @@ if (themeCheckbox) {
 
     const baseTheme = window.user_settings?.baseTheme || 'lavender';
 
-    console.log('🎨 Theme checkbox changed:', { on, baseTheme });
-
     window.applyTheme(baseTheme, on);
 
     // после изменения чекбокса
@@ -6541,15 +6107,7 @@ if (themeCheckbox) {
       document.documentElement.classList.contains('dark');
 
     if (window.currentUserId) {
-      console.log(
-        '💾 Сохраняем usersettings (переключение темы):',
-
-        window.user_settings,
-      );
-
       markProfileDirty('usersettings', window.user_settings);
-
-      markProfileDirty('darktheme', window.user_settings.dark);
     }
   });
 }
@@ -6604,8 +6162,7 @@ function showConflictNotification(conflicts) {
   toast('' + message, 'warning', 'warning', 5000);
 
   // Логируем конфликты для отладки
-
-  console.log('Sync conflicts:', conflicts);
+  // Конфликты обработаны
 }
 
 // Отслеживание состояния сети
@@ -6669,33 +6226,15 @@ function setupNetworkMonitoring() {
 }
 
 function renderWords(appendOnly = false) {
-  console.log('🔍 renderWords вызвана, window.words:', window.words?.length);
   const grid = document.getElementById('words-grid');
   const empty = document.getElementById('empty-words');
   const trigger = document.getElementById('load-more-trigger');
 
-  console.log(
-    '🔍 renderWords: DOM элементы - grid:',
-    !!grid,
-    'empty:',
-    !!empty,
-    'trigger:',
-    !!trigger,
-  );
-  console.log(
-    '🔍 renderWords: activeFilter:',
-    activeFilter,
-    'visibleLimit:',
-    visibleLimit,
-  );
-
   // 1. Вычисляем отфильтрованный и отсортированный список
-
   let list = window.words;
 
   // Защита от отсутствия слов
   if (!window.words || !Array.isArray(window.words)) {
-    console.warn('renderWords: window.words не готов, пропускаем');
     return;
   }
 
@@ -6773,8 +6312,6 @@ function renderWords(appendOnly = false) {
     grid.appendChild(fragment);
 
     renderedWordsCount = end;
-
-    console.log(`✅ Добавлено ${renderedWordsCount} карточек в сетку`);
 
     // Настраиваем триггер для бесконечной прокрутки
 
@@ -7638,8 +7175,6 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
 
       const fallbackText = word.examples?.[exampleIndex]?.text || word.en;
 
-      console.log('🎤 fallbackText:', fallbackText);
-
       if (audioArr?.length > exampleIndex) {
         const voicePreference = window.user_settings?.voice || 'female';
 
@@ -7649,8 +7184,6 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
         const audio = new Audio(`${audioFolder}${audioArr[exampleIndex]}`);
 
         audio.play().catch(err => {
-          console.log('❌ Ошибка аудио, fallback to TTS:', err);
-
           speakText(fallbackText);
         });
       } else {
@@ -7665,8 +7198,6 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
 
   if (e.target.closest('.tag')) {
     const tag = e.target.closest('.tag').dataset.tag.toLowerCase();
-
-    console.log('🏷️ Клик по тегу:', tag);
 
     tagFilter = tag;
 
@@ -8086,8 +7617,6 @@ document.getElementById('idioms-grid')?.addEventListener('click', e => {
 
     const fallbackText = idiom.example || idiom.ex || idiom.idiom;
 
-    console.log(' idiom fallbackText:', fallbackText);
-
     if (audioArr?.length > exampleIndex) {
       // Определяем папку в зависимости от настроек голоса
 
@@ -8099,8 +7628,6 @@ document.getElementById('idioms-grid')?.addEventListener('click', e => {
       const audio = new Audio(`${audioFolder}${audioArr[exampleIndex]}`);
 
       audio.play().catch(err => {
-        console.log(' Ошибка аудио идиомы, fallback to TTS:', err);
-
         speakText(fallbackText);
       });
     } else {
@@ -8482,8 +8009,6 @@ document
     e.preventDefault();
 
     if (isSubmittingWord) {
-      console.log('⚠️ Форма уже отправляется, игнорируем повтор');
-
       return;
     }
 
@@ -8599,8 +8124,6 @@ document
     e.preventDefault();
 
     if (isSubmittingIdiom) {
-      console.log('⚠️ Форма идиомы уже отправляется, игнорируем повтор');
-
       return;
     }
 
@@ -9352,15 +8875,7 @@ function updateSelectedIdiomItem(items) {
 
 // File import variables
 
-function showPreview() {
-  console.log('🎬 showPreview called');
-
-  console.log('📊 fileParsed:', fileParsed);
-
-  console.log('📚 Current window.words count:', window.words.length);
-
-  console.log('🔍 First 5 current window.words:', window.words.slice(0, 5));
-
+function showPreview(fileParsed, importedWords, dupes) {
   const previewWrap = document.getElementById('file-preview-wrap');
 
   const tbody = document.getElementById('file-tbody');
@@ -9392,9 +8907,7 @@ function showPreview() {
 
       const isChecked = !isDuplicate ? 'checked' : '';
 
-      console.log(
-        `📝 Word ${i}: "${w.en}" - ${isDuplicate ? 'DUPLICATE (unchecked)' : 'NEW (checked)'}`,
-      );
+      // Отмечаем дубликаты
 
       return `
 
@@ -9425,8 +8938,6 @@ function showPreview() {
 
   if (importBtn) {
     importBtn.style.display = 'block';
-
-    console.log('✅ Import button shown');
   } else {
     console.error('❌ Import button not found!');
   }
@@ -9465,58 +8976,25 @@ function showPreview() {
 
   const btn = document.getElementById('import-file-btn');
 
-  console.log('Import button element:', btn);
-
   if (btn) {
     const newCount = fileParsed.filter(
       w => !window.words.find(x => x.en.toLowerCase() === w.en.toLowerCase()),
     ).length;
 
-    console.log('New window.words count:', newCount);
-
-    console.log('Duplicate count:', fileParsed.length - newCount);
-
     // Показываем детальную информацию о первых словах
-
-    fileParsed.slice(0, 3).forEach((w, i) => {
-      const isDuplicate = window.words.find(
-        x => x.en.toLowerCase() === w.en.toLowerCase(),
-      );
-
-      console.log(
-        `Word ${i}: "${w.en}" - ${isDuplicate ? 'DUPLICATE' : 'NEW'}`,
-      );
-    });
-
-    btn.style.display = fileParsed.length ? 'block' : 'none';
-
     btn.textContent = `✓ Импортировать ${newCount} новых слов${fileParsed.length - newCount > 0 ? ' (' + (fileParsed.length - newCount) + ' дублей пропустим)' : ''}`;
-
-    console.log('Button configured, display:', btn.style.display);
-
-    console.log('Button text:', btn.textContent);
 
     // Назначаем обработчик прямо здесь
 
     btn.onclick = function () {
-      console.log('Import button clicked!');
-
-      console.log('fileParsed length:', fileParsed.length);
-
       const checkboxes = document.querySelectorAll('.fchk:checked');
 
-      console.log('Checked checkboxes:', checkboxes.length);
-
       const indices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.i));
-
-      console.log('Selected indices:', indices);
 
       let added = 0;
 
       indices.forEach(i => {
         const w = fileParsed[i];
-
-        console.log(`Processing word ${i}:`, w);
 
         // Валидация
 
@@ -9582,16 +9060,10 @@ function showPreview() {
           markWordDirty(newWord.id); // добавляем в очередь синхронизации
 
           added++;
-
-          console.log(`Added word: ${w.en}`);
         } else {
-          console.log(`Duplicate skipped: ${w.en}`);
+          // Пропускаем дубликат
         }
       });
-
-      console.log(`Total added: ${added}`);
-
-      console.log('Saving changes...');
 
       // Обновляем счетчики слов в профиле
 
@@ -9634,11 +9106,7 @@ function showPreview() {
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
-
-      console.log('🏁 Import process completed');
     };
-
-    console.log('✅ Click handler assigned to button');
   } else {
     console.error('❌ Import button not found!');
   }
@@ -9755,9 +9223,7 @@ document
 
         renderStats();
 
-        console.log(
-          `🔄 Синхронизировано: ${oldCount} → ${serverWords.length} слов`,
-        );
+        // Синхронизация завершена
       });
 
       toast(
@@ -9806,7 +9272,7 @@ document.addEventListener('click', e => {
 
       document.body.classList.add('modal-open');
     } else {
-      console.warn('❌ Модалка смены пароля не найдена');
+      // Модалка смены пароля не найдена
     }
   }
 
@@ -9978,12 +9444,6 @@ if (speechModalSave && themeSelect) {
     // 4. Сохраняем настройки через markProfileDirty
 
     if (window.currentUserId) {
-      console.log(
-        '💾 Сохраняем usersettings (изменение лимита):',
-
-        window.user_settings,
-      );
-
       markProfileDirty('usersettings', window.user_settings);
     }
 
@@ -10129,8 +9589,6 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
     async () => {
       try {
-        console.log('🗑️ Начинаем стирание всех слов и идиом...');
-
         // 1. Очищаем локальные слова и идиомы
 
         window.words = [];
@@ -10153,7 +9611,6 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
             .eq('user_id', window.currentUserId);
 
           if (error) console.error('❌ Ошибка удаления слов с сервера:', error);
-          else console.log(`✅ Удалено ${count} слов с сервера`);
         }
 
         // 3. Удаляем идиомы с сервера
@@ -10169,7 +9626,6 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
           if (error)
             console.error('❌ Ошибка удаления идиом с сервера:', error);
-          else console.log(`✅ Удалено ${count} идиом с сервера`);
         }
 
         // 4. Очищаем IndexedDB
@@ -10219,8 +9675,6 @@ document.getElementById('delete-account-btn')?.addEventListener('click', () => {
     'удалить',
 
     async () => {
-      console.log('🗑️ Начинаем удаление аккаунта...');
-
       try {
         // Явно достаём токен из сессии
 
@@ -10237,14 +9691,12 @@ document.getElementById('delete-account-btn')?.addEventListener('click', () => {
             method: 'POST',
 
             headers: {
-              Authorization: `Bearer ${session.access_token}`, // ✅ явно передаём токен
+              Authorization: `Bearer ${session.access_token}`, // явно передаём токен
             },
           },
         );
 
         if (error) throw error;
-
-        console.log('✅ Функция вернула успех:', data);
 
         await supabase.auth.signOut();
 
@@ -10278,8 +9730,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 
     async () => {
       try {
-        console.log('🗑️ Начинаем сброс прогресса...');
-
         // 1. Удаляем все слова с сервера
 
         if (window.currentUserId) {
@@ -10292,8 +9742,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
             .eq('user_id', window.currentUserId);
 
           if (wordsError) throw wordsError;
-
-          console.log(`✅ Удалено ${count} слов с сервера`);
         }
 
         // 1.5. Удаляем все идиомы с сервера
@@ -10308,8 +9756,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
             .eq('user_id', window.currentUserId);
 
           if (idiomsError) throw idiomsError;
-
-          console.log(`✅ Удалено ${idiomsCount} идиом с сервера`);
         }
 
         // 2. Сбрасываем профиль на сервере (сохраняем настройки)
@@ -10354,8 +9800,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
             .eq('id', window.currentUserId);
 
           if (profileError) throw profileError;
-
-          console.log('✅ Профиль сброшен');
         }
 
         // 3. Очищаем локальные данные
@@ -10439,8 +9883,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 // Добавляем функцию для принудительного сброса сессии (для отладки)
 
 window.resetSession = function () {
-  console.log('🔄 Принудительный сброс сессии');
-
   window.isSessionActive = false;
 
   document.body.classList.remove('exercise-active'); // ← добавлено
@@ -10516,19 +9958,11 @@ document.querySelectorAll('.chip[data-dir]').forEach(b =>
 );
 
 document.getElementById('start-btn').addEventListener('click', () => {
-  console.log('🔘 Start button clicked!');
-
   // Проверяем, нет ли уже активной сессии
 
-  if (window.isSessionActive) {
-    console.log('⚠️ Session already active, ignoring click');
-
+  if (window.session) {
     return;
   }
-
-  console.log('📊 Current practiceMode before start:', practiceMode);
-
-  console.log('📚 window.words.length:', window.words.length);
 
   // Блокируем кнопку на время выполнения
 
@@ -10558,8 +9992,6 @@ document.getElementById('start-btn').addEventListener('click', () => {
 
 document.querySelectorAll('.chip[data-mode]').forEach(c =>
   c.addEventListener('click', () => {
-    console.log('🔄 Mode chip clicked:', c.dataset.mode);
-
     document
 
       .querySelectorAll('.chip[data-mode]')
@@ -10569,8 +10001,6 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
     c.classList.add('on');
 
     practiceMode = c.dataset.mode;
-
-    console.log('✅ practiceMode updated to:', practiceMode);
 
     // Управляем отображением блоков в зависимости от режима
 
@@ -11116,13 +10546,9 @@ function getCardsToReview(items = null) {
 }
 
 function startSession(cfg) {
-  console.log('🚀 startSession called with cfg:', cfg);
-
   // Защита от повторного запуска сессии
 
   if (window.isSessionActive === true) {
-    console.log('⚠️ Session already active, ignoring startSession call');
-
     return;
   }
 
@@ -11155,12 +10581,6 @@ function startSession(cfg) {
   // Добавляем обработчик ошибок для всей функции
 
   try {
-    console.log('📊 Current practiceMode:', practiceMode);
-
-    console.log('⏱️ examTime:', examTime);
-
-    console.log('📝 examQuestions:', examQuestions);
-
     // Start tracking practice time
 
     practiceStartTime = Date.now();
@@ -11288,8 +10708,6 @@ function startSession(cfg) {
     // 3. Определяем режим и создаем сессию
 
     if (practiceMode === 'exam') {
-      console.log('📝 Starting EXAM mode');
-
       // Экзамен - используем фиксированный набор типов
 
       const types = ['multi', 'type', 'builder', 'speech'];
@@ -11319,8 +10737,6 @@ function startSession(cfg) {
         results: { correct: [], wrong: [] },
       };
 
-      console.log('📝 Session created:', session);
-
       // Запускаем таймер экзамена
 
       startExamTimer(examTime);
@@ -11349,16 +10765,12 @@ function startSession(cfg) {
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      console.log('🎬 Showing exercise screen');
-
       nextExercise();
 
       return;
     }
 
     // 4. Обычный режим
-
-    console.log('📚 Starting NORMAL mode');
 
     // Получаем выбранные типы упражнений
 
@@ -11420,11 +10832,9 @@ function startSession(cfg) {
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    console.log('🎬 Showing exercise screen');
-
     nextExercise();
   } catch (error) {
-    console.error('❌ Error in startSession:', error);
+    console.error('Error in startSession:', error);
 
     // Сбрасываем флаг активной сессии при ошибке
 
@@ -11449,12 +10859,6 @@ function startSession(cfg) {
 }
 
 function showResults() {
-  console.log('🎯 showResults called');
-
-  console.log('📊 sResults:', sResults);
-
-  console.log('🎪 window.session:', window.session);
-
   document.body.classList.remove('exercise-active'); // ← добавлено
 
   if (window.matchTimerCancel) {
@@ -11482,16 +10886,8 @@ function showResults() {
 
   const resultsContainer = document.getElementById('practice-results');
 
-  console.log('📦 resultsContainer found:', !!resultsContainer);
-
   if (resultsContainer) {
     resultsContainer.style.display = 'block';
-
-    console.log(
-      '👁️ resultsContainer display set to:',
-
-      resultsContainer.style.display,
-    );
   }
 
   // ── Подсчёт результатов ──────────────────────────────────────
@@ -11686,15 +11082,11 @@ function showResults() {
 
   const resultsCard = document.querySelector('.results-card');
 
-  console.log('🎴 resultsCard found:', !!resultsCard);
-
   if (!resultsCard) {
     console.error('❌ resultsCard element not found!');
 
     return;
   }
-
-  console.log('📝 Setting resultsCard.innerHTML...');
 
   resultsCard.innerHTML = `
 
@@ -11906,8 +11298,6 @@ function showResults() {
     window.dailyProgress.practicetime =
       (window.dailyProgress.practicetime || 0) + practiceMinutes;
 
-    console.log('💾 Сохраняем dailyprogress (практика):', window.dailyProgress);
-
     markProfileDirty('dailyprogress', window.dailyProgress);
 
     window.lastProfileUpdate = Date.now();
@@ -11918,8 +11308,6 @@ function showResults() {
   }
 
   refreshUI();
-
-  console.log('showResults done');
 }
 
 // Функция для сброса практики к начальному состоянию
@@ -11980,18 +11368,10 @@ function nextExercise() {
   // Защита от многократного вызова
 
   if (window.nextExerciseRunning) {
-    console.log('⚠️ nextExercise уже выполняется, пропускаем вызов');
-
     return;
   }
 
   window.nextExerciseRunning = true;
-
-  console.log('➡️ nextExercise called, session:', window.session);
-
-  console.log('📊 sIdx:', sIdx);
-
-  console.log('session.items.length:', window.session?.items?.length);
 
   try {
     // Проверяем наличие необходимых DOM элементов
@@ -12056,8 +11436,6 @@ function nextExercise() {
       window.session.exTypes[
         Math.floor(Math.random() * window.session.exTypes.length)
       ];
-
-    console.log('🎲 Selected exercise type:', t, 'for word:', w.en);
 
     // Добавляем класс для упражнений с клавиатурой
 
@@ -12399,22 +11777,6 @@ function nextExercise() {
       const correctDisplay =
         correctVariants.length > 0 ? correctVariants.join(', ') : correctFull;
 
-      // --- Отладочное логирование ---
-
-      console.log('🔍 Multi choice debug:', {
-        word: w.en,
-
-        isRUEN,
-
-        question,
-
-        correctDisplay,
-
-        correctVariants,
-
-        direction: isRUEN ? 'RU→EN' : 'EN→RU',
-      });
-
       // --- Сбор дистракторов ---
 
       let dataSource = isIdiom ? window.idioms : window.words;
@@ -12703,8 +12065,6 @@ function nextExercise() {
 
         if (submit) {
           const checkAnswer = () => {
-            console.log('🔥 checkAnswer вызван');
-
             const userAnswer = input.value.trim().toLowerCase();
 
             const normalizedUserAnswer = normalizeRussian(userAnswer);
@@ -12728,19 +12088,11 @@ function nextExercise() {
                   ),
                 );
 
-            console.log('🔍 Ответ пользователя:', userAnswer);
-
-            console.log('🔍 Правильный ответ:', answer);
-
-            console.log('🔍 Результат проверки:', isCorrect);
-
             if (input) input.disabled = true;
 
             if (submit) submit.disabled = true;
 
             if (isCorrect) {
-              console.log('✅ Ответ правильный, показываем фидбек');
-
               getFeedbackHTML(
                 w,
 
@@ -12749,8 +12101,6 @@ function nextExercise() {
                 null,
 
                 () => {
-                  console.log('🔄 Колбэк onCorrect вызван');
-
                   hideFeedbackSheet();
 
                   recordAnswer(true, t);
@@ -12770,11 +12120,7 @@ function nextExercise() {
 
               playSound('correct');
             } else {
-              console.log('❌ Ответ неправильный, показываем фидбек');
-
               getFeedbackHTML(w, false, null, null, () => {
-                console.log('🔄 Колбэк onIncorrect вызван');
-
                 hideFeedbackSheet();
 
                 recordAnswer(false, t);
@@ -12789,15 +12135,11 @@ function nextExercise() {
           };
 
           submit.addEventListener('click', () => {
-            console.log('🖱️ Клик по кнопке "Проверить"');
-
             checkAnswer();
           });
 
           input.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
-              console.log('⌨️ Нажат Enter в поле вводе');
-
               e.stopPropagation();
 
               checkAnswer();
@@ -12872,8 +12214,6 @@ function nextExercise() {
 
         if (dictSubmit) {
           const check = () => {
-            console.log('🔥 check (dictation) вызван');
-
             const val = dictInput.value
 
               .trim()
@@ -12889,56 +12229,30 @@ function nextExercise() {
             );
 
             const ok = answerVariants.some(v =>
-              checkAnswerWithNormalization(normalizedVal, v.toLowerCase()),
+              checkAnswerWithNormalization(normalizedVal, v),
             );
 
-            console.log('🔍 Ответ пользователя:', val);
-
-            console.log('🔍 Правильный ответ:', w.en);
-
-            console.log('🔍 Результат проверки:', ok);
-
             if (ok) {
-              console.log('✅ Ответ правильный, показываем фидбек');
-
               getFeedbackHTML(
                 w,
-
                 true,
-
                 null,
-
                 () => {
-                  console.log('🔄 Колбэк onCorrect (dictation) вызван');
-
                   hideFeedbackSheet();
-
                   recordAnswer(true, t);
-
                   sIdx++;
-
                   nextExercise();
                 },
-
                 null,
               );
-
               playSound('correct');
             } else {
-              console.log('❌ Ответ неправильный, показываем фидбек');
-
               getFeedbackHTML(w, false, null, null, () => {
-                console.log('🔄 Колбэк onIncorrect (dictation) вызван');
-
                 hideFeedbackSheet();
-
                 recordAnswer(false, t);
-
                 sIdx++;
-
                 nextExercise();
               });
-
               playSound('wrong');
             }
 
@@ -12948,15 +12262,11 @@ function nextExercise() {
           };
 
           dictSubmit.addEventListener('click', () => {
-            console.log('🖱️ Клик по кнопке "Проверить" (dictation)');
-
             check();
           });
 
           dictInput.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
-              console.log('⌨️ Нажат Enter в поле ввода (dictation)');
-
               e.stopPropagation();
 
               check();
@@ -13994,12 +13304,6 @@ function recordAnswer(correct, exerciseType) {
 
     // Mark profile as dirty to ensure progress is saved
 
-    console.log(
-      '💾 Сохраняем dailyprogress (повторение):',
-
-      window.dailyProgress,
-    );
-
     markProfileDirty('dailyprogress', window.dailyProgress);
 
     // Обновляем прогресс челленджей
@@ -14163,21 +13467,9 @@ function spawnConfetti() {
 window._getLocalWords = () => window.words;
 
 window._setWords = async newWords => {
-  console.log('_setWords called with', newWords.length, 'words');
-
   // Обновляем слова
 
   window.words = newWords;
-
-  console.log(
-    'Words updated:',
-
-    window.words.length,
-
-    'Total window.words in window:',
-
-    window.words.length,
-  );
 
   visibleLimit = 30; // <-- сброс
 
@@ -14395,7 +13687,7 @@ async function renderRandomBankWord() {
 
       if (ctx.state === 'suspended') {
         ctx.resume().then(() => {
-          console.log('🔊 AudioContext resumed after user interaction');
+          // AudioContext возобновлен
         });
       }
 
@@ -14474,8 +13766,6 @@ async function renderRandomBankWord() {
 
       window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
 
-      console.log('💾 Сохраняем dailyprogress (импорт):', window.dailyProgress);
-
       markProfileDirty('dailyprogress', window.dailyProgress);
 
       markProfileDirty('total_words', window.words.length);
@@ -14493,10 +13783,6 @@ async function renderRandomBankWord() {
       if (navigator.onLine && window.currentUserId) {
         try {
           await saveWordToDb(newWord);
-
-          console.log(
-            `✅ Слово из банка "${currentBankWord.en}" мгновенно сохранено`,
-          );
         } catch (e) {
           console.warn(
             `⚠️ Ошибка мгновенного сохранения "${currentBankWord.en}", добавляем в очередь`,
@@ -14776,12 +14062,6 @@ async function renderRandomBankIdiom() {
       if (newIdiom.example_translation) {
         newIdiom.example_translation = newIdiom.example_translation;
       }
-
-      console.log(
-        '🎯 Adding idiom with example_translation:',
-
-        newIdiom.example_translation,
-      );
 
       const success = await addIdiom(
         newIdiom.idiom,
@@ -15545,8 +14825,6 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
   // Автоматическая озвучка при запуске упражнения
 
   setTimeout(() => {
-    console.log('Автоматическая озвучка предложения:', promptText);
-
     if (hasExample && word.examplesAudio && word.examplesAudio.length > 0) {
       // Если есть пример с аудио - используем его
 
@@ -15562,8 +14840,6 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
   if (replayBtn) {
     replayBtn.addEventListener('click', () => {
-      console.log('Повторная озвучка предложения:', promptText);
-
       if (hasExample && word.examplesAudio && word.examplesAudio.length > 0) {
         // Если есть пример с аудио - используем его
 
@@ -15662,10 +14938,6 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
         // Логируем для отладки
 
-        console.log(
-          `🎤 Speech-Sentence: Ожидалось: "${expectedWord}", распознано: "${spoken}", уверенность: ${confidence?.toFixed(2) || 'N/A'}`,
-        );
-
         if (confidence > bestConfidence) bestConfidence = confidence;
 
         // Для фраз — посимвольное + пословное сравнение
@@ -15685,13 +14957,7 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
         const co = stripP(correct);
 
-        console.log(
-          `🔍 Speech-Sentence: после очистки - spoken: "${sp}", correct: "${co}"`,
-        );
-
         if (sp === co) {
-          console.log(`✅ Speech-Sentence: точное совпадение фраз`);
-
           isCorrect = true;
 
           break;
@@ -15707,19 +14973,7 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
         const wordScore = matched / coWords.length;
 
-        console.log(
-          '🔍 Speech-Sentence word score:',
-
-          wordScore.toFixed(2),
-
-          matched + '/' + coWords.length,
-        );
-
         if (wordScore >= 0.75) {
-          console.log(
-            `✅ Speech-Sentence: word score ${wordScore.toFixed(2)} >= 0.75, засчитываем`,
-          );
-
           isCorrect = true;
 
           break;
@@ -16456,8 +15710,6 @@ function initPWA() {
 */
 
 window.clearUserData = async function (isExplicitLogout = false) {
-  console.log('🧹 clearUserData вызван, explicit:', isExplicitLogout);
-
   window.profileFullyLoaded = false;
 
   if (badgeCheckInterval) {
@@ -16569,11 +15821,6 @@ window.renderStats = renderStats;
 window.renderWords = renderWords;
 
 function renderIdioms(appendOnly = false) {
-  console.log(
-    '🎯 renderIdioms called, idioms count:',
-    window.idioms?.length || 0,
-  );
-
   // Защита от отсутствия идиом
   if (!window.idioms || !Array.isArray(window.idioms)) {
     console.warn('renderIdioms: window.idioms не готов, пропускаем');
@@ -17089,25 +16336,15 @@ document
   .getElementById('floating-chat-btn')
 
   ?.addEventListener('click', async () => {
-    console.log('🔥 НАЧАЛО: Клик на плавающую кнопку чата');
-
     // 1. Переключаем вкладку без прокрутки
-
-    console.log('🔥 Шаг 1: Вызываем switchToFriendsWithoutScroll');
 
     switchToFriendsWithoutScroll();
 
     // 2. Загружаем данные друзей
 
-    console.log('🔥 Шаг 2: Загружаем данные друзей');
-
     await loadFriendsDataNew();
 
-    console.log('🔥 Данные друзей загружены');
-
     // 3. Активируем пилюлю "Чаты"
-
-    console.log('🔥 Шаг 3: Активируем пилюлю "Чаты"');
 
     document
 
@@ -17127,28 +16364,18 @@ document
         .forEach(p => p.classList.remove('active'));
 
       document.getElementById('fpanel-chat').classList.add('active');
-
-      console.log('🔥 Пилюля "Чаты" активирована');
     }
 
     // 4. Рендерим список чатов
 
-    console.log('🔥 Шаг 4: Рендерим список чатов');
-
     await renderChatFriends();
 
-    console.log('🔥 Чаты отрендерены');
-
     // 5. Прокручиваем к списку чатов с учетом высоты блоков сверху
-
-    console.log('🔥 Шаг 5: Прокручиваем к списку чатов');
 
     const chatList = document.getElementById('chat-friends-list');
 
     if (chatList) {
       setTimeout(() => {
-        console.log('🔥 Начинаем расчет позиции для прокрутки');
-
         // Получаем высоту всех блоков над чатами
 
         const leaderboard = document.querySelector(
@@ -17159,41 +16386,21 @@ document
 
         const pills = document.querySelector('.friends-pills');
 
-        console.log('🔥 Найденные блоки:');
-
-        console.log('  - leaderboard:', leaderboard ? 'найден' : 'не найден');
-
-        console.log('  - activity:', activity ? 'найден' : 'не найден');
-
-        console.log('  - pills:', pills ? 'найден' : 'не найден');
-
         let offsetTop = 0;
 
         if (leaderboard) {
           offsetTop += leaderboard.offsetHeight + 20;
-
-          console.log('🔥 Высота лидерборда:', leaderboard.offsetHeight);
         }
 
         if (activity) {
           offsetTop += activity.offsetHeight + 20;
-
-          console.log('🔥 Высота активности:', activity.offsetHeight);
         }
 
         if (pills) {
           offsetTop += pills.offsetHeight + 20;
-
-          console.log('🔥 Высота пилюль:', pills.offsetHeight);
         }
 
-        console.log('🔥 Итоговый offsetTop для прокрутки:', offsetTop);
-
-        console.log('🔥 Текущая позиция скролла:', window.scrollY);
-
         // Прокручиваем к началу блока чатов (теперь у него есть своя высота и скролл)
-
-        console.log('🔥 Прокручиваем к началу блока чатов:', offsetTop);
 
         // Используем requestAnimationFrame для точной прокрутки
 
@@ -17204,20 +16411,8 @@ document
             behavior: 'smooth',
           });
         });
-
-        console.log('🔥 Команда прокрутки к началу блока чатов отправлена');
-
-        // Проверяем позицию через 500мс
-
-        setTimeout(() => {
-          console.log('🔥 Позиция после прокрутки:', window.scrollY);
-        }, 500);
       }, 300);
-    } else {
-      console.log('🔥 ОШИБКА: chat-friends-list не найден!');
     }
-
-    console.log('🔥 КОНЕЦ: Обработчик кнопки завершен');
   });
 
 // ============================================================
@@ -17293,14 +16488,12 @@ document.addEventListener('visibilitychange', () => {
   }
 
   // НЕ рендерим сразу! Ждём профиль
-  console.log('⏳ Ожидаем загрузки профиля перед первым рендером...');
 })();
 
 // Глобальный хук — вызывается из auth.js когда ВСЁ готово
 
 window.onProfileFullyLoaded = async function () {
   try {
-    console.log('✅ onProfileFullyLoaded вызван');
     window.profileFullyLoaded = true;
 
     // Убираем класс loading с body
@@ -17323,7 +16516,6 @@ window.onProfileFullyLoaded = async function () {
     refreshUI(); // ← сюда перенести!
 
     // === ПРИНУДИТЕЛЬНЫЙ РЕНДЕР ===
-    console.log('🔄 Принудительный рендер слов и идиом');
     renderWords();
     renderIdioms();
     renderStats();
@@ -17345,10 +16537,7 @@ window.onProfileFullyLoaded = async function () {
         window.startTour?.();
       }, 800);
     } else {
-      console.log(
-        '🔍 TOUR: Тур не запускаем, т.к. has_seen_tour =',
-        window.user_settings?.has_seen_tour,
-      );
+      // Тур не запускаем, т.к. уже был показан
     }
 
     // После загрузки рендерим (если активна вкладка идиом)
@@ -17375,13 +16564,7 @@ window.onProfileFullyLoaded = async function () {
 
     initFriendsBadges();
 
-    if (!window.currentUserId) {
-      console.log('⚠️ Пользователь не авторизован, пропускаем загрузку слов');
-    }
-
     // Инициализация загрузки словаря в IndexedDB (фоновая загрузка)
-
-    console.log('🔄 Начинаем фоновую загрузку словаря...');
 
     window.WordAPI.loadWordBank().catch(err => {
       console.error('❌ Ошибка фоновой загрузки словаря:', err);
@@ -17403,13 +16586,8 @@ window.onProfileFullyLoaded = async function () {
 
 // Если был пропущенный вызов – выполняем сейчас
 if (window._pendingProfileLoaded) {
-  console.log(
-    '🔄 Выполняем пропущенный вызов onProfileFullyLoaded (флаг был установлен)',
-  );
   window.onProfileFullyLoaded();
   window._pendingProfileLoaded = false;
-} else {
-  console.log('✅ Флаг _pendingProfileLoaded не установлен, все в порядке');
 }
 
 // Если через 2 секунды Supabase не загрузил тему
@@ -17424,12 +16602,6 @@ setTimeout(() => {
 
     const isDark = saved.dark ?? false;
 
-    console.log('🔄 Fallback: применяем тему из localStorage:', {
-      baseTheme,
-
-      isDark,
-    });
-
     window.applyTheme(baseTheme, isDark);
   }
 }, 800);
@@ -17440,25 +16612,19 @@ setTimeout(() => {
   const indicator = document.getElementById('loading-indicator');
 
   if (indicator && indicator.style.display !== 'none') {
-    console.warn('⚠️ Индикатор загрузки все еще виден, скрываем принудительно');
-
     window.forceHideLoader();
-  } else {
-    console.log('✅ Индикатор загрузки уже скрыт или не найден');
   }
 }, 5000); // Уменьшил до 5 секунд
 
 // Проверяем соединение с Supabase
 
 window.addEventListener('online', () => {
-  console.log('Connection restored - checking Supabase');
   toast('🟢 Соединение восстановлено', 'success');
 
   if (window.authExports?.auth) {
     // Пытаемся переподключиться к Supabase
     window.authExports.auth.onAuthStateChanged(user => {
       if (user) {
-        console.log('Supabase connection restored');
         toast('🟢 Соединение восстановлено', 'success');
       }
     });
@@ -17471,7 +16637,6 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
-  console.log('Offline mode activated');
   toast('📴 Оффлайн режим', 'info');
 });
 
@@ -17660,10 +16825,8 @@ setInterval(
         // Тихо обновляем данные без показа тоста
 
         await window.authExports.loadWordsOnce(() => {});
-
-        console.log('🔄 Тихая синхронизация завершена');
       } catch (e) {
-        console.warn('⚠️ Ошибка тихой синхронизации:', e);
+        // Ошибка тихой синхронизации
       }
     }
   },
@@ -17688,8 +16851,6 @@ setInterval(() => {
     if (window.pendingWordUpdates?.size > 0 && navigator.onLine) {
       window.syncPendingWords?.();
     }
-
-    console.log('💾 Автосохранение завершено');
   }
 }, 60 * 1000); // каждую минуту
 
@@ -17837,8 +16998,6 @@ if ('serviceWorker' in navigator) {
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!refreshing) {
-      console.log('🔄 Новый сервис-воркер активирован, перезагружаем страницу');
-
       refreshing = true;
 
       window.location.reload();
@@ -17855,11 +17014,7 @@ if ('serviceWorker' in navigator) {
 let activeFriendsPanel = 'list';
 
 async function loadFriendsDataNew() {
-  console.log('🔥 loadFriendsDataNew: НАЧАLO');
-
   if (!window.currentUserId) {
-    console.log('⚠️ loadFriendsDataNew: нет userId, пропускаем');
-
     return;
   }
 
@@ -17891,8 +17046,6 @@ async function loadFriendsDataNew() {
     updateFriendsSubBadges(); // обновим бейджи заявок и чата
 
     renderFriendsTab();
-
-    console.log('🔥 loadFriendsDataNew: КОНЕЦ');
   } catch (e) {
     console.error('loadFriendsDataNew error', e);
 
@@ -17931,8 +17084,6 @@ async function initFriendsBadges() {
 }
 
 function renderFriendsTab() {
-  console.log('🔥 renderFriendsTab: НАЧАЛО');
-
   loadLeaderboard('week'); // Загружаем недельный лидерборд по умолчанию
 
   loadFriendActivity(); // Загружаем ленту активности друзей
@@ -18544,11 +17695,9 @@ function renderFriendsList() {
     .join('');
 
   // Клик по карточке открывает модалку
-
   container.querySelectorAll('.friend-card-new').forEach(card => {
     card.addEventListener('click', () => {
       const friendId = card.dataset.id;
-
       openFriendModal(friendId);
     });
   });
@@ -18558,18 +17707,18 @@ let currentModal = null;
 
 async function openFriendModal(friendId) {
   // Если модалка уже открыта, закрываем
-
   if (currentModal) {
     currentModal.remove();
-
     currentModal = null;
   }
 
   // Получаем данные о друге
-
   const friend = friendsData.friends.find(f => f.id === friendId);
 
-  if (!friend) return;
+  if (!friend) {
+    console.error('Friend not found');
+    return;
+  }
 
   // Загружаем бейджи друга (если есть)
 
@@ -18792,8 +17941,6 @@ async function openFriendModal(friendId) {
   modal.querySelector('#compare-words').onclick = async () => {
     const result = await compareDictionaries(window.currentUserId, friendId);
 
-    console.log('compareDictionaries result:', result);
-
     showComparisonModal(result, friend.username);
   };
 
@@ -18805,9 +17952,10 @@ async function openFriendModal(friendId) {
 
   currentModal = modal;
 
-  // Анимация открытия
-
-  requestAnimationFrame(() => modal.classList.add('open'));
+  // Показываем модалку с анимацией
+  requestAnimationFrame(() => {
+    modal.classList.add('open');
+  });
 }
 
 function showGiftModal(friendId, friendName) {
@@ -19925,15 +19073,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // === УЛУЧШЕННАЯ ПРОВЕРКА РЕЧИ (объединяет всё лучшее) ===
 
   window.isSpeechCorrect = function (spoken, correct, confidence = null) {
-    console.log(
-      `🔍 isSpeechCorrect вызван: spoken="${spoken}", correct="${correct}", confidence=${confidence}`,
-    );
-
     if (!spoken || !correct) {
-      console.log(
-        `❌ isSpeechCorrect: пустые параметры - spoken="${spoken}", correct="${correct}"`,
-      );
-
       return false;
     }
 
@@ -19958,34 +19098,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cleanedCorrect = cleanText(c);
 
-    console.log(
-      `🔍 isSpeechCorrect: после очистки - s="${s}", correct="${cleanedCorrect}"`,
-    );
-
     // Берём первое слово, если в транскрипте нескольких
 
     if (s.includes(' ')) {
       s = s.split(/\s+/)[0];
-
-      console.log(`🔍 isSpeechCorrect: взяли первое слово - s="${s}"`);
     }
 
     // 1. Точное совпадение
 
     if (s === cleanedCorrect) {
-      console.log(`✅ Точное совпадение: "${s}" === "${cleanedCorrect}"`);
-
       return true;
     }
 
     // 2. Омофоны
 
     if (window.isHomophone && window.isHomophone(s, cleanedCorrect)) {
-      console.log(`✅ Омофон сработал: "${s}" ~ "${cleanedCorrect}"`);
-
       return true;
-    } else {
-      console.log(`⚠️ Омофон не сработал для "${s}" и "${cleanedCorrect}"`);
     }
 
     // 3. Расстояние Левенштейна (уже есть в коде)
@@ -19995,10 +19123,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxLen = Math.max(s.length, cleanedCorrect.length);
 
     const similarity = 1 - distance / maxLen;
-
-    console.log(
-      `🔍 Fuzzy-проверка: distance=${distance}, maxLen=${maxLen}, similarity=${similarity.toFixed(3)}`,
-    );
 
     // 4. Определяем порог в зависимости от длины слова
 
@@ -20012,35 +19136,19 @@ document.addEventListener('DOMContentLoaded', () => {
       threshold = 0.72; // длинные (language, through) – мягче
     }
 
-    console.log(
-      `🔍 Порог для слова длины ${cleanedCorrect.length}: ${threshold}`,
-    );
-
     // 5. Если уверенность низкая, ужесточаем порог
 
     if (confidence !== null && confidence < 0.6) {
       threshold += 0.1;
-
-      console.log(
-        `🔍 Уверенность низкая (${confidence}), порог ужесточен до ${threshold}`,
-      );
     }
 
     // 6. Если совпадение слишком низкое – сразу отказ (защита от мямли)
 
     if (similarity < 0.5) {
-      console.log(
-        `❌ Слишком низкое совпадение (${similarity.toFixed(3)} < 0.5)`,
-      );
-
       return false;
     }
 
     const result = similarity >= threshold;
-
-    console.log(
-      `🔍 Итог: similarity=${similarity.toFixed(3)} ${result >= threshold ? '>=' : '<'} threshold=${threshold} -> ${result ? 'ПРИНЯТО' : 'ОТКЛОНЕНО'}`,
-    );
 
     return result;
   };
@@ -20593,8 +19701,6 @@ window.toggleStickerPicker = function (friendId) {
 };
 
 window.sendSticker = async function (friendId, sticker) {
-  console.log('🔥 sendSticker called:', { friendId, sticker });
-
   // Проверяем, открыт ли чат с этим другом
 
   if (window.currentChatFriend !== friendId) {
@@ -20603,13 +19709,11 @@ window.sendSticker = async function (friendId, sticker) {
     try {
       await sendMessage(window.currentUserId, friendId, sticker);
 
-      console.log('🔥 sendMessage success');
-
       toast('Стикер отправлен!', 'success');
 
       playSound('sound/send.mp3');
     } catch (e) {
-      console.error('🔥 sendSticker error:', e);
+      console.error('sendSticker error:', e);
 
       toast(
         'Ошибка отправки стикера: ' +
@@ -20689,8 +19793,6 @@ window.sendSticker = async function (friendId, sticker) {
 
       sticker,
     );
-
-    console.log('🔥 Стикер успешно отправлен:', sentMessage);
 
     // Заменяем временный ID на реальный
 
@@ -20904,8 +20006,6 @@ async function renderChatFriends() {
 }
 
 async function openChatWithFriend(friendId) {
-  console.log('🔴 Агрессивный ресайз отключён навсегда');
-
   const friend = friendsData.friends.find(f => f.id === friendId);
 
   if (!friend) return;
@@ -20929,19 +20029,6 @@ async function openChatWithFriend(friendId) {
 
       document.body.classList.add('chat-open');
 
-      console.log('📊 DEBUG: Полноэкранный чат активирован СРАЗУ');
-
-      console.log('📏 Размеры окна:', {
-        windowWidth: window.innerWidth,
-
-        windowHeight: window.innerHeight,
-
-        screenWidth: screen.width,
-
-        screenHeight: screen.height,
-      });
-
-      // Ждём применения стилей перед дальнейшими операциями
       requestAnimationFrame(() => {
         // Настройка поля ввода для мобильных устройств
         const messageInput = document.getElementById('chat-message-input');
@@ -20953,7 +20040,6 @@ async function openChatWithFriend(friendId) {
                 behavior: 'smooth',
                 block: 'center',
               });
-              console.log('🎯 Прокрутка к полю ввода');
             }, 300);
           };
 
@@ -21031,8 +20117,6 @@ async function openChatWithFriend(friendId) {
 
     chatUpdateInterval = setInterval(async () => {
       if (window.currentChatFriend) {
-        console.log('🔄 Проверка новых сообщений...');
-
         const messages = await getMessages(
           window.currentUserId,
 
@@ -21048,10 +20132,6 @@ async function openChatWithFriend(friendId) {
         // Обновляем сообщения если есть новые
 
         if (chronologicalMessages.length > messageIds.length) {
-          console.log(
-            `🔥 Обнаружено ${chronologicalMessages.length - messageIds.length} новых сообщений`,
-          );
-
           await openChatWithFriend(window.currentChatFriend);
         }
       }
@@ -21223,8 +20303,6 @@ async function openChatWithFriend(friendId) {
 
   // Загружаем сообщения
 
-  console.log(`🔥 Загружаем сообщения для чата с ${friendId}`);
-
   let currentOffset = 0;
 
   const messagesPerPage = 50;
@@ -21238,8 +20316,6 @@ async function openChatWithFriend(friendId) {
 
     currentOffset,
   );
-
-  console.log(`🔥 Получено сообщений:`, messages?.length || 0);
 
   // Сохраняем состояние для подгрузки
 
@@ -21260,13 +20336,7 @@ async function openChatWithFriend(friendId) {
   const chronologicalMessages = (messages || []).reverse();
 
   if (chronologicalMessages && chronologicalMessages.length > 0) {
-    console.log(`🔥 Первое сообщение:`, chronologicalMessages[0]);
-
-    console.log(
-      `🔥 Последнее сообщение:`,
-
-      chronologicalMessages[chronologicalMessages.length - 1],
-    );
+    // Проверка на наличие сообщений
   }
 
   const messageIds = chronologicalMessages.map(m => m.id);
@@ -21378,12 +20448,8 @@ async function openChatWithFriend(friendId) {
 
   // Рендерим сообщения
 
-  console.log(`🔥 Рендерим ${chronologicalMessages.length} сообщений в чате`);
-
-  console.log(`🔥 messagesList элемент:`, messagesList);
-
   if (!messagesList) {
-    console.error(`🔥 ОШИБКА: messagesList не найден!`);
+    console.error('messagesList элемент не найден!');
 
     return;
   }
@@ -21459,12 +20525,6 @@ async function openChatWithFriend(friendId) {
 
       .join('');
 
-  console.log(
-    `🔥 Сообщения отрендерены, длина innerHTML:`,
-
-    messagesList.innerHTML.length,
-  );
-
   // Отметить прочитанными и обновить бейджи
 
   await markMessagesRead(window.currentUserId, friendId);
@@ -21509,19 +20569,9 @@ async function openChatWithFriend(friendId) {
         );
 
         if (olderMessages && olderMessages.length > 0) {
-          console.log(`🔥 Получено старых сообщений: ${olderMessages.length}`);
-
           // Запоминаем высоту и позицию до вставки
           const oldScrollHeight = messagesList.scrollHeight;
           const oldScrollTop = messagesList.scrollTop;
-          console.log(
-            '🔥 ДО вставки: scrollHeight =',
-            oldScrollHeight,
-            'scrollTop =',
-            oldScrollTop,
-          );
-
-          // Добавляем старые сообщения в начало
 
           const olderMessagesHtml = olderMessages
 
@@ -21651,8 +20701,6 @@ async function openChatWithFriend(friendId) {
 
             msgEl.setAttribute('data-processed', 'true');
           });
-
-          console.log(`🔥 Загружено еще ${olderMessages.length} сообщений`);
         } else {
           state.hasMoreMessages = false;
 
@@ -21687,13 +20735,9 @@ async function openChatWithFriend(friendId) {
       reactEl.addEventListener('click', async e => {
         e.stopPropagation();
 
-        console.log('🔥 Клик по реакции!', reactEl);
-
         const emoji = reactEl.dataset.emoji;
 
         const messageId = reactEl.dataset.messageId;
-
-        console.log('🔥 Данные реакции:', { emoji, messageId });
 
         await handleReactionToggle(messageId, emoji, updateReactionLocally);
       });
@@ -21779,8 +20823,6 @@ async function openChatWithFriend(friendId) {
 
         text,
       );
-
-      console.log('🔥 Сообщение успешно отправлено:', sentMessage);
 
       // Заменяем временный ID на реальный
 
@@ -21929,8 +20971,6 @@ async function updateUnreadCounts() {
       window.currentChatFriend &&
       lastMessage?.sender_id === window.currentChatFriend
     ) {
-      console.log('🔄 Обновляем открытый чат...');
-
       setTimeout(() => {
         openChatWithFriend(window.currentChatFriend);
       }, 500);
@@ -21946,8 +20986,6 @@ async function updateUnreadCounts() {
       window.currentChatFriend &&
       lastMessage?.sender_id === window.currentChatFriend
     ) {
-      console.log('🔄 Обновляем открытый чат...');
-
       setTimeout(() => {
         openChatWithFriend(window.currentChatFriend);
       }, 500);
@@ -22630,16 +21668,11 @@ function savePendingMessage(message) {
     'englift_pending_messages',
     JSON.stringify(pendingMessages),
   );
-  console.log('💾 Сообщение сохранено в офлайн:', message);
 }
 
 // Функция для отправки накопленных сообщений
 async function syncPendingMessages() {
   if (!navigator.onLine || pendingMessages.length === 0) return;
-
-  console.log(
-    `🔄 Синхронизация ${pendingMessages.length} отложенных сообщений...`,
-  );
 
   const toSync = [...pendingMessages];
   pendingMessages = [];
@@ -22651,9 +21684,7 @@ async function syncPendingMessages() {
   for (const msg of toSync) {
     try {
       await sendMessage(msg.sender_id, msg.receiver_id, msg.text);
-      console.log('✅ Сообщение отправлено:', msg.text);
     } catch (error) {
-      console.error('❌ Ошибка отправки сообщения:', error);
       // Возвращаем сообщение в очередь при ошибке
       pendingMessages.push(msg);
       localStorage.setItem(
@@ -22693,7 +21724,6 @@ function updateOfflineIndicator() {
 
 // Глобальные обработчики online/offline
 window.addEventListener('online', () => {
-  console.log('🟢 Соединение восстановлено');
   toast('🟢 Соединение восстановлено', 'success');
   updateOfflineIndicator();
   syncPendingMessages();
@@ -22701,7 +21731,6 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
-  console.log('📴 Офлайн режим активирован');
   toast('📴 Офлайн режим', 'info');
   updateOfflineIndicator();
 });
@@ -22788,15 +21817,11 @@ if (window._originalSubscribeMessages) {
 window._originalSubscribeMessages = subscribeToMessages;
 
 subscribeToMessages = function () {
-  console.log('🔥 subscribeToMessages вызвана');
-
   if (messagesChannel) messagesChannel.unsubscribe();
 
   const userId = window.currentUserId;
 
   if (!userId) return;
-
-  console.log('🔥 Подписываемся на сообщения для userId:', userId);
 
   messagesChannel = supabase
 
@@ -22819,24 +21844,6 @@ subscribeToMessages = function () {
         const message = payload.new;
 
         const senderId = message.sender_id;
-
-        console.log('🔥 Новое сообщение:', {
-          id: message.id,
-
-          text: message.text,
-
-          senderId,
-
-          currentChatFriend: window.currentChatFriend,
-
-          equal: window.currentChatFriend === senderId,
-
-          types: {
-            currentType: typeof window.currentChatFriend,
-
-            senderType: typeof senderId,
-          },
-        });
 
         // Получаем имя отправителя
 
@@ -22869,24 +21876,12 @@ subscribeToMessages = function () {
         // Если сейчас открыт чат с этим отправителем, добавляем сообщение локально
 
         if (window.currentChatFriend === senderId) {
-          console.log('✅ Условие выполнено, добавляем локально');
-
           addIncomingMessageLocally(message, profile?.username);
-        } else {
-          console.warn(
-            '❌ currentChatFriend !== senderId',
-
-            window.currentChatFriend,
-
-            senderId,
-          );
         }
       },
     )
 
     .subscribe();
-
-  console.log('✅ Подписка на сообщения установлена');
 };
 
 // Вызываем подписку сразу после переопределения
@@ -22898,8 +21893,6 @@ setTimeout(() => {
 }, 1000);
 
 function subscribeToMessages() {
-  console.log('🔥 subscribeToMessages вызвана');
-
   if (messagesChannel) {
     messagesChannel.unsubscribe();
   }
@@ -22907,8 +21900,6 @@ function subscribeToMessages() {
   const userId = window.currentUserId;
 
   if (!userId) return;
-
-  console.log('🔥 Подписываемся на сообщения для userId:', userId);
 
   messagesChannel = supabase
 
@@ -22931,14 +21922,6 @@ function subscribeToMessages() {
         const message = payload.new;
 
         const senderId = message.sender_id;
-
-        console.log('🔥 Новое сообщение получено:', {
-          message,
-
-          senderId,
-
-          currentChatFriend,
-        });
 
         // Получаем имя отправителя
 
@@ -22979,24 +21962,12 @@ function subscribeToMessages() {
         // Если сейчас открыт чат с этим отправителем, добавляем сообщение локально
 
         if (window.currentChatFriend === senderId) {
-          console.log('✅ Условие выполнено, добавляем локально');
-
           addIncomingMessageLocally(message, profile?.username);
-        } else {
-          console.warn(
-            '❌ currentChatFriend !== senderId',
-
-            window.currentChatFriend,
-
-            senderId,
-          );
         }
       },
     )
 
     .subscribe();
-
-  console.log('🔥 Подписка на сообщения установлена');
 }
 
 function subscribeToReactions() {
@@ -23005,8 +21976,6 @@ function subscribeToReactions() {
   }
 
   if (!window.currentUserId) return;
-
-  console.log('🔥 Подписываемся на реакции...');
 
   reactionsChannel = supabase
 
@@ -23024,21 +21993,15 @@ function subscribeToReactions() {
       },
 
       async payload => {
-        console.log('🔥 Получено обновление реакций:', payload);
-
         // Если открыт чат с кем-то, обновляем его
 
         if (currentChatFriend) {
-          console.log('🔥 Обновляем чат из-за изменения реакций');
-
           await openChatWithFriend(currentChatFriend);
         }
       },
     )
 
     .subscribe();
-
-  console.log('🔥 Подписка на реакции установлена');
 }
 
 function subscribeToFriendRequests() {
@@ -23204,23 +22167,17 @@ setupThemeToggle();
 
 // switchTab('words') - перенесен в onProfileFullyLoaded после загрузки данных
 
-console.log(
-  '✅ script.js полностью загружен, applyProfileData доступен:',
-
-  typeof window.applyProfileData,
-);
-
 // Fallback: если через 6 секунд индикатор всё ещё виден – скрываем принудительно
 
 setTimeout(() => {
   const loader = document.getElementById('loading-indicator');
 
   if (loader && loader.style.display !== 'none') {
-    console.warn('⚠️ Принудительное скрытие индикатора загрузки по таймауту');
-
     window.forceHideLoader();
   }
 }, 6000);
+
+console.log('[SCRIPT] ✅ script.js полностью загружен');
 
 // Обработчик нажатия Enter в фидбеке (bottom sheet)
 
@@ -23228,49 +22185,29 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     const activeEl = document.activeElement;
 
-    console.log(
-      '🌐 Глобальный обработчик Enter, activeElement:',
-
-      activeEl?.tagName,
-
-      activeEl?.id,
-    );
-
     // Если активный элемент — поле ввода (input, textarea), не перехватываем Enter
 
     if (
       activeEl &&
       (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')
     ) {
-      console.log('🚫 Фокус в поле ввода, пропускаем глобальный обработчик');
-
       return;
     }
 
     const sheet = document.getElementById('fb-sheet');
 
-    console.log('🔍 Фидбек лист:', sheet?.classList.toString());
-
     if (sheet && sheet.classList.contains('show')) {
-      console.log('✅ Фидбек показан, ищем кнопки');
-
       const nextBtn = sheet.querySelector('.fb-next-btn');
 
       if (nextBtn) {
-        console.log('🔘 Нажимаем кнопку "Дальше"');
-
         nextBtn.click();
       } else {
         const resetBtn = sheet.querySelector('.fb-reset-btn');
 
         if (resetBtn) {
-          console.log('🔄 Нажимаем кнопку "Сбросить"');
-
           resetBtn.click();
         }
       }
-    } else {
-      console.log('❌ Фидбек не показан');
     }
   }
 });
@@ -23284,92 +22221,40 @@ document.addEventListener('keydown', e => {
 // Глобальная функция для тестирования бесконечной прокрутки слов
 
 window.testInfiniteScrollWords = function () {
-  console.log('🧪 Testing infinite scroll for WORDS');
-
-  console.log('📊 Current state:');
-
-  console.log('  - window.words.length:', window.words.length);
-
-  console.log('  - currentFilteredWords.length:', currentFilteredWords.length);
-
-  console.log('  - renderedWordsCount:', renderedWordsCount);
-
-  console.log('  - visibleLimit:', visibleLimit);
-
-  console.log('  - isLoadingMore:', isLoadingMore);
-
   // Принудительно вызываем загрузку следующей порции
 
   if (renderedWordsCount < currentFilteredWords.length) {
-    console.log('🔄 Manually triggering loadMoreWords...');
-
     loadMoreWords();
-  } else {
-    console.log('✅ All words are already rendered');
   }
 };
 
 // Глобальная функция для тестирования бесконечной прокрутки идиом
 
 window.testInfiniteScrollIdioms = function () {
-  console.log('🧪 Testing infinite scroll for IDIOMS');
-
-  console.log('📊 Current state:');
-
-  console.log('  - window.idioms.length:', window.idioms.length);
-
-  console.log(
-    '  - currentFilteredIdioms.length:',
-
-    currentFilteredIdioms.length,
-  );
-
-  console.log('  - renderedIdiomsCount:', renderedIdiomsCount);
-
-  console.log('  - idiomsVisibleLimit:', idiomsVisibleLimit);
-
-  console.log('  - isLoadingMore:', isLoadingMore);
-
   // Принудительно вызываем загрузку следующей порции
 
   if (renderedIdiomsCount < currentFilteredIdioms.length) {
-    console.log('🔄 Manually triggering loadMoreIdioms...');
-
     loadMoreIdioms();
-  } else {
-    console.log('✅ All idioms are already rendered');
   }
 };
 
 // Глобальная функция для сброса и проверки полного рендера
 
 window.testFullRenderWords = function () {
-  console.log('🔄 Testing full render of WORDS');
-
   renderWords(false); // Полный рендер
 };
 
 window.testFullRenderIdioms = function () {
-  console.log('🔄 Testing full render of IDIOMS');
-
   renderIdioms(false); // Полный рендер
 };
 
-console.log('✅ Infinite scroll implementation completed!');
-
 // Глобальная функция для тестирования улучшений мобильного чата
 window.testMobileChatImprovements = function () {
-  console.log('🧪 Testing mobile chat improvements...');
-
   // Проверка 1: Мерцание скролла
   const chatList = document.getElementById('chat-messages-list');
   if (chatList) {
     const hasScrollbarGutter =
       getComputedStyle(chatList).scrollbarGutter === 'stable';
-    console.log(
-      '📊 scrollbar-gutter: stable -',
-      hasScrollbarGutter ? '✅ Applied' : '❌ Missing',
-    );
   }
 
   // Проверка 2: Fullscreen класс применяется сразу
@@ -23377,196 +22262,13 @@ window.testMobileChatImprovements = function () {
   if (fpanelChat) {
     const hasWillChange =
       getComputedStyle(fpanelChat).willChange === 'transform';
-    console.log(
-      '🚀 will-change: transform -',
-      hasWillChange ? '✅ Applied' : '❌ Missing',
-    );
   }
 
   // Проверка 3: Safe area padding
   const inputRow = document.querySelector('.chat-input-row');
   if (inputRow) {
     const paddingBottom = getComputedStyle(inputRow).paddingBottom;
-    console.log('📱 Safe area padding -', paddingBottom);
   }
-
-  console.log('✅ Mobile chat improvements test completed');
-};
-
-console.log('🧪 Test functions available:');
-console.log('  - testInfiniteScrollWords()');
-console.log('  - testInfiniteScrollIdioms()');
-console.log('  - testFullRenderWords()');
-console.log('  - testFullRenderIdioms()');
-console.log('  - testMobileChatImprovements()');
-
-// Глобальная функция для отладки размеров чата
-
-window.debugChatSizes = function () {
-  console.log('🔍 === DEBUG CHAT SIZES ===');
-  // ... остальной код ...
-
-  const fpanelChat = document.getElementById('fpanel-chat');
-
-  const messagesEl = document.getElementById('chat-messages');
-
-  const messagesListEl = document.getElementById('chat-messages-list');
-
-  const inputRowEl = document.querySelector('.chat-input-row');
-
-  if (!fpanelChat) {
-    console.log('❌ fpanel-chat не найден');
-
-    return;
-  }
-
-  console.log('📊 Размеры окна:', {
-    windowWidth: window.innerWidth,
-
-    windowHeight: window.innerHeight,
-
-    screenWidth: screen.width,
-
-    screenHeight: screen.height,
-
-    isMobile: window.innerWidth <= 830,
-  });
-
-  const chatRect = fpanelChat.getBoundingClientRect();
-
-  console.log('📱 fpanel-chat:', {
-    width: chatRect.width,
-
-    height: chatRect.height,
-
-    top: chatRect.top,
-
-    left: chatRect.left,
-
-    bottom: chatRect.bottom,
-
-    right: chatRect.right,
-
-    computedHeight: getComputedStyle(fpanelChat).height,
-
-    computedDisplay: getComputedStyle(fpanelChat).display,
-
-    computedFlexDirection: getComputedStyle(fpanelChat).flexDirection,
-
-    computedPosition: getComputedStyle(fpanelChat).position,
-
-    hasFullscreenClass: fpanelChat.classList.contains('chat-fullscreen'),
-  });
-
-  if (messagesEl) {
-    const messagesRect = messagesEl.getBoundingClientRect();
-
-    console.log('📨 chat-messages:', {
-      width: messagesRect.width,
-
-      height: messagesRect.height,
-
-      top: messagesRect.top,
-
-      bottom: messagesRect.bottom,
-
-      computedFlex: getComputedStyle(messagesEl).flex,
-
-      computedDisplay: getComputedStyle(messagesEl).display,
-
-      computedFlexDirection: getComputedStyle(messagesEl).flexDirection,
-
-      computedMinHeight: getComputedStyle(messagesEl).minHeight,
-    });
-  } else {
-    console.log('❌ chat-messages не найден');
-  }
-
-  if (messagesListEl) {
-    const listRect = messagesListEl.getBoundingClientRect();
-
-    console.log('📋 chat-messages-list:', {
-      width: listRect.width,
-
-      height: listRect.height,
-
-      top: listRect.top,
-
-      bottom: listRect.bottom,
-
-      computedFlex: getComputedStyle(messagesListEl).flex,
-
-      computedOverflow: getComputedStyle(messagesListEl).overflow,
-
-      computedMinHeight: getComputedStyle(messagesListEl).minHeight,
-
-      scrollHeight: messagesListEl.scrollHeight,
-
-      clientHeight: messagesListEl.clientHeight,
-    });
-  } else {
-    console.log('❌ chat-messages-list не найден');
-  }
-
-  if (inputRowEl) {
-    const inputRect = inputRowEl.getBoundingClientRect();
-
-    console.log('⌨️ chat-input-row:', {
-      width: inputRect.width,
-
-      height: inputRect.height,
-
-      top: inputRect.top,
-
-      bottom: inputRect.bottom,
-
-      computedFlexShrink: getComputedStyle(inputRowEl).flexShrink,
-
-      computedPosition: getComputedStyle(inputRowEl).position,
-    });
-  } else {
-    console.log('❌ chat-input-row не найден');
-  }
-
-  // Проверяем свободное пространство
-
-  if (messagesEl && inputRowEl && messagesListEl) {
-    const messagesRect = messagesEl.getBoundingClientRect();
-
-    const inputRect = inputRowEl.getBoundingClientRect();
-
-    const listRect = messagesListEl.getBoundingClientRect();
-
-    const totalHeight = listRect.height + inputRect.height;
-
-    const availableHeight = messagesRect.height;
-
-    const emptySpace = availableHeight - totalHeight;
-
-    console.log('🔍 Анализ пространства:', {
-      'Высота списка сообщений': listRect.height,
-
-      'Высота поля ввода': inputRect.height,
-
-      'Суммарная высота': totalHeight,
-
-      'Доступная высота': availableHeight,
-
-      'Пустое пространство': emptySpace,
-
-      Проблема: emptySpace > 50 ? 'БОЛЬШОЕ ПУСТОЕ ПРОСТРАНСТВО' : 'OK',
-    });
-  }
-
-  // Проверяем body
-
-  console.log('🌍 Body:', {
-    computedOverflow: getComputedStyle(document.body).overflow,
-
-    hasChatOpenClass: document.body.classList.contains('chat-open'),
-  });
-
-  console.log('🔍 === END DEBUG ===');
 };
 
 // ========== REACTIONS FUNCTIONS ==========
@@ -23712,14 +22414,6 @@ async function showReactionPicker(messageId, updateReactionLocally) {
 }
 
 async function handleReactionToggle(messageId, emoji, updateReactionLocally) {
-  console.log('handleReactionToggle вызван:', {
-    messageId,
-
-    emoji,
-
-    currentUserId: window.currentUserId,
-  });
-
   // Определяем, есть ли уже реакция от текущего пользователя
 
   // Для этого нужно получить доступ к reactionsMap, но он в замыкании openChatWithFriend
@@ -23746,8 +22440,6 @@ async function handleReactionToggle(messageId, emoji, updateReactionLocally) {
 
   try {
     const result = await toggleReaction(messageId, window.currentUserId, emoji);
-
-    console.log('Результат toggleReaction:', result);
 
     // Звук только для добавления реакции (change === 1)
 

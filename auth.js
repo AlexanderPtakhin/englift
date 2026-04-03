@@ -1,10 +1,7 @@
 import { supabase } from './supabase.js';
 import { saveUserData, loadWordsOnce } from './db.js';
 
-console.log(
-  '🔍 auth.js загружается, проверяем applyProfileData:',
-  typeof window.applyProfileData,
-);
+console.log('[AUTH] auth.js загружается');
 
 // DOM элементы для основного приложения
 const dropdownEmail = document.getElementById('dropdown-email');
@@ -22,11 +19,14 @@ let lastProfileLoadTime = 0;
 
 // Функция загрузки профиля
 async function loadUserProfile(user) {
-  if (!user) return;
+  if (!user) {
+    console.warn('[AUTH] ⚠️ loadUserProfile вызван без user');
+    return;
+  }
+  console.log('[AUTH] Загрузка профиля для user:', user.id);
   const savedUsername = localStorage.getItem('englift_pending_username');
 
   if (window._profileLoadInProgress) {
-    console.warn('⚠️ Загрузка профиля уже выполняется, пропускаем');
     return;
   }
   window._profileLoadInProgress = true;
@@ -34,7 +34,6 @@ async function loadUserProfile(user) {
 
   try {
     if (typeof window.applyProfileData !== 'function') {
-      console.warn('⚠️ applyProfileData ещё не определена — ждём 50мс');
       await new Promise(resolve => setTimeout(resolve, 50));
     }
 
@@ -47,12 +46,14 @@ async function loadUserProfile(user) {
     // КЕЙС 1: Сервер вернул ошибку (упал, нет сети, временная недоступность)
     // → используем локальные данные, НЕ создаём новый профиль
     if (error && error.code !== 'PGRST116') {
-      console.warn('⚠️ Ошибка сервера, пробуем локальные данные:', error.message);
+      console.warn(
+        '[AUTH] ⚠️ Ошибка сервера, пробуем локальные данные:',
+        error.message,
+      );
       const saved = localStorage.getItem('englift_lastknown_progress');
       if (saved) {
         try {
           const local = JSON.parse(saved);
-          console.log('🔄 Сервер недоступен — применяем локальные данные, профиль НЕ сбрасываем');
           window.applyProfileData(local);
           return;
         } catch (e) {
@@ -65,15 +66,11 @@ async function loadUserProfile(user) {
 
     // КЕЙС 2: Профиль не найден на сервере (serverProfile === null)
     if (!serverProfile) {
-      console.log('🔍 Серверный профиль не найден');
       const saved = localStorage.getItem('englift_lastknown_progress');
 
       if (saved) {
         try {
           const local = JSON.parse(saved);
-          // Берём ЛЮБЫЕ локальные данные (даже xp=0, level=1)
-          // Это может быть существующий юзер при временном сбое сервера
-          console.log('🔄 Есть локальные данные — восстанавливаем и синхронизируем с сервером');
           await saveUserData(user.id, local);
           window.applyProfileData(local);
           return;
@@ -83,7 +80,6 @@ async function loadUserProfile(user) {
       }
 
       // КЕЙС 2б: Нет ни серверных, ни локальных данных → точно новый пользователь
-      console.log('🆕 Новый пользователь — создаём профиль с нуля');
       const today = new Date().toISOString().split('T')[0];
       const username =
         savedUsername ||
@@ -119,6 +115,7 @@ async function loadUserProfile(user) {
       };
 
       await saveUserData(user.id, defaultProfile);
+      console.log('[AUTH] ✅ Создан новый профиль:', username);
       window.applyProfileData(defaultProfile);
 
       const pendingInvite = localStorage.getItem('englift_pending_invite');
@@ -146,11 +143,11 @@ async function loadUserProfile(user) {
         if (!updateError) serverProfile.username = savedUsername;
         localStorage.removeItem('englift_pending_username');
       }
-      console.log('✅ Серверный профиль найден, применяем');
       window.applyProfileData(serverProfile);
+      console.log('[AUTH] ✅ Профиль загружен с сервера');
     }
   } catch (err) {
-    console.error('Ошибка загрузки профиля:', err);
+    console.error('[AUTH] ❌ Ошибка загрузки профиля:', err);
     window.toast?.(
       'Не удалось загрузить профиль: ' + (err.message || err),
       'danger',
@@ -159,7 +156,6 @@ async function loadUserProfile(user) {
       window.onProfileFullyLoaded();
     }
   } finally {
-    console.log('🔚 loadUserProfile завершён');
     window._profileLoadInProgress = false;
     if (typeof window.onProfileFullyLoaded === 'function') {
       window.onProfileFullyLoaded();
@@ -196,7 +192,6 @@ async function applyInvite(inviteId, newUserId) {
       .update({ uses: (invite.uses || 0) + 1 })
       .eq('id', inviteId);
 
-    console.log(`✅ Invite applied: ${inviteId}`);
     if (window.currentUserId) {
       if (typeof loadLeaderboard === 'function') loadLeaderboard('week');
       if (typeof loadFriendActivity === 'function') loadFriendActivity();
@@ -209,8 +204,6 @@ async function applyInvite(inviteId, newUserId) {
 
 // Следим за состоянием аутентификации
 supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log('🔐 Auth state changed:', event, session?.user?.id || 'no user');
-
   window.currentAccessToken = session?.access_token || null;
   const user = session?.user;
 
@@ -219,7 +212,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
   if (shouldLoadProfile) {
     if (!profileLoadPromise) {
-      console.log('🔄 Загружаем профиль...');
       profileLoadPromise = loadUserProfile(user).finally(() => {
         profileLoaded = true;
         profileLoadPromise = null;
@@ -227,10 +219,9 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       });
     }
   } else if (event === 'TOKEN_REFRESHED' && user) {
-    console.log('✅ TOKEN_REFRESHED — профиль не перезагружаем');
+    // TOKEN_REFRESHED — профиль не перезагружаем
   } else if (event === 'SIGNED_IN') {
     if (profileLoaded && Date.now() - lastProfileLoadTime < 5000) {
-      console.log('⏳ Пропускаем частую загрузку профиля');
       return;
     }
   }
@@ -248,9 +239,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     if (profileLoaded && !wordsLoaded) {
       wordsLoaded = true;
       window.authExports?.loadWordsOnce(remoteWords => {
-        console.log(
-          `🔄 Автосинхронизация: локально ${window.words?.length || 0} → сервер ${remoteWords?.length || 0}`,
-        );
         const localWords = window.words || [];
         const merged = window.mergeWords
           ? window.mergeWords(localWords, remoteWords)
@@ -262,7 +250,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         );
         localStorage.setItem('englift_words', JSON.stringify(window.words));
         if (window.refreshUI) window.refreshUI();
-        console.log(`✅ Синхронизация завершена: ${merged.length} слов`);
       });
     }
   } else if (user && !user.email_confirmed_at) {
@@ -271,7 +258,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       window.location.href = '/login.html';
     }
   } else if (event === 'SIGNED_OUT') {
-    console.log('🚪 SIGNED_OUT event received');
     const wasExplicit = isExplicitLogoutPending;
     isExplicitLogoutPending = false;
 
@@ -354,6 +340,9 @@ function showInviteConfirmModal(inviterName, inviterId, inviteId) {
     </div>
   `;
   document.body.appendChild(modal);
+
+  // Блокируем скролл на backdrop
+  initModalScrollLock(modal);
 
   document.getElementById('invite-accept-btn').onclick = async () => {
     await acceptInviteFriendship(inviterId, inviteId);

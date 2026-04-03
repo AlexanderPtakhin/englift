@@ -5622,6 +5622,21 @@ html.dark .badge-learned {
   padding: 2rem;
 }
 
+/* Полноэкранная модалка настроек на мобильных устройствах */
+@media (max-width: 768px) {
+  #speech-modal.modal-backdrop {
+    align-items: flex-start;
+  }
+
+  #speech-modal .modal-box.modal-box--large {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
+
 /* Заголовок модалки с кнопкой закрытия */
 
 .modal-header {
@@ -7321,6 +7336,21 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
 /* Блокировка скролла когда модалка открыта */
 body.modal-open {
   overflow: hidden;
+  touch-action: none;
+}
+
+/* Предотвращаем прокрутку body через модалку */
+.modal-backdrop.open {
+  display: flex;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+.modal-box {
+  overscroll-behavior: contain;
+  touch-action: auto;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 /* Анимация появления модального окна */
@@ -15410,28 +15440,35 @@ body.bs-open .bs-trigger-arrow {
 .friend-modal.open {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .friend-modal-content {
   background: var(--card);
-  border-radius: 32px;
-  max-width: 520px;
-  width: 100%;
-  max-height: 85vh;
+  border-radius: var(--radius);
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: modalSlideUp 0.3s ease;
 }
 
-@keyframes modalPop {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
+/* Полноэкранная модалка друга на мобильных */
+@media (max-width: 768px) {
+  .friend-modal {
+    align-items: flex-start;
+    padding: 0;
   }
-  to {
-    transform: scale(1);
-    opacity: 1;
+
+  .friend-modal-content {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 1.5rem;
   }
 }
 

@@ -1,5 +1,7 @@
 import { supabase } from './supabase.js';
 
+console.log('[INIT] 🚀 main.js загружается');
+
 import {
   saveWordToDb,
   deleteWordFromDb,
@@ -30,6 +32,7 @@ window.setupThemeToggle = setupThemeToggle;
 // Глобальный перехват ошибок для отладки
 
 window.addEventListener('error', function (event) {
+  console.error('[CRITICAL] ❌ Глобальная ошибка:', event.error);
   window.toast?.(
     'Ошибка: ' + (event.error?.message || event.message),
 
@@ -42,6 +45,10 @@ window.addEventListener('error', function (event) {
 // Обработка необработанных Promise rejection
 
 window.addEventListener('unhandledrejection', function (event) {
+  console.error(
+    '[CRITICAL] ❌ Необработанный Promise rejection:',
+    event.reason,
+  );
   window.toast?.(
     'Ошибка: ' + (event.reason?.message || event.reason),
 
@@ -74,10 +81,15 @@ window.authExports = {
 // === РЕГИСТРАЦИЯ SERVICE WORKER С АВТООБНОВЛЕНИЕМ ===
 
 if ('serviceWorker' in navigator) {
+  console.log('[SW] Регистрация Service Worker...');
   navigator.serviceWorker
     .register(new URL('./sw.js', import.meta.url), { updateViaCache: 'none' })
     .then(reg => {
+      console.log('[SW] ✅ Service Worker зарегистрирован');
       reg.update();
+    })
+    .catch(err => {
+      console.error('[SW] ❌ Ошибка регистрации SW:', err);
     });
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -92,23 +104,22 @@ if ('serviceWorker' in navigator) {
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', async () => {
+    console.log('[INIT] 📦 DOM загружен, импорт скриптов...');
     await import('./script.js');
     await import('./auth.js');
+    console.log('[INIT] ✅ Все скрипты импортированы');
   });
 } else {
+  console.log('[INIT] 📦 DOM уже загружен, немедленный импорт');
   import('./script.js').then(() => import('./auth.js'));
 }
 
 // Принудительное скрытие спиннера через 10 секунд на случай ошибок
-
 setTimeout(() => {
-  console.log('Проверка спиннера через 10 секунд');
-
   const loader = document.getElementById('loading-indicator');
 
   if (loader && loader.style.display !== 'none') {
-    console.warn('Спиннер всё ещё виден, скрываем принудительно');
-
+    console.warn('[INIT] ⚠️ Таймаут загрузки (10s), скрываем loader');
     window.forceHideLoader?.();
 
     window.toast?.(
@@ -120,11 +131,8 @@ setTimeout(() => {
 }, 10000);
 
 // Универсальный таймаут для скрытия спиннера через 8 секунд
-
 setTimeout(() => {
   if (document.getElementById('loading-indicator')) {
-    console.warn('Спиннер всё ещё виден, удаляем принудительно');
-
     window.forceHideLoader?.();
   }
 }, 8000);

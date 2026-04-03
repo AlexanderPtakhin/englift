@@ -207,7 +207,6 @@ function toast(msg, type = '', icon = '', duration = 4000) {
     message = 'Произошла ошибка';
   }
 
-  console.log('Toast вызван:', message, type, icon);
   const el = document.createElement('div');
   el.className = 'toast' + (type ? ' ' + type : '');
   el.setAttribute('role', 'status');
@@ -269,7 +268,6 @@ function playAudio(filename, onEnd) {
 }
 
 function playIdiomAudio(filename, onEnd) {
-  console.log('🎵 playIdiomAudio called with:', filename);
   if (!filename) {
     if (onEnd) onEnd();
     return console.warn('Нет файла аудио для идиомы');
@@ -302,7 +300,6 @@ function playSound(type) {
     // Возобновляем аудиоконтекст если он приостановлен
     if (ctx.state === 'suspended') {
       // Не воспроизводим звук если пользователь еще не взаимодействовал с страницей
-      console.warn('🔊 AudioContext suspended - waiting for user interaction');
       return;
     }
 
@@ -315,10 +312,6 @@ function playSound(type) {
       // Произвольный путь к файлу
       audioPath = type;
     }
-
-    console.log('🔊 Playing sound:', audioPath);
-    console.log('🔊 Volume:', audioPath.includes('message.mp3') ? 0.5 : 0.1);
-    console.log('🔊 AudioContext state:', ctx.state);
 
     const audio = new Audio(audioPath);
     // Устанавливаем громкость в зависимости от файла
@@ -334,15 +327,13 @@ function playSound(type) {
               ? 0.3 // 🔊 Увеличиваем громкость для отправки и добавления
               : audioPath.includes('sucsess.mp3') ||
                   audioPath.includes('wrong.mp3')
-                ? 0.2 // 🔊 Ответы на упражнения
+                ? 0.2 // Ответы на упражнения
                 : 0.1;
-
-    console.log('🔊 Final volume:', audio.volume);
 
     audio
       .play()
       .then(() => {
-        console.log('🔊 Sound played successfully!');
+        // Звук воспроизведен
       })
       .catch(e => console.error('❌ Error playing sound:', e));
   } catch (e) {
@@ -407,7 +398,6 @@ function getVoice() {
 
 // Функция для озвучки текста с учетом настроек голоса
 function speakText(text) {
-  console.log('🗣️ speakText called with:', text);
   if (!('speechSynthesis' in window)) {
     console.warn('speechSynthesis не поддерживается');
     return;

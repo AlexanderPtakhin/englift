@@ -69,16 +69,8 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     !window._applyingProfile
   ) {
     window.markProfileDirty('darktheme', dark);
-    console.log(
-      '💾 Сохраняем usersettings (включая reviewLimit):',
-      window.user_settings,
-    );
     window.markProfileDirty('usersettings', window.user_settings);
   }
-
-  console.log(
-    `🎨 Тема применена: ${baseTheme} ${dark ? '(тёмная)' : '(светлая)'}`,
-  );
 }
 
 // Обновляет иконку темы в хедере

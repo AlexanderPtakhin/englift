@@ -107,14 +107,6 @@
           }
 
           metaTheme.content = color;
-          console.log(
-            '🎨 Theme color updated to:',
-            color,
-            'for theme:',
-            settings.baseTheme,
-            'dark:',
-            settings.dark,
-          );
         }
 
         // Делаем функцию глобальной
@@ -132,9 +124,6 @@
 
         // Следим за изменениями в localStorage
         window.addEventListener('localStorageChange', updateThemeColor);
-
-        // Переодически проверяем на всякий случай
-        setInterval(updateThemeColor, 1000);
       })();
     </script>
 
@@ -2309,7 +2298,6 @@
         )
       ) {
         var vConsole = new window.VConsole();
-        console.log('🔥 vConsole активирован');
 
         // Глобальный логгер для всего приложения
         window.debugLog = function (category, message, data = null) {

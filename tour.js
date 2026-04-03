@@ -249,28 +249,20 @@
   }
 
   function removeDemoWord() {
-    console.log('🔍 TOUR: Удаляем демо-слово');
-
     if (window._tourOriginalRenderWords) {
-      console.log('🔍 TOUR: Восстанавливаем оригинальный renderWords');
       window.renderWords = window._tourOriginalRenderWords;
       window._tourOriginalRenderWords = null;
     }
 
     if (!window.words) {
-      console.log('🔍 TOUR: window.words не найден');
       return;
     }
 
     const demoWordIndex = window.words.findIndex(w => w.id === '__demo__');
     if (demoWordIndex !== -1) {
-      console.log('🔍 TOUR: Находим демо-слово, удаляем');
       window.words.splice(demoWordIndex, 1);
-    } else {
-      console.log('🔍 TOUR: Демо-слово не найдено в массиве');
     }
 
-    console.log('🔍 TOUR: Перерисовываем слова без демо');
     // Принудительно вызываем рендер, даже если renderWords не оригинальный
     if (window.renderWords) window.renderWords();
   }
@@ -443,7 +435,6 @@
       typeof step.target === 'function' ? step.target() : step.target;
 
     if (!tooltip || !ring || !hole || !arrow) {
-      console.warn('Tour elements not found, skipping positioning');
       return;
     }
 
@@ -572,8 +563,6 @@
 
   // ─── END ──────────────────────────────────────────────────
   function endTour(completed) {
-    console.log('🔍 TOUR: Вызываем endTour, completed:', completed);
-
     document.removeEventListener('keydown', onKey);
 
     // Агрессивная очистка всех элементов тура
@@ -586,14 +575,12 @@
     tourElements.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        console.log('🔍 TOUR: Удаляем элемент:', id);
         el.remove();
       }
     });
 
     // Дополнительная очистка через querySelector
     document.querySelectorAll('[id^="tour-"]').forEach(el => {
-      console.log('🔍 TOUR: Дополнительно удаляем:', el.id);
       el.remove();
     });
 
@@ -602,7 +589,6 @@
 
     // Сначала очищаем интервал демо-слова
     if (window._demoWordInterval) {
-      console.log('🔍 TOUR: Очищаем интервал демо-слова');
       clearInterval(window._demoWordInterval);
       window._demoWordInterval = null;
     }
@@ -819,7 +805,6 @@
   // ─── INIT ─────────────────────────────────────────────────
   window.startTour = function () {
     if (window._tourActive) {
-      console.warn('🔍 TOUR: Тур уже активен, повторный запуск игнорируется');
       return;
     }
     window._tourActive = true;

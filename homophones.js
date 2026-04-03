@@ -365,33 +365,19 @@ window.isHomophone = function (spoken, correct) {
   const s = spoken.toLowerCase().trim();
   const c = correct.toLowerCase().trim();
 
-  console.log(`🔍 isHomophone проверка: spoken="${s}", correct="${c}"`);
-
   const homoList = window.HOMOPHONES[s];
-  console.log(`🔍 isHomophone: HOMOPHONES["${s}"] =`, homoList);
 
   if (homoList && homoList.includes(c)) {
-    console.log(
-      `✅ isHomophone: "${s}" найден в словаре с омофонами, включает "${c}"`,
-    );
     return true;
   }
 
   // Обратная проверка
   const reverseList = window.HOMOPHONES[c];
-  console.log(
-    `🔍 isHomophone: обратная проверка HOMOPHONES["${c}"] =`,
-    reverseList,
-  );
 
   if (reverseList && reverseList.includes(s)) {
-    console.log(
-      `✅ isHomophone: "${c}" найден в словаре с омофонами, включает "${s}"`,
-    );
     return true;
   }
 
-  console.log(`❌ isHomophone: омофоны не найдены для "${s}" и "${c}"`);
   return false;
 };
 

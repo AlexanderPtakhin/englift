@@ -1,15 +1,8 @@
 const CACHE_NAME = 'englift-v050';
 
-// Логирование всех событий SW
-const log = (category, message, data = null) => {
-  const timestamp = new Date().toLocaleTimeString();
-  const prefix = `[${timestamp}] SW ${category}`;
-
-  if (data) {
-    console.log(`${prefix}: ${message}`, data);
-  } else {
-    console.log(`${prefix}: ${message}`);
-  }
+// Критическое логирование для важных событий
+const log = (category, ...args) => {
+  console.log(`[SW:${category}]`, ...args);
 };
 
 self.addEventListener('message', event => {
@@ -22,7 +15,7 @@ self.addEventListener('message', event => {
 });
 
 self.addEventListener('install', event => {
-  log('INSTALL', 'Начинается установка SW');
+  log('INSTALL', '📦 Начинается установка SW');
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
@@ -40,7 +33,7 @@ self.addEventListener('install', event => {
         '/dict-C2.json',
       ];
 
-      log('INSTALL', `Добавляем ${staticFiles.length} файлов в кэш`);
+      log('INSTALL', `✅ Добавлено ${staticFiles.length} файлов в кэш`);
       for (const file of staticFiles) {
         try {
           await cache.add(file);
@@ -57,14 +50,14 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  log('ACTIVATE', 'Активация SW');
+  log('ACTIVATE', '⚡ Активация SW');
   event.waitUntil(
     caches
       .keys()
       .then(keys => {
         log('ACTIVATE', `Найдено кэшей: ${keys.length}`);
         const oldCaches = keys.filter(k => k !== CACHE_NAME);
-        log('ACTIVATE', `Удаляем старые кэши: ${oldCaches.length}`);
+        log('ACTIVATE', `🗑️ Удалено старых кэшей: ${oldCaches.length}`);
         return Promise.all(
           oldCaches.map(k => {
             log('ACTIVATE', `Удаляем кэш: ${k}`);

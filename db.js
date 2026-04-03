@@ -1,5 +1,7 @@
 import { supabase } from './supabase.js';
 
+console.log('[DB] db.js загружается');
+
 // ─── WORDS ───────────────────────────────────────────────
 
 export async function loadWordsOnce(callback) {
@@ -7,9 +9,12 @@ export async function loadWordsOnce(callback) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
+    console.warn('[DB] ⚠️ loadWordsOnce: нет авторизации');
     callback([]);
     return;
   }
+
+  console.log('[DB] Загрузка слов для user:', user.id);
 
   const { data, error } = await supabase
     .from('user_words')
@@ -18,9 +23,10 @@ export async function loadWordsOnce(callback) {
     .order('updated_at', { ascending: false });
 
   if (error) {
-    console.error('Error loading words:', error);
+    console.error('[DB] ❌ Ошибка загрузки слов:', error);
     callback([]);
   } else {
+    console.log('[DB] ✅ Загружено слов:', data.length);
     // Преобразуем correct_exercise_types из JSON в массив
     const normalizedData = data.map(word => ({
       ...word,
@@ -77,49 +83,10 @@ export async function deleteWordFromDb(wordId) {
 
 export async function saveUserData(uid, data) {
   if (!uid) {
-    console.warn('saveUserData: нет uid');
+    console.warn('[DB] ⚠️ saveUserData: нет uid');
     return;
   }
-
-  // ─── ЗАЩИТА ОТ СБРОСА СТАТИСТИКИ ──────────────────────────────────────
-  // Перед записью читаем сервер и берём максимум по критичным полям.
-  // Даже если кто-то вызовет saveUserData(uid, {xp:0}) — на сервер
-  // никогда не уйдёт значение ниже того, что там уже лежит.
-  try {
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('xp, level, streak, badges')
-      .eq('id', uid)
-      .maybeSingle();
-
-    if (existing) {
-      data = {
-        ...data,
-        xp: Math.max(data.xp ?? 0, existing.xp ?? 0),
-        level: Math.max(data.level ?? 1, existing.level ?? 1),
-        streak: Math.max(data.streak ?? 0, existing.streak ?? 0),
-      };
-      // Бейджи объединяем — не выбрасываем старые
-      const myBadges = Array.isArray(data.badges) ? data.badges : [];
-      const oldBadges = Array.isArray(existing.badges) ? existing.badges : [];
-      data.badges = [...new Set([...myBadges, ...oldBadges])];
-
-      console.log(
-        '🛡️ saveUserData: merge с сервером → xp:',
-        data.xp,
-        'level:',
-        data.level,
-        'streak:',
-        data.streak,
-      );
-    }
-  } catch (e) {
-    console.warn(
-      '⚠️ saveUserData: не смогли прочитать сервер перед записью:',
-      e.message,
-    );
-  }
-  // ────────────────────────────────────────────────────────────────────────
+  console.log('[DB] Сохранение профиля для:', uid);
 
   const payload = {
     id: uid,
@@ -127,23 +94,16 @@ export async function saveUserData(uid, data) {
     ...data,
   };
 
-  console.log('📤 saveUserData → upsert профиля:', {
-    uid,
-    keys: Object.keys(payload),
-    xp: payload.xp,
-    level: payload.level,
-  });
-
   const { error } = await supabase
     .from('profiles')
     .upsert(payload, { onConflict: 'id' });
 
   if (error) {
-    console.error('❌ Ошибка сохранения профиля:', error);
+    console.error('[DB] ❌ Ошибка сохранения профиля:', error);
     throw error;
+  } else {
+    console.log('[DB] ✅ Профиль сохранен');
   }
-
-  console.log("✅ Профиль успешно upsert'нут в Supabase");
 }
 
 // ─── IDIOMS ──────────────────────────────────────────────
@@ -206,16 +166,6 @@ export async function saveIdiomToDb(idiom) {
     // Сохраняем correctExerciseTypes как JSON
     correct_exercise_types: idiom.stats?.correctExerciseTypes ?? null,
   };
-
-  // Детальное логирование для отладки
-  console.log('📤 Отправка идиомы в Supabase:', {
-    data: idiomData,
-    keys: Object.keys(idiomData),
-    examples_audio_type: Array.isArray(idiomData.examples_audio),
-    examples_audio_value: idiomData.examples_audio,
-    example_translation_type: typeof idiomData.example_translation,
-    example_translation_value: idiomData.example_translation,
-  });
 
   const { error } = await supabase
     .from('user_idioms')
@@ -326,7 +276,6 @@ export async function rejectFriendRequest(userId, friendId) {
     });
     throw new Error('Недостаточно данных для отклонения заявки');
   }
-  console.log('rejectFriendRequest called with:', { userId, friendId });
 
   // Сначала проверим, есть ли вообще такие записи
   const { data: existingRecords, error: checkError } = await supabase
@@ -336,9 +285,6 @@ export async function rejectFriendRequest(userId, friendId) {
       `user_id.eq.${userId},friend_id.eq.${friendId},user_id.eq.${friendId},friend_id.eq.${userId}`,
     );
 
-  console.log('Existing records before delete:', existingRecords);
-  console.log('Check error:', checkError);
-
   // Удаляем запись, где текущий пользователь отправитель
   const { error: error1 } = await supabase
     .from('friendships')
@@ -346,16 +292,12 @@ export async function rejectFriendRequest(userId, friendId) {
     .eq('user_id', userId)
     .eq('friend_id', friendId);
 
-  console.log('First delete error:', error1);
-
   // Удаляем запись, где текущий пользователь получатель
   const { error: error2 } = await supabase
     .from('friendships')
     .delete()
     .eq('user_id', friendId)
     .eq('friend_id', userId);
-
-  console.log('Second delete error:', error2);
 
   if (error1) {
     console.error('Error in first delete:', error1);
@@ -365,8 +307,6 @@ export async function rejectFriendRequest(userId, friendId) {
     console.error('Error in second delete:', error2);
     throw error2;
   }
-
-  console.log('Friend request rejected successfully');
 }
 
 /**
@@ -514,19 +454,16 @@ export async function getFriendsLeaderboard(userId) {
 // ========== REACTIONS ==========
 
 export async function addReaction(messageId, userId, emoji) {
-  console.log('🔥 addReaction в db.js:', { messageId, userId, emoji });
   const { error } = await supabase
     .from('reactions')
     .insert({ message_id: messageId, user_id: userId, emoji });
   if (error) {
-    console.error('🔥 Ошибка addReaction:', error);
+    console.error('Ошибка addReaction:', error);
     throw error;
   }
-  console.log('🔥 addReaction успешен');
 }
 
 export async function removeReaction(messageId, userId, emoji) {
-  console.log('🔥 removeReaction в db.js:', { messageId, userId, emoji });
   const { error } = await supabase
     .from('reactions')
     .delete()
@@ -534,10 +471,9 @@ export async function removeReaction(messageId, userId, emoji) {
     .eq('user_id', userId)
     .eq('emoji', emoji);
   if (error) {
-    console.error('🔥 Ошибка removeReaction:', error);
+    console.error('Ошибка removeReaction:', error);
     throw error;
   }
-  console.log('🔥 removeReaction успешен');
 }
 
 /**

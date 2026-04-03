@@ -38,7 +38,6 @@
 
   // Проверка, есть ли данные
   async function isBankLoaded() {
-    console.log('🔍 isBankLoaded: Проверяем загрузку словаря...');
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
@@ -46,7 +45,6 @@
       const req = store.count();
       req.onsuccess = () => {
         const count = req.result;
-        console.log(`🔍 isBankLoaded: Найдено ${count} слов в БД`);
         const loaded = count > 0;
 
         // Если словарь загружен, инициализируем levelsLoaded
@@ -57,7 +55,6 @@
         resolve(loaded);
       };
       req.onerror = () => {
-        console.log('❌ isBankLoaded: Ошибка при подсчёте слов');
         resolve(false);
       };
     });
@@ -65,8 +62,6 @@
 
   // Проверка какие уровни уже загружены
   async function checkLoadedLevels() {
-    console.log('🔍 checkLoadedLevels: Проверяем загруженные уровни...');
-
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
@@ -81,12 +76,7 @@
         req.onsuccess = () => {
           if (req.result > 0) {
             window.WordAPI.levelsLoaded.add(level);
-            console.log(
-              `✅ Уровень ${level} уже загружен (${req.result} слов)`,
-            );
             totalWords += req.result;
-          } else {
-            console.log(`❌ Уровень ${level} не загружен`);
           }
           resolve();
         };
@@ -94,32 +84,19 @@
       });
     }
 
-    console.log(`📊 checkLoadedLevels: Итого в IndexedDB ${totalWords} слов`);
     return totalWords;
   }
 
   // Сохранение слов пачками с правильным управлением транзакциями
   async function saveWordsBatch(words, batchSize = 500) {
-    console.log(
-      `💾 saveWordsBatch: Начинаем сохранение ${words.length} слов пачками по ${batchSize}`,
-    );
-
     // Фильтруем слова, у которых есть и en, и ru (на случай битых данных)
     const validWords = words.filter(w => w.en && w.ru);
-    if (validWords.length !== words.length) {
-      console.warn(
-        `⚠️ Пропущено ${words.length - validWords.length} слов без en или ru`,
-      );
-    }
 
     const db = await openDB();
     let totalSaved = 0;
 
     for (let i = 0; i < validWords.length; i += batchSize) {
       const batch = validWords.slice(i, i + batchSize);
-      console.log(
-        `💾 saveWordsBatch: Сохраняем пачку ${Math.floor(i / batchSize) + 1}/${Math.ceil(validWords.length / batchSize)} (${batch.length} слов)`,
-      );
 
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
@@ -130,7 +107,6 @@
 
       await new Promise((resolve, reject) => {
         tx.oncomplete = () => {
-          console.log(`✅ saveWordsBatch: Пачка успешно сохранена`);
           totalSaved += batch.length;
           resolve();
         };
@@ -144,9 +120,6 @@
       });
     }
 
-    console.log(
-      `🎉 saveWordsBatch: Все слова сохранены! Всего сохранено: ${totalSaved}`,
-    );
     return totalSaved;
   }
 

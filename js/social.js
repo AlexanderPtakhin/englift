@@ -202,22 +202,16 @@ export async function getGiftsReceived(userId) {
 
 // ========== Сообщения ==========
 export async function sendMessage(senderId, receiverId, text) {
-  console.log('🔥 sendMessage called:', { senderId, receiverId, text });
-
   const { data, error } = await supabase
     .from('messages')
     .insert({ sender_id: senderId, receiver_id: receiverId, text })
     .select()
     .single();
 
-  console.log('🔥 sendMessage result:', { data, error });
-
   if (error) {
-    console.error('🔥 sendMessage error:', error);
+    console.error('sendMessage error:', error);
     throw error;
   }
-
-  console.log('🔥 sendMessage success:', data);
 
   // Звук отправки сообщения
   playSound('sound/send.mp3');
@@ -254,40 +248,30 @@ export async function markMessagesRead(userId, friendId) {
 
 // ========== Сравнение словарей ==========
 export async function compareDictionaries(userId, friendId) {
-  console.log('compareDictionaries called with:', { userId, friendId });
-
   // Загружаем слова и идиомы
   const { data: userWords, error: userWordsError } = await supabase
     .from('user_words')
     .select('*')
     .eq('user_id', userId);
   if (userWordsError) console.error('userWordsError:', userWordsError);
-  console.log('User words count:', userWords?.length, userWords?.slice(0, 3));
 
   const { data: friendWords, error: friendWordsError } = await supabase
     .from('user_words')
     .select('*')
     .eq('user_id', friendId);
   if (friendWordsError) console.error('friendWordsError:', friendWordsError);
-  console.log(
-    'Friend words count:',
-    friendWords?.length,
-    friendWords?.slice(0, 3),
-  );
 
   const { data: userIdioms, error: userIdiomsError } = await supabase
     .from('user_idioms')
     .select('*')
     .eq('user_id', userId);
   if (userIdiomsError) console.error('userIdiomsError:', userIdiomsError);
-  console.log('User idioms count:', userIdioms?.length);
 
   const { data: friendIdioms, error: friendIdiomsError } = await supabase
     .from('user_idioms')
     .select('*')
     .eq('user_id', friendId);
   if (friendIdiomsError) console.error('friendIdiomsError:', friendIdiomsError);
-  console.log('Friend idioms count:', friendIdioms?.length);
 
   // Формируем множества и карты
   const userWordSet = new Set(userWords.map(w => w.en.toLowerCase()));
@@ -341,15 +325,12 @@ export async function compareDictionaries(userId, friendId) {
 // ========== REACTIONS ==========
 
 export async function toggleReaction(messageId, userId, emoji) {
-  console.log('🔥 toggleReaction в social.js:', { messageId, userId, emoji });
   try {
     await addReaction(messageId, userId, emoji);
-    console.log('🔥 Реакция добавлена');
     return 'added';
   } catch (error) {
     // Если ошибка "duplicate key" (код 23505), удаляем
     if (error.code === '23505') {
-      console.log('🔥 Реакция уже существует, удаляем');
       await removeReaction(messageId, userId, emoji);
       return 'removed';
     }
