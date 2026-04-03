@@ -1284,36 +1284,6 @@
           </div>
         </div>
 
-        <!-- ИНВАЙТ-ССЫЛКА -->
-        <div class="invite-block">
-          <button
-            class="btn btn-primary"
-            id="generate-invite-btn"
-            onclick="generateInviteLink()"
-          >
-            <span class="material-symbols-outlined">share</span>
-            Пригласить друга
-          </button>
-          <div
-            id="invite-link-box"
-            style="display: none"
-            class="invite-link-row"
-          >
-            <input id="invite-link-input" class="form-control" readonly />
-            <button
-              class="btn btn-secondary btn-sm"
-              onclick="
-                navigator.clipboard.writeText(
-                  document.getElementById('invite-link-input').value,
-                );
-                window.toast?.('Скопировано!', 'success');
-              "
-            >
-              <span class="material-symbols-outlined">content_copy</span>
-            </button>
-          </div>
-        </div>
-
         <!-- ПИЛЮЛИ: Друзья / Заявки -->
 
         <div class="friends-pills">
@@ -1333,12 +1303,6 @@
             <span class="badge" id="requests-badge" style="display: none"
               >0</span
             >
-          </button>
-
-          <button class="pill" id="pill-friends-search" data-fpill="search">
-            <span class="material-symbols-outlined">search</span>
-
-            <span>Поиск</span>
           </button>
 
           <button class="pill" id="pill-challenges" data-fpill="challenges">
@@ -1396,24 +1360,6 @@
           </div>
         </div>
 
-        <!-- ПАНЕЛЬ: ПОИСК -->
-
-        <div class="friends-panel" id="fpanel-search">
-          <div class="search-container" style="margin-bottom: 1rem">
-            <span class="material-symbols-outlined search-icon">search</span>
-
-            <input
-              class="form-control"
-              id="friends-search-input-new"
-              type="text"
-              placeholder="Email или имя пользователя..."
-              autocomplete="off"
-            />
-          </div>
-
-          <div id="friends-search-results-new"></div>
-        </div>
-
         <!-- Челленджи -->
         <div class="friends-panel" id="fpanel-challenges">
           <div id="challenges-list" class="friends-leaderboard-list">
@@ -1459,6 +1405,16 @@
       </div>
     </main>
 
+    <!-- Плавающая кнопка добавления друга (только для вкладки друзей) -->
+
+    <button
+      class="floating-add-btn floating-add-friend-btn"
+      id="floating-add-friend-btn"
+      style="display: none"
+    >
+      <span class="material-symbols-outlined">person_add</span>
+    </button>
+
     <!-- Плавающая кнопка добавления слова -->
 
     <button class="floating-add-btn" id="floating-add-word-btn">
@@ -1483,6 +1439,46 @@
         >0</span
       >
     </button>
+
+    <!-- Модальное окно поиска друзей -->
+
+    <div class="modal-backdrop" id="add-friend-modal">
+      <div class="modal-box" style="max-width: 500px">
+        <div class="modal-header">
+          <h3>Найти друга</h3>
+
+          <button class="modal-close" id="add-friend-modal-close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Кнопка пригласить по ссылке -->
+          <button
+            class="btn-pill btn-pill--secondary"
+            id="invite-friend-link-btn"
+            style="width: 100%; margin-bottom: 1rem"
+          >
+            <span class="material-symbols-outlined">share</span>
+            Пригласить по ссылке
+          </button>
+
+          <div class="search-container" style="margin-bottom: 1rem">
+            <span class="material-symbols-outlined search-icon">search</span>
+
+            <input
+              class="form-control"
+              id="add-friend-search-input"
+              type="text"
+              placeholder="Email или имя пользователя..."
+              autocomplete="off"
+            />
+          </div>
+
+          <div id="add-friend-search-results"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Модальное окно создания челленджа -->
     <div class="modal-backdrop" id="create-challenge-modal">

@@ -2532,7 +2532,7 @@ textarea {
 }
 
 .search-container .form-control {
-  padding-left: 2.5rem;
+  padding-left: 2rem !important;
 
   flex: 1;
 }
@@ -12938,7 +12938,8 @@ html
 button.floating-add-btn:hover .material-symbols-outlined,
 #floating-add-word-btn:hover .material-symbols-outlined,
 #floating-add-idiom-btn:hover .material-symbols-outlined,
-#floating-chat-btn:hover .material-symbols-outlined {
+#floating-chat-btn:hover .material-symbols-outlined,
+#floating-add-friend-btn:hover .material-symbols-outlined {
   color: white !important;
 }
 
@@ -15417,6 +15418,11 @@ body.bs-open .bs-trigger-arrow {
   opacity: 1;
   transform: translateY(-50%) translateX(4px);
   color: var(--primary);
+}
+
+/* Убираем стрелку для карточек в результатах поиска */
+.friend-card-new.no-arrow::after {
+  display: none;
 }
 
 /* ===== МОДАЛЬНОЕ ОКНО ДРУГА ===== */

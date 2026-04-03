@@ -158,6 +158,8 @@ import {
   deleteWordFromDb, // ← добавить
   saveIdiomToDb, // ← добавить
   deleteIdiomFromDb, // ← добавить
+  searchUsers,
+  sendFriendRequest,
 } from './db.js';
 
 import {
@@ -16331,11 +16333,72 @@ addWordModal?.addEventListener('click', e => {
   if (e.target === addWordModal) closeAddWordModal();
 });
 
+// ====================== MODAL: ADD FRIEND ======================
+
+const addFriendModal = document.getElementById('add-friend-modal');
+const addFriendModalClose = document.getElementById('add-friend-modal-close');
+const addFriendBtn = document.getElementById('floating-add-friend-btn');
+const addFriendSearchInput = document.getElementById('add-friend-search-input');
+const addFriendSearchResults = document.getElementById(
+  'add-friend-search-results',
+);
+
+function openAddFriendModal() {
+  addFriendModal?.classList.add('open');
+  document.body.classList.add('modal-open');
+  // Фокус на поле ввода
+  setTimeout(() => addFriendSearchInput?.focus(), 100);
+}
+
+function closeAddFriendModal() {
+  addFriendModal?.classList.remove('open');
+  document.body.classList.remove('modal-open');
+  // Очищаем поле и результаты
+  if (addFriendSearchInput) addFriendSearchInput.value = '';
+  if (addFriendSearchResults) addFriendSearchResults.innerHTML = '';
+}
+
+addFriendBtn?.addEventListener('click', () => {
+  console.log('[FAB] Клик на кнопку добавления друга');
+  openAddFriendModal();
+});
+
+addFriendModalClose?.addEventListener('click', () => {
+  console.log('[MODAL] Закрытие модалки друга');
+  closeAddFriendModal();
+});
+
+addFriendModal?.addEventListener('click', e => {
+  if (e.target === addFriendModal) {
+    console.log('[MODAL] Клик на backdrop, закрываем');
+    closeAddFriendModal();
+  }
+});
+
+// Обработчик для кнопки "Пригласить по ссылке"
 document
-
-  .getElementById('floating-chat-btn')
-
+  .getElementById('invite-friend-link-btn')
   ?.addEventListener('click', async () => {
+    console.log('[INVITE] Клик на пригласить по ссылке');
+    console.log(
+      '[INVITE] generateInviteLink доступна?',
+      typeof window.generateInviteLink,
+    );
+    // Используем существующую глобальную функцию
+    if (typeof window.generateInviteLink === 'function') {
+      await window.generateInviteLink();
+    } else {
+      console.error('[INVITE] Функция generateInviteLink не найдена!');
+      window.toast?.('Функция генерации ссылки недоступна', 'danger');
+    }
+  });
+
+// --- ПИЛЮЛИ ---
+
+document
+  .getElementById('floating-chat-btn')
+  ?.addEventListener('click', async () => {
+    console.log('[CHAT] Клик на кнопку чата');
     // 1. Переключаем вкладку без прокрутки
 
     switchToFriendsWithoutScroll();
@@ -16347,20 +16410,17 @@ document
     // 3. Активируем пилюлю "Чаты"
 
     document
-
       .querySelectorAll('[data-fpill]')
-
       .forEach(p => p.classList.remove('active'));
 
     const chatPill = document.querySelector('[data-fpill="chat"]');
 
     if (chatPill) {
+      console.log('[CHAT] Активируем пилюлю чата');
       chatPill.classList.add('active');
 
       document
-
         .querySelectorAll('.friends-panel')
-
         .forEach(p => p.classList.remove('active'));
 
       document.getElementById('fpanel-chat').classList.add('active');
@@ -16405,6 +16465,7 @@ document
         // Используем requestAnimationFrame для точной прокрутки
 
         requestAnimationFrame(() => {
+          console.log('[CHAT] Прокручиваем к списку чатов');
           window.scrollTo({
             top: offsetTop,
 
@@ -16428,6 +16489,7 @@ document
 // Унифицированный обработчик visibilitychange
 
 document.addEventListener('visibilitychange', () => {
+  console.log('[VISIBILITY] Изменение видимости');
   if (document.visibilityState === 'hidden') {
     // Сохраняем кеш и профиль перед закрытием
     flushCache();
@@ -16479,6 +16541,7 @@ document.addEventListener('visibilitychange', () => {
 // Инициализация
 
 (async () => {
+  console.log('[INIT] Инициализация');
   await load();
 
   // Выполняем миграцию переводов после загрузки
@@ -16493,6 +16556,7 @@ document.addEventListener('visibilitychange', () => {
 // Глобальный хук — вызывается из auth.js когда ВСЁ готово
 
 window.onProfileFullyLoaded = async function () {
+  console.log('[PROFILE] Профиль загружен');
   try {
     window.profileFullyLoaded = true;
 
@@ -16593,6 +16657,7 @@ if (window._pendingProfileLoaded) {
 // Если через 2 секунды Supabase не загрузил тему
 
 setTimeout(() => {
+  console.log('[THEME] Проверяем тему');
   if (!window.user_settings.baseTheme) {
     const saved = JSON.parse(
       localStorage.getItem('englift_user_settings') || '{}',
@@ -16609,6 +16674,7 @@ setTimeout(() => {
 // Таймаут для скрытия индикатора загрузки (на случай проблем)
 
 setTimeout(() => {
+  console.log('[LOADING] Скрытие индикатора загрузки');
   const indicator = document.getElementById('loading-indicator');
 
   if (indicator && indicator.style.display !== 'none') {
@@ -16619,12 +16685,14 @@ setTimeout(() => {
 // Проверяем соединение с Supabase
 
 window.addEventListener('online', () => {
+  console.log('[ONLINE] Соединение восстановлено');
   toast('🟢 Соединение восстановлено', 'success');
 
   if (window.authExports?.auth) {
     // Пытаемся переподключиться к Supabase
     window.authExports.auth.onAuthStateChanged(user => {
       if (user) {
+        console.log('[ONLINE] Пользователь авторизован');
         toast('🟢 Соединение восстановлено', 'success');
       }
     });
@@ -16637,6 +16705,7 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
+  console.log('[OFFLINE] Оффлайн режим');
   toast('📴 Оффлайн режим', 'info');
 });
 
@@ -16757,6 +16826,7 @@ function showManualInstallInstructions() {
 // Показываем пункт меню, если PWA можно установить
 
 window.addEventListener('beforeinstallprompt', e => {
+  console.log('[PWA] beforeinstallprompt');
   e.preventDefault();
 
   deferredPrompt = e;
@@ -16769,6 +16839,7 @@ window.addEventListener('beforeinstallprompt', e => {
 // Скрываем после установки
 
 window.addEventListener('appinstalled', () => {
+  console.log('[PWA] appinstalled');
   deferredPrompt = null;
 
   if (installMenuItem) {
@@ -16782,6 +16853,7 @@ window.addEventListener('appinstalled', () => {
 
 if (installMenuItem) {
   installMenuItem.addEventListener('click', async () => {
+    console.log('[PWA] Клик на пункт меню');
     // Если есть нативный промпт
 
     if (deferredPrompt) {
@@ -16820,6 +16892,7 @@ if (window.matchMedia('(display-mode: standalone)').matches) {
 
 setInterval(
   async () => {
+    console.log('[SYNC] Тихая синхронизация');
     if (navigator.onLine && window.currentUserId && window.authExports) {
       try {
         // Тихо обновляем данные без показа тоста
@@ -16841,6 +16914,7 @@ setInterval(
 // ============================================================
 
 setInterval(() => {
+  console.log('[SAVE] Автосохранение');
   if (window.currentUserId) {
     // Сохраняем профиль
 
@@ -16863,6 +16937,7 @@ setInterval(() => {
 // Сохраняем профиль при уходе со страницы
 
 window.addEventListener('beforeunload', () => {
+  console.log('[UNLOAD] Сохраняем профиль');
   syncProfileNow();
   flushCache(); // сохраняем кеш IndexedDB
 });
@@ -16881,12 +16956,15 @@ const SCROLL_THRESHOLD = 20; // минимальное расстояние дл
 let floatingWordBtn = null;
 let floatingIdiomBtn = null;
 let floatingChatBtn = null;
+let floatingFriendBtn = null;
 
 function updateFloatingButtonsVisibility() {
+  console.log('[FLOATING] Обновляем видимость кнопок');
   // Получаем кнопки для надежности
   const floatingWordBtn = document.getElementById('floating-add-word-btn');
   const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
   const floatingChatBtn = document.getElementById('floating-chat-btn');
+  const floatingFriendBtn = document.getElementById('floating-add-friend-btn');
 
   const currentScrollY = window.scrollY;
 
@@ -16900,6 +16978,7 @@ function updateFloatingButtonsVisibility() {
 
   if (activeTab === 'tab-words') activeBtn = floatingWordBtn;
   else if (activeTab === 'tab-idioms') activeBtn = floatingIdiomBtn;
+  else if (activeTab === 'tab-friends') activeBtn = floatingFriendBtn;
 
   if (!activeBtn) return;
 
@@ -16935,6 +17014,7 @@ function updateFloatingButtonsVisibility() {
 let ticking = false;
 
 window.addEventListener('scroll', () => {
+  console.log('[SCROLL] Обработчик скролла');
   if (!ticking) {
     window.requestAnimationFrame(() => {
       updateFloatingButtonsVisibility();
@@ -16947,10 +17027,12 @@ window.addEventListener('scroll', () => {
 });
 
 function updateFloatingButtonsForTab(tabName) {
+  console.log('[FLOATING] Обновляем кнопки для вкладки:', tabName);
   // Получаем кнопки каждый раз для надежности
   const floatingWordBtn = document.getElementById('floating-add-word-btn');
   const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
   const floatingChatBtn = document.getElementById('floating-chat-btn');
+  const floatingFriendBtn = document.getElementById('floating-add-friend-btn');
 
   if (!floatingWordBtn || !floatingIdiomBtn) {
     console.warn('Floating buttons not ready yet');
@@ -16969,13 +17051,22 @@ function updateFloatingButtonsForTab(tabName) {
 
     floatingWordBtn.classList.add('fab-hidden');
   } else if (tabName === 'friends') {
+    // Скрываем кнопки слов и идиом
     floatingWordBtn.classList.add('fab-hidden');
-
     floatingIdiomBtn.classList.add('fab-hidden');
+    // Показываем кнопку добавления друга
+    if (floatingFriendBtn) {
+      floatingFriendBtn.style.display = 'flex';
+      floatingFriendBtn.classList.remove('fab-hidden');
+    }
   } else {
+    // Скрываем все кнопки для других вкладок
     floatingWordBtn.classList.add('fab-hidden');
-
     floatingIdiomBtn.classList.add('fab-hidden');
+    if (floatingFriendBtn) {
+      floatingFriendBtn.classList.add('fab-hidden');
+      floatingFriendBtn.style.display = 'none';
+    }
   }
 }
 
@@ -16988,6 +17079,7 @@ lastScrollY = window.scrollY;
 // Инициализация видимости кнопок для начальной вкладки
 
 setTimeout(() => {
+  console.log('[FLOATING] Инициализация видимости кнопок');
   updateFloatingButtonsForTab('words');
 }, 100);
 
@@ -16997,6 +17089,7 @@ if ('serviceWorker' in navigator) {
   let refreshing = false;
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('[PWA] controllerchange');
     if (!refreshing) {
       refreshing = true;
 
@@ -17014,6 +17107,7 @@ if ('serviceWorker' in navigator) {
 let activeFriendsPanel = 'list';
 
 async function loadFriendsDataNew() {
+  console.log('[FRIENDS] Загрузка данных друзей');
   if (!window.currentUserId) {
     return;
   }
@@ -17045,6 +17139,8 @@ async function loadFriendsDataNew() {
 
     updateFriendsSubBadges(); // обновим бейджи заявок и чата
 
+    updateFriendsBadges(); // обновим бейдж количества друзей
+
     renderFriendsTab();
   } catch (e) {
     console.error('loadFriendsDataNew error', e);
@@ -17054,6 +17150,7 @@ async function loadFriendsDataNew() {
 }
 
 async function initFriendsBadges() {
+  console.log('[FRIENDS] Инициализация бейджей друзей');
   if (!window.currentUserId) return;
 
   try {
@@ -17084,6 +17181,7 @@ async function initFriendsBadges() {
 }
 
 function renderFriendsTab() {
+  console.log('[FRIENDS] Рендерим вкладку друзей');
   loadLeaderboard('week'); // Загружаем недельный лидерборд по умолчанию
 
   loadFriendActivity(); // Загружаем ленту активности друзей
@@ -17098,6 +17196,7 @@ function renderFriendsTab() {
 // --- ЛЕНТА АКТИВНОСТИ ДРУЗЕЙ ---
 
 async function loadFriendActivity() {
+  console.log('[FRIENDS] Загрузка ленты активности друзей');
   const container = document.getElementById('friend-activity-feed');
 
   if (!container) return;
@@ -17248,6 +17347,7 @@ async function loadFriendActivity() {
 // --- ЛИДЕРБОРД С ПЕРИОДАМИ ---
 
 async function loadLeaderboard(period = 'week') {
+  console.log('[FRIENDS] Загрузка лидерборда');
   const container = document.getElementById('friends-leaderboard-list');
 
   if (!container) return;
@@ -17303,7 +17403,7 @@ async function loadLeaderboard(period = 'week') {
 
         .gte('created_at', since);
 
-      const { data: profilesData } = await supabase
+      const { data: profiles } = await supabase
 
         .from('profiles')
 
@@ -17319,7 +17419,7 @@ async function loadLeaderboard(period = 'week') {
         xpMap[l.user_id] = (xpMap[l.user_id] || 0) + l.amount;
       });
 
-      scores = (profilesData || []).map(p => ({
+      scores = (profiles || []).map(p => ({
         ...p,
 
         periodXp: xpMap[p.id] || 0,
@@ -17332,14 +17432,18 @@ async function loadLeaderboard(period = 'week') {
 
     renderLeaderboard(scores, period);
   } catch (err) {
-    container.innerHTML = `<p style="color:var(--muted);text-align:center">Ошибка загрузки</p>`;
+    console.error('loadLeaderboard error:', err);
 
-    console.error(err);
+    container.innerHTML =
+      '<p style="color:var(--muted);text-align:center">Ошибка загрузки</p>';
   }
 }
 
 function renderLeaderboard(scores, period) {
+  console.log('[FRIENDS] Рендерим лидерборд');
   const container = document.getElementById('friends-leaderboard-list');
+
+  if (!container) return;
 
   if (!scores.length) {
     container.innerHTML = `
@@ -17350,7 +17454,9 @@ function renderLeaderboard(scores, period) {
 
         <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
 
-      </div>`;
+      </div>
+
+    `;
 
     return;
   }
@@ -17399,13 +17505,16 @@ function renderLeaderboard(scores, period) {
 
         </div>
 
-      </div>`;
+      </div>
+
+    `;
     })
 
     .join('');
 }
 
 function switchLbPeriod(btn) {
+  console.log('[FRIENDS] Переключаем период лидерборда');
   document
 
     .querySelectorAll('.lb-tab')
@@ -17420,74 +17529,59 @@ function switchLbPeriod(btn) {
 // ===== ГЕНЕРАЦИЯ ИНВАЙТ-ССЫЛОК =====
 
 async function generateInviteLink() {
-  const btn = document.getElementById('generate-invite-btn');
+  console.log('[INVITE] Генерируем инвайт-ссылку');
+  // Ищем кнопку в модалке, а не в основной вкладке
+  const btn = document.getElementById('invite-friend-link-btn');
 
-  if (!btn) return;
+  if (!btn) {
+    console.error('[INVITE] Кнопка invite-friend-link-btn не найдена!');
+    return;
+  }
 
   btn.disabled = true;
-
   btn.textContent = 'Генерируем...';
 
   try {
     // Проверяем, есть ли уже инвайт
-
     let { data: existing } = await supabase
-
       .from('invites')
-
       .select('id')
-
       .eq('inviter_id', window.currentUserId)
-
       .maybeSingle();
 
     let inviteId = existing?.id;
 
     if (!inviteId) {
       const { data, error } = await supabase
-
         .from('invites')
-
         .insert({ inviter_id: window.currentUserId })
-
         .select('id')
-
         .single();
 
       if (error) throw error;
-
       inviteId = data.id;
     }
 
     const link = `${location.origin}/?invite=${inviteId}`;
 
     await navigator.clipboard.writeText(link);
-
     window.toast?.('Ссылка скопирована!', 'success', 'link');
 
-    // Показываем ссылку в UI
-
-    const box = document.getElementById('invite-link-box');
-
-    const input = document.getElementById('invite-link-input');
-
-    if (box && input) {
-      input.value = link;
-
-      box.style.display = 'flex';
-    }
+    console.log('[INVITE] Ссылка успешно скопирована:', link);
   } catch (err) {
+    console.error('[INVITE] Ошибка генерации ссылки:', err);
     window.toast?.('Ошибка: ' + err.message, 'danger');
   } finally {
     btn.disabled = false;
-
-    btn.textContent = 'Пригласить друга';
+    btn.innerHTML =
+      '<span class="material-symbols-outlined">share</span> Пригласить по ссылке';
   }
 }
 
 // --- ЛИДЕРБОРД ---
 
 function renderFriendsLeaderboard() {
+  console.log('[FRIENDS] Рендерим лидерборд друзей');
   const container = document.getElementById('friends-leaderboard-list');
 
   if (!container) return;
@@ -17505,7 +17599,9 @@ function renderFriendsLeaderboard() {
 
         <p>Добавь друзей — увидишь лидерборд</p>
 
-      </div>`;
+      </div>
+
+    `;
 
     return;
   }
@@ -17556,7 +17652,9 @@ function renderFriendsLeaderboard() {
 
         .join('')}
 
-    </div>`;
+    </div>
+
+  `;
 
   const restHTML = rest
 
@@ -17618,6 +17716,7 @@ function renderFriendsLeaderboard() {
 // --- СПИСОК ДРУЗЕЙ ---
 
 function renderFriendsList() {
+  console.log('[FRIENDS] Рендерим список друзей');
   const container = document.getElementById('friends-list-content');
 
   if (!container) return;
@@ -17631,7 +17730,9 @@ function renderFriendsList() {
 
         <p>Пока нет друзей — найди их через поиск или пригласи по ссылке!</p>
 
-      </div>`;
+      </div>
+
+    `;
 
     return;
   }
@@ -17706,6 +17807,7 @@ function renderFriendsList() {
 let currentModal = null;
 
 async function openFriendModal(friendId) {
+  console.log('[FRIENDS] Открываем модалку друга');
   // Если модалка уже открыта, закрываем
   if (currentModal) {
     currentModal.remove();
@@ -17913,21 +18015,25 @@ async function openFriendModal(friendId) {
   modal.querySelector('#remove-friend').onclick = async () => {
     const userId = window.currentUserId;
 
-    if (!userId) return;
+    if (!userId) {
+      toast('Ошибка: не удалось определить пользователя', 'danger');
+
+      return;
+    }
 
     try {
       await rejectFriendRequest(userId, friendId);
 
       await loadFriendsDataNew();
 
-      toast(`${friend.username} удалён из друзей`, 'warning');
+      toast('Друг удалён!', 'warning');
 
       modal.classList.remove('open');
 
       setTimeout(() => modal.remove(), 300);
 
       currentModal = null;
-    } catch (err) {
+    } catch (e) {
       toast('Ошибка', 'danger');
     }
   };
@@ -17959,6 +18065,7 @@ async function openFriendModal(friendId) {
 }
 
 function showGiftModal(friendId, friendName) {
+  console.log('[GIFT] Показываем модалку подарка');
   const modal = document.createElement('div');
 
   modal.className = 'modal-backdrop open';
@@ -18060,6 +18167,7 @@ function showGiftModal(friendId, friendName) {
 // ===== НОВЫЙ ЛИДЕРБОРД С ПЕРИОДАМИ =====
 
 async function loadLeaderboard(period = 'week') {
+  console.log('[FRIENDS] Загрузка лидерборда');
   const container = document.getElementById('friends-leaderboard-list');
 
   if (!container) return;
@@ -18140,6 +18248,7 @@ async function loadLeaderboard(period = 'week') {
 }
 
 function renderLeaderboard(scores, period) {
+  console.log('[FRIENDS] Рендерим лидерборд');
   const container = document.getElementById('friends-leaderboard-list');
 
   if (!container) return;
@@ -18153,7 +18262,9 @@ function renderLeaderboard(scores, period) {
 
         <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
 
-      </div>`;
+      </div>
+
+    `;
 
     return;
   }
@@ -18206,13 +18317,16 @@ function renderLeaderboard(scores, period) {
 
         </div>
 
-      </div>`;
+      </div>
+
+    `;
     })
 
     .join('');
 }
 
 function switchLbPeriod(btn) {
+  console.log('[FRIENDS] Переключаем период лидерборда');
   document
 
     .querySelectorAll('.lb-tab')
@@ -18227,12 +18341,14 @@ function switchLbPeriod(btn) {
 // --- ЗАЯВКИ ---
 
 function renderFriendsRequests() {
+  console.log('[FRIENDS] Рендерим заявки');
   renderIncomingRequests();
 
   renderOutgoingRequests();
 }
 
 function renderIncomingRequests() {
+  console.log('[FRIENDS] Рендерим входящие заявки');
   const container = document.getElementById('incoming-list');
 
   const section = document.getElementById('incoming-section');
@@ -18329,6 +18445,7 @@ function renderIncomingRequests() {
 }
 
 function renderOutgoingRequests() {
+  console.log('[FRIENDS] Рендерим исходящие заявки');
   const container = document.getElementById('outgoing-list');
 
   const section = document.getElementById('outgoing-section');
@@ -18404,6 +18521,114 @@ function renderOutgoingRequests() {
   });
 }
 
+// --- ПОИСК В МОДАЛКЕ ДРУЗЕЙ ---
+
+let addFriendSearchTimer = null;
+
+addFriendSearchInput?.addEventListener('input', function (e) {
+  console.log('[SEARCH] Ввод в поле поиска:', e.target.value);
+  clearTimeout(addFriendSearchTimer);
+
+  const q = e.target.value.trim();
+
+  if (!q || q.length < 2) {
+    if (addFriendSearchResults) addFriendSearchResults.innerHTML = '';
+    return;
+  }
+
+  addFriendSearchTimer = setTimeout(() => {
+    console.log('[SEARCH] Запуск поиска:', q);
+    doAddFriendSearch(q);
+  }, 400);
+});
+
+async function doAddFriendSearch(q) {
+  console.log('[SEARCH] doAddFriendSearch вызван с:', q);
+  console.log('[SEARCH] searchUsers доступна?', typeof searchUsers);
+  console.log('[SEARCH] currentUserId:', window.currentUserId);
+  if (!addFriendSearchResults) return;
+
+  addFriendSearchResults.innerHTML = '<div class="loading-spinner"></div>';
+
+  try {
+    const users = await searchUsers(q, window.currentUserId);
+    console.log('[SEARCH] Результаты поиска:', users);
+
+    if (!users || !users.length) {
+      addFriendSearchResults.innerHTML = `
+        <div class="friends-empty">
+          <span class="material-symbols-outlined">search_off</span>
+          <p>Пользователи не найдены</p>
+        </div>
+      `;
+      return;
+    }
+
+    addFriendSearchResults.innerHTML = users
+      .map(user => {
+        const statusText =
+          user.friendshipStatus === 'pending'
+            ? '<span class="friend-status pending">Заявка отправлена</span>'
+            : '';
+
+        const btn =
+          user.friendshipStatus === 'pending'
+            ? `<button class="btn-pill btn-pill--secondary" disabled style="pointer-events: none;">Ожидание</button>`
+            : user.friendshipStatus === 'accepted'
+              ? `<button class="btn-pill btn-pill--secondary" disabled style="pointer-events: none;">В друзьях</button>`
+              : `<button class="btn-pill btn-pill--secondary add-friend-btn" data-user-id="${user.id}">
+                   <span class="material-symbols-outlined">person_add</span>
+                   Добавить
+                 </button>`;
+
+        return `
+          <div class="friend-card-new no-arrow">
+            <div class="friend-info">
+              <div class="friend-username">${user.username}</div>
+              <div class="friend-stats">
+                <span>Уровень ${user.level || 1}</span>
+                <span>${user.xp || 0} XP</span>
+              </div>
+              ${statusText}
+            </div>
+            ${btn}
+          </div>
+        `;
+      })
+      .join('');
+
+    // Обработчики для кнопок добавления
+    addFriendSearchResults.querySelectorAll('.add-friend-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const userId = btn.dataset.userId;
+        console.log('[SEARCH] Клик добавить друга:', userId);
+        console.log(
+          '[SEARCH] sendFriendRequest доступна?',
+          typeof sendFriendRequest,
+        );
+        try {
+          await sendFriendRequest(window.currentUserId, userId);
+          btn.disabled = true;
+          btn.innerHTML =
+            '<span class="material-symbols-outlined">check</span> Отправлено';
+          window.toast?.('Заявка в друзья отправлена', 'success');
+        } catch (err) {
+          console.error('[SEARCH] Ошибка отправки:', err);
+          window.toast?.('Ошибка: ' + err.message, 'danger');
+        }
+      });
+    });
+  } catch (err) {
+    console.error('[SEARCH] Ошибка поиска:', err);
+    addFriendSearchResults.innerHTML = `
+      <div class="friends-empty">
+        <span class="material-symbols-outlined">error</span>
+        <p>Ошибка поиска</p>
+      </div>
+    `;
+  }
+}
+
 // --- ПОИСК ---
 
 let friendSearchTimer = null;
@@ -18429,6 +18654,7 @@ document.addEventListener('input', function (e) {
 });
 
 async function doFriendSearch(q) {
+  console.log('[FRIENDS] Выполняем поиск друзей');
   const container = document.getElementById('friends-search-results-new');
 
   if (!container) return;
@@ -18447,7 +18673,9 @@ async function doFriendSearch(q) {
 
           <p>Никого не нашли по запросу "${esc(q)}"</p>
 
-        </div>`;
+        </div>
+
+      `;
 
       return;
     }
@@ -18507,11 +18735,25 @@ async function doFriendSearch(q) {
     // Обработчики кнопок добавления
 
     container.querySelectorAll('.add-friend-btn').forEach(btn => {
-      btn.addEventListener('click', async function () {
-        try {
-          await sendFriendRequest(window.currentUserId, this.dataset.id);
+      btn.addEventListener('click', async () => {
+        const userId = btn.dataset.id;
 
-          await loadFriendsDataNew();
+        console.log('[FRIENDS] Клик добавить друга:', userId);
+
+        console.log(
+          '[FRIENDS] sendFriendRequest доступна?',
+          typeof sendFriendRequest,
+        );
+
+        try {
+          await sendFriendRequest(window.currentUserId, userId);
+
+          btn.disabled = true;
+
+          btn.innerHTML =
+            '<span class="material-symbols-outlined">check</span> Отправлено';
+
+          window.toast?.('Заявка в друзья отправлена', 'success');
 
           // Очищаем поиск и скрываем результаты
 
@@ -18655,69 +18897,9 @@ function updateFriendsBadges() {
 // --- ИНВАЙТ ФУНКЦИИ ---
 
 window.generateInviteLink = async function () {
-  const btn = document.getElementById('generate-invite-btn');
-
-  btn.disabled = true;
-
-  btn.textContent = 'Генерируем...';
-
-  try {
-    // Проверяем есть ли уже инвайт
-
-    let { data: existing } = await supabase
-
-      .from('invites')
-
-      .select('id')
-
-      .eq('inviter_id', window.currentUserId)
-
-      .single();
-
-    let inviteId = existing?.id;
-
-    // Если нет — создаём
-
-    if (!inviteId) {
-      const { data, error } = await supabase
-
-        .from('invites')
-
-        .insert({ inviter_id: window.currentUserId })
-
-        .select('id')
-
-        .single();
-
-      if (error) throw error;
-
-      inviteId = data.id;
-    }
-
-    const link = `${location.origin}/?invite=${inviteId}`;
-
-    await navigator.clipboard.writeText(link);
-
-    window.toast?.('Ссылка скопирована!', 'success', 'link');
-
-    // Показываем ссылку в UI
-
-    const box = document.getElementById('invite-link-box');
-
-    const input = document.getElementById('invite-link-input');
-
-    if (box && input) {
-      input.value = link;
-
-      box.style.display = 'flex';
-    }
-  } catch (err) {
-    window.toast?.('Ошибка: ' + err.message, 'danger');
-  } finally {
-    btn.disabled = false;
-
-    btn.textContent = 'Пригласить друга';
-  }
+  console.log('[INVITE] Глобальная функция generateInviteLink вызвана');
+  // Вызываем обновленную функцию
+  await generateInviteLink();
 };
 
 // --- INIT TAB ---
@@ -18727,6 +18909,7 @@ document.addEventListener('DOMContentLoaded', () => {
   floatingWordBtn = document.getElementById('floating-add-word-btn');
   floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
   floatingChatBtn = document.getElementById('floating-chat-btn');
+  floatingFriendBtn = document.getElementById('floating-add-friend-btn');
 
   if (document.getElementById('tab-friends')) {
     loadFriendsDataNew();
