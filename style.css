@@ -10768,25 +10768,7 @@ html.dark .goal-item.locked .goal-progress-text {
   margin: 0.5rem 0;
 }
 
-/* Новая карточка */
-
-.word-card {
-  background: var(--card);
-
-  border-radius: 20px;
-
-  padding: 1.2rem 1.5rem;
-
-  box-shadow: var(--shadow);
-
-  transition: all 0.3s ease;
-
-  border: 1px solid var(--border);
-
-  cursor: pointer;
-
-  /* margin-bottom: 0rem; */
-}
+/* Новая карточка - УДАЛЕНО (дублирует основное определение) */
 
 .word-card:hover {
   transform: translateY(-2px);
@@ -13177,10 +13159,6 @@ button.floating-add-btn:hover .material-symbols-outlined,
     width: 6px;
     height: 6px;
   }
-}
-
-.word-card {
-  position: relative;
 }
 
 /* �������� ��� ���������� ��������� */

@@ -182,16 +182,41 @@ function setButtonLoading(button, loading = true) {
 }
 
 function toast(msg, type = '', icon = '', duration = 4000) {
-  console.log('Toast вызван:', msg, type, icon);
+  // Временная диагностика для поиска источника
+  if (typeof msg !== 'string') {
+    console.error('Toast получил не строку:', msg, new Error().stack);
+  }
+
+  // Безопасное преобразование любого msg в строку
+  let message = '';
+  try {
+    if (typeof msg === 'string') {
+      message = msg;
+    } else if (msg && typeof msg === 'object') {
+      // Для объектов используем JSON.stringify, но с обработкой ошибок
+      try {
+        message = JSON.stringify(msg);
+      } catch (e) {
+        message = String(msg);
+      }
+    } else {
+      message = String(msg || '');
+    }
+  } catch (err) {
+    console.error('Toast failed to stringify message:', err);
+    message = 'Произошла ошибка';
+  }
+
+  console.log('Toast вызван:', message, type, icon);
   const el = document.createElement('div');
   el.className = 'toast' + (type ? ' ' + type : '');
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
 
   if (icon) {
-    el.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: middle; margin-right: 8px;" aria-hidden="true">${icon}</span>${msg}`;
+    el.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: middle; margin-right: 8px;" aria-hidden="true">${icon}</span>${message}`;
   } else {
-    el.textContent = msg;
+    el.textContent = message;
   }
 
   const toastBox = document.getElementById('toast-box');

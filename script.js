@@ -7,6 +7,8 @@ import {
   setupThemeToggle,
 } from './js/theme.js';
 
+// UserDataCache будет доступен через window.UserDataCache после загрузки скрипта
+
 import {
   esc,
   safeAttr,
@@ -43,11 +45,39 @@ import {
   spawnEpicConfetti,
 } from './js/utils.js';
 
+// ========== МАППИНГ ДАННЫХ ==========
+// Преобразование snake_case → camelCase (для данных из Supabase)
+function toCamelCase(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
+      letter.toUpperCase(),
+    );
+    result[camelKey] = toCamelCase(value);
+  }
+  return result;
+}
+
+// Преобразование camelCase → snake_case (для отправки в Supabase)
+function toSnakeCase(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(toSnakeCase);
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = key.replace(
+      /[A-Z]/g,
+      letter => `_${letter.toLowerCase()}`,
+    );
+    result[snakeKey] = toSnakeCase(value);
+  }
+  return result;
+}
+
 import {
   loadWords,
-  saveWords,
   loadIdioms,
-  saveIdioms,
   saveUserData,
   loadUserData,
   saveUserSettings,
@@ -112,22 +142,204 @@ window.updateLoaderText = function (text) {
 // Глобальная функция для мгновенного скрытия лоадера (особенно для Opera Mobile)
 
 window.forceHideLoader = function () {
-  logger.log('forceHideLoader вызван');
+  const loadingIndicator = document.getElementById('loading-indicator');
 
-  const loader = document.getElementById('loading-indicator');
-
-  if (loader) {
-    logger.log('Найден индикатор, удаляем из DOM');
-
-    loader.remove(); // удаляем элемент полностью
-
-    logger.log('Индикатор удален из DOM');
-  } else {
-    // Индикатор уже удален
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'none';
   }
-
-  document.body.classList.remove('loading');
 };
+
+// ========== КЕШ СЛОВ И ИДИОМ (IndexedDB) ==========
+let dirtyWordIds = new Set();
+let dirtyIdiomIds = new Set();
+let deletedWordIds = new Set();
+let deletedIdiomIds = new Set();
+let cacheSaveTimer = null;
+
+// Инициализация глобальных объектов до их использования
+window.xpData = window.xpData || { xp: 0, level: 1, badges: [] };
+window.streak = window.streak || { count: 0, lastDate: null };
+window.dailyProgress = window.dailyProgress || {
+  add_new: 0,
+  review: 0,
+  practice_time: 0,
+  completed: false,
+  lastReset: new Date().toISOString().split('T')[0],
+};
+window.user_settings = window.user_settings || {
+  voice: 'female',
+  reviewLimit: 100,
+};
+
+// Глобальные массивы - инициализируем сразу!
+window.words = [];
+window.idioms = [];
+window.idiomsBank = [];
+
+function markWordDirtyForCache(wordId) {
+  dirtyWordIds.add(wordId);
+  scheduleCacheSave();
+}
+
+function markIdiomDirtyForCache(idiomId) {
+  dirtyIdiomIds.add(idiomId);
+  scheduleCacheSave();
+}
+
+function markWordDeletedForCache(wordId) {
+  deletedWordIds.add(wordId);
+  scheduleCacheSave();
+}
+
+function markIdiomDeletedForCache(idiomId) {
+  deletedIdiomIds.add(idiomId);
+  scheduleCacheSave();
+}
+
+function scheduleCacheSave() {
+  if (cacheSaveTimer) clearTimeout(cacheSaveTimer);
+  cacheSaveTimer = setTimeout(() => {
+    flushCache();
+  }, 2000);
+}
+
+async function flushCache() {
+  try {
+    if (dirtyWordIds.size) {
+      const toSave = Array.from(dirtyWordIds)
+        .map(id => window.words.find(w => w.id === id))
+        .filter(Boolean);
+      if (toSave.length) await window.UserDataCache.saveWords(toSave);
+      dirtyWordIds.clear();
+    }
+    if (dirtyIdiomIds.size) {
+      const toSave = Array.from(dirtyIdiomIds)
+        .map(id => window.idioms.find(i => i.id === id))
+        .filter(Boolean);
+      if (toSave.length) await window.UserDataCache.saveIdioms(toSave);
+      dirtyIdiomIds.clear();
+    }
+
+    // ← ВОТ ЭТО ДОБАВИТЬ:
+    if (deletedWordIds.size) {
+      await window.UserDataCache.deleteWords(Array.from(deletedWordIds));
+      deletedWordIds.clear();
+    }
+    if (deletedIdiomIds.size) {
+      await window.UserDataCache.deleteIdioms(Array.from(deletedIdiomIds));
+      deletedIdiomIds.clear();
+    }
+  } catch (e) {
+    console.error('Ошибка сохранения кеша', e);
+  }
+}
+
+async function loadFromCache() {
+  try {
+    const [words, idioms] = await Promise.all([
+      window.UserDataCache.getAllWords(),
+      window.UserDataCache.getAllIdioms(),
+    ]);
+
+    // Всегда устанавливаем window.words и window.idioms, даже если пусто
+    window.words = words.length ? words.map(normalizeWord) : [];
+    window.idioms = idioms.length ? idioms.map(normalizeIdiom) : [];
+
+    let hasData = words.length || idioms.length;
+    if (hasData) {
+      // Не вызываем refreshUI() — дождёмся профиля
+      // refreshUI(); // УБРАТЬ!
+      console.log(
+        `📦 Кеш загружен (без рендера): ${window.words.length} слов, ${window.idioms.length} идиом`,
+      );
+    }
+  } catch (e) {
+    console.error('Ошибка загрузки кеша', e);
+  }
+}
+
+function dataHasChanged(remote, local) {
+  if (remote.length !== local.length) return true;
+  if (remote.length === 0) return false;
+  const getRemoteTime = item => item?.updated_at || item?.updatedat || '';
+  const getLocalTime = item => item?.updatedAt || item?.updatedat || '';
+  return getRemoteTime(remote[0]) !== getLocalTime(local[0]);
+}
+
+async function syncFromSupabase() {
+  if (!navigator.onLine || !window.currentUserId) return;
+  try {
+    const { data: remoteWords, error: wordsError } = await supabase
+      .from('user_words')
+      .select('*')
+      .eq('user_id', window.currentUserId)
+      .order('updated_at', { ascending: false });
+    if (wordsError) throw wordsError;
+
+    const { data: remoteIdioms, error: idiomsError } = await supabase
+      .from('user_idioms')
+      .select('*')
+      .eq('user_id', window.currentUserId)
+      .order('updated_at', { ascending: false });
+    if (idiomsError) throw idiomsError;
+
+    let needRefresh = false;
+    if (dataHasChanged(remoteWords, window.words)) {
+      const normalized = (remoteWords || []).map(normalizeWord);
+      window.words = normalized;
+      // Полная замена — чистим и пишем заново, без upsert
+      await window.UserDataCache.clearAllWords();
+      if (normalized.length) await window.UserDataCache.saveWords(normalized);
+      needRefresh = true;
+      // dirtyWordIds не трогаем — уже сохранили напрямую
+    }
+    if (dataHasChanged(remoteIdioms, window.idioms)) {
+      const normalized = (remoteIdioms || []).map(normalizeIdiom);
+      window.idioms = normalized;
+      // Полная замена — чистим и пишем заново, без upsert
+      await window.UserDataCache.clearAllIdioms();
+      if (normalized.length) await window.UserDataCache.saveIdioms(normalized);
+      needRefresh = true;
+      // dirtyIdiomIds не трогаем — уже сохранили напрямую
+    }
+    if (needRefresh) {
+      refreshUI();
+      await flushCache();
+    }
+    console.log('🔄 Синхронизация с Supabase завершена');
+  } catch (e) {
+    console.error('Ошибка синхронизации с Supabase', e);
+  }
+}
+
+async function migrateFromLocalStorage() {
+  const migrationFlag = localStorage.getItem('englift_cache_migrated');
+  if (migrationFlag === 'true') return;
+
+  const localWords = localStorage.getItem('englift_words');
+  const localIdioms = localStorage.getItem('englift_idioms');
+
+  if (localWords) {
+    try {
+      const words = JSON.parse(localWords);
+      if (words.length) {
+        await window.UserDataCache.saveWords(words);
+      }
+    } catch (e) {}
+    localStorage.removeItem('englift_words');
+  }
+  if (localIdioms) {
+    try {
+      const idioms = JSON.parse(localIdioms);
+      if (idioms.length) {
+        await window.UserDataCache.saveIdioms(idioms);
+      }
+    } catch (e) {}
+    localStorage.removeItem('englift_idioms');
+  }
+  localStorage.setItem('englift_cache_migrated', 'true');
+  console.log('🔄 Миграция из localStorage в IndexedDB выполнена');
+}
 
 // =============================================
 
@@ -341,7 +553,10 @@ window.applyProfileData = function (data) {
     if (merged.length !== window.xpData.badges.length) {
       window.updateXpData({ badges: merged });
 
-      markProfileDirty('badges', window.xpData.badges);
+      // Только если у нас были бейджи которых нет у сервера — тогда пишем
+      if (merged.length > data.badges.length) {
+        markProfileDirty('badges', window.xpData.badges);
+      }
     }
   }
 
@@ -494,6 +709,47 @@ window.applyProfileData = function (data) {
   );
 
   console.log('✅🔥🔥🔥 applyProfileData ЗАВЕРШЕН 🔥🔥🔥');
+
+  // Обновляем theme-color после применения темы
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    const colors = {
+      lavender: '#6C63FF',
+      sunset: '#FF6E40',
+      forest: '#43A047',
+      ocean: '#1976D2',
+      purple: '#9B87B8',
+      sky: '#7FC1E0',
+      sand: '#C4A484',
+      graphite: '#6B7280',
+    };
+
+    let color = colors[window.user_settings?.baseTheme] || colors.lavender;
+
+    if (window.user_settings?.dark) {
+      const darkColors = {
+        lavender: '#8B85FF',
+        sunset: '#D84315',
+        forest: '#2E7D32',
+        ocean: '#1565C0',
+        purple: '#B8A7D1',
+        sky: '#A8D8F0',
+        sand: '#E0C9B1',
+        graphite: '#9CA3AF',
+      };
+      color = darkColors[window.user_settings?.baseTheme] || color;
+    }
+
+    metaTheme.content = color;
+    console.log(
+      '🎨 Theme color updated to:',
+      color,
+      'for theme:',
+      window.user_settings?.baseTheme,
+      'dark:',
+      window.user_settings?.dark,
+    );
+  }
 
   refreshUI();
 };
@@ -667,8 +923,6 @@ let idiomsActiveFilter = 'all';
 
 let refreshScheduled = false;
 
-let isSaving = false;
-
 let badgeCheckInterval = null;
 
 let retryAttempts = 0;
@@ -688,8 +942,6 @@ let pendingIdiomUpdates = new Map();
 let wordSyncTimer;
 
 let idiomSyncTimer;
-
-let saveTimeout;
 
 let audioContext = null;
 
@@ -1582,27 +1834,21 @@ window.pendingIdiomUpdates = pendingIdiomUpdates;
 // =============================================
 
 function normalizeWord(word) {
+  const camel = toCamelCase(word);
   return {
-    ...word,
-
+    ...camel,
     examplesAudio:
-      Array.isArray(word.examples_audio) && word.examples_audio.length
-        ? word.examples_audio
-        : Array.isArray(word.examplesaudio) && word.examplesaudio.length
-          ? word.examplesaudio
-          : Array.isArray(word.examplesAudio)
-            ? word.examplesAudio
-            : [],
-
-    // Нормализация для нового поля
-
-    stats: word.stats
+      Array.isArray(camel.examplesAudio) && camel.examplesAudio.length
+        ? camel.examplesAudio
+        : Array.isArray(camel.examples_audio) && camel.examples_audio.length
+          ? camel.examples_audio
+          : [],
+    stats: camel.stats
       ? {
-          ...word.stats,
-
-          correctExerciseTypes: Array.isArray(word.stats.correctExerciseTypes)
-            ? word.stats.correctExerciseTypes
-            : word.stats.learned
+          ...camel.stats,
+          correctExerciseTypes: Array.isArray(camel.stats.correctExerciseTypes)
+            ? camel.stats.correctExerciseTypes
+            : camel.stats.learned
               ? ['legacy']
               : [],
         }
@@ -1611,27 +1857,21 @@ function normalizeWord(word) {
 }
 
 function normalizeIdiom(idiom) {
+  const camel = toCamelCase(idiom);
   return {
-    ...idiom,
-
+    ...camel,
     examplesAudio:
-      Array.isArray(idiom.examples_audio) && idiom.examples_audio.length
-        ? idiom.examples_audio
-        : Array.isArray(idiom.examplesaudio) && idiom.examplesaudio.length
-          ? idiom.examplesaudio
-          : Array.isArray(idiom.examplesAudio)
-            ? idiom.examplesAudio
-            : [],
-
-    // Нормализация для нового поля
-
-    stats: idiom.stats
+      Array.isArray(camel.examplesAudio) && camel.examplesAudio.length
+        ? camel.examplesAudio
+        : Array.isArray(camel.examples_audio) && camel.examples_audio.length
+          ? camel.examples_audio
+          : [],
+    stats: camel.stats
       ? {
-          ...idiom.stats,
-
-          correctExerciseTypes: Array.isArray(idiom.stats.correctExerciseTypes)
-            ? idiom.stats.correctExerciseTypes
-            : idiom.stats.learned
+          ...camel.stats,
+          correctExerciseTypes: Array.isArray(camel.stats.correctExerciseTypes)
+            ? camel.stats.correctExerciseTypes
+            : camel.stats.learned
               ? ['legacy']
               : [],
         }
@@ -1986,6 +2226,21 @@ function scheduleProfileSync() {
 let syncInProgress = false;
 
 async function syncProfileNow() {
+  if (!window.currentUserId) {
+    console.log('⏸ syncProfileNow пропущен: нет userId');
+    return;
+  }
+  if (syncInProgress) {
+    console.log('❌ Синхронизация уже в процессе, выходим');
+    return;
+  }
+
+  // Проверяем интернет-соединение
+  if (!navigator.onLine) {
+    console.log('📴 syncProfileNow пропущен: нет интернета');
+    return;
+  }
+
   console.log('🚀🔥🔥🔥 syncProfileNow НАЧАЛО 🔥🔥🔥');
 
   console.log('  - window.currentUserId:', window.currentUserId);
@@ -1997,8 +2252,6 @@ async function syncProfileNow() {
 
     JSON.stringify(Array.from(pendingProfileUpdates.entries()), null, 2),
   );
-
-  // Фикс 2: Предотвращаем параллельные вызовы и пустые синхронизации
 
   if (syncInProgress) {
     console.log('❌ Синхронизация уже в процессе, выходим');
@@ -2031,17 +2284,20 @@ async function syncProfileNow() {
   try {
     console.log('  📤 Отправляем запрос на сервер...');
 
-    const { error } = await supabase
-
+    // Добавляем таймаут для запроса
+    const requestPromise = supabase
       .from('profiles')
-
       .update(updates)
-
       .eq('id', window.currentUserId);
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 секунд таймаут
+    });
+
+    const { error } = await Promise.race([requestPromise, timeoutPromise]);
 
     if (error) {
       console.log('  ❌ Ошибка сервера:', error);
-
       throw error;
     }
 
@@ -2125,13 +2381,7 @@ window.scheduleProfileSave = () => {
   // Заглушка для совместимости
 }; // заглушка
 
-// Сохранение при закрытии страницы
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') {
-    syncProfileNow(); // немедленно сохраняем перед закрытием
-  }
-});
+// Сохранение при закрытии страницы - объединено с основным обработчиком
 
 // Сохранение перед выгрузкой страницы
 
@@ -2426,6 +2676,7 @@ function incrementDailyCount() {
 // Универсальная функция для обновления всего интерфейса
 
 function refreshUI() {
+  console.log('🔄 refreshUI вызвана, refreshScheduled:', refreshScheduled);
   if (refreshScheduled) return;
 
   refreshScheduled = true;
@@ -2464,44 +2715,6 @@ window.debugLimits = function () {
 };
 
 // window.isProfileEmpty = isProfileEmpty;
-
-// Загрузка слов из localStorage при старте
-
-function loadWordsFromLocalStorage() {
-  const saved = localStorage.getItem('englift_words');
-
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-
-      window.words = parsed.map(normalizeWord);
-    } catch (e) {
-      console.error('Ошибка парсинга localStorage:', e);
-
-      window.words = [];
-    }
-  } else {
-    window.words = [];
-  }
-}
-
-function loadIdiomsFromLocalStorage() {
-  const saved = localStorage.getItem('englift_idioms');
-
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-
-      window.idioms = parsed.map(normalizeIdiom);
-    } catch (e) {
-      window.idioms = [];
-    }
-  } else {
-    window.idioms = [];
-  }
-
-  updateIdiomsCount(); // обновляем счётчик после загрузки из localStorage
-}
 
 async function loadIdiomsBank() {
   try {
@@ -2547,9 +2760,7 @@ async function loadIdiomsBank() {
 
 // Вызываем сразу после объявления window.words
 
-loadWordsFromLocalStorage();
-
-loadIdiomsFromLocalStorage(); // сразу после объявления window.idioms
+// Удалено: загружаем из IndexedDB в onProfileFullyLoaded
 
 // Debounce функция перенесена в js/utils.js
 
@@ -3862,15 +4073,9 @@ window.WordAPI.loadWordBank().then(bank => {
 
 async function load() {
   try {
-    // Сначала пробуем загрузить из localStorage
+    // Удалено: загрузка из localStorage - теперь используем IndexedDB
 
-    const local = localStorage.getItem('englift_words');
-
-    if (local) {
-      window.words = JSON.parse(local);
-
-      debugLog('Loaded', window.words.length, 'words from localStorage');
-    }
+    debugLog('Words will be loaded from IndexedDB in onProfileFullyLoaded');
 
     // Восстанавливаем статистику из страховки если нужно
 
@@ -4057,8 +4262,6 @@ async function migrateExampleTranslations() {
     });
 
     if (updated > 0) {
-      debouncedSave();
-
       toast(`Обновлено переводов для ${updated} примеров`, 'success');
 
       console.log(`📦 Миграция завершена: обновлено ${updated} переводов`);
@@ -4075,58 +4278,6 @@ async function migrateExampleTranslations() {
 // Загрузка слов из dictionary.json при первом запуске - УДАЛЕНО ДЛЯ БЕЗОПАСНОСТИ
 
 // async function loadDictionaryFromJson() { ... }
-
-// НОВАЯ функция — тихое сохранение с задержкой
-
-function debouncedSave() {
-  if (saveTimeout) clearTimeout(saveTimeout);
-
-  saveTimeout = setTimeout(() => {
-    save(true); // true = тихий режим
-  }, 800); // 800 мс — оптимально
-}
-
-function save(silent = false) {
-  if (isSaving) return Promise.resolve();
-
-  isSaving = true;
-
-  try {
-    // Сохраняем в localStorage для офлайн-режима
-
-    if (!silent) {
-      localStorage.setItem('englift_words', JSON.stringify(window.words));
-    }
-
-    const data = JSON.stringify(window.words);
-
-    // Проверяем размер данных перед сохранением
-
-    if (data.length > 5 * 1024 * 1024) {
-      // 5MB limit
-
-      debugLog('Data size exceeds 5MB, trimming...');
-
-      window.words = window.words.slice(0, 1000); // Оставляем только первые 1000 слов
-    }
-
-    return true;
-  } catch (e) {
-    console.error('Error saving window.words:', e);
-
-    if (!silent) {
-      toast('Ошибка сохранения', 'danger', 'save');
-    }
-
-    return false;
-  } finally {
-    isSaving = false;
-  }
-}
-
-// Делаем save глобальным для доступа из db.js
-
-window.save = save;
 
 // Делаем speak глобальным для доступа из HTML - УДАЛЕНО, теперь используем window.speakWord
 
@@ -4148,6 +4299,20 @@ function generateId() {
 
     return v.toString(16);
   });
+}
+
+// Функция очистки пользовательских данных из IndexedDB
+async function clearUserData() {
+  try {
+    console.log('🗑️ Очищаем IndexedDB...');
+
+    await clearAllWords();
+    await clearAllIdioms();
+
+    console.log('✅ IndexedDB очищен');
+  } catch (error) {
+    console.error('❌ Ошибка очистки IndexedDB:', error);
+  }
 }
 
 function mkWord(
@@ -4354,9 +4519,9 @@ async function addWord(
 
     window.words.push(newWord);
 
-    // Сразу сохраняем в localStorage
+    markWordDirtyForCache(newWord.id);
 
-    localStorage.setItem('englift_words', JSON.stringify(window.words));
+    // Удалено: сохраняем в IndexedDB через кеш
 
     // --- МГНОВЕННОЕ СОХРАНЕНИЕ НА СЕРВЕР (если есть интернет) ---
 
@@ -4442,13 +4607,20 @@ async function addWord(
   } catch (error) {
     console.error('Error adding word:', error);
 
-    toast('Ошибка добавления слова: ' + error.message, 'danger', 'add_word');
+    toast(
+      'Ошибка добавления слова: ' +
+        (error.message || error.toString() || 'неизвестная'),
+      'danger',
+      'add_word',
+    );
 
     return false;
   }
 }
 
 async function delWord(wordId) {
+  markWordDeletedForCache(wordId);
+
   const word = window.words.find(w => w.id === wordId);
 
   if (!word) return;
@@ -4462,10 +4634,6 @@ async function delWord(wordId) {
   // Удаляем из локального массива
 
   window.words = window.words.filter(w => w.id !== wordId);
-
-  // Сохраняем в localStorage
-
-  debouncedSave();
 
   // Обновляем интерфейс
 
@@ -4512,7 +4680,7 @@ async function updWord(id, data) {
 
     // Отмечаем слово для пакетной синхронизации вместо немедленного сохранения
 
-    markWordDirty(id);
+    markWordDirtyForCache(id);
 
     renderCache.clear(); // <-- добавляем очистку кеша рендеринга
 
@@ -4527,10 +4695,6 @@ async function updWord(id, data) {
     // Обновляем интерфейс
 
     refreshUI();
-
-    // Сохраняем изменения в localStorage
-
-    debouncedSave();
   }
 
   markProfileDirty('total_words', window.words.length);
@@ -4662,7 +4826,7 @@ async function addIdiom(
 
   window.idioms.push(newIdiom);
 
-  localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
+  markIdiomDirtyForCache(newIdiom.id);
 
   updateIdiomsCount(); // обновляем счётчик
 
@@ -4698,6 +4862,8 @@ async function addIdiom(
 }
 
 async function delIdiom(idiomId) {
+  markIdiomDeletedForCache(idiomId);
+
   const idiom = window.idioms.find(i => i.id === idiomId);
 
   if (!idiom) return;
@@ -4707,8 +4873,6 @@ async function delIdiom(idiomId) {
   scheduleIdiomSync();
 
   window.idioms = window.idioms.filter(i => i.id !== idiomId);
-
-  localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
 
   updateIdiomsCount(); // обновляем счётчик
 
@@ -4731,9 +4895,7 @@ async function updIdiom(idiomId, data) {
   if (i) {
     Object.assign(i, data, { updatedAt: new Date().toISOString() });
 
-    markIdiomDirty(idiomId);
-
-    localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
+    markIdiomDirtyForCache(idiomId);
 
     renderIdioms();
   }
@@ -5119,6 +5281,17 @@ function renderXP() {
 }
 
 function getBadgeProgress(def) {
+  // Защита от вызова до инициализации данных
+  if (
+    !window.words ||
+    !Array.isArray(window.words) ||
+    !window.idioms ||
+    !Array.isArray(window.idioms) ||
+    !window.xpData ||
+    !Array.isArray(window.xpData.badges)
+  ) {
+    return null;
+  }
   if (xpData.badges.includes(def.id)) return null; // Уже получен
 
   const currentXP = xpData.xp + (xpData.level - 1) * XP_PER_LEVEL;
@@ -5275,8 +5448,15 @@ function renderBadges() {
 
   if (!grid) return;
 
+  // Защита: если данные ещё не загружены
+  if (!window.xpData || !window.xpData.badges || !window.words) {
+    grid.innerHTML = '<div class="loading-spinner"></div>';
+    return;
+  }
+
+  const badges = xpData.badges || [];
   grid.innerHTML = BADGES_DEF.map(def => {
-    const ok = xpData.badges.includes(def.id);
+    const ok = badges.includes(def.id);
 
     const progress = ok ? null : getBadgeProgress(def);
 
@@ -5605,6 +5785,17 @@ function updateDueBadge() {
 // NEW renderStats function with idioms support
 
 function renderStats() {
+  // Защита от отсутствия данных
+  if (
+    !window.words ||
+    !Array.isArray(window.words) ||
+    !window.idioms ||
+    !Array.isArray(window.idioms)
+  ) {
+    console.warn('renderStats: данные не готовы, пропускаем');
+    return;
+  }
+
   const now = new Date();
 
   const weekAgo = new Date(Date.now() - 7 * 86400000);
@@ -6110,6 +6301,7 @@ if (!document.getElementById('confetti-styles')) {
 }
 
 function switchTab(name, skipScroll = false) {
+  console.log('🔍 switchTab вызвана с name:', name);
   const currentActivePane = document.querySelector('.tab-pane.active');
 
   const currentActiveTab = currentActivePane
@@ -6147,10 +6339,12 @@ function switchTab(name, skipScroll = false) {
   }
 
   if (name === 'words') {
+    console.log('🔍 switchTab: обрабатываем вкладку words');
     visibleLimit = 30; // <-- сброс при переключении на слова
 
     renderRandomBankWord(); // Вызываем без await, т.к. в синхронной функции
 
+    console.log('🔍 switchTab: вызываем refreshUI для words');
     refreshUI();
   }
 
@@ -6427,9 +6621,9 @@ async function syncAfterReconnect() {
         ? window.mergeWords(localWords, remoteWords)
         : remoteWords;
 
-      window.words = merged;
+      // Удалено: сохраняем в IndexedDB через кеш
 
-      localStorage.setItem('englift_words', JSON.stringify(window.words));
+      window.words = merged;
 
       refreshUI();
     });
@@ -6475,15 +6669,35 @@ function setupNetworkMonitoring() {
 }
 
 function renderWords(appendOnly = false) {
+  console.log('🔍 renderWords вызвана, window.words:', window.words?.length);
   const grid = document.getElementById('words-grid');
-
   const empty = document.getElementById('empty-words');
-
   const trigger = document.getElementById('load-more-trigger');
+
+  console.log(
+    '🔍 renderWords: DOM элементы - grid:',
+    !!grid,
+    'empty:',
+    !!empty,
+    'trigger:',
+    !!trigger,
+  );
+  console.log(
+    '🔍 renderWords: activeFilter:',
+    activeFilter,
+    'visibleLimit:',
+    visibleLimit,
+  );
 
   // 1. Вычисляем отфильтрованный и отсортированный список
 
   let list = window.words;
+
+  // Защита от отсутствия слов
+  if (!window.words || !Array.isArray(window.words)) {
+    console.warn('renderWords: window.words не готов, пропускаем');
+    return;
+  }
 
   if (activeFilter === 'learning') list = list.filter(w => !w.stats.learned);
 
@@ -6559,6 +6773,8 @@ function renderWords(appendOnly = false) {
     grid.appendChild(fragment);
 
     renderedWordsCount = end;
+
+    console.log(`✅ Добавлено ${renderedWordsCount} карточек в сетку`);
 
     // Настраиваем триггер для бесконечной прокрутки
 
@@ -6728,6 +6944,12 @@ function setupLoadMoreObserver(totalCount) {
 }
 
 function sortWords(list, sortBy) {
+  // Защита от non-iterable
+  if (!list || !Array.isArray(list)) {
+    console.warn('sortWords получил не-массив:', list);
+    return [];
+  }
+
   const sortedList = [...list];
 
   switch (sortBy) {
@@ -9371,10 +9593,6 @@ function showPreview() {
 
       console.log('Saving changes...');
 
-      // Сохраняем изменения
-
-      debouncedSave();
-
       // Обновляем счетчики слов в профиле
 
       markProfileDirty('total_words', window.words.length);
@@ -9531,9 +9749,9 @@ document
       const oldCount = window.words.length;
 
       await window.authExports.loadWordsOnce(serverWords => {
-        window.words = serverWords;
+        // Удалено: сохраняем в IndexedDB через кеш
 
-        localStorage.setItem('englift_words', JSON.stringify(window.words));
+        window.words = serverWords;
 
         renderStats();
 
@@ -9700,7 +9918,11 @@ async function changePassword(currentPassword, newPassword) {
   } catch (err) {
     console.error(err);
 
-    toast('Ошибка смены пароля: ' + err.message, 'danger');
+    toast(
+      'Ошибка смены пароля: ' +
+        (err.message || err.toString() || 'неизвестная'),
+      'danger',
+    );
   }
 }
 
@@ -9915,9 +10137,7 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
         window.idioms = [];
 
-        localStorage.removeItem('englift_words');
-
-        localStorage.removeItem('englift_idioms');
+        // Удалено: очистка localStorage - делается в clearUserData
 
         renderCache.clear();
 
@@ -9952,7 +10172,11 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
           else console.log(`✅ Удалено ${count} идиом с сервера`);
         }
 
-        // 4. Очищаем очереди синхронизации
+        // 4. Очищаем IndexedDB
+
+        await clearUserData();
+
+        // 5. Очищаем очереди синхронизации
 
         pendingWordUpdates.clear();
 
@@ -10140,9 +10364,7 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 
         window.idioms = [];
 
-        localStorage.removeItem('englift_words');
-
-        localStorage.removeItem('englift_idioms');
+        // Удалено: очистка localStorage - делается в clearUserData
 
         renderCache.clear();
 
@@ -10168,9 +10390,9 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
           lastReset: new Date().toISOString().split('T')[0],
         };
 
-        window.dailyReviewCount = 0;
+        // 4. Очищаем IndexedDB
 
-        window.lastReviewResetDate = new Date().toISOString().split('T')[0];
+        await clearUserData();
 
         // 5. Обновляем списки если они открыты
 
@@ -13671,9 +13893,9 @@ function updIdiomStats(idiomId, correct, exerciseType) {
     autoCheckBadges(); // Автоматическая проверка бейджей
   }
 
-  // Save idioms to localStorage
+  // Save idioms to IndexedDB cache
 
-  localStorage.setItem('englift_idioms', JSON.stringify(window.idioms));
+  // Удалено: сохраняем через кеш
 
   // Update due badge
 
@@ -14243,10 +14465,6 @@ async function renderRandomBankWord() {
       );
 
       window.words.unshift(newWord);
-
-      // Сразу сохраняем в localStorage
-
-      localStorage.setItem('englift_words', JSON.stringify(window.words));
 
       // === ОБНОВЛЕНИЕ ЕЖЕДНЕВНЫХ ЦЕЛЕЙ ===
 
@@ -16237,7 +16455,7 @@ function initPWA() {
 
 */
 
-window.clearUserData = function (isExplicitLogout = false) {
+window.clearUserData = async function (isExplicitLogout = false) {
   console.log('🧹 clearUserData вызван, explicit:', isExplicitLogout);
 
   window.profileFullyLoaded = false;
@@ -16255,6 +16473,19 @@ window.clearUserData = function (isExplicitLogout = false) {
   window.pendingWordUpdates?.clear();
 
   updateIdiomsCount(); // обновляем счётчик после очистки
+
+  // Очистка IndexedDB
+  try {
+    await clearAllWords();
+    await clearAllIdioms();
+  } catch (error) {
+    console.error('❌ Ошибка очистки IndexedDB в clearUserData:', error);
+  }
+
+  dirtyWordIds.clear();
+  dirtyIdiomIds.clear();
+  deletedWordIds.clear();
+  deletedIdiomIds.clear();
 
   if (window.wordSyncTimer) clearTimeout(window.wordSyncTimer);
 
@@ -16340,9 +16571,14 @@ window.renderWords = renderWords;
 function renderIdioms(appendOnly = false) {
   console.log(
     '🎯 renderIdioms called, idioms count:',
-
     window.idioms?.length || 0,
   );
+
+  // Защита от отсутствия идиом
+  if (!window.idioms || !Array.isArray(window.idioms)) {
+    console.warn('renderIdioms: window.idioms не готов, пропускаем');
+    return;
+  }
 
   const grid = document.getElementById('idioms-grid');
 
@@ -16998,9 +17234,8 @@ document
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
-    // Сохраняем слова в localStorage
-
-    save(true);
+    // Сохраняем кеш и профиль перед закрытием
+    flushCache();
 
     // ← ДОБАВЬ ЭТО: флашим незаконченные слова и профиль при сворачивании
 
@@ -17058,7 +17293,6 @@ document.addEventListener('visibilitychange', () => {
   }
 
   // НЕ рендерим сразу! Ждём профиль
-
   console.log('⏳ Ожидаем загрузки профиля перед первым рендером...');
 })();
 
@@ -17067,47 +17301,45 @@ document.addEventListener('visibilitychange', () => {
 window.onProfileFullyLoaded = async function () {
   try {
     console.log('✅ onProfileFullyLoaded вызван');
+    window.profileFullyLoaded = true;
 
-    window.profileFullyLoaded = true; // ← добавь эту строку
+    // Убираем класс loading с body
+    document.body.classList.remove('loading');
 
-    console.log('✅ profileFullyLoaded = true');
+    // 1. Миграция из localStorage (один раз)
+    await migrateFromLocalStorage();
 
-    console.log('🚀 onProfileFullyLoaded — убираем loading и применяем тему');
+    // 2. Быстрая загрузка из кеша (без рендера)
+    await loadFromCache();
 
-    console.log('🔍 user_settings:', window.user_settings);
+    // 3. Применяем данные профиля (они уже должны быть загружены из Supabase)
+    if (window.profileData) {
+      window.applyProfileData(window.profileData);
+    }
 
-    console.log('🔍 currentUserId:', window.currentUserId);
+    // 4. Теперь можно рендерить UI
+    // Сбрасываем флаг, чтобы refreshUI точно сработала
+    window.refreshScheduled = false;
+    refreshUI(); // ← сюда перенести!
 
-    // Синхронизируем измененные слова с сервера
+    // === ПРИНУДИТЕЛЬНЫЙ РЕНДЕР ===
+    console.log('🔄 Принудительный рендер слов и идиом');
+    renderWords();
+    renderIdioms();
+    renderStats();
+    renderXP();
+    renderBadges();
+    updateDueBadge();
 
-    console.log('🚀 Начинаем инициализацию приложения...');
+    // 5. Переключаемся на вкладку слов после полной загрузки
+    switchTab('words');
 
-    // ✅ Оставь только это:
-
-    if (window.authExports?.loadWordsOnce && window.currentUserId) {
-      try {
-        const {
-          data: { user },
-        } = await window.authExports.auth.getUser();
-
-        if (!user) return;
-
-        await new Promise(resolve => {
-          window.authExports.loadWordsOnce(remoteWords => {
-            window.words = (remoteWords || []).map(normalizeWord);
-
-            localStorage.setItem('englift_words', JSON.stringify(window.words));
-
-            resolve();
-          });
-        });
-      } catch (e) {
-        console.error('onProfileFullyLoaded', e);
-      }
+    // 5. Фоновая синхронизация с Supabase
+    if (navigator.onLine) {
+      syncFromSupabase();
     }
 
     // Запуск тура, если ещё не был показан
-
     if (window.currentUserId && !window.user_settings?.has_seen_tour) {
       setTimeout(() => {
         window.startTour?.();
@@ -17115,37 +17347,11 @@ window.onProfileFullyLoaded = async function () {
     } else {
       console.log(
         '🔍 TOUR: Тур не запускаем, т.к. has_seen_tour =',
-
         window.user_settings?.has_seen_tour,
       );
     }
 
-    // Загружаем идиомы
-
-    if (window.authExports?.loadIdiomsOnce && window.currentUserId) {
-      try {
-        await new Promise(resolve => {
-          window.authExports.loadIdiomsOnce(remoteIdioms => {
-            window.idioms = (remoteIdioms || []).map(normalizeIdiom);
-
-            localStorage.setItem(
-              'englift_idioms',
-
-              JSON.stringify(window.idioms),
-            );
-
-            updateIdiomsCount(); // обновляем счётчик после загрузки
-
-            resolve();
-          });
-        });
-      } catch (e) {
-        console.error('Ошибка загрузки идиом', e);
-      }
-    }
-
     // После загрузки рендерим (если активна вкладка идиом)
-
     if (document.getElementById('tab-idioms')?.classList.contains('active')) {
       renderIdioms();
     }
@@ -17153,15 +17359,10 @@ window.onProfileFullyLoaded = async function () {
     subscribeToFriendRequests();
 
     // Делаем функции доступными глобально
-
     window.getAllActiveChallenges = getAllActiveChallenges;
-
     window.updateAllChallengesProgress = updateAllChallengesProgress;
-
     window.createChallenge = createChallenge;
-
     window.joinChallenge = joinChallenge;
-
     window.getFriends = getFriends;
 
     window.getFriendRequests = getFriendRequests;
@@ -17177,18 +17378,6 @@ window.onProfileFullyLoaded = async function () {
     if (!window.currentUserId) {
       console.log('⚠️ Пользователь не авторизован, пропускаем загрузку слов');
     }
-
-    renderWords();
-
-    setTimeout(() => {
-      renderStats();
-    }, 100);
-
-    renderXP();
-
-    renderBadges();
-
-    updateDueBadge();
 
     // Инициализация загрузки словаря в IndexedDB (фоновая загрузка)
 
@@ -17213,14 +17402,11 @@ window.onProfileFullyLoaded = async function () {
 };
 
 // Если был пропущенный вызов – выполняем сейчас
-
 if (window._pendingProfileLoaded) {
   console.log(
     '🔄 Выполняем пропущенный вызов onProfileFullyLoaded (флаг был установлен)',
   );
-
   window.onProfileFullyLoaded();
-
   window._pendingProfileLoaded = false;
 } else {
   console.log('✅ Флаг _pendingProfileLoaded не установлен, все в порядке');
@@ -17266,23 +17452,26 @@ setTimeout(() => {
 
 window.addEventListener('online', () => {
   console.log('Connection restored - checking Supabase');
+  toast('🟢 Соединение восстановлено', 'success');
 
   if (window.authExports?.auth) {
     // Пытаемся переподключиться к Supabase
-
     window.authExports.auth.onAuthStateChanged(user => {
       if (user) {
         console.log('Supabase connection restored');
-
         toast('🟢 Соединение восстановлено', 'success');
       }
     });
+  }
+
+  // При восстановлении сети - синхронизируем профиль
+  if (window.currentUserId && pendingProfileUpdates.size > 0) {
+    setTimeout(() => syncProfileNow(), 1000);
   }
 });
 
 window.addEventListener('offline', () => {
   console.log('Offline mode activated');
-
   toast('📴 Оффлайн режим', 'info');
 });
 
@@ -17514,6 +17703,7 @@ setInterval(() => {
 
 window.addEventListener('beforeunload', () => {
   syncProfileNow();
+  flushCache(); // сохраняем кеш IndexedDB
 });
 
 // Сохраняем профиль при смене видимости (например, переключение вкладок)
@@ -17526,13 +17716,17 @@ let lastScrollY = window.scrollY;
 
 const SCROLL_THRESHOLD = 20; // минимальное расстояние для скрытия
 
-const floatingWordBtn = document.getElementById('floating-add-word-btn');
-
-const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
-
-const floatingChatBtn = document.getElementById('floating-chat-btn');
+// Переменные будут инициализированы после загрузки DOM
+let floatingWordBtn = null;
+let floatingIdiomBtn = null;
+let floatingChatBtn = null;
 
 function updateFloatingButtonsVisibility() {
+  // Получаем кнопки для надежности
+  const floatingWordBtn = document.getElementById('floating-add-word-btn');
+  const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
+  const floatingChatBtn = document.getElementById('floating-chat-btn');
+
   const currentScrollY = window.scrollY;
 
   const delta = currentScrollY - lastScrollY;
@@ -17592,18 +17786,17 @@ window.addEventListener('scroll', () => {
 });
 
 function updateFloatingButtonsForTab(tabName) {
+  // Получаем кнопки каждый раз для надежности
+  const floatingWordBtn = document.getElementById('floating-add-word-btn');
+  const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
+  const floatingChatBtn = document.getElementById('floating-chat-btn');
+
   if (!floatingWordBtn || !floatingIdiomBtn) {
-    console.error('❌ Кнопки не найдены!', {
-      floatingWordBtn,
-
-      floatingIdiomBtn,
-    });
-
+    console.warn('Floating buttons not ready yet');
     return;
   }
 
   // Сбрасываем lastScrollY, чтобы скролл не мешал
-
   lastScrollY = window.scrollY;
 
   if (tabName === 'words') {
@@ -18708,7 +18901,10 @@ function showGiftModal(friendId, friendName) {
 
       renderGifts(); // Обновляем список подарков
     } catch (e) {
-      toast('Ошибка отправки: ' + e.message, 'danger');
+      toast(
+        'Ошибка отправки: ' + (e.message || e.toString() || 'неизвестная'),
+        'danger',
+      );
     }
   };
 }
@@ -19379,6 +19575,11 @@ window.generateInviteLink = async function () {
 // --- INIT TAB ---
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Инициализация floating кнопок
+  floatingWordBtn = document.getElementById('floating-add-word-btn');
+  floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
+  floatingChatBtn = document.getElementById('floating-chat-btn');
+
   if (document.getElementById('tab-friends')) {
     loadFriendsDataNew();
   }
@@ -20410,7 +20611,11 @@ window.sendSticker = async function (friendId, sticker) {
     } catch (e) {
       console.error('🔥 sendSticker error:', e);
 
-      toast('Ошибка отправки стикера: ' + e.message, 'danger');
+      toast(
+        'Ошибка отправки стикера: ' +
+          (e.message || e.toString() || 'неизвестная'),
+        'danger',
+      );
     }
 
     return;
@@ -20430,7 +20635,11 @@ window.sendSticker = async function (friendId, sticker) {
     } catch (e) {
       console.error('🔥 sendSticker error:', e);
 
-      toast('Ошибка отправки стикера: ' + e.message, 'danger');
+      toast(
+        'Ошибка отправки стикера: ' +
+          (e.message || e.toString() || 'неизвестная'),
+        'danger',
+      );
     }
 
     return;
@@ -22488,6 +22697,7 @@ window.addEventListener('online', () => {
   toast('🟢 Соединение восстановлено', 'success');
   updateOfflineIndicator();
   syncPendingMessages();
+  syncFromSupabase(); // синхронизация слов и идиом
 });
 
 window.addEventListener('offline', () => {
@@ -22955,7 +23165,10 @@ document
 
       renderChallenges();
     } catch (e) {
-      toast('Ошибка создания: ' + e.message, 'danger');
+      toast(
+        'Ошибка создания: ' + (e.message || e.toString() || 'неизвестная'),
+        'danger',
+      );
     }
   });
 
@@ -22989,7 +23202,7 @@ initTheme();
 
 setupThemeToggle();
 
-switchTab('words');
+// switchTab('words') - перенесен в onProfileFullyLoaded после загрузки данных
 
 console.log(
   '✅ script.js полностью загружен, applyProfileData доступен:',

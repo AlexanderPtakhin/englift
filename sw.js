@@ -1,4 +1,4 @@
-const CACHE_NAME = 'englift-v1054';
+const CACHE_NAME = 'englift-v050';
 
 // Логирование всех событий SW
 const log = (category, message, data = null) => {

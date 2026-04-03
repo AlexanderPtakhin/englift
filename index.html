@@ -65,7 +65,78 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://englift.ru/" />
 
-    <meta name="theme-color" content="#6C63FF" />
+    <!-- Theme-color - будет обновляться динамически через JS -->
+    <meta name="theme-color" content="#FF6E40" />
+
+    <!-- JavaScript для динамической смены theme-color -->
+    <script>
+      (function () {
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        function updateThemeColor() {
+          let settings = { baseTheme: 'sunset', dark: true };
+          try {
+            const saved = localStorage.getItem('englift_user_settings');
+            if (saved) settings = JSON.parse(saved);
+          } catch (e) {}
+
+          const colors = {
+            lavender: '#6C63FF',
+            sunset: '#FF6E40',
+            forest: '#43A047',
+            ocean: '#1976D2',
+            purple: '#9B87B8',
+            sky: '#7FC1E0',
+            sand: '#C4A484',
+            graphite: '#6B7280',
+          };
+
+          let color = colors[settings.baseTheme] || colors.lavender;
+
+          if (settings.dark) {
+            const darkColors = {
+              lavender: '#8B85FF',
+              sunset: '#D84315',
+              forest: '#2E7D32',
+              ocean: '#1565C0',
+              purple: '#B8A7D1',
+              sky: '#A8D8F0',
+              sand: '#E0C9B1',
+              graphite: '#9CA3AF',
+            };
+            color = darkColors[settings.baseTheme] || color;
+          }
+
+          metaTheme.content = color;
+          console.log(
+            '🎨 Theme color updated to:',
+            color,
+            'for theme:',
+            settings.baseTheme,
+            'dark:',
+            settings.dark,
+          );
+        }
+
+        // Делаем функцию глобальной
+        window.updateThemeColor = updateThemeColor;
+
+        updateThemeColor();
+
+        // Следим за изменениями темы
+        const observer = new MutationObserver(updateThemeColor);
+        observer.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['class'],
+        });
+        window.addEventListener('storage', updateThemeColor);
+
+        // Следим за изменениями в localStorage
+        window.addEventListener('localStorageChange', updateThemeColor);
+
+        // Переодически проверяем на всякий случай
+        setInterval(updateThemeColor, 1000);
+      })();
+    </script>
 
     <meta name="mobile-web-app-capable" content="yes" />
 
@@ -112,6 +183,8 @@
 
     <!-- Если нужен импорт Excel - добавим локально позже -->
 
+    <!-- Кеш пользовательских данных -->
+    <script src="js/userDataCache.js"></script>
     <script src="js/wordBankDB.js"></script>
     <script src="api.js"></script>
 
@@ -2223,8 +2296,6 @@
     </div>
 
     <div class="fb-backdrop" id="fb-backdrop"></div>
-
-    <script src="js/wordBankDB.js"></script>
 
     <script src="tour.js"></script>
 
