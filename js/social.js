@@ -81,6 +81,85 @@ export async function getLeaderboard(period = 'week') {
   return data || [];
 }
 
+// ========== Приглашения в челленджи ==========
+
+// Отправить приглашение другу
+export async function sendChallengeInvite(challengeId, senderId, receiverId) {
+  const { data, error } = await supabase
+    .from('challenge_invites')
+    .insert({
+      challenge_id: challengeId,
+      sender_id: senderId,
+      receiver_id: receiverId,
+      status: 'pending',
+    })
+    .select('*, challenge:challenges(*), sender:profiles!sender_id(username)')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Получить приглашения для пользователя
+export async function getChallengeInvites(userId) {
+  const { data, error } = await supabase
+    .from('challenge_invites')
+    .select(
+      `*,
+      challenge:challenges(*),
+      sender:profiles!sender_id(username)
+    `,
+    )
+    .eq('receiver_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+// Принять приглашение
+export async function acceptChallengeInvite(inviteId, userId) {
+  // Получаем инфу о приглашении
+  const { data: invite } = await supabase
+    .from('challenge_invites')
+    .select('*')
+    .eq('id', inviteId)
+    .single();
+
+  if (!invite || invite.receiver_id !== userId) {
+    throw new Error('Приглашение не найдено');
+  }
+
+  // Проверяем, не добавлен ли уже пользователь
+  const { data: existingParticipant } = await supabase
+    .from('challenge_participants')
+    .select('*')
+    .eq('challenge_id', invite.challenge_id)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  // Добавляем только если ещё не участвует
+  if (!existingParticipant) {
+    await joinChallenge(invite.challenge_id, userId);
+  }
+
+  // Обновляем статус приглашения
+  const { error } = await supabase
+    .from('challenge_invites')
+    .update({ status: 'accepted' })
+    .eq('id', inviteId);
+  if (error) throw error;
+}
+
+// Отклонить приглашение
+export async function declineChallengeInvite(inviteId, userId) {
+  const { error } = await supabase
+    .from('challenge_invites')
+    .update({ status: 'declined' })
+    .eq('id', inviteId)
+    .eq('receiver_id', userId);
+  if (error) throw error;
+}
+
 // ========== Челленджи ==========
 export async function getAllActiveChallenges(userId) {
   const today = new Date().toISOString().split('T')[0];
@@ -89,16 +168,17 @@ export async function getAllActiveChallenges(userId) {
     .select(
       `
       *,
-      participants:challenge_participants(user_id, progress)
+      participants:challenge_participants!inner(user_id, progress, user:profiles!challenge_participants_user_id_fkey(username))
     `,
     )
+    .eq('participants.user_id', userId) // Только челленджи где пользователь участвует
     .gte('end_date', today);
   if (error) throw error;
 
-  // Добавляем информацию о том, участвует ли пользователь
+  // Добавляем информацию о прогрессе
   return data.map(ch => ({
     ...ch,
-    isParticipant: ch.participants.some(p => p.user_id === userId),
+    isParticipant: true, // Теперь всегда true т.к. фильтруем по участию
     userProgress:
       ch.participants.find(p => p.user_id === userId)?.progress || 0,
     participantsCount: ch.participants.length,
@@ -127,7 +207,9 @@ export async function updateAllChallengesProgress(userId, type, increment = 1) {
 
   for (const ch of challenges) {
     if (ch.type !== type) continue;
-    const currentProgress = ch.participants[0].progress;
+    // Берём прогресс КОНКРЕТНОГО пользователя, не первого попавшегося!
+    const myParticipant = ch.participants.find(p => p.user_id === userId);
+    const currentProgress = myParticipant?.progress || 0;
     const newProgress = Math.min(ch.target, currentProgress + increment);
     if (newProgress !== currentProgress) {
       await updateChallengeProgress(ch.id, userId, newProgress);
@@ -141,10 +223,10 @@ export async function updateAllChallengesProgress(userId, type, increment = 1) {
 
 // Выполнение челленджа (награда)
 async function completeChallenge(challengeId, userId, challenge) {
-  // Награда: например, XP = target * 2
+  // Награда: XP = target * 2
   const xpReward = challenge.target * 2;
   if (window.gainXP) {
-    await window.gainXP(xpReward, `Челлендж "${challenge.title}" завершён!`);
+    window.gainXP(xpReward, `Челлендж "${challenge.title}" завершён!`);
   }
   toast(
     `🏆 Челлендж "${challenge.title}" завершён! +${xpReward} XP`,
@@ -159,6 +241,12 @@ export async function createChallenge(creatorId, title, type, target, endDate) {
     .select()
     .single();
   if (error) throw error;
+
+  // Создатель автоматически участвует в челлендже
+  await supabase
+    .from('challenge_participants')
+    .insert({ challenge_id: data.id, user_id: creatorId, progress: 0 });
+
   return data;
 }
 
@@ -169,12 +257,54 @@ export async function joinChallenge(challengeId, userId) {
   if (error) throw error;
 }
 
+// Выйти из челленджа (не создатель)
+export async function leaveChallenge(challengeId, userId) {
+  // Проверяем, что это не создатель
+  const { data: challenge } = await supabase
+    .from('challenges')
+    .select('creator_id')
+    .eq('id', challengeId)
+    .single();
+
+  if (challenge && challenge.creator_id === userId) {
+    throw new Error('Создатель не может выйти, только удалить челлендж');
+  }
+
+  const { error } = await supabase
+    .from('challenge_participants')
+    .delete()
+    .eq('challenge_id', challengeId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
 export async function updateChallengeProgress(challengeId, userId, progress) {
   const { error } = await supabase
     .from('challenge_participants')
     .update({ progress })
     .eq('challenge_id', challengeId)
     .eq('user_id', userId);
+  if (error) throw error;
+}
+
+// Удалить челлендж (только создатель)
+export async function deleteChallenge(challengeId, userId) {
+  // Проверяем, что пользователь - создатель
+  const { data: challenge } = await supabase
+    .from('challenges')
+    .select('creator_id')
+    .eq('id', challengeId)
+    .single();
+
+  if (!challenge || challenge.creator_id !== userId) {
+    throw new Error('Только создатель может удалить челлендж');
+  }
+
+  // Удаляем челлендж (каскадно удалятся participants и invites)
+  const { error } = await supabase
+    .from('challenges')
+    .delete()
+    .eq('id', challengeId);
   if (error) throw error;
 }
 

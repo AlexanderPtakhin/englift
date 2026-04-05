@@ -1,4 +1,4 @@
-const CACHE_NAME = 'englift-v050';
+const CACHE_NAME = 'englift-v2336-05';
 
 // Критическое логирование для важных событий
 const log = (category, ...args) => {
@@ -67,6 +67,17 @@ self.addEventListener('activate', event => {
       })
       .then(() => {
         log('ACTIVATE', 'Вызываем clients.claim()');
+        // Уведомляем все вкладки о новой версии
+        return self.clients.matchAll({
+          type: 'window',
+          includeUncontrolled: true,
+        });
+      })
+      .then(clients => {
+        log('ACTIVATE', `Найдено клиентов: ${clients.length}`);
+        clients.forEach(client => {
+          client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
+        });
         return self.clients.claim();
       }),
   );

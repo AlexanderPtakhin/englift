@@ -1,0 +1,724 @@
+/* chat.css - EngLift Chat (старый дизайн + TGLCHAT) */
+/* Все переменные темы берутся из :root, подстраиваются под светлую/тёмную тему */
+
+/* ========== ОСНОВНЫЕ ПЕРЕМЕННЫЕ ========== */
+:root {
+  --chat-border-radius: 20px;
+  --chat-bubble-radius: 18px;
+  --chat-transition: 0.2s ease;
+}
+
+/* ========== МОДАЛЬНОЕ ОКНО (TGLCHAT OVERLAY) ========== */
+.tgl-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  animation: tglFadeIn 0.2s ease forwards;
+}
+
+@keyframes tglFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ========== ОКНО ЧАТА ========== */
+.tgl-window {
+  width: 500px;
+  max-width: 95vw;
+  height: 700px;
+  max-height: 90vh;
+  background: var(--card);
+  border-radius: var(--chat-border-radius);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: tglSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+@keyframes tglSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ========== ХЕДЕР ========== */
+.tgl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tgl-header-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tgl-header-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tgl-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tgl-header-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.tgl-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Максимальная специфичность для кнопок в хедере чата */
+.tgl-window .tgl-header .tgl-header-actions .tgl-btn-icon:hover {
+  background: var(--primary) !important;
+  color: white !important;
+  transform: scale(1.1);
+}
+
+.tgl-window
+  .tgl-header
+  .tgl-header-actions
+  .tgl-btn-icon:hover
+  .material-symbols-outlined {
+  color: white !important;
+}
+
+html
+  body
+  .tgl-window
+  .tgl-header
+  .tgl-header-actions
+  .tgl-btn-icon:hover
+  .material-symbols-outlined {
+  color: #ffffff !important;
+}
+
+.tgl-btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: var(--background);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.tgl-btn-icon:hover {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.1);
+}
+
+.tgl-btn-icon .material-symbols-outlined {
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.tgl-btn-icon:hover .material-symbols-outlined {
+  color: white !important;
+}
+
+/* ========== СПИСОК СООБЩЕНИЙ ========== */
+.tgl-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tgl-messages::-webkit-scrollbar {
+  width: 6px;
+}
+.tgl-messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ========== СООБЩЕНИЯ ========== */
+.tgl-msg {
+  display: flex;
+  max-width: 80%;
+  animation: tglMsgAppear 0.25s ease;
+  position: relative;
+}
+
+@keyframes tglMsgAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tgl-msg--own {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.tgl-msg--other {
+  align-self: flex-start;
+}
+
+/* Стикеры – без пузыря для всех */
+.tgl-msg--sticker .tgl-msg-bubble {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border: none !important;
+}
+.tgl-sticker {
+  font-size: 64px;
+  line-height: 1;
+  animation: stickerPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+@keyframes stickerPop {
+  0% {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+/* Пузырь сообщения */
+.tgl-msg-bubble {
+  padding: 10px 16px;
+  border-radius: var(--chat-bubble-radius);
+  max-width: 100%;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.tgl-msg--own .tgl-msg-bubble {
+  background: var(--primary);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+.tgl-msg--other .tgl-msg-bubble {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  color: var(--text);
+}
+
+.tgl-msg-text {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.tgl-msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+  justify-content: flex-end;
+}
+.tgl-msg--other .tgl-msg-meta {
+  color: var(--muted);
+}
+.tgl-msg-check {
+  font-size: 14px;
+}
+.tgl-msg-check--read {
+  color: #4fc3f7;
+}
+
+/* ========== РЕАКЦИИ ========== */
+.tgl-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tgl-reaction {
+  background: linear-gradient(135deg, var(--bg), rgba(var(--primary-rgb), 0.1));
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tgl-reaction:hover {
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    rgba(var(--primary-rgb), 0.8)
+  );
+  border-color: var(--primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.tgl-reaction--active {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--primary-rgb), 0.2),
+    rgba(var(--primary-rgb), 0.4)
+  );
+  border-color: var(--primary);
+}
+
+/* Исходящие сообщения — градиенты на синем фоне */
+.tgl-msg--own .tgl-reaction {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25),
+    rgba(255, 255, 255, 0.15)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.tgl-msg--own .tgl-reaction:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0.25)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.tgl-msg--own .tgl-reaction--active {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.3)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Компактный пикер реакций – без лишнего места */
+.tgl-reaction-panel {
+  position: absolute;
+  top: -46px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  z-index: 30;
+  width: max-content;
+  max-width: min(320px, calc(100% - 32px));
+  overflow: hidden;
+}
+
+.tgl-msg--own .tgl-reaction-panel {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.tgl-msg--other .tgl-reaction-panel {
+  left: 0;
+  transform: none;
+}
+
+.tgl-msg--picker-below .tgl-reaction-panel {
+  top: auto;
+  bottom: -46px;
+}
+
+@media (min-width: 769px) {
+  .tgl-reaction-panel {
+    min-width: 300px;
+    padding: 6px 12px;
+  }
+  .tgl-reaction-option {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+}
+
+.tgl-reaction-option {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.15s;
+  background: transparent;
+}
+
+.tgl-reaction-option:hover {
+  background: rgba(var(--primary-rgb), 0.15);
+  transform: scale(1.1);
+}
+
+/* ========== ПАНЕЛЬ ВВОДА ========== */
+.tgl-input-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Враппер инпута — кнопка эмодзи внутри (как в Телеграме) */
+.tgl-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tgl-input {
+  width: 100%;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  border-radius: 30px;
+  padding: 12px 18px 12px 44px; /* left padding под кнопку */
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  color: var(--text);
+}
+.tgl-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* Кнопка эмодзи — абсолютно внутри поля */
+.tgl-btn-emoji {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #999);
+  transition: all 0.2s;
+  z-index: 2;
+  padding: 0;
+}
+.tgl-btn-emoji:hover {
+  color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.12);
+  transform: translateY(-50%);
+}
+.tgl-btn-emoji .material-symbols-outlined {
+  font-size: 1.2rem;
+}
+
+.tgl-btn-send {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: var(--primary);
+  border-radius: 30px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.tgl-btn-send:hover {
+  background: var(--primary-dark, var(--primary));
+  transform: scale(1.05);
+}
+
+/* ========== ПИКЕРЫ ========== */
+.tgl-emoji-panel {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 100000;
+  backdrop-filter: blur(12px);
+  width: 320px !important; /* ← 320px */
+  max-height: 320px;
+  overflow-y: auto;
+}
+.tgl-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 40px);
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.tgl-emoji-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 22px;
+  transition: all 0.15s;
+}
+.tgl-emoji-item:hover {
+  background: rgba(var(--primary-rgb), 0.1);
+  transform: scale(1.15);
+}
+
+/* Стикер-пикер */
+.tgl-sticker-panel {
+  width: 320px !important; /* ← 320px */
+  max-height: 320px;
+  overflow-y: auto;
+}
+.tgl-sticker-panel .tgl-emoji-grid {
+  grid-template-columns: repeat(6, 40px);
+  gap: 8px;
+}
+
+.tgl-reaction-option {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.15s;
+  background: transparent;
+}
+
+.tgl-reaction-option:hover {
+  background: rgba(var(--primary-rgb), 0.15);
+  transform: scale(1.1);
+}
+
+/* ========== КНОПКА СКРОЛЛА ========== */
+.tgl-scroll-bottom {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  transition: all 0.2s;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100001;
+}
+.tgl-scroll-bottom--visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.tgl-scroll-bottom:hover {
+  transform: scale(1.1);
+  background: var(--primary);
+  color: white;
+}
+
+/* ========== МОБИЛЬНАЯ ВЕРСИЯ (fullscreen) ========== */
+@media (max-width: 768px) {
+  .tgl-overlay {
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    background: rgba(0, 0, 0, 0.85);
+  }
+  .tgl-window {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+  .tgl-header {
+    padding: 18px 16px;
+  }
+  .tgl-messages {
+    padding: 12px;
+  }
+  .tgl-msg {
+    max-width: 85%;
+  }
+  .tgl-sticker {
+    font-size: 48px;
+  }
+  .tgl-input-area {
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+  .tgl-emoji-panel,
+  .tgl-reaction-panel,
+  .tgl-sticker-panel {
+    max-width: calc(100vw - 24px);
+    left: 12px !important;
+    right: 12px !important;
+  }
+  .tgl-emoji-panel,
+  .tgl-sticker-panel {
+    width: 320px !important; /* ← 320px и на мобиле */
+  }
+  .tgl-reaction-panel {
+    width: fit-content !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    max-width: 90vw;
+  }
+}
+
+/* === SCROLL TO BOTTOM === */
+.tgl-scroll-bottom {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  background: #fff;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0088cc;
+  font-size: 20px;
+  transition: all 0.2s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tgl-scroll-bottom--visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.tgl-scroll-bottom:hover {
+  transform: scale(1.1);
+  background: #f0f0f0;
+}
+
+/* === TYPING INDICATOR === */
+.tgl-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #888;
+  opacity: 0;
+  transition: opacity 0.2s;
+  height: 0;
+  overflow: hidden;
+}
+
+.tgl-typing--visible {
+  opacity: 1;
+  height: auto;
+  padding: 8px 16px;
+}
+
+.tgl-typing-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.tgl-typing-dot {
+  width: 6px;
+  height: 6px;
+  background: #0088cc;
+  border-radius: 50%;
+  animation: tglTyping 1.4s infinite;
+}
+
+.tgl-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.tgl-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes tglTyping {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
