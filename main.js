@@ -78,67 +78,6 @@ window.authExports = {
   deleteIdiomFromDb,
 };
 
-// === РЕГИСТРАЦИЯ SERVICE WORKER С АВТООБНОВЛЕНИЕМ ===
-
-if ('serviceWorker' in navigator) {
-  console.log('[SW] Регистрация Service Worker...');
-  navigator.serviceWorker
-    .register(new URL('./sw.js', import.meta.url), { updateViaCache: 'none' })
-    .then(reg => {
-      console.log('[SW] ✅ Service Worker зарегистрирован');
-
-      // Отслеживаем появление нового SW
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (newWorker) {
-          console.log('[SW] 🆕 Новый SW устанавливается');
-          newWorker.addEventListener('statechange', () => {
-            if (
-              newWorker.state === 'installed' &&
-              navigator.serviceWorker.controller
-            ) {
-              console.log('[SW] ⏳ Новый SW готов, вызываем skipWaiting');
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
-            }
-          });
-        }
-      });
-
-      reg.update();
-    })
-    .catch(err => {
-      console.error('[SW] ❌ Ошибка регистрации SW:', err);
-    });
-  let refreshing = false;
-  let updateAvailable = false;
-
-  // Слушаем сообщения от SW
-  navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SW_UPDATED') {
-      console.log('[SW] 🔔 Доступна новая версия:', event.data.version);
-      updateAvailable = true;
-      // Показываем уведомление пользователю
-      if (window.toast) {
-        window.toast('Доступна новая версия! Перезагрузка...', 'info', 3000);
-      }
-      // Автоперезагрузка через 3 секунды
-      setTimeout(() => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      }, 3000);
-    }
-  });
-
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
-  });
-}
-
 // Ждём загрузки DOM и подключаем остальные скрипты
 
 if (document.readyState === 'loading') {

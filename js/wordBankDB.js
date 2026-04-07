@@ -231,13 +231,26 @@
     return new Promise(resolve => {
       const request = store.getAll();
       request.onsuccess = () => {
-        const allWords = request.result;
+        const allWords = request.result || [];
+        const totalInBank = allWords.length;
+
+        const userWords = Array.isArray(window.words) ? window.words : [];
+        const userSet = new Set(
+          userWords.map(w => (w.en || '').trim().toLowerCase()).filter(Boolean),
+        );
+
         const remaining = allWords.filter(
-          word => !window.words || !window.words.find(w => w.en === word.en),
+          word => !userSet.has((word.en || '').trim().toLowerCase()),
         ).length;
-        resolve(remaining);
+
+        resolve({
+          totalInBank,
+          userWordsCount: userSet.size,
+          remaining,
+        });
       };
-      request.onerror = () => resolve(0);
+      request.onerror = () =>
+        resolve({ totalInBank: 0, userWordsCount: 0, remaining: 0 });
     });
   }
 

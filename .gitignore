@@ -1,9 +1,12 @@
 node_modules/
 dist/
 .parcel-cache/
-audio
-audio-male
 .env
-audio-idioms
-female-idioms
 sound
+A1
+A2
+B1
+B2
+C1
+C2
+idioms

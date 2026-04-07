@@ -243,14 +243,27 @@ function toast(msg, type = '', icon = '', duration = 4000) {
 
 let audioContext;
 
-function playAudio(filename, onEnd) {
+function playAudio(filename, cefr, onEnd) {
   if (!filename) {
     if (onEnd) onEnd();
     return console.warn('Нет файла аудио');
   }
   const voice = window.user_settings?.voice || 'female';
-  const folder = voice === 'male' ? 'audio-male/' : 'audio/';
-  const audio = new Audio(`${folder}${filename}`);
+  const folder = voice === 'male' ? 'man' : 'women';
+  const path = cefr ? `${cefr}/${folder}/${filename}` : `${folder}/${filename}`;
+
+  console.log(
+    '🔊 playAudio path:',
+    path,
+    '| cefr:',
+    cefr,
+    '| filename:',
+    filename,
+    '| voice:',
+    voice,
+  );
+
+  const audio = new Audio(path);
 
   audio.addEventListener('ended', () => {
     if (onEnd) onEnd();
@@ -273,8 +286,19 @@ function playIdiomAudio(filename, onEnd) {
     return console.warn('Нет файла аудио для идиомы');
   }
   const voice = window.user_settings?.voice || 'female';
-  const folder = voice === 'male' ? 'audio-idioms/' : 'female-idioms/';
-  const audio = new Audio(`${folder}${filename}`);
+  const folder = voice === 'male' ? 'man' : 'women';
+  const path = `idioms/${folder}/${filename}`;
+
+  console.log(
+    '🔊 playIdiomAudio path:',
+    path,
+    '| filename:',
+    filename,
+    '| voice:',
+    voice,
+  );
+
+  const audio = new Audio(path);
 
   audio.addEventListener('ended', () => {
     if (onEnd) onEnd();

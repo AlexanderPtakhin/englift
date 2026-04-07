@@ -25,12 +25,12 @@ self.addEventListener('install', event => {
       const staticFiles = [
         '/offline.html',
         '/manifest.json',
-        '/dict-A1.json',
-        '/dict-A2.json',
-        '/dict-B1.json',
-        '/dict-B2.json',
-        '/dict-C1.json',
-        '/dict-C2.json',
+        '/A1/dict-A1.json',
+        '/A2/dict-A2.json',
+        '/B1/dict-B1.json',
+        '/B2/dict-B2.json',
+        '/C1/dict-C1.json',
+        '/C2/dict-C2.json',
       ];
 
       log('INSTALL', `✅ Добавлено ${staticFiles.length} файлов в кэш`);
@@ -99,7 +99,9 @@ self.addEventListener('fetch', event => {
     urlObj.hostname.includes('supabase.co') ||
     urlObj.pathname.startsWith('/audio/') ||
     urlObj.pathname.startsWith('/audio-male/') ||
-    urlObj.pathname.startsWith('/audio-idioms/')
+    urlObj.pathname.startsWith('/audio-idioms/') ||
+    urlObj.pathname.match(/^\/[A-C][1-2]\/(?:man|women)\//) ||
+    urlObj.pathname.startsWith('/idioms/')
   ) {
     log('FETCH', 'Пропускаем API/аудио запрос');
     return;

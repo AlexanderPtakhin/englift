@@ -231,7 +231,7 @@ import { getReactionsForMessages } from './db.js';
 
 // Импортируем банк идиом
 
-import idiomsBankData from './idioms.json';
+import idiomsBankData from './idioms/idioms.json';
 
 // =============================================
 
@@ -1969,41 +1969,58 @@ window.checkAnswerWithNormalization = checkAnswerWithNormalization;
 // Глобальные функции для всего сайта
 
 window.speakWord = function (wordObj, onEnd) {
-  // Поддерживаем разные форматы входных данных
-
   let audioFile = null;
+  let cefr = null;
+  let wordEn = null;
 
   if (typeof wordObj === 'string') {
-    // Если передана строка, ищем слово в словаре
-
     const word = window.words.find(w => w.en === wordObj || w.id === wordObj);
-
     if (word) {
       audioFile = word.audio;
+      cefr = word.cefr;
+      wordEn = word.en;
     }
   } else if (wordObj && wordObj.en) {
-    // Если передан объект слова
-
     audioFile = wordObj.audio;
+    cefr = wordObj.cefr;
+    wordEn = wordObj.en;
   } else if (wordObj && wordObj.word) {
-    // Если передан объект с полем word (для упражнений)
-
     const word = window.words.find(
       w => w.en === wordObj.word || w.id === wordObj.word,
     );
-
     if (word) {
       audioFile = word.audio;
+      cefr = word.cefr;
+      wordEn = word.en;
     }
   }
 
   if (!audioFile) {
-    if (onEnd) onEnd(); // чтобы волна убралась даже при ошибке
-
+    if (onEnd) onEnd();
     return;
   }
 
-  playAudio(audioFile, onEnd);
+  // cefr нет в данных пользователя (старые слова без уровня)
+  // ищем в банке слов через IndexedDB
+  if (!cefr && wordEn && window.WordBankDB) {
+    window.WordBankDB.searchWords(wordEn, 5)
+      .then(results => {
+        const bankWord = results.find(
+          r => r.en.toLowerCase() === wordEn.toLowerCase(),
+        );
+        const foundCefr = bankWord?.cefr || null;
+        // заодно сохраняем cefr обратно в слово чтобы в следующий раз не искать
+        if (foundCefr) {
+          const w = window.words.find(w => w.en === wordEn);
+          if (w) w.cefr = foundCefr;
+        }
+        playAudio(audioFile, foundCefr, onEnd);
+      })
+      .catch(() => playAudio(audioFile, null, onEnd));
+    return;
+  }
+
+  playAudio(audioFile, cefr, onEnd);
 };
 
 window.speakIdiom = function (idiomId) {
@@ -2015,11 +2032,11 @@ window.speakIdiom = function (idiomId) {
   else speakText(idiom.idiom);
 };
 
-window.playExampleAudio = function (wordObj) {
+window.playExampleAudio = function (wordObj, cefr) {
   if (!wordObj || !wordObj.examplesAudio || !wordObj.examplesAudio.length)
     return;
 
-  playAudio(wordObj.examplesAudio[0]);
+  playAudio(wordObj.examplesAudio[0], cefr);
 };
 
 // Conditional debug logging
@@ -2433,7 +2450,7 @@ function updateFloatingChatButton() {
 // Периодическое обновление непрочитанных сообщений раз в 30 секунд
 
 setInterval(() => {
-  if (window.currentUserId) {
+  if (window.currentUserId && navigator.onLine) {
     updateUnreadCounts();
   }
 }, 30000);
@@ -2441,10 +2458,10 @@ setInterval(() => {
 // Периодическая проверка заявок в друзья раз в минуту
 
 setInterval(() => {
-  if (window.currentUserId) {
+  if (window.currentUserId && navigator.onLine) {
     checkFriendRequests();
   }
-}, 60000); // 60 секунд = 1 минута
+}, 60000); // 60 seconds = 1 minute
 
 // Функция проверки новых заявок в друзья
 
@@ -2698,7 +2715,7 @@ async function loadIdiomsBank() {
 
     // Fallback: пробуем разные пути к файлу
 
-    const paths = ['/idioms.json', './idioms.json', 'idioms.json'];
+    const paths = ['idioms/idioms.json', './idioms/idioms.json'];
 
     let data = null;
 
@@ -9482,10 +9499,9 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
       if (audioArr?.length > exampleIndex) {
         const voicePreference = window.user_settings?.voice || 'female';
 
-        const audioFolder =
-          voicePreference === 'male' ? '/audio-male/' : '/audio/';
+        const audioFolder = `${word.cefr}/${voicePreference === 'male' ? 'man' : 'women'}`;
 
-        const audio = new Audio(`${audioFolder}${audioArr[exampleIndex]}`);
+        const audio = new Audio(`${audioFolder}/${audioArr[exampleIndex]}`);
 
         audio.play().catch(err => {
           speakText(fallbackText);
@@ -10034,10 +10050,9 @@ document.getElementById('idioms-grid')?.addEventListener('click', e => {
 
       const voicePreference = window.user_settings?.voice || 'female';
 
-      const audioFolder =
-        voicePreference === 'male' ? '/audio-idioms/' : '/female-idioms/';
+      const audioFolder = `idioms/${voicePreference === 'male' ? 'man' : 'women'}`;
 
-      const audio = new Audio(`${audioFolder}${audioArr[exampleIndex]}`);
+      const audio = new Audio(`${audioFolder}/${audioArr[exampleIndex]}`);
 
       audio.play().catch(err => {
         speakText(fallbackText);
@@ -10463,15 +10478,22 @@ document.getElementById('single-form')?.addEventListener('submit', async e => {
 
     document.getElementById('f-en').focus();
 
-    const remaining = await window.WordBankDB.getRemainingWordsCount();
+    const { totalInBank, userWordsCount, remaining } =
+      await window.WordBankDB.getRemainingWordsCount();
 
-    toast(
-      `"${esc(en)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} слов в банке</span>`,
+    const message =
+      esc(en) +
+      '<br><span style="opacity:0.8;font-size:0.85em">' +
+      'Теперь у тебя ' +
+      userWordsCount +
+      ' слов из ' +
+      totalInBank +
+      '. В банке осталось ' +
+      remaining +
+      '.' +
+      '</span>';
 
-      'success',
-
-      'add_circle',
-    );
+    toast(message, 'success', 'add_circle');
 
     playSound('sound/add.mp3');
 
@@ -10648,15 +10670,22 @@ document
       if (success) {
         // Ждем загрузки wordBank если еще не загружен
 
-        const remaining = await window.WordBankDB.getRemainingWordsCount();
+        const { totalInBank, userWordsCount, remaining } =
+          await window.WordBankDB.getRemainingWordsCount();
 
-        toast(
-          `"${esc(en)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} слов в банке</span>`,
+        const message =
+          esc(en) +
+          '<br><span style="opacity:0.8;font-size:0.85em">' +
+          'Теперь у тебя ' +
+          userWordsCount +
+          ' слов из ' +
+          totalInBank +
+          '. В банке осталось ' +
+          remaining +
+          '.' +
+          '</span>';
 
-          'success',
-
-          'add_circle',
-        );
+        toast(message, 'success', 'add_circle');
 
         playSound('sound/add.mp3');
 
@@ -18342,15 +18371,22 @@ async function renderRandomBankWord() {
 
       refreshUI();
 
-      const remaining = await window.WordBankDB.getRemainingWordsCount();
+      const { totalInBank, userWordsCount, remaining } =
+        await window.WordBankDB.getRemainingWordsCount();
 
-      toast(
-        `"${esc(currentBankWord.en)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} слов в банке</span>`,
+      const message =
+        esc(currentBankWord.en) +
+        '<br><span style="opacity:0.8;font-size:0.85em">' +
+        'Теперь у тебя ' +
+        userWordsCount +
+        ' слов из ' +
+        totalInBank +
+        '. В банке осталось ' +
+        remaining +
+        '.' +
+        '</span>';
 
-        'success',
-
-        'add_circle',
-      );
+      toast(message, 'success', 'add_circle');
 
       playSound('sound/add.mp3');
 
@@ -22915,8 +22951,6 @@ function updateFloatingButtonsVisibility() {
 let ticking = false;
 
 window.addEventListener('scroll', () => {
-  console.log('[SCROLL] Обработчик скролла');
-
   if (!ticking) {
     window.requestAnimationFrame(() => {
       updateFloatingButtonsVisibility();
