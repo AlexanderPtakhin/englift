@@ -9484,23 +9484,49 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
       const examplesAudio =
         word.examples_audio || word.examplesAudio || word.examplesaudio;
 
-      // Если пусто — смотрим в банке
-
+      // If empty - look in bank
       const audioArr = examplesAudio?.length
         ? examplesAudio
         : window.wordBank?.find(
             b => b.en.toLowerCase() === word.en.toLowerCase(),
           )?.examplesAudio;
 
-      // Текст для озвучки (пример или само слово)
-
       const fallbackText = word.examples?.[exampleIndex]?.text || word.en;
 
       if (audioArr?.length > exampleIndex) {
         const voicePreference = window.user_settings?.voice || 'female';
 
-        const audioFolder = `${word.cefr}/${voicePreference === 'male' ? 'man' : 'women'}`;
+        // Use same CEFR logic as speakWord
+        if (!word.cefr && word.en && window.WordBankDB) {
+          window.WordBankDB.searchWords(word.en, 5)
+            .then(results => {
+              const bankWord = results.find(
+                r => r.en.toLowerCase() === word.en.toLowerCase(),
+              );
+              const foundCefr = bankWord?.cefr || 'A1';
+              // Save CEFR back to word
+              if (foundCefr && foundCefr !== 'A1') {
+                word.cefr = foundCefr;
+              }
 
+              const audioFolder = `${foundCefr}/${voicePreference === 'male' ? 'man' : 'women'}`;
+              const audio = new Audio(
+                `${audioFolder}/${audioArr[exampleIndex]}`,
+              );
+              audio.play().catch(err => speakText(fallbackText));
+            })
+            .catch(() => {
+              const audioFolder = `A1/${voicePreference === 'male' ? 'man' : 'women'}`;
+              const audio = new Audio(
+                `${audioFolder}/${audioArr[exampleIndex]}`,
+              );
+              audio.play().catch(err => speakText(fallbackText));
+            });
+          return;
+        }
+
+        const cefr = word.cefr || 'A1';
+        const audioFolder = `${cefr}/${voicePreference === 'male' ? 'man' : 'women'}`;
         const audio = new Audio(`${audioFolder}/${audioArr[exampleIndex]}`);
 
         audio.play().catch(err => {
