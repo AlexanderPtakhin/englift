@@ -242,12 +242,89 @@ function toast(msg, type = '', icon = '', duration = 4000) {
 // =============================================
 
 let audioContext;
+let currentMediaAudio = null;
+let currentMediaAudioCleanup = null;
+
+function stopCurrentMediaAudio() {
+  if (currentMediaAudio) {
+    try {
+      currentMediaAudio.pause();
+      currentMediaAudio.currentTime = 0;
+    } catch (e) {
+      console.warn('[AUDIO] stopCurrentMediaAudio pause error:', e);
+    }
+  }
+
+  if (typeof currentMediaAudioCleanup === 'function') {
+    try {
+      currentMediaAudioCleanup();
+    } catch (e) {
+      console.warn('[AUDIO] cleanup error:', e);
+    }
+  }
+
+  currentMediaAudio = null;
+  currentMediaAudioCleanup = null;
+}
+
+function createManagedAudio(path, onEnd) {
+  stopCurrentMediaAudio();
+
+  const audio = new Audio(path);
+  currentMediaAudio = audio;
+
+  let finished = false;
+
+  const finalize = () => {
+    if (finished) return;
+    finished = true;
+
+    audio.removeEventListener('ended', handleEnded);
+    audio.removeEventListener('error', handleError);
+
+    if (currentMediaAudio === audio) {
+      currentMediaAudio = null;
+      currentMediaAudioCleanup = null;
+    }
+
+    if (onEnd) {
+      try {
+        onEnd();
+      } catch (e) {
+        console.warn('[AUDIO] onEnd error:', e);
+      }
+    }
+  };
+
+  const handleEnded = () => finalize();
+  const handleError = e => {
+    console.error('[AUDIO] Error playing audio:', e, 'path:', path);
+    finalize();
+  };
+
+  currentMediaAudioCleanup = () => {
+    audio.removeEventListener('ended', handleEnded);
+    audio.removeEventListener('error', handleError);
+  };
+
+  audio.addEventListener('ended', handleEnded);
+  audio.addEventListener('error', handleError);
+
+  audio.play().catch(err => {
+    console.error('[AUDIO] play() failed:', err, 'path:', path);
+    finalize();
+  });
+
+  return audio;
+}
 
 function playAudio(filename, cefr, onEnd) {
   if (!filename) {
     if (onEnd) onEnd();
-    return console.warn('Нет файла аудио');
+    console.warn('[AUDIO] filename is empty');
+    return;
   }
+
   const voice = window.user_settings?.voice || 'female';
   const folder = voice === 'male' ? 'man' : 'women';
   const path = cefr ? `${cefr}/${folder}/${filename}` : `${folder}/${filename}`;
@@ -262,29 +339,16 @@ function playAudio(filename, cefr, onEnd) {
     '| voice:',
     voice,
   );
-
-  const audio = new Audio(path);
-
-  audio.addEventListener('ended', () => {
-    if (onEnd) onEnd();
-  });
-
-  audio.addEventListener('error', e => {
-    console.error('Ошибка загрузки аудио:', e);
-    if (onEnd) onEnd();
-  });
-
-  audio.play().catch(err => {
-    console.error('Ошибка воспроизведения аудио:', err);
-    if (onEnd) onEnd();
-  });
+  createManagedAudio(path, onEnd);
 }
 
 function playIdiomAudio(filename, onEnd) {
   if (!filename) {
     if (onEnd) onEnd();
-    return console.warn('Нет файла аудио для идиомы');
+    console.warn('[IDIOM AUDIO] filename is empty');
+    return;
   }
+
   const voice = window.user_settings?.voice || 'female';
   const folder = voice === 'male' ? 'man' : 'women';
   const path = `idioms/${folder}/${filename}`;
@@ -297,22 +361,7 @@ function playIdiomAudio(filename, onEnd) {
     '| voice:',
     voice,
   );
-
-  const audio = new Audio(path);
-
-  audio.addEventListener('ended', () => {
-    if (onEnd) onEnd();
-  });
-
-  audio.addEventListener('error', e => {
-    console.error('Ошибка загрузки аудио идиомы:', e);
-    if (onEnd) onEnd();
-  });
-
-  audio.play().catch(err => {
-    console.error('Ошибка воспроизведения аудио идиомы:', err);
-    if (onEnd) onEnd();
-  });
+  createManagedAudio(path, onEnd);
 }
 
 // === ЗВУКИ ===
@@ -438,8 +487,9 @@ function speakText(text) {
     utterance.voice = voice;
   }
 
-  // Настройки речи
-  utterance.lang = 'ru-RU';
+  // Определяем язык: если текст содержит кириллицу - русский, иначе английский
+  const hasCyrillic = /[а-яё]/i.test(text);
+  utterance.lang = hasCyrillic ? 'ru-RU' : 'en-US';
   utterance.rate = 0.9;
   utterance.pitch = 1.0;
   utterance.volume = 1.0;
@@ -825,6 +875,7 @@ export {
   playIdiomAudio,
   speakText,
   getVoice,
+  stopCurrentMediaAudio,
 
   // Конфетти и эффекты
   triggerConfetti,

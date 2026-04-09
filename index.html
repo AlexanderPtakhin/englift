@@ -368,7 +368,7 @@
 
     </style>
 
-    <meta name="sw-file" content="/sw.1775583968777-3988db64.js">
+    <meta name="sw-file" content="/sw.1775684796772-c600a555.js">
 </head>
 
 
@@ -1047,30 +1047,24 @@
 
 
 
-              <div class="chip-group" id="practice-mode">
-
-                <button class="chip on" data-mode="normal">
-
-                  <span class="material-symbols-outlined">school</span>
-
-
-
-                  Слова<span id="practice-words-due"></span>
-
+              <div class="chip-group chip-group--modes" id="practice-mode">
+                <button class="chip chip--mode on" data-mode="normal">
+                  <span class="material-symbols-outlined">menu_book</span>
+                  <span class="chip-label">Слова</span>
+                  <span class="chip-badge" id="practice-words-due" style="display:none;"></span>
                 </button>
 
+                <button class="chip chip--mode" data-mode="phrases">
+                  <span class="material-symbols-outlined">forum</span>
+                  <span class="chip-label">Фразы</span>
+                  <span class="chip-badge" id="practice-phrases-due" style="display:none;"></span>
+                </button>
 
-
-                <button class="chip" data-mode="idioms">
-
+                <button class="chip chip--mode" data-mode="idioms">
                   <span class="material-symbols-outlined">theater_comedy</span>
-
-
-
-                  Идиомы<span id="practice-idioms-due"></span>
-
+                  <span class="chip-label">Идиомы</span>
+                  <span class="chip-badge" id="practice-idioms-due" style="display:none;"></span>
                 </button>
-
               </div>
 
             </div>
@@ -1079,7 +1073,7 @@
 
             <div class="setup-row">
 
-              <label>Количество слов</label>
+              <label>Количество заданий</label>
 
 
 
@@ -1207,7 +1201,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Переворачивай и запоминай
 
@@ -1231,7 +1225,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Найди правильный вариант
 
@@ -1255,7 +1249,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Введи перевод слова
 
@@ -1279,7 +1273,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Напиши, что слышишь
 
@@ -1307,7 +1301,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Тренируй произношение
 
@@ -1335,7 +1329,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Прослушай и повтори предложение
 
@@ -1359,7 +1353,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Соедини слово и перевод
 
@@ -1383,7 +1377,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Составь слово из букв
 
@@ -1407,7 +1401,7 @@
 
 
 
-                  <div class="exercise-desc" style="display: none">
+                  <div class="exercise-desc">
 
                     Пойми слово по смыслу
 
@@ -1607,7 +1601,7 @@
 
             <button
 
-              class="btn btn-primary btn-lg"
+              class="pill"
 
               id="start-btn"
 
@@ -1615,21 +1609,23 @@
 
                 width: 100%;
 
-
-
                 margin-top: 0.5rem;
-
-
 
                 display: flex;
 
-
-
                 justify-content: center;
 
-
-
                 align-items: center;
+
+                background: var(--primary);
+
+                border-color: var(--primary);
+
+                color: #fff;
+
+                padding: 0.6rem 1rem;
+
+                font-size: 1rem;
 
               "
 

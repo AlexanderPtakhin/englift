@@ -10,6 +10,9 @@ import {
   loadIdiomsOnce,
   saveIdiomToDb,
   deleteIdiomFromDb,
+  loadPhrasesOnce,
+  savePhraseToDb,
+  deletePhraseFromDb,
 } from './db.js';
 
 // Импортируем и экспортируем функции темы глобально
@@ -76,6 +79,12 @@ window.authExports = {
   saveIdiomToDb,
 
   deleteIdiomFromDb,
+
+  loadPhrasesOnce,
+
+  savePhraseToDb,
+
+  deletePhraseFromDb,
 };
 
 // Ждём загрузки DOM и подключаем остальные скрипты

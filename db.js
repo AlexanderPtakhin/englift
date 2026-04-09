@@ -30,6 +30,8 @@ export async function loadWordsOnce(callback) {
     // Преобразуем correct_exercise_types из JSON в массив
     const normalizedData = data.map(word => ({
       ...word,
+      examplesAudio: word.examples_audio || null, // маппинг snake_case → camelCase
+      grammar: word.grammar || null,
       stats: word.stats
         ? {
             ...word.stats,
@@ -47,20 +49,45 @@ export async function saveWordToDb(word) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Проверка обязательных полей
+  if (!word || !word.en) {
+    console.error('[DB] ❌ Ошибка сохранения слова: отсутствует поле en', word);
+    throw new Error('Word object or word.en is required');
+  }
+
   const { updatedAt, createdAt, examplesAudio, ...wordRest } = word;
 
-  const { error } = await supabase.from('user_words').upsert(
-    {
-      ...wordRest,
-      user_id: user.id,
-      updated_at: new Date().toISOString(),
-      created_at: createdAt ?? new Date().toISOString(),
-      examples_audio: examplesAudio ?? null,
-      // Сохраняем correctExerciseTypes как JSON
-      correct_exercise_types: word.stats?.correctExerciseTypes ?? null,
-    },
-    { onConflict: 'id' },
-  );
+  // Берём типы упражнений из stats (учитывая оба формата: camelCase и snake_case)
+  const correctExerciseTypes =
+    word.stats?.correctExerciseTypes ||
+    word.stats?.correct_exercise_types ||
+    [];
+
+  // Очищаем stats от полей, которые вынесены в отдельные колонки
+  const cleanStats = word.stats
+    ? {
+        ...word.stats,
+        correctExerciseTypes: undefined,
+        correct_exercise_types: undefined,
+      }
+    : undefined;
+
+  const wordPayload = {
+    ...wordRest,
+    user_id: user.id,
+    updated_at: new Date().toISOString(),
+    created_at: createdAt ?? new Date().toISOString(),
+    examples_audio: examplesAudio ?? null,
+    correct_exercise_types: correctExerciseTypes,
+    grammar: word.grammar ?? null,
+    stats: cleanStats,
+  };
+
+  console.log('WORD PAYLOAD', JSON.stringify(wordPayload, null, 2));
+
+  const { error } = await supabase
+    .from('user_words')
+    .upsert(wordPayload, { onConflict: 'id' });
 
   if (error) throw error;
 }
@@ -127,7 +154,7 @@ export async function loadIdiomsOnce(callback) {
     console.error('Error loading idioms:', error);
     callback([]);
   } else {
-    // Преобразуем correct_exercise_types из JSON в массив
+    // Восстанавливаем correctExerciseTypes из отдельной колонки в stats
     const normalizedData = data.map(idiom => ({
       ...idiom,
       stats: idiom.stats
@@ -152,20 +179,35 @@ export async function saveIdiomToDb(idiom) {
     updatedAt,
     createdAt,
     examplesAudio,
-    example_translation, // исправлено: в DB это example_translation
+    exampleTranslation, // ← camelCase из script.js
     ...idiomRest
   } = idiom;
+
+  // Переносим correctExerciseTypes из stats в отдельную колонку
+  const correctExerciseTypes = idiom.stats?.correctExerciseTypes || [];
 
   const idiomData = {
     ...idiomRest,
     user_id: user.id,
     updated_at: new Date().toISOString(),
     created_at: createdAt ?? new Date().toISOString(),
-    examples_audio: examplesAudio || [], // исправлено: всегда массив
-    example_translation: example_translation ?? null, // ← маппинг
-    // Сохраняем correctExerciseTypes как JSON
-    correct_exercise_types: idiom.stats?.correctExerciseTypes ?? null,
+    examples_audio: examplesAudio || [],
+    example_translation: exampleTranslation ?? null, // ← маппинг camelCase → snake_case
+    correct_exercise_types: correctExerciseTypes,
+    stats: idiom.stats
+      ? {
+          ...idiom.stats,
+          correctExerciseTypes: undefined,
+        }
+      : undefined,
   };
+
+  // Убираем корневые camelCase поля
+  delete idiomData.correctExerciseTypes;
+  delete idiomData.exampleTranslation;
+  delete idiomData.userId;
+
+  console.log('IDIOM PAYLOAD', JSON.stringify(idiomData, null, 2));
 
   const { error } = await supabase
     .from('user_idioms')
@@ -188,6 +230,158 @@ export async function deleteIdiomFromDb(idiomId) {
     .from('user_idioms')
     .delete()
     .eq('id', idiomId)
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+}
+
+// ─── PHRASES ─────────────────────────────────────────────
+
+export async function loadPhrasesOnce(callback) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    callback([]);
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('user_phrases')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('Error loading phrases:', error);
+    callback([]);
+  } else {
+    // Восстанавливаем correctExerciseTypes из отдельной колонки в stats
+    const normalizedData = data.map(phrase => ({
+      ...phrase,
+      examplesAudio: phrase.examples_audio || [],
+      exampleTranslation: phrase.example_translation || null,
+      stats: phrase.stats
+        ? {
+            ...phrase.stats,
+            correctExerciseTypes: phrase.correct_exercise_types || [],
+          }
+        : undefined,
+    }));
+    callback(normalizedData);
+  }
+}
+
+export async function savePhraseToDb(phrase) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  if (!phrase || !phrase.phrase || !phrase.translation) {
+    throw new Error('Phrase object is invalid');
+  }
+
+  const {
+    updatedAt,
+    createdAt,
+    examplesAudio,
+    exampleTranslation,
+    ...phraseRest
+  } = phrase;
+
+  const correctExerciseTypes = phrase.stats?.correctExerciseTypes || [];
+
+  const cleanStats = phrase.stats
+    ? { ...phrase.stats, correctExerciseTypes: undefined }
+    : undefined;
+
+  const phraseData = {
+    ...phraseRest,
+    user_id: user.id,
+    updated_at: new Date().toISOString(),
+    created_at: createdAt ?? new Date().toISOString(),
+    examples_audio: examplesAudio ?? null,
+    example_translation: exampleTranslation ?? null,
+    correct_exercise_types: correctExerciseTypes,
+    stats: cleanStats,
+  };
+
+  // Преобразуем sourceWordId → source_word_id
+  if (phrase.sourceWordId && phraseData.source_word_id === undefined) {
+    phraseData.source_word_id = phrase.sourceWordId;
+  }
+  delete phraseData.sourceWordId;
+  delete phraseData.correctExerciseTypes;
+  delete phraseData.exampleTranslation;
+  delete phraseData.userId;
+
+  if (phraseData.source_word_id === undefined) phraseData.source_word_id = null;
+
+  console.log('🔍 [SAVE_PHRASE] Starting save for phrase:', phraseData.phrase);
+  console.log('🔍 [SAVE_PHRASE] source_word_id:', phraseData.source_word_id);
+  console.log(
+    '🔍 [SAVE_PHRASE] stats.nextReview:',
+    phraseData.stats?.nextReview,
+  );
+
+  // 1. Ищем существующую фразу по составному ключу
+  const { data: existing, error: selectError } = await supabase
+    .from('user_phrases')
+    .select('id, stats')
+    .eq('user_id', user.id)
+    .eq('source_word_id', phraseData.source_word_id)
+    .eq('phrase', phraseData.phrase)
+    .maybeSingle();
+
+  if (selectError) throw selectError;
+
+  console.log('🔍 [SAVE_PHRASE] Existing record found:', !!existing);
+  if (existing) {
+    console.log('🔍 [SAVE_PHRASE] Existing id:', existing.id);
+    console.log(
+      '🔍 [SAVE_PHRASE] Existing stats.nextReview:',
+      existing.stats?.nextReview,
+    );
+  }
+
+  let error;
+  if (existing) {
+    // 2. Обновляем существующую запись (сохраняем старый id)
+    console.log(
+      '🔍 [SAVE_PHRASE] Updating existing record with id:',
+      existing.id,
+    );
+    const { error: updateError } = await supabase
+      .from('user_phrases')
+      .update(phraseData)
+      .eq('id', existing.id);
+    error = updateError;
+  } else {
+    // 3. Вставляем новую фразу
+    console.log('🔍 [SAVE_PHRASE] Inserting new phrase');
+    const { error: insertError } = await supabase
+      .from('user_phrases')
+      .insert(phraseData);
+    error = insertError;
+  }
+
+  if (error) {
+    console.error('savePhraseToDb error:', error, phraseData);
+    throw error;
+  }
+}
+
+export async function deletePhraseFromDb(phraseId) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('user_phrases')
+    .delete()
+    .eq('id', phraseId)
     .eq('user_id', user.id);
 
   if (error) throw error;

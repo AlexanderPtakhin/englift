@@ -85,10 +85,8 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const url = event.request.url;
-  log('FETCH', `Запрос: ${event.request.method} ${url}`);
 
   if (event.request.method !== 'GET') {
-    log('FETCH', 'Пропускаем не-GET запрос');
     return;
   }
 
@@ -103,13 +101,11 @@ self.addEventListener('fetch', event => {
     urlObj.pathname.match(/^\/[A-C][1-2]\/(?:man|women)\//) ||
     urlObj.pathname.startsWith('/idioms/')
   ) {
-    log('FETCH', 'Пропускаем API/аудио запрос');
     return;
   }
 
   // JS и CSS — network-first (всегда свежие)
   if (urlObj.pathname.endsWith('.js') || urlObj.pathname.endsWith('.css')) {
-    log('FETCH', 'JS/CSS - network-first');
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -126,7 +122,6 @@ self.addEventListener('fetch', event => {
 
   // HTML (навигация) — network-first
   if (event.request.mode === 'navigate') {
-    log('FETCH', 'HTML навигация - network-first');
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -142,14 +137,11 @@ self.addEventListener('fetch', event => {
   }
 
   // Остальное (шрифты, картинки, JSON) — cache-first
-  log('FETCH', 'Остальное - cache-first');
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) {
-        log('FETCH', 'Найдено в кэше');
         return cached;
       }
-      log('FETCH', 'Не найдено в кэше, делаем запрос');
       return fetch(event.request)
         .then(response => {
           if (response && response.status === 200) {

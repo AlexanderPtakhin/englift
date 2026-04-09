@@ -196,6 +196,8 @@ import {
   deleteWordFromDb, // ← добавить
   saveIdiomToDb, // ← добавить
   deleteIdiomFromDb, // ← добавить
+  savePhraseToDb,
+  deletePhraseFromDb,
   searchUsers,
   sendFriendRequest,
 } from './db.js';
@@ -267,9 +269,13 @@ let dirtyWordIds = new Set();
 
 let dirtyIdiomIds = new Set();
 
+let dirtyPhraseIds = new Set();
+
 let deletedWordIds = new Set();
 
 let deletedIdiomIds = new Set();
+
+let deletedPhraseIds = new Set();
 
 let cacheSaveTimer = null;
 
@@ -303,6 +309,9 @@ window.words = [];
 
 window.idioms = [];
 
+window.phrases = [];
+console.log('INIT: window.phrases initialized to empty array at startup');
+
 window.idiomsBank = [];
 
 function markWordDirtyForCache(wordId) {
@@ -317,6 +326,12 @@ function markIdiomDirtyForCache(idiomId) {
   scheduleCacheSave();
 }
 
+function markPhraseDirtyForCache(phraseId) {
+  dirtyPhraseIds.add(phraseId);
+
+  scheduleCacheSave();
+}
+
 function markWordDeletedForCache(wordId) {
   deletedWordIds.add(wordId);
 
@@ -325,6 +340,12 @@ function markWordDeletedForCache(wordId) {
 
 function markIdiomDeletedForCache(idiomId) {
   deletedIdiomIds.add(idiomId);
+
+  scheduleCacheSave();
+}
+
+function markPhraseDeletedForCache(phraseId) {
+  deletedPhraseIds.add(phraseId);
 
   scheduleCacheSave();
 }
@@ -363,7 +384,17 @@ async function flushCache() {
       dirtyIdiomIds.clear();
     }
 
-    // ← ВОТ ЭТО ДОБАВИТЬ:
+    if (dirtyPhraseIds.size) {
+      const toSave = Array.from(dirtyPhraseIds)
+
+        .map(id => window.phrases?.find(p => p.id === id))
+
+        .filter(Boolean);
+
+      if (toSave.length) await window.UserDataCache.savePhrases(toSave);
+
+      dirtyPhraseIds.clear();
+    }
 
     if (deletedWordIds.size) {
       await window.UserDataCache.deleteWords(Array.from(deletedWordIds));
@@ -376,24 +407,78 @@ async function flushCache() {
 
       deletedIdiomIds.clear();
     }
+
+    if (deletedPhraseIds.size) {
+      await window.UserDataCache.deletePhrases(Array.from(deletedPhraseIds));
+
+      deletedPhraseIds.clear();
+    }
   } catch (e) {
     console.error('Ошибка сохранения кеша', e);
   }
 }
 
+async function cleanupOrphanedPhrases() {
+  if (!window.words || !window.phrases) return;
+  const wordIds = new Set(window.words.map(w => w.id));
+  const orphaned = window.phrases.filter(
+    p => p.sourceWordId && !wordIds.has(p.sourceWordId),
+  );
+  if (orphaned.length === 0) return;
+
+  console.log(`[CLEANUP] Удаляем ${orphaned.length} orphaned phrases`);
+  const orphanedIds = orphaned.map(p => p.id);
+
+  // 1. Из памяти
+  window.phrases = window.phrases.filter(p => !orphanedIds.includes(p.id));
+
+  // 2. Из IndexedDB
+  try {
+    await window.UserDataCache.deletePhrases(orphanedIds);
+  } catch (e) {
+    console.warn('cleanupOrphanedPhrases IndexedDB:', e);
+  }
+
+  // 3. Из Supabase
+  if (window.currentUserId && navigator.onLine) {
+    for (const id of orphanedIds) {
+      try {
+        await deletePhraseFromDb(id);
+      } catch (e) {
+        console.warn('cleanupOrphanedPhrases Supabase:', id, e);
+      }
+    }
+  }
+}
+
 async function loadFromCache() {
   try {
-    const [words, idioms] = await Promise.all([
+    const [words, idioms, phrases] = await Promise.all([
       window.UserDataCache.getAllWords(),
 
       window.UserDataCache.getAllIdioms(),
+
+      window.UserDataCache.getAllPhrases(),
     ]);
 
-    // Всегда устанавливаем window.words и window.idioms, даже если пусто
+    console.log('🔍 [DEBUG] loadFromCache - phrases from DB:', phrases.length);
+
+    console.log('🔍 [DEBUG] loadFromCache - phrases content:', phrases);
 
     window.words = words.length ? words.map(normalizeWord) : [];
 
     window.idioms = idioms.length ? idioms.map(normalizeIdiom) : [];
+
+    window.phrases = phrases.length ? phrases.map(normalizePhrase) : [];
+
+    console.log(
+      '🔍 [DEBUG] loadFromCache - window.phrases after load:',
+
+      window.phrases.length,
+    );
+
+    // ← ВОТ ЭТО ДОБАВИТЬ:
+    await cleanupOrphanedPhrases();
 
     let hasData = words.length || idioms.length;
 
@@ -444,6 +529,18 @@ async function syncFromSupabase() {
 
     if (idiomsError) throw idiomsError;
 
+    const { data: remotePhrases, error: phrasesError } = await supabase
+
+      .from('user_phrases')
+
+      .select('*')
+
+      .eq('user_id', window.currentUserId)
+
+      .order('updated_at', { ascending: false });
+
+    if (phrasesError) throw phrasesError;
+
     let needRefresh = false;
 
     if (dataHasChanged(remoteWords, window.words)) {
@@ -478,6 +575,90 @@ async function syncFromSupabase() {
       // dirtyIdiomIds не трогаем — уже сохранили напрямую
     }
 
+    if (dataHasChanged(remotePhrases, window.phrases)) {
+      const normalized = (remotePhrases || []).map(normalizePhrase);
+
+      console.log(
+        'syncFromSupabase: remotePhrases.length =',
+        remotePhrases?.length || 0,
+      );
+      console.log(
+        'syncFromSupabase: window.phrases.length before =',
+        window.phrases.length,
+      );
+
+      // Log stats of remote phrases
+      if (remotePhrases && remotePhrases.length > 0) {
+        const dueCount = remotePhrases.filter(p => {
+          if (!p.stats || !p.stats.nextReview) return true;
+          return new Date(p.stats.nextReview) <= new Date();
+        }).length;
+        console.log(
+          '🔍 [SYNC] Remote phrases due:',
+          dueCount,
+          '/',
+          remotePhrases.length,
+        );
+        remotePhrases.forEach(p => {
+          console.log(
+            `🔍 [SYNC] Remote phrase "${p.phrase}": nextReview=${p.stats?.nextReview}, learned=${p.stats?.learned}`,
+          );
+        });
+      }
+
+      // Merge remote phrases with local phrases instead of overwriting
+      if (remotePhrases && remotePhrases.length > 0) {
+        // Create a map of existing local phrases by their unique key
+        const localPhraseMap = new Map();
+        window.phrases.forEach(p => {
+          const key = `${p.phrase}|${p.translation}|${p.sourceWordId}`;
+          localPhraseMap.set(key, p);
+        });
+
+        // Add remote phrases, but don't overwrite existing local phrases
+        normalized.forEach(remotePhrase => {
+          const key = `${remotePhrase.phrase}|${remotePhrase.translation}|${remotePhrase.sourceWordId}`;
+          const existing = localPhraseMap.get(key);
+          if (!existing) {
+            localPhraseMap.set(key, remotePhrase);
+          } else {
+            const localTime = new Date(existing.updatedAt || 0).getTime();
+            const remoteTime = new Date(remotePhrase.updatedAt || 0).getTime();
+            // Обновляем только если remote новее И имеет nextReview, и local не имеет nextReview или имеет старый nextReview
+            if (remoteTime > localTime && remotePhrase.stats?.nextReview) {
+              // Не перезаписываем если local имеет правильный nextReview
+              if (
+                !existing.stats?.nextReview ||
+                new Date(existing.stats.nextReview) <
+                  new Date(remotePhrase.stats.nextReview)
+              ) {
+                localPhraseMap.set(key, remotePhrase);
+              }
+            } else if (
+              !existing.stats?.nextReview &&
+              remotePhrase.stats?.nextReview
+            ) {
+              localPhraseMap.set(key, remotePhrase);
+            }
+          }
+        });
+        // Convert back to array
+        window.phrases = Array.from(localPhraseMap.values());
+
+        console.log(
+          'syncFromSupabase: window.phrases.length after merge =',
+          window.phrases.length,
+        );
+
+        await window.UserDataCache.clearAllPhrases();
+        if (window.phrases.length)
+          await window.UserDataCache.savePhrases(window.phrases);
+        dirtyPhraseIds.clear();
+      }
+
+      needRefresh = true;
+    }
+
     if (needRefresh) {
       refreshUI();
 
@@ -496,6 +677,8 @@ async function migrateFromLocalStorage() {
   const localWords = localStorage.getItem('englift_words');
 
   const localIdioms = localStorage.getItem('englift_idioms');
+
+  const localPhrases = localStorage.getItem('englift_phrases');
 
   if (localWords) {
     try {
@@ -519,6 +702,18 @@ async function migrateFromLocalStorage() {
     } catch (e) {}
 
     localStorage.removeItem('englift_idioms');
+  }
+
+  if (localPhrases) {
+    try {
+      const phrases = JSON.parse(localPhrases);
+
+      if (phrases.length) {
+        await window.UserDataCache.savePhrases(phrases);
+      }
+    } catch (e) {}
+
+    localStorage.removeItem('englift_phrases');
   }
 
   localStorage.setItem('englift_cache_migrated', 'true');
@@ -726,6 +921,14 @@ window.applyProfileData = function (data) {
 
   window._applyingProfile = false;
 
+  // Обновляем банк слов после загрузки настроек
+
+  currentBankWord = null;
+
+  shownBankWordEn.clear();
+
+  renderRandomBankWord();
+
   window.lastProfileUpdate = data.updated_at
     ? new Date(data.updated_at).getTime()
     : Date.now();
@@ -908,6 +1111,7 @@ let autoPron = true;
 let lastSessionConfig = null;
 
 let currentExerciseTimer = null;
+let exerciseAudioToken = 0;
 
 window.isSessionActive = false;
 
@@ -915,9 +1119,11 @@ window.isSessionActive = false;
 
 let practiceMode = 'normal';
 
-let selectedWordExercises = []; // массив выбранных упражнений для слов
+let selectedWordExercises = []; // array of selected exercises for words
 
-let selectedIdiomExercises = []; // массив выбранных упражнений для идиом
+let selectedIdiomExercises = []; // array of selected exercises for idioms
+
+let selectedPhraseExercises = []; // array of selected exercises for phrases
 
 // Exam mode variables
 
@@ -994,9 +1200,13 @@ let pendingWordUpdates = new Map();
 
 let pendingIdiomUpdates = new Map();
 
+let pendingPhraseUpdates = new Map();
+
 let wordSyncTimer;
 
 let idiomSyncTimer;
+
+let phraseSyncTimer;
 
 let audioContext = null;
 
@@ -1942,11 +2152,379 @@ function normalizeIdiom(idiom) {
   };
 }
 
+function normalizePhrase(phrase) {
+  const camel = toCamelCase(phrase);
+  const s = camel.stats || {};
+
+  return {
+    ...camel,
+
+    examplesAudio: Array.isArray(camel.examplesAudio)
+      ? camel.examplesAudio
+      : Array.isArray(camel.examplesaudio)
+        ? camel.examplesaudio
+        : [],
+
+    tags: Array.isArray(camel.tags)
+      ? camel.tags
+      : Array.isArray(camel.tags?.items)
+        ? camel.tags.items
+        : camel.tags || [],
+
+    stats: {
+      shown: s.shown ?? 0,
+      streak: s.streak ?? 0,
+      correct: s.correct ?? 0,
+      wrong: s.wrong ?? 0,
+      learned: s.learned ?? false,
+      interval: s.interval ?? 1,
+      easeFactor: s.easeFactor ?? s.ease_factor ?? 2.5,
+      nextReview: s.nextReview ?? s.next_review ?? null,
+      lastPracticed: s.lastPracticed ?? s.last_practiced ?? null,
+      correctExerciseTypes: Array.isArray(s.correctExerciseTypes)
+        ? s.correctExerciseTypes
+        : Array.isArray(s.correct_exercise_types)
+          ? s.correct_exercise_types
+          : s.learned
+            ? ['legacy']
+            : [],
+    },
+  };
+}
+
+// Интерфейс объекта фразы:
+
+// {
+
+//   id: string, // UUID фразы
+
+//   phrase: string, // английская фраза (например, "take a chance")
+
+//   translation: string, // перевод (например, "рискнуть")
+
+//   example?: string, // пример использования (опционально)
+
+//   exampleTranslation?: string, // перевод примера (опционально)
+
+//   sourceWordId: string, // ID родительского слова
+
+//   stats: { // статистика для SRS
+
+//     shown: number,
+
+//     streak: number,
+
+//     correct: number,
+
+//     wrong: number,
+
+//     learned: boolean,
+
+//     interval: number,
+
+//     easeFactor: number,
+
+//     nextReview: string | null,
+
+//     lastPracticed: string | null,
+
+//     correctExerciseTypes: string[]
+
+//   },
+
+//   updatedAt?: string, // время последнего обновления
+
+// }
+
+// Синхронизирует коллокации слова с window.phrases
+
+function syncCollocationsToPhrases(wordId, newCollocations, word) {
+  if (!wordId || !word) return;
+
+  // Находим существующие фразы для этого слова
+
+  const existingPhrases = window.phrases.filter(p => p.sourceWordId === wordId);
+
+  // Создаем Set для быстрого поиска новых коллокаций
+
+  const newCollSet = new Set(newCollocations.map(c => `${c.en}|${c.ru}`));
+
+  // Удаляем фразы, которых больше нет в newCollocations
+
+  const phrasesToDelete = existingPhrases.filter(p => {
+    const key = `${p.phrase}|${p.translation}`;
+
+    return !newCollSet.has(key);
+  });
+
+  phrasesToDelete.forEach(p => {
+    // Удаляем из window.phrases
+
+    window.phrases = window.phrases.filter(ph => ph.id !== p.id);
+
+    // Помечаем для удаления из базы данных
+
+    if (window.pendingPhraseUpdates) {
+      window.pendingPhraseUpdates.delete(p.id);
+    }
+
+    if (window.deletePhraseFromDb) {
+      window.deletePhraseFromDb(p.id);
+    }
+
+    // Добавляем в deletedPhraseIds для синка с Supabase
+
+    if (window.deletedPhraseIds) {
+      window.deletedPhraseIds.add(p.id);
+    }
+  });
+
+  // Добавляем или обновляем фразы для новых коллокаций
+
+  newCollocations.forEach(coll => {
+    const key = `${coll.en}|${coll.ru}`;
+
+    const existingPhrase = existingPhrases.find(
+      p => `${p.phrase}|${p.translation}` === key,
+    );
+
+    if (existingPhrase) {
+      // Фраза уже существует - обновляем её
+
+      const phraseIndex = window.phrases.findIndex(
+        p => p.id === existingPhrase.id,
+      );
+
+      if (phraseIndex !== -1) {
+        window.phrases[phraseIndex] = {
+          ...window.phrases[phraseIndex],
+
+          phrase: coll.en,
+
+          translation: coll.ru,
+
+          audio: coll.audio ? coll.audio.split('/').pop() : null,
+
+          cefr: word?.cefr || null,
+
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Помечаем для обновления в базе данных
+
+        if (window.pendingPhraseUpdates) {
+          window.pendingPhraseUpdates.set(
+            existingPhrase.id,
+
+            window.phrases[phraseIndex],
+          );
+        }
+
+        if (window.savePhraseToDb) {
+          window.savePhraseToDb(window.phrases[phraseIndex]);
+        }
+
+        // Добавляем в dirtyPhraseIds для синка с Supabase
+
+        if (window.dirtyPhraseIds) {
+          window.dirtyPhraseIds.add(existingPhrase.id);
+        }
+      }
+    } else {
+      // Создаем новую фразу
+
+      const newPhrase = {
+        id: crypto.randomUUID(),
+
+        phrase: coll.en,
+
+        translation: coll.ru,
+
+        audio: coll.audio ? coll.audio.split('/').pop() : null,
+
+        cefr: word?.cefr || null,
+
+        sourceWordId: wordId,
+
+        stats: {
+          shown: 0,
+
+          streak: 0,
+
+          correct: 0,
+
+          wrong: 0,
+
+          learned: false,
+
+          interval: 1,
+
+          easeFactor: 2.5,
+
+          nextReview: null,
+
+          lastPracticed: null,
+
+          correctExerciseTypes: [],
+        },
+
+        updatedAt: new Date().toISOString(),
+      };
+
+      window.phrases.push(newPhrase);
+
+      // Сохраняем в IndexedDB
+
+      if (window.savePhraseToDb) {
+        window.savePhraseToDb(newPhrase);
+      }
+
+      // Добавляем в pendingPhraseUpdates для синка с Supabase
+
+      if (window.pendingPhraseUpdates) {
+        window.pendingPhraseUpdates.set(newPhrase.id, newPhrase);
+      }
+
+      // Добавляем в dirtyPhraseIds для синка с Supabase
+
+      if (window.dirtyPhraseIds) {
+        window.dirtyPhraseIds.add(newPhrase.id);
+      }
+    }
+  });
+
+  console.log(
+    `🔍 [DEBUG] syncCollocationsToPhrases: wordId=${wordId}, deleted=${phrasesToDelete.length}, added/updated=${newCollocations.length - phrasesToDelete.length}`,
+  );
+}
+
+// Строит window.phrases из коллокаций всех слов при начальной загрузке
+
+function buildPhrasesFromWords() {
+  console.log('🔍 [DEBUG] buildPhrasesFromWords: started');
+
+  const newPhrases = [];
+
+  window.words.forEach(word => {
+    const collocations = word.grammar?.collocations || word.collocations || [];
+
+    if (collocations.length === 0) return;
+
+    collocations.forEach(coll => {
+      if (!coll.en || !coll.ru) return;
+
+      // Проверяем, существует ли уже такая фраза
+
+      const existingPhrase = window.phrases.find(
+        p =>
+          p.sourceWordId === word.id &&
+          p.phrase === coll.en &&
+          p.translation === coll.ru,
+      );
+
+      if (existingPhrase) {
+        // Фраза уже существует - пропускаем
+
+        return;
+      }
+
+      console.log('buildPhrasesFromWords: processing coll:', coll);
+      console.log('buildPhrasesFromWords: coll.audio =', coll.audio);
+
+      // Создаем новую фразу
+
+      const newPhrase = {
+        id: crypto.randomUUID(),
+
+        phrase: coll.en,
+
+        translation: coll.ru,
+
+        audio: coll.audio ? coll.audio.split('/').pop() : null,
+
+        cefr: word.cefr || null,
+
+        sourceWordId: word.id,
+
+        stats: {
+          shown: 0,
+
+          streak: 0,
+
+          correct: 0,
+
+          wrong: 0,
+
+          learned: false,
+
+          interval: 1,
+
+          easeFactor: 2.5,
+
+          nextReview: null,
+
+          lastPracticed: null,
+
+          correctExerciseTypes: [],
+        },
+
+        updatedAt: new Date().toISOString(),
+      };
+
+      newPhrases.push(newPhrase);
+    });
+  });
+
+  // Add new phrases to window.phrases
+  window.phrases = [...window.phrases, ...newPhrases];
+
+  console.log(
+    'buildPhrasesFromWords: newPhrases sample:',
+    newPhrases.slice(0, 3),
+  );
+  console.log(
+    'buildPhrasesFromWords: newPhrases[0].audio =',
+    newPhrases[0]?.audio,
+  );
+
+  // Сохраняем новые фразы в IndexedDB
+
+  newPhrases.forEach(phrase => {
+    if (window.savePhraseToDb) {
+      window.savePhraseToDb(phrase);
+    }
+  });
+
+  // Помечаем новые фразы для синка с Supabase
+
+  if (window.pendingPhraseUpdates) {
+    newPhrases.forEach(phrase => {
+      window.pendingPhraseUpdates.set(phrase.id, phrase);
+    });
+  }
+
+  // Добавляем в dirtyPhraseIds для синка с Supabase
+
+  if (window.dirtyPhraseIds) {
+    newPhrases.forEach(phrase => {
+      window.dirtyPhraseIds.add(phrase.id);
+    });
+  }
+
+  console.log(
+    `🔍 [DEBUG] buildPhrasesFromWords: added ${newPhrases.length} phrases`,
+  );
+
+  return newPhrases.length;
+}
+
 // Делаем функции доступными глобально
 
 window.normalizeWord = normalizeWord;
 
 window.normalizeIdiom = normalizeIdiom;
+
+window.normalizePhrase = normalizePhrase;
 
 window.normalizeRussian = normalizeRussian;
 
@@ -1970,53 +2548,74 @@ window.checkAnswerWithNormalization = checkAnswerWithNormalization;
 
 window.speakWord = function (wordObj, onEnd) {
   let audioFile = null;
+
   let cefr = null;
+
   let wordEn = null;
 
   if (typeof wordObj === 'string') {
     const word = window.words.find(w => w.en === wordObj || w.id === wordObj);
+
     if (word) {
       audioFile = word.audio;
+
       cefr = word.cefr;
+
       wordEn = word.en;
     }
   } else if (wordObj && wordObj.en) {
     audioFile = wordObj.audio;
+
     cefr = wordObj.cefr;
+
     wordEn = wordObj.en;
   } else if (wordObj && wordObj.word) {
     const word = window.words.find(
       w => w.en === wordObj.word || w.id === wordObj.word,
     );
+
     if (word) {
       audioFile = word.audio;
+
       cefr = word.cefr;
+
       wordEn = word.en;
     }
   }
 
   if (!audioFile) {
     if (onEnd) onEnd();
+
     return;
   }
 
   // cefr нет в данных пользователя (старые слова без уровня)
+
   // ищем в банке слов через IndexedDB
+
   if (!cefr && wordEn && window.WordBankDB) {
     window.WordBankDB.searchWords(wordEn, 5)
+
       .then(results => {
         const bankWord = results.find(
           r => r.en.toLowerCase() === wordEn.toLowerCase(),
         );
+
         const foundCefr = bankWord?.cefr || null;
+
         // заодно сохраняем cefr обратно в слово чтобы в следующий раз не искать
+
         if (foundCefr) {
           const w = window.words.find(w => w.en === wordEn);
+
           if (w) w.cefr = foundCefr;
         }
+
         playAudio(audioFile, foundCefr, onEnd);
       })
+
       .catch(() => playAudio(audioFile, null, onEnd));
+
     return;
   }
 
@@ -2030,6 +2629,35 @@ window.speakIdiom = function (idiomId) {
 
   if (idiom.audio) playIdiomAudio(idiom.audio);
   else speakText(idiom.idiom);
+};
+
+window.speakPhrase = function (phraseObj, onEnd) {
+  console.log('speakPhrase called with:', phraseObj);
+
+  if (!phraseObj) {
+    console.log('speakPhrase: phraseObj is null/undefined');
+    return;
+  }
+
+  const audioFile = typeof phraseObj === 'string' ? null : phraseObj.audio;
+  const text = typeof phraseObj === 'string' ? phraseObj : phraseObj.phrase;
+
+  console.log('speakPhrase: audioFile =', audioFile);
+  console.log('speakPhrase: text =', text);
+
+  if (audioFile) {
+    // Find CEFR from parent word if not saved in phrase
+    const cefr =
+      phraseObj.cefr ||
+      window.words?.find(w => w.id === phraseObj.sourceWordId)?.cefr ||
+      'A1';
+
+    console.log('speakPhrase: Using audio file', audioFile, 'with CEFR', cefr);
+    playAudio(audioFile, cefr, onEnd);
+  } else {
+    console.log('speakPhrase: No audio file, using TTS for text:', text);
+    speakText(text, onEnd);
+  }
 };
 
 window.playExampleAudio = function (wordObj, cefr) {
@@ -2077,11 +2705,13 @@ function markWordDirty(wordId) {
   const word = window.words?.find(w => w.id === wordId);
 
   if (word) {
-    pendingWordUpdates.set(wordId, { ...word }); // Копируем слово
-
-    scheduleWordSync();
+    pendingWordUpdates.set(wordId, toSnakeCase(word));
   }
+
+  scheduleWordSync();
 }
+
+window.markWordDirty = markWordDirty;
 
 function scheduleWordSync(delay = 3000) {
   // 3 секунды (было 30)
@@ -2101,7 +2731,19 @@ async function syncPendingWords() {
   )
     return;
 
-  const wordsToSync = Array.from(pendingWordUpdates.values());
+  const wordsToSync = Array.from(pendingWordUpdates.values()).filter(word => {
+    if (!word || !word.en) {
+      console.warn(
+        '[SYNC] ⚠️ Пропускаем некорректное слово при синхронизации:',
+
+        word,
+      );
+
+      return false;
+    }
+
+    return true;
+  });
 
   for (const item of wordsToSync) {
     if (item._deleted) {
@@ -2198,6 +2840,83 @@ async function syncPendingIdioms() {
 
           idiom_data: item,
         });
+      }
+    }
+  }
+}
+
+function markPhraseDirty(phraseId) {
+  const phrase = window.phrases?.find(p => p.id === phraseId);
+  if (!phrase) return;
+
+  // НЕ конвертируем stats через toSnakeCase — оставляем camelCase
+  const { cefr, stats, ...topLevel } = phrase;
+  const snaked = toSnakeCase(topLevel);
+  const phraseForSync = { ...snaked, stats };
+
+  const prev = pendingPhraseUpdates.get(phraseId);
+  if (JSON.stringify(phraseForSync) === JSON.stringify(prev)) return;
+
+  pendingPhraseUpdates.set(phraseId, phraseForSync);
+  schedulePhraseSync();
+}
+
+function schedulePhraseSync(delay = 3000) {
+  if (phraseSyncTimer) clearTimeout(phraseSyncTimer);
+
+  phraseSyncTimer = setTimeout(() => {
+    syncPendingPhrases();
+  }, delay);
+}
+
+async function syncPendingPhrases() {
+  if (
+    !navigator.onLine ||
+    pendingPhraseUpdates.size === 0 ||
+    !window.currentUserId
+  )
+    return;
+
+  const phrasesToSync = Array.from(pendingPhraseUpdates.values()).filter(
+    phrase => {
+      if (!phrase || !phrase.phrase) {
+        console.warn(
+          '[SYNC] ⚠️ Пропускаем некорректную фразу при синхронизации:',
+
+          phrase,
+        );
+
+        return false;
+      }
+
+      return true;
+    },
+  );
+
+  for (const item of phrasesToSync) {
+    if (item.deleted) {
+      try {
+        await deletePhraseFromDb(item.id);
+
+        pendingPhraseUpdates.delete(item.id);
+      } catch (e) {
+        console.error(`Ошибка удаления фразы "${item.phrase}":`, e);
+      }
+    } else {
+      try {
+        const { cefr, ...itemToSave } = item;
+        // Если слово уже удалено — убираем FK чтобы не ловить 409
+        if (itemToSave.source_word_id) {
+          const wordExists = window.words?.find(
+            w => w.id === itemToSave.source_word_id,
+          );
+          if (!wordExists) itemToSave.source_word_id = null;
+        }
+        await savePhraseToDb(itemToSave);
+
+        pendingPhraseUpdates.delete(item.id);
+      } catch (e) {
+        console.error(`Ошибка синхронизации фразы "${item.phrase}":`, e);
       }
     }
   }
@@ -2751,7 +3470,7 @@ async function loadIdiomsBank() {
 
 // Debounce функция перенесена в js/utils.js
 
-import { debounce } from './js/utils.js';
+import { debounce, stopCurrentMediaAudio } from './js/utils.js';
 
 const debouncedRenderStats = debounce(renderStats, 800);
 
@@ -2872,9 +3591,36 @@ function renderWeekChart() {
     window.words.length === 0 ||
     !window.idioms ||
     !Array.isArray(window.idioms) ||
-    window.idioms.length === 0
+    window.idioms.length === 0 ||
+    !window.phrases ||
+    !Array.isArray(window.phrases) ||
+    window.phrases.length === 0
   ) {
     const placeholderHtml = `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2890,7 +3636,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div style="color: var(--muted); opacity: 0.7;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2906,6 +3700,30 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -2914,7 +3732,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2978,6 +3844,16 @@ function renderWeekChart() {
       return created.getTime() === d.getTime();
     }).length;
 
+    // Считаем фразы, добавленные в этот день
+
+    const phrasesCount = window.phrases.filter(p => {
+      const created = new Date(p.created_at || p.createdAt);
+
+      created.setHours(0, 0, 0, 0);
+
+      return created.getTime() === d.getTime();
+    }).length;
+
     days.push({
       day: dayStr,
 
@@ -2987,7 +3863,9 @@ function renderWeekChart() {
 
       idioms: idiomsCount,
 
-      total: wordsCount + idiomsCount,
+      phrases: phrasesCount,
+
+      total: wordsCount + idiomsCount + phrasesCount,
     });
   }
 
@@ -3003,7 +3881,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div data-week-chart>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3019,7 +3945,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="week-stats">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3038,7 +4012,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="week-stat-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3054,7 +4076,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               <div class="week-date">${d.date}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3070,7 +4140,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 <div class="week-bar words-bar" style="height: ${(d.words / maxTotal) * 40}px"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3086,7 +4204,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3102,7 +4268,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3121,6 +4335,30 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -3129,7 +4367,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="week-total">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3153,6 +4439,30 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span><span class="material-symbols-outlined">theater_comedy</span> ${pluralize(
             days.reduce((a, d) => a + d.idioms, 0),
 
@@ -3169,7 +4479,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3185,7 +4543,55 @@ function renderWeekChart() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3262,12 +4668,19 @@ function showFeedback({
   void sheet.offsetWidth;
 
   const isIdiom = !!word?.idiom;
+  const isPhrase = !!word?.phrase && !word?.en;
 
-  const wordEn = isIdiom ? word.idiom : (word?.en ?? '');
+  const wordEn = isIdiom
+    ? word.idiom
+    : isPhrase
+      ? word.phrase
+      : (word?.en ?? '');
 
   const wordRu = isIdiom
     ? word.meaning
-    : parseAnswerVariants(word?.ru ?? '').join(', ');
+    : isPhrase
+      ? word.translation
+      : parseAnswerVariants(word?.ru ?? '').join(', ');
 
   const example = word?.ex || word?.example || '';
 
@@ -3275,6 +4688,30 @@ function showFeedback({
     sheet.classList.add('correct');
 
     inner.innerHTML = `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3290,7 +4727,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <svg class="fb-svg" viewBox="0 0 36 36" fill="none">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3306,7 +4791,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <path class="fb-check" d="M10 18.5 L15.5 24 L26 13"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3322,7 +4855,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3338,7 +4919,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="fb-verdict">Правильно!</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3354,7 +4983,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="fb-trans-main">${esc(wordRu)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3370,7 +5047,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <button class="btn-pill btn-pill--secondary fb-next-btn">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3386,6 +5111,30 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         Дальше
 
 
@@ -3394,7 +5143,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3414,7 +5211,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="fb-icon">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3430,7 +5275,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <circle cx="18" cy="18" r="16" stroke="rgba(239,68,68,0.2)" stroke-width="2"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3446,7 +5339,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <line class="fb-x-2" x1="24" y1="12" x2="12" y2="24"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3462,7 +5403,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3478,7 +5467,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="fb-verdict">Неверно</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3494,7 +5531,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="fb-trans-main">${esc(wordRu)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3510,7 +5595,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3526,7 +5659,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">${isSpeechExercise ? 'refresh' : 'arrow_forward'}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3542,7 +5723,55 @@ function showFeedback({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3606,6 +5835,30 @@ function hideFeedbackSheet() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  * Показывает нижний лист с сообщением "Попробуйте ещё раз!" и кнопкой "Сбросить".
 
 
@@ -3614,7 +5867,55 @@ function hideFeedbackSheet() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  * @param {Function} resetCallback - функция, которая будет выполнена при нажатии на кнопку сброса.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3649,7 +5950,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="fb-icon">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3665,7 +6014,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <circle cx="18" cy="18" r="16" stroke="rgba(239,68,68,0.2)" stroke-width="2"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3681,7 +6078,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <line class="fb-x-2" x1="24" y1="12" x2="12" y2="24"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3697,7 +6142,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3713,7 +6206,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="fb-verdict">Попробуйте ещё раз!</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3729,7 +6270,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3745,7 +6334,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined">refresh</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3761,7 +6398,55 @@ function showBuilderIncorrectFeedback(resetCallback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4023,7 +6708,55 @@ function safeAttr(str) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  * Склонение существительного после числительного
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4039,6 +6772,30 @@ function safeAttr(str) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  * pluralize(3, 'слово', 'слова', 'слов') → '3 слова'
 
 
@@ -4047,7 +6804,55 @@ function safeAttr(str) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  * pluralize(11, 'слово', 'слова', 'слов') → '11 слов'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4534,7 +7339,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     try {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4550,11 +7403,71 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       if (backup) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         const backupData = JSON.parse(backup);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4570,7 +7483,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         const today = new Date().toISOString().split('T')[0];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4586,7 +7547,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           const localIsToday = window.dailyProgress?.lastReset === today;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4602,7 +7611,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             window.updateDailyProgress?.(backupData.dailyprogress);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4618,7 +7675,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             // merge — берём максимум
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4634,7 +7739,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               add_new: Math.max(
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4650,6 +7803,30 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 backupData.dailyprogress.add_new || 0,
 
 
@@ -4658,7 +7835,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               ),
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4674,7 +7899,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 window.dailyProgress.review || 0,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4690,7 +7963,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               ),
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4706,7 +8027,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 window.dailyProgress.practice_time || 0,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4722,7 +8091,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               ),
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4738,7 +8155,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 window.dailyProgress.completed ||
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4754,7 +8219,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               lastReset: today,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4770,7 +8283,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4786,6 +8347,30 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           // Backup не сегодняшний, пропускаем восстановление dailyprogress
 
 
@@ -4794,7 +8379,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4810,7 +8443,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           window.updateXpData?.({
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4826,7 +8507,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             level: backupData.level,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4842,6 +8571,30 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           });
 
 
@@ -4850,7 +8603,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4866,7 +8667,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           window.updateStreak?.({
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4882,7 +8731,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             lastDate: backupData.last_streak_date,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4898,7 +8795,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4914,7 +8859,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     } catch (e) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4930,7 +8923,55 @@ async function load() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -5049,8 +9090,36 @@ async function clearUserData() {
     await clearAllWords();
 
     await clearAllIdioms();
+
+    await clearAllPhrases();
   } catch (error) {
     console.error('❌ Ошибка очистки IndexedDB:', error);
+  }
+}
+
+// Обновление существующих слов данными из WordBankDB
+
+async function updateWordsFromBank() {
+  if (!window.WordBankDB || !window.words) return;
+
+  for (const word of window.words) {
+    if (!word.grammar && word.en) {
+      try {
+        const results = await window.WordBankDB.searchWords(word.en, 1);
+
+        const bankWord = results.find(
+          r => r.en.toLowerCase() === word.en.toLowerCase(),
+        );
+
+        if (bankWord && bankWord.grammar) {
+          word.grammar = bankWord.grammar;
+
+          markWordDirtyForCache(word.id);
+        }
+      } catch (e) {
+        console.warn('Ошибка обновления слова из WordBankDB:', e);
+      }
+    }
   }
 }
 
@@ -5070,6 +9139,8 @@ function mkWord(
   audio = null,
 
   examplesAudio = null,
+
+  grammar = null,
 ) {
   // Если передан массив examples в новом формате – используем его
 
@@ -5103,6 +9174,8 @@ function mkWord(
     audio: audio, // новое поле
 
     examplesAudio: examplesAudio, // новое поле
+
+    grammar: grammar, // грамматика с коллокациями
 
     createdAt: new Date().toISOString(),
 
@@ -5201,6 +9274,34 @@ async function addWord(
 
   const normalizedTags = tags;
 
+  // Загружаем грамматику из WordBankDB сразу при добавлении слова
+  let grammar = null;
+  console.log(`🔍 [ADD_WORD] Loading grammar for "${normalizedEn}"`);
+  console.log(`🔍 [ADD_WORD] WordBankDB exists:`, !!window.WordBankDB);
+  if (window.WordBankDB) {
+    try {
+      const results = await window.WordBankDB.searchWords(normalizedEn, 1);
+      console.log(`🔍 [ADD_WORD] WordBankDB search results:`, results.length);
+      const bankWord = results.find(
+        r => r.en.toLowerCase() === normalizedEn.toLowerCase(),
+      );
+      console.log(`🔍 [ADD_WORD] Bank word found:`, !!bankWord);
+      if (bankWord && bankWord.grammar) {
+        grammar = bankWord.grammar;
+        console.log(
+          `🔍 [ADD_WORD] Grammar loaded successfully, collocations:`,
+          grammar.collocations?.length || 0,
+        );
+      } else {
+        console.log(`🔍 [ADD_WORD] No grammar in bank word`);
+      }
+    } catch (e) {
+      console.warn('Ошибка загрузки грамматики из WordBankDB:', e);
+    }
+  } else {
+    console.log(`🔍 [ADD_WORD] WordBankDB not available`);
+  }
+
   // Проверка дубликата — ТОЛЬКО по твоему словарю (window.words)
 
   const isDuplicate = window.words.some(w => {
@@ -5240,9 +9341,14 @@ async function addWord(
       audio, // передаем параметр
 
       examplesAudio, // передаем параметр
+
+      grammar, // грамматика с коллокациями
     );
 
     window.words.push(newWord);
+
+    // Создаем фразы из коллокаций всех слов (грамматика уже загружена)
+    buildPhrasesFromWords();
 
     markWordDirtyForCache(newWord.id);
 
@@ -5308,6 +9414,14 @@ async function addWord(
 
     recalculateCefrLevels();
 
+    // Sync phrases from word examples
+
+    if (newWord.examples && newWord.examples.length > 0) {
+      syncPhrasesForWord(newWord).catch(e =>
+        console.warn('syncPhrasesForWord error', e),
+      );
+    }
+
     // Update UI to show daily goals progress immediately
 
     refreshUI();
@@ -5345,6 +9459,14 @@ async function delWord(wordId) {
   // Удаляем из локального массива
 
   window.words = window.words.filter(w => w.id !== wordId);
+
+  // Delete associated phrases
+
+  const phrasesToDelete = window.phrases.filter(p => p.sourceWordId === wordId);
+
+  for (const phrase of phrasesToDelete) {
+    await delPhrase(phrase.id);
+  }
 
   // Обновляем интерфейс
 
@@ -5384,35 +9506,297 @@ async function delWord(wordId) {
 async function updWord(id, data) {
   const w = window.words.find(w => w.id === id);
 
-  if (w) {
-    Object.assign(w, data, { updatedAt: new Date().toISOString() }); // добавляем updatedAt
+  if (!w) return;
 
-    // Отмечаем слово для пакетной синхронизации вместо немедленного сохранения
+  const oldExamples = w.examples || [];
 
-    markWordDirtyForCache(id);
+  Object.assign(w, data, { updatedAt: new Date().toISOString() });
 
-    renderCache.clear(); // <-- добавляем очистку кеша рендеринга
+  markWordDirtyForCache(id);
 
-    // Устанавливаем флаг локальных изменений
+  renderCache.clear();
 
-    window.hasLocalChanges = true;
+  window.hasLocalChanges = true;
 
-    // Пересчитываем уровни CEFR после обновления
+  recalculateCefrLevels();
 
-    recalculateCefrLevels();
+  refreshUI();
 
-    // Обновляем интерфейс
+  if (navigator.onLine && window.currentUserId) {
+    try {
+      await saveWordToDb(toSnakeCase(w));
+    } catch (e) {
+      console.warn('??? updWord Supabase error:', e?.message || e);
 
-    refreshUI();
+      markWordDirty(id);
+    }
+  } else {
+    markWordDirty(id);
   }
 
-  markProfileDirty('total_words', window.words.length);
+  // Sync phrases if examples changed
+
+  const newExamples = w.examples || [];
+
+  if (JSON.stringify(oldExamples) !== JSON.stringify(newExamples)) {
+    syncPhrasesForWord(w).catch(e =>
+      console.warn('syncPhrasesForWord error', e),
+    );
+  }
+}
+
+// ─── PHRASES CRUD ─────────────────────────────────────
+
+function mkPhrase({
+  phrase,
+
+  translation,
+
+  sourceWordId = null,
+
+  example = '',
+
+  exampleTranslation = '',
+
+  tags = [],
+
+  audio = null,
+
+  examplesAudio = [],
+}) {
+  return {
+    id: generateId(),
+
+    userId: window.currentUserId,
+
+    sourceWordId,
+
+    phrase: phrase.trim(),
+
+    translation: translation.trim(),
+
+    example: example?.trim?.() || '',
+
+    exampleTranslation: exampleTranslation?.trim?.() || '',
+
+    tags,
+
+    audio,
+
+    examplesAudio,
+
+    createdAt: new Date().toISOString(),
+
+    updatedAt: new Date().toISOString(),
+
+    stats: {
+      shown: 0,
+
+      correct: 0,
+
+      wrong: 0,
+
+      streak: 0,
+
+      lastPracticed: null,
+
+      learned: false,
+
+      nextReview: new Date().toISOString(),
+
+      interval: 1,
+
+      easeFactor: 2.5,
+
+      correctExerciseTypes: [],
+    },
+  };
+}
+
+async function addPhrase(data) {
+  const normalizedPhrase = data.phrase?.trim();
+
+  const normalizedTranslation = data.translation?.trim();
+
+  if (!normalizedPhrase || !normalizedTranslation) {
+    toast('Фраза и перевод обязательны', 'danger');
+
+    return false;
+  }
+
+  const isDuplicate = window.phrases.some(
+    p =>
+      p.phrase.toLowerCase() === normalizedPhrase.toLowerCase() &&
+      normalizeRussian(p.translation.toLowerCase()) ===
+        normalizeRussian(normalizedTranslation.toLowerCase()),
+  );
+
+  if (isDuplicate) {
+    toast(`Фраза "${esc(normalizedPhrase)}" уже есть`, 'warning');
+
+    return false;
+  }
+
+  const newPhrase = mkPhrase({
+    ...data,
+
+    phrase: normalizedPhrase,
+
+    translation: normalizedTranslation,
+  });
+
+  window.phrases.push(newPhrase);
+
+  markPhraseDirtyForCache(newPhrase.id);
+
+  if (navigator.onLine && window.currentUserId) {
+    try {
+      const { cefr: _c, ...newPhraseForDb } = toSnakeCase(newPhrase);
+      await savePhraseToDb(newPhraseForDb);
+    } catch (e) {
+      console.warn('savePhraseToDb error', e);
+
+      markPhraseDirty(newPhrase.id);
+    }
+  } else {
+    markPhraseDirty(newPhrase.id);
+  }
+
+  markProfileDirty('total_phrases', window.phrases.length);
 
   markProfileDirty(
-    'learned_words',
+    'learned_phrases',
 
-    window.words.filter(w => w.stats?.learned).length,
+    window.phrases.filter(p => p.stats?.learned).length,
   );
+
+  refreshUI();
+
+  return true;
+}
+
+async function delPhrase(phraseId) {
+  markPhraseDeletedForCache(phraseId);
+
+  const phrase = window.phrases.find(p => p.id === phraseId);
+
+  if (!phrase) return;
+
+  pendingPhraseUpdates.set(phraseId, { ...phrase, deleted: true });
+
+  schedulePhraseSync();
+
+  window.phrases = window.phrases.filter(p => p.id !== phraseId);
+
+  markProfileDirty('total_phrases', window.phrases.length);
+
+  markProfileDirty(
+    'learned_phrases',
+
+    window.phrases.filter(p => p.stats?.learned).length,
+  );
+
+  refreshUI();
+
+  if (navigator.onLine && window.currentUserId) {
+    try {
+      await deletePhraseFromDb(phraseId);
+
+      pendingPhraseUpdates.delete(phraseId);
+    } catch (e) {
+      console.error('deletePhraseFromDb error', e);
+    }
+  }
+}
+
+async function updPhrase(id, data) {
+  const p = window.phrases.find(x => x.id === id);
+
+  if (!p) return;
+
+  Object.assign(p, data, { updatedAt: new Date().toISOString() });
+
+  markPhraseDirtyForCache(id);
+
+  window.hasLocalChanges = true;
+
+  refreshUI();
+
+  // Обновляем счётчики в профиле
+
+  markProfileDirty('total_phrases', window.phrases.length);
+
+  markProfileDirty(
+    'learned_phrases',
+
+    window.phrases.filter(p => p.stats?.learned).length,
+  );
+
+  if (navigator.onLine && window.currentUserId) {
+    try {
+      const { cefr: _c, ...pForDb } = toSnakeCase(p);
+      console.log('🔍 [UPD_PHRASE] Before savePhraseToDb - phrase:', p.phrase);
+      console.log(
+        '🔍 [UPD_PHRASE] Before savePhraseToDb - stats.nextReview:',
+        p.stats?.nextReview,
+      );
+      console.log(
+        '🔍 [UPD_PHRASE] Before savePhraseToDb - pForDb.stats.next_review:',
+        pForDb.stats?.next_review,
+      );
+      await savePhraseToDb(pForDb);
+    } catch (e) {
+      console.warn('updPhrase Supabase error', e?.message || e);
+
+      markPhraseDirty(id);
+    }
+  } else {
+    markPhraseDirty(id);
+  }
+}
+
+function extractPhrasesFromWord(word) {
+  const phrases = [];
+
+  const examples = word.examples || [];
+
+  for (const ex of examples) {
+    if (ex.text && ex.text.trim()) {
+      const text = ex.text.trim();
+
+      const translation = ex.translation?.trim() || '';
+
+      phrases.push({
+        phrase: text,
+
+        translation,
+
+        sourceWordId: word.id,
+
+        example: text,
+
+        exampleTranslation: translation,
+      });
+    }
+  }
+
+  return phrases;
+}
+
+async function syncPhrasesForWord(word) {
+  const extracted = extractPhrasesFromWord(word);
+
+  for (const phraseData of extracted) {
+    const exists = window.phrases.some(
+      p =>
+        p.phrase.toLowerCase() === phraseData.phrase.toLowerCase() &&
+        p.sourceWordId === phraseData.sourceWordId,
+    );
+
+    if (!exists) {
+      await addPhrase(phraseData);
+    }
+  }
 }
 
 async function addIdiom(
@@ -5696,6 +10080,80 @@ function updStats(wordId, correct, exerciseType) {
   markWordDirty(wordId);
 }
 
+function updPhraseStats(phraseId, correct, exerciseType) {
+  const p = window.phrases?.find(x => x.id === phraseId);
+
+  if (!p) return;
+
+  p.stats.shown++;
+
+  p.stats.lastPracticed = new Date().toISOString();
+
+  if (correct) {
+    p.stats.correct++;
+
+    p.stats.streak++;
+
+    p.stats.easeFactor = Math.max(
+      1.3,
+
+      Math.min(2.5, p.stats.easeFactor + 0.05),
+    );
+
+    if (!p.stats.correctExerciseTypes.includes(exerciseType)) {
+      p.stats.correctExerciseTypes.push(exerciseType);
+    }
+
+    const now = new Date();
+
+    const scheduled = new Date(p.stats.nextReview);
+
+    if (now >= scheduled) {
+      let newInterval = p.stats.interval * p.stats.easeFactor;
+
+      if (p.stats.streak >= 3) {
+        newInterval = Math.round(newInterval * 1.1);
+      }
+
+      newInterval = Math.max(1, Math.min(180, Math.round(newInterval)));
+
+      if (p.stats.interval === 1 && newInterval <= 2) newInterval = 3;
+
+      p.stats.interval = newInterval;
+    }
+  } else {
+    p.stats.wrong++;
+
+    p.stats.streak = 0;
+
+    p.stats.easeFactor = Math.max(1.3, p.stats.easeFactor - 0.1);
+
+    p.stats.interval = Math.max(1, Math.round(p.stats.interval / 2));
+  }
+
+  const next = new Date();
+
+  next.setHours(0, 0, 0, 0);
+
+  next.setDate(next.getDate() + p.stats.interval);
+
+  p.stats.nextReview = next.toISOString();
+
+  const wasLearned = p.stats.learned;
+
+  p.stats.learned =
+    p.stats.correctExerciseTypes.includes('legacy') ||
+    p.stats.correctExerciseTypes.length >= 3;
+
+  if (!wasLearned && p.stats.learned) {
+    gainXP(20, 'фраза выучена', 'star');
+
+    autoCheckBadges();
+  }
+
+  markPhraseDirty(phraseId);
+}
+
 // Функция для проверки и обновления бейджей
 
 function xpNeeded(lvl) {
@@ -5767,6 +10225,8 @@ function checkBadges(perfectSession) {
 
   const totalIdioms = window.idioms ? window.idioms.length : 0;
 
+  const totalPhrases = window.phrases ? window.phrases.length : 0;
+
   const learnedWords = window.words
     ? window.words.filter(w => w.level >= 5).length
     : 0;
@@ -5775,14 +10235,22 @@ function checkBadges(perfectSession) {
     ? window.idioms.filter(i => i.level >= 5).length
     : 0;
 
+  const learnedPhrases = window.phrases
+    ? window.phrases.filter(p => p.stats?.learned).length
+    : 0;
+
   const badgeData = {
     totalWords,
 
     totalIdioms,
 
+    totalPhrases,
+
     learnedWords,
 
     learnedIdioms,
+
+    learnedPhrases,
 
     xp: xpData.xp,
 
@@ -5885,10 +10353,7 @@ function showLevelUpBanner(lvl) {
 
   el.className = 'level-up-banner';
 
-  el.innerHTML =
-    '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">celebration</span>Уровень ' +
-    esc(lvl.toString()) +
-    '!<br><span style="font-size:.85rem;font-weight:600;opacity:.9">Так держать!</span>';
+  el.innerHTML = `<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">celebration</span>Уровень ${esc(lvl.toString())}!<br><span style="font-size:.85rem;font-weight:600;opacity:.9">Так держать!</span>`;
 
   document.body.appendChild(el);
 
@@ -6130,7 +10595,55 @@ function renderBadges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="badge-progress">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6146,6 +10659,30 @@ function renderBadges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="badge-progress-fill" style="width: ${progress.progress}%"></div>
 
 
@@ -6154,7 +10691,55 @@ function renderBadges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6170,7 +10755,55 @@ function renderBadges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             ${progress.remaining > 0 ? `Осталось: ${getProgressText(progress)}` : 'Почти готово!'}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6186,7 +10819,55 @@ function renderBadges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6304,7 +10985,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="modal-box" style="max-width: 420px; text-align: center;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6320,7 +11049,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined" style="font-size: 1.5rem; color: var(--warning);">timer_off</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6336,7 +11113,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6352,7 +11177,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         Ты отлично поработал сегодня!<br>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6368,7 +11241,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6384,6 +11305,30 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         Отдохни, закрепи материал и возвращайся завтра для новых достижений! 💪
 
 
@@ -6392,7 +11337,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6408,7 +11401,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         Лимит сбросится через <strong>${timeUntilReset}</strong>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6424,7 +11465,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="modal-actions" style="flex-direction: column; gap: 0.5rem; margin-top: 1.5rem;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6440,6 +11529,30 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">check</span> Понятно, отдохну!
 
 
@@ -6448,7 +11561,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6464,7 +11625,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined" style="font-size: 0.9rem;">settings</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6480,7 +11689,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6496,7 +11753,55 @@ function showLimitModal(limit) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6554,6 +11859,20 @@ function showLimitModal(limit) {
 function updateDueBadge() {
   const now = new Date();
 
+  console.log('=== updateDueBadge START ===');
+  console.log(
+    'updateDueBadge: window.phrases length =',
+    window.phrases?.length || 0,
+  );
+  console.log(
+    'updateDueBadge: window.words length =',
+    window.words?.length || 0,
+  );
+  console.log(
+    'updateDueBadge: window.idioms length =',
+    window.idioms?.length || 0,
+  );
+
   // Считаем due слова
 
   const wordsDue = window.words.filter(
@@ -6566,7 +11885,29 @@ function updateDueBadge() {
     i => new Date(i.stats?.nextReview || 0) <= now,
   ).length;
 
-  const totalDue = wordsDue + idiomsDue;
+  // Считаем due фразы
+
+  console.log('🔍 [DEBUG] window.phrases:', window.phrases?.length || 0);
+
+  console.log('🔍 [DEBUG] window.phrases content:', window.phrases);
+
+  const phrasesDue = (window.phrases || []).filter(
+    p => new Date(p.stats?.nextReview || 0) <= now,
+  ).length;
+
+  console.log('🔍 [DEBUG] phrasesDue:', phrasesDue);
+
+  console.log(
+    'updateDueBadge: wordsDue =',
+    wordsDue,
+    'idiomsDue =',
+    idiomsDue,
+    'phrasesDue =',
+    phrasesDue,
+  );
+  console.log('updateDueBadge: totalDue =', wordsDue + idiomsDue + phrasesDue);
+
+  const totalDue = wordsDue + idiomsDue + phrasesDue;
 
   // Бейдж над "Практикой" в навигации — просто точка
 
@@ -6590,21 +11931,21 @@ function updateDueBadge() {
 
   // Счётчики на чипах внутри Практики
 
-  const wordsChipBadge = document.getElementById('practice-words-due');
+  const setChipBadge = (id, value) => {
+    const el = document.getElementById(id);
 
-  const idiomsChipBadge = document.getElementById('practice-idioms-due');
+    if (!el) return;
 
-  if (wordsChipBadge) {
-    wordsChipBadge.textContent = wordsDue > 0 ? wordsDue : '';
+    el.textContent = value > 0 ? String(value) : '';
 
-    wordsChipBadge.style.display = wordsDue > 0 ? 'inline-flex' : 'none';
-  }
+    el.style.display = value > 0 ? 'inline-flex' : 'none';
+  };
 
-  if (idiomsChipBadge) {
-    idiomsChipBadge.textContent = idiomsDue > 0 ? idiomsDue : '';
+  setChipBadge('practice-words-due', wordsDue);
 
-    idiomsChipBadge.style.display = idiomsDue > 0 ? 'inline-flex' : 'none';
-  }
+  setChipBadge('practice-idioms-due', idiomsDue);
+
+  setChipBadge('practice-phrases-due', phrasesDue);
 
   // Обновляем due-pill в фильтрах практики в зависимости от режима
 
@@ -6615,7 +11956,12 @@ function updateDueBadge() {
       document.querySelector('#practice-mode .chip.on')?.dataset.mode ||
       'normal';
 
-    const pillCount = currentMode === 'idioms' ? idiomsDue : wordsDue;
+    const pillCount =
+      currentMode === 'idioms'
+        ? idiomsDue
+        : currentMode === 'phrases'
+          ? phrasesDue
+          : wordsDue;
 
     duePill.textContent = pillCount;
 
@@ -6632,7 +11978,9 @@ function renderStats() {
     !window.words ||
     !Array.isArray(window.words) ||
     !window.idioms ||
-    !Array.isArray(window.idioms)
+    !Array.isArray(window.idioms) ||
+    !window.phrases ||
+    !Array.isArray(window.phrases)
   ) {
     console.warn('renderStats: данные не готовы, пропускаем');
 
@@ -6693,17 +12041,42 @@ function renderStats() {
     ? Math.round((idiomsLearned / idiomsTotal) * 100)
     : 0;
 
-  // ── ОБЩЕЕ ──────────────────────────────────────
+  // ── ФРАЗЫ ─────────────────────────────────────
 
-  const totalAll = wordsTotal + idiomsTotal;
+  let phrasesDue = 0,
+    phrasesLearned = 0,
+    phrasesThisWeek = 0;
 
-  const totalLearned = wordsLearned + idiomsLearned;
+  const phrasesWithStats = [];
 
-  const totalDue = wordsDue + idiomsDue;
+  for (const phraseItem of window.phrases) {
+    if (new Date(phraseItem.stats?.nextReview || 0) <= now) phrasesDue++;
+
+    if (phraseItem.stats?.learned) phrasesLearned++;
+
+    if (new Date(phraseItem.created_at || phraseItem.createdAt) >= weekAgo)
+      phrasesThisWeek++;
+
+    if (phraseItem.stats?.shown > 0) phrasesWithStats.push(phraseItem);
+  }
+
+  const phrasesTotal = window.phrases.length;
+
+  const phrasesPct = phrasesTotal
+    ? Math.round((phrasesLearned / phrasesTotal) * 100)
+    : 0;
+
+  // ── ОБЩЕЕ ─────────────────────────────────────
+
+  const totalAll = wordsTotal + idiomsTotal + phrasesTotal;
+
+  const totalLearned = wordsLearned + idiomsLearned + phrasesLearned;
+
+  const totalDue = wordsDue + idiomsDue + phrasesDue;
 
   const totalPct = totalAll ? Math.round((totalLearned / totalAll) * 100) : 0;
 
-  const thisWeek = wordsThisWeek + idiomsThisWeek;
+  const thisWeek = wordsThisWeek + idiomsThisWeek + phrasesThisWeek;
 
   // ── Совместимость со старыми ID ─────────────────
 
@@ -6763,6 +12136,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="spc-card">
 
 
@@ -6771,7 +12168,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="spc-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6787,7 +12232,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="spc-title">Слова</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6803,6 +12296,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -6811,7 +12328,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="spc-bar-wrap">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6827,6 +12392,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -6835,7 +12424,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="spc-nums">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6851,7 +12488,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span><span class="material-symbols-outlined stat-icon-small">menu_book</span> ${wordsTotal} всего</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6867,6 +12552,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -6875,7 +12584,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6891,7 +12648,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="spc-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6907,7 +12712,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="spc-title">Идиомы</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6923,7 +12776,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6939,7 +12840,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="spc-bar-fill idioms" style="width:${idiomsPct}%"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6955,7 +12904,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="spc-nums">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6971,7 +12968,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span><span class="material-symbols-outlined stat-icon-small">theater_comedy</span> ${idiomsTotal} всего</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6987,6 +13032,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -6995,7 +13064,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7011,7 +13128,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="spc-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7027,7 +13192,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="spc-title">Общий прогресс</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7043,7 +13256,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7059,7 +13320,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="spc-bar-fill words" style="width:${totalAll ? (wordsLearned / totalAll) * 100 : 0}%"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7075,7 +13384,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7091,7 +13448,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span><span class="spc-dot words"></span>Слова</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7107,7 +13512,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7123,7 +13576,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span><span class="material-symbols-outlined stat-icon-small">psychology</span> ${totalLearned} из ${totalAll} единиц</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7139,7 +13640,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7161,7 +13710,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="word-info">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7177,7 +13774,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7193,6 +13838,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">volume_up</span>
 
 
@@ -7201,7 +13870,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7253,7 +13970,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="word-info">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7269,7 +14034,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7285,6 +14098,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">volume_up</span>
 
 
@@ -7293,7 +14130,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7363,7 +14248,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="daily-cap-info">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7379,7 +14312,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <strong>${window.dailyReviewCount}</strong> / ${limit === 9999 ? '∞' : limit}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7395,7 +14376,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="daily-cap-status">${done ? '✅ выполнено' : Math.round(pct) + '%'}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7411,6 +14440,30 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="daily-cap-bar">
 
 
@@ -7419,7 +14472,55 @@ function renderStats() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="daily-cap-fill ${done ? 'completed' : ''}" style="width:${pct}%"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7463,7 +14564,55 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="goal-item ${done ? 'completed' : 'locked'}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7479,6 +14628,30 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">${goal.icon}</span>
 
 
@@ -7487,7 +14660,55 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7503,7 +14724,55 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="goal-name">${goal.label}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7519,7 +14788,55 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="goal-progress">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7535,7 +14852,55 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               <div class="goal-progress-fill" style="width: ${percent}%"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7551,7 +14916,55 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7567,6 +14980,30 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -7575,7 +15012,55 @@ function renderDailyGoals() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7609,7 +15094,55 @@ function renderCefrLevels() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="cefr-level">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7625,7 +15158,55 @@ function renderCefrLevels() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="cefr-count">${count}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7641,7 +15222,55 @@ function renderCefrLevels() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7686,7 +15315,55 @@ if (!document.getElementById('confetti-styles')) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   @keyframes confetti-fall {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7702,7 +15379,55 @@ if (!document.getElementById('confetti-styles')) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       transform: translate(-50%, -50%) translateY(0) rotate(0deg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7718,7 +15443,55 @@ if (!document.getElementById('confetti-styles')) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7734,7 +15507,55 @@ if (!document.getElementById('confetti-styles')) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       transform: translate(-50%, -50%) translateY(300px) rotate(720deg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7750,6 +15571,30 @@ if (!document.getElementById('confetti-styles')) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
 
@@ -7758,7 +15603,55 @@ if (!document.getElementById('confetti-styles')) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7806,6 +15699,27 @@ function switchTab(name, skipScroll = false) {
 
   if (currentActiveTab === 'practice' && name !== 'practice') {
     resetPracticeToStart();
+  }
+
+  // Сбрасываем выбранные упражнения при переключении между словами и идиомами
+
+  if (
+    (currentActiveTab === 'words' && name === 'idioms') ||
+    (currentActiveTab === 'idioms' && name === 'words')
+  ) {
+    // Сбрасываем выбор упражнений
+
+    document.querySelectorAll('.exercise-card.selected').forEach(card => {
+      card.classList.remove('selected');
+    });
+
+    // Выбираем первое упражнение по умолчанию
+
+    const firstExercise = document.querySelector('.exercise-card');
+
+    if (firstExercise) {
+      firstExercise.classList.add('selected');
+    }
   }
 
   if (name === 'words') {
@@ -8027,9 +15941,29 @@ window.mergeWords = function (localWords, remoteWords) {
 
   const remoteMap = new Map(remoteWords.map(w => [w.id, w]));
 
+  // Создаём карту локальных слов для быстрого доступа
+
+  const localMap = new Map(localWords.map(w => [w.id, w]));
+
   // Результат – все серверные слова
 
   const merged = [...remoteWords];
+
+  // Объединяем данные: для каждого серверного слова добавляем недостающие поля из локального
+
+  for (const remoteWord of merged) {
+    const localWord = localMap.get(remoteWord.id);
+
+    if (localWord) {
+      // Добавляем поле grammar, если его нет на сервере но есть в локальных данных
+
+      if (!remoteWord.grammar && localWord.grammar) {
+        remoteWord.grammar = localWord.grammar;
+      }
+
+      // Можно добавить и другие поля при необходимости
+    }
+  }
 
   // Добавляем локальные слова, которых нет на сервере и которые не в очереди на удаление
 
@@ -8540,15 +16474,19 @@ function makeCard(w) {
 
   card.dataset.tags = JSON.stringify(w.tags || []);
 
-  card.dataset.learned = w.stats.learned;
+  card.dataset.learned = w.stats?.learned || false;
+
+  card.dataset.collocations = JSON.stringify(
+    w.grammar?.collocations || w.collocations || [],
+  );
 
   // Базовая разметка (свёрнутое состояние)
 
   // Генерируем индикаторы прогресса
 
-  const progressLevel = w.stats.learned
+  const progressLevel = w.stats?.learned
     ? 3
-    : w.stats.correctExerciseTypes?.length || 0;
+    : w.stats?.correctExerciseTypes?.length || 0;
 
   const indicators = Array.from({ length: 3 }, (_, i) => {
     const dotClass = i < progressLevel ? 'filled' : '';
@@ -8574,7 +16512,55 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="progress-indicators">${indicators}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8590,7 +16576,55 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="word-main">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8606,6 +16640,30 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${window.user_settings?.showPhonetic && w.phonetic ? `<div class="word-phonetic">${esc(w.phonetic)}</div>` : ''}
 
 
@@ -8614,7 +16672,55 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8630,7 +16736,55 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="audio-btn" data-word="${w.id}" title="Прослушать" aria-label="Прослушать произношение слова ${esc(w.en)}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8646,7 +16800,55 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8662,7 +16864,55 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8678,7 +16928,6 @@ function makeCard(w) {
 
 
 
-    <div class="word-card-footer">
 
 
 
@@ -8686,7 +16935,6 @@ function makeCard(w) {
 
 
 
-      <span class="expand-hint">Нажмите, чтобы раскрыть</span>
 
 
 
@@ -8694,11 +16942,49 @@ function makeCard(w) {
 
 
 
-      <span class="material-symbols-outlined expand-icon">expand_more</span>
 
 
 
 
+
+
+
+
+
+
+    <div class="word-card-footer word-card-tabs">
+
+
+
+      <button class="wc-tab-btn" data-tab="example">
+
+
+
+        <span class="material-symbols-outlined">format_quote</span>
+
+
+
+        Пример
+
+
+
+      </button>
+
+
+
+      <button class="wc-tab-btn" data-tab="collocations">
+
+
+
+        <span class="material-symbols-outlined">link</span>
+
+
+
+        Фразы
+
+
+
+      </button>
 
 
 
@@ -8710,11 +16996,35 @@ function makeCard(w) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   `;
 
-  // Обработчик клика для раскрытия
+  // Click handler for tabs
 
-  card.addEventListener('click', e => {
+  card.addEventListener('click', async e => {
     if (
       e.target.closest('.audio-btn') ||
       e.target.closest('.edit-btn') ||
@@ -8724,44 +17034,82 @@ function makeCard(w) {
       return;
     }
 
-    card.classList.toggle('expanded');
+    const tabBtn = e.target.closest('.wc-tab-btn');
 
-    const expandHint = card.querySelector('.expand-hint');
+    if (tabBtn) {
+      const clickedTab = tabBtn.dataset.tab;
 
-    const expandIcon = card.querySelector('.expand-icon');
+      console.log('🔸 Tab clicked:', clickedTab);
 
-    if (card.classList.contains('expanded')) {
-      if (expandHint) expandHint.textContent = 'Нажмите, чтобы свернуть';
+      console.log('🔸 Card dataset:', card.dataset);
 
-      if (expandIcon) expandIcon.textContent = 'expand_less';
-    } else {
-      if (expandHint) expandHint.textContent = 'Нажмите, чтобы раскрыть';
+      console.log('🔸 Card collocations dataset:', card.dataset.collocations);
 
-      if (expandIcon) expandIcon.textContent = 'expand_more';
+      const currentTab = card.dataset.activeTab || '';
+
+      console.log('🔸 Current tab:', currentTab);
+
+      if (card.classList.contains('expanded') && currentTab === clickedTab) {
+        // Same tab - collapse
+
+        card.classList.remove('expanded');
+
+        card.dataset.activeTab = '';
+
+        const extra = card.querySelector('.word-card-extra');
+
+        if (extra) extra.remove();
+
+        card
+
+          .querySelectorAll('.wc-tab-btn')
+
+          .forEach(b => b.classList.remove('active'));
+      } else {
+        // Expand or switch tab
+
+        card.classList.add('expanded');
+
+        card.dataset.activeTab = clickedTab;
+
+        card
+
+          .querySelectorAll('.wc-tab-btn')
+
+          .forEach(b =>
+            b.classList.toggle('active', b.dataset.tab === clickedTab),
+          );
+
+        await updateExpandedContent(card);
+      }
+
+      return;
     }
-
-    updateExpandedContent(card);
   });
 
   return card;
 }
 
-function updateExpandedContent(card) {
+async function updateExpandedContent(card) {
   if (!card.classList.contains('expanded')) {
     const extra = card.querySelector('.word-card-extra');
 
-    if (extra) {
-      extra.remove();
-    }
+    if (extra) extra.remove();
 
     return;
   }
 
-  if (card.querySelector('.word-card-extra')) {
-    return;
-  }
+  // Remove old extra to redraw (for tab switching)
 
-  // Декодируем HTML-сущности перед парсингом JSON
+  const existingExtra = card.querySelector('.word-card-extra');
+
+  if (existingExtra) existingExtra.remove();
+
+  const activeTab = card.dataset.activeTab || 'example';
+
+  card.querySelectorAll('.wc-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === activeTab);
+  });
 
   function decodeHtmlEntities(str) {
     const div = document.createElement('div');
@@ -8771,208 +17119,95 @@ function updateExpandedContent(card) {
     return div.textContent || div.innerText || '';
   }
 
-  let examples = [];
-
-  let tags = [];
+  let examples = [],
+    tags = [],
+    collocations = [];
 
   try {
-    const decodedExamples = decodeHtmlEntities(card.dataset.examples || '[]');
-
-    examples = JSON.parse(decodedExamples);
+    examples = JSON.parse(decodeHtmlEntities(card.dataset.examples || '[]'));
   } catch (e) {
-    console.error('Ошибка парсинга examples для карточки', card.dataset.id, e);
-
     examples = [];
   }
 
   try {
-    const decodedTags = decodeHtmlEntities(card.dataset.tags || '[]');
-
-    tags = JSON.parse(decodedTags);
+    tags = JSON.parse(decodeHtmlEntities(card.dataset.tags || '[]'));
   } catch (e) {
-    console.error('Ошибка парсинга tags для карточки', card.dataset.id, e);
-
     tags = [];
+  }
+
+  try {
+    collocations = JSON.parse(
+      decodeHtmlEntities(card.dataset.collocations || '[]'),
+    );
+  } catch (e) {
+    collocations = [];
+  }
+
+  // Если коллокаций нет в dataset, пытаемся загрузить из WordBankDB
+
+  if (collocations.length === 0 && window.WordBankDB && card.dataset.en) {
+    try {
+      const results = await window.WordBankDB.searchWords(card.dataset.en, 1);
+
+      const bankWord = results.find(
+        r => r.en.toLowerCase() === card.dataset.en.toLowerCase(),
+      );
+
+      if (bankWord && bankWord.grammar && bankWord.grammar.collocations) {
+        collocations = bankWord.grammar.collocations;
+
+        // Сохраняем в dataset для кэширования
+
+        card.dataset.collocations = JSON.stringify(collocations);
+      }
+    } catch (e) {
+      console.warn('Ошибка загрузки коллокаций из WordBankDB:', e);
+    }
   }
 
   const extraDiv = document.createElement('div');
 
   extraDiv.className = 'word-card-extra';
 
-  let examplesHtml = '';
-
-  if (examples.length > 0) {
-    examplesHtml = `
-
-
-
-
-
-
-
-      <div class="word-examples">
-
-
-
-
-
-
-
-        ${examples
-
-          .map(
-            ex => `
-
-
-
-
-
-
-
-          <div class="example-item">
-
-
-
-
-
-
-
-            <div style="display: flex; align-items: center; gap: 8px;">
-
-
-
-
-
-
-
-              <p style="margin: 0; flex: 1;">${esc(ex.text)}</p>
-
-
-
-
-
-
-
-              <button class="example-audio-btn" data-example-index="${examples.indexOf(ex)}" title="Прослушать предложение" aria-label="Прослушать пример: ${esc(ex.text)}">
-
-
-
-
-
-
-
-                <span class="material-symbols-outlined" style="font-size: 16px;">volume_up</span>
-
-
-
-
-
-
-
-              </button>
-
-
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
-            ${ex.translation ? `<span class="example-translation">${esc(ex.translation)}</span>` : ''}
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-        `,
-          )
-
-          .join('')}
-
-
-
-
-
-
-
-      </div>
-
-
-
-
-
-
-
-    `;
-  }
-
   let tagsHtml = '';
 
   if (tags.length > 0) {
-    tagsHtml = `
+    tagsHtml = `<div class="word-tags">${tags
 
+      .map(
+        tag =>
+          `<span class="tag" data-tag="${esc(tag)}">${esc(formatTag(tag))}</span>`,
+      )
 
-
-
-
-
-
-      <div class="word-tags">
-
-
-
-
-
-
-
-        ${tags.map(tag => `<span class="tag" data-tag="${esc(tag)}">${esc(formatTag(tag))}</span>`).join('')}
-
-
-
-
-
-
-
-      </div>
-
-
-
-
-
-
-
-    `;
+      .join('')}</div>`;
   }
 
-  // --- ДОБАВЛЯЕМ БЛОК ИНФОРМАЦИИ О ПОВТОРЕНИИ ---
-
-  // Получаем слово по id из глобального массива (чтобы взять свежие stats)
+  // Review info
 
   const wordId = card.dataset.id;
 
-  const word = window.words.find(w => w.id === wordId);
+  console.log('updateExpandedContent: wordId =', wordId);
+  console.log(
+    'updateExpandedContent: window.words.length =',
+    window.words?.length,
+  );
+  console.log(
+    'updateExpandedContent: window.phrases.length =',
+    window.phrases?.length,
+  );
 
-  let reviewInfo = '';
+  // Try to find in words first, then phrases
+  let item = window.words.find(w => w.id === wordId);
+  if (!item) item = window.phrases.find(p => p.id === wordId);
 
-  if (word && word.stats && word.stats.nextReview) {
-    const nextReviewDate = new Date(word.stats.nextReview);
+  console.log('updateExpandedContent: found item =', item);
+  console.log('updateExpandedContent: item.stats =', item?.stats);
+
+  let reviewInfo =
+    '<span class="due-later"><span class="material-symbols-outlined">refresh</span> Soon</span>';
+
+  if (item && item.stats && item.stats.nextReview) {
+    const nextReviewDate = new Date(item.stats.nextReview);
 
     const today = new Date();
 
@@ -8982,167 +17217,149 @@ function updateExpandedContent(card) {
       (nextReviewDate - today) / (1000 * 60 * 60 * 24),
     );
 
-    if (diffDays <= 0) {
+    console.log('updateExpandedContent: diffDays =', diffDays);
+
+    if (diffDays <= 0)
       reviewInfo =
-        '<span class="due-now"><span class="material-symbols-outlined">refresh</span> Сегодня</span>';
-    } else if (diffDays === 1) {
+        '<span class="due-now"><span class="material-symbols-outlined">refresh</span> Today</span>';
+    else if (diffDays === 1)
       reviewInfo =
-        '<span class="due-soon"><span class="material-symbols-outlined">refresh</span> Завтра</span>';
-    } else {
-      reviewInfo = `<span class="due-later"><span class="material-symbols-outlined">refresh</span> ${diffDays} дн.</span>`;
-    }
-  } else {
-    reviewInfo =
-      '<span class="due-later"><span class="material-symbols-outlined">refresh</span> Скоро</span>';
+        '<span class="due-soon"><span class="material-symbols-outlined">refresh</span> Tomorrow</span>';
+    else
+      reviewInfo = `<span class="due-later"><span class="material-symbols-outlined">refresh</span> ${diffDays} days</span>`;
   }
 
-  // --- КОНЕЦ БЛОКА ---
+  const editBtn =
+    activeTab === 'collocations'
+      ? `<button class="edit-collocations-btn btn-icon" data-id="${card.dataset.id}" title="Редактировать коллокации">
 
-  extraDiv.innerHTML = `
+       <span class="material-symbols-outlined">edit</span>
 
+     </button>`
+      : `<button class="edit-btn btn-icon" data-id="${card.dataset.id}" title="Редактировать">
 
+       <span class="material-symbols-outlined">edit</span>
 
+     </button>`;
 
+  const actionsHtml = `
 
+  <div class="word-actions-extra" style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0;">
 
+    <div class="word-review-info">${reviewInfo}</div>
 
-    ${examplesHtml}
+    <div style="display:flex;gap:0.5rem;">
 
+      ${editBtn}
 
+      <button class="delete-btn btn-icon" data-id="${card.dataset.id}" title="Удалить">
 
-
-
-
-
-    ${tagsHtml}
-
-
-
-
-
-
-
-    <div class="word-actions-extra" style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0; font-size: 0.85rem;">
-
-
-
-
-
-
-
-      <div class="word-review-info">
-
-
-
-
-
-
-
-        ${reviewInfo}
-
-
-
-
-
-
-
-      </div>
-
-
-
-
-
-
-
-      <div style="display: flex; gap: 0.5rem;">
-
-
-
-
-
-
-
-        <button class="edit-btn" data-id="${card.dataset.id}" title="Редактировать">
-
-
-
-
-
-
-
-          <span class="material-symbols-outlined">edit</span>
-
-
-
-
-
-
-
-        </button>
-
-
-
-
-
-
-
-        <button class="delete-btn" data-id="${card.dataset.id}" title="Удалить">
-
-
-
-
-
-
-
-          <span class="material-symbols-outlined">delete</span>
-
-
-
-
-
-
-
-        </button>
-
-
-
-
-
-
-
-      </div>
-
-
-
-
-
-
+        <span class="material-symbols-outlined">delete</span>
 
       </button>
-
-
-
-
-
-
-
-      </button>
-
-
-
-
-
-
 
     </div>
 
+  </div>`;
+
+  if (activeTab === 'example') {
+    let examplesHtml = '';
+
+    if (examples.length > 0) {
+      examplesHtml = `<div class="word-examples">${examples
+
+        .map(
+          ex => ` 
 
 
 
+        <div class="example-item">
+
+          <div style="display:flex;align-items:center;gap:8px;">
+
+            <div style="flex:1;">
+
+              <div class="example-text">${esc(ex.text)}</div>
+
+              ${ex.translation ? `<div class="example-translation">${esc(ex.translation)}</div>` : ''}
+
+            </div>
+
+            <button class="example-audio-btn" data-example-index="${examples.indexOf(ex)}"
+
+              title="Listen" aria-label="${esc(ex.text)}">
+
+              <span class="material-symbols-outlined" style="font-size:16px;">volume_up</span>
+
+            </button>
+
+          </div>
 
 
 
-  `;
+        </div>`,
+        )
+
+        .join('')}</div>`;
+    } else {
+      examplesHtml =
+        '<div class="word-examples wc-empty-tab"><span class="material-symbols-outlined">format_quote</span><p>No examples</p></div>';
+    }
+
+    extraDiv.innerHTML = examplesHtml + tagsHtml + actionsHtml;
+  } else {
+    // Collocations tab
+
+    const collHtml = collocations.length
+      ? `<div class="word-examples"><ul class="collocation-list">${collocations
+
+          .map(
+            (c, i) => `
+
+        <li class="collocation-item">
+
+          <div style="display:flex;align-items:center;gap:8px;">
+
+            <div style="flex:1;">
+
+              <div class="collocation-en">${esc(c.en)}</div>
+
+              <div class="collocation-ru">${esc(c.ru)}</div>
+
+            </div>
+
+            <button
+
+              class="coll-audio-btn"
+
+              data-coll-index="${i}"
+
+              data-word-id="${card.dataset.id}"
+
+              title="Listen"
+
+            >
+
+              <span class="material-symbols-outlined" style="font-size:16px;">volume_up</span>
+
+            </button>
+
+          </div>
+
+        </li>`,
+          )
+
+          .join('')}</ul></div>`
+      : `<div class="wc-empty-tab">
+
+       <span class="material-symbols-outlined">hub</span>
+
+       <p>Collocations not found</p>
+
+     </div>`;
+
+    extraDiv.innerHTML = collHtml + actionsHtml;
+  }
 
   card.appendChild(extraDiv);
 }
@@ -9170,7 +17387,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="wc-example">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9186,7 +17451,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="example-text-content">${esc(ex.text)}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9202,7 +17515,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">info</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9218,7 +17579,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9236,7 +17645,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <button class="example-prev" title="Предыдущий пример">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9252,7 +17709,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9268,6 +17773,30 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">chevron_right</span>
 
 
@@ -9276,7 +17805,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9294,7 +17871,55 @@ function getExampleHtmlForCard(card, index) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9408,6 +18033,141 @@ window.addEventListener('touchmove', hideTooltipOnScroll, { passive: true });
 // Audio buttons on word cards
 
 document.getElementById('words-grid')?.addEventListener('click', e => {
+  if (e.target.closest('.coll-audio-btn')) {
+    console.log('=== COLLOCATION AUDIO BUTTON CLICKED ===');
+
+    const btn = e.target.closest('.coll-audio-btn');
+
+    const card = btn.closest('.word-card');
+
+    const wordId = btn.dataset.wordId;
+
+    const collIndex = parseInt(btn.dataset.collIndex);
+
+    console.log('Button data:', { wordId, collIndex });
+
+    const word = window.words.find(w => w.id === wordId);
+
+    if (!word) {
+      console.log('Word not found with ID:', wordId);
+
+      return;
+    }
+
+    console.log('Found word:', word.en, 'CEFR:', word.cefr);
+
+    console.log('User settings voice:', window.user_settings?.voice);
+
+    // Get collocations from card dataset instead of word.grammar
+
+    const collocations = JSON.parse(card.dataset.collocations || '[]');
+
+    console.log('Available collocations from card:', collocations);
+
+    const coll = collocations[collIndex];
+
+    if (!coll) {
+      console.log('Collocation not found at index:', collIndex);
+
+      return;
+    }
+
+    console.log('Collocation data:', coll);
+
+    // Show wave animation
+
+    const existingWave = btn.querySelector('.audio-wave');
+
+    const icon = btn.querySelector('.material-symbols-outlined');
+
+    if (!existingWave) {
+      const wave = document.createElement('div');
+
+      wave.className = 'audio-wave';
+
+      wave.innerHTML =
+        '<span></span><span></span><span></span><span></span><span></span>';
+
+      wave.style.display = 'flex';
+
+      icon.style.display = 'none';
+
+      btn.appendChild(wave);
+    }
+
+    const playAudioAndRestore = () => {
+      if (coll.audio) {
+        const cefr = word.cefr || 'A1';
+
+        const voice = window.user_settings?.voice === 'male' ? 'man' : 'women';
+
+        const audioPath = `${cefr}/${voice}/${coll.audio}`;
+
+        console.log('Attempting to play audio:', audioPath);
+
+        console.log('Full audio URL:', audioPath);
+
+        const audio = new Audio(audioPath);
+
+        audio.addEventListener('error', e => {
+          console.log('Audio error:', e);
+
+          console.log('Audio error details:', audio.error);
+
+          console.log('Falling back to speakText');
+
+          speakText(coll.en);
+
+          restoreButton();
+        });
+
+        audio.addEventListener('loadstart', () =>
+          console.log('Audio load start'),
+        );
+
+        audio.addEventListener('canplay', () => console.log('Audio can play'));
+
+        audio.addEventListener('play', () => console.log('Audio playing'));
+
+        audio.addEventListener('ended', restoreButton);
+
+        audio.play().catch(error => {
+          console.log('Audio play failed:', error);
+
+          console.log('Falling back to speakText');
+
+          speakText(coll.en);
+
+          restoreButton();
+        });
+      } else {
+        console.log('No audio file for collocation, using speakText');
+
+        speakText(coll.en);
+
+        restoreButton();
+      }
+    };
+
+    const restoreButton = () => {
+      const wave = btn.querySelector('.audio-wave');
+
+      const icon = btn.querySelector('.material-symbols-outlined');
+
+      if (wave) {
+        wave.remove();
+      }
+
+      if (icon) {
+        icon.style.display = 'block';
+      }
+    };
+
+    playAudioAndRestore();
+
+    return;
+  }
+
   // Обработка аудио-кнопок (оставляем как есть)
 
   if (e.target.closest('.audio-btn')) {
@@ -9480,11 +18240,47 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
 
     const exampleIndex = parseInt(btn.dataset.exampleIndex) || 0;
 
+    // Show wave animation
+
+    const existingWave = btn.querySelector('.audio-wave');
+
+    const icon = btn.querySelector('.material-symbols-outlined');
+
+    if (!existingWave) {
+      const wave = document.createElement('div');
+
+      wave.className = 'audio-wave';
+
+      wave.innerHTML =
+        '<span></span><span></span><span></span><span></span><span></span>';
+
+      wave.style.display = 'flex';
+
+      icon.style.display = 'none';
+
+      btn.appendChild(wave);
+    }
+
+    const restoreButton = () => {
+      const wave = btn.querySelector('.audio-wave');
+
+      const icon = btn.querySelector('.material-symbols-outlined');
+
+      if (wave) {
+        wave.remove();
+      }
+
+      if (icon) {
+        icon.style.display = 'block';
+      }
+    };
+
     if (word) {
       const examplesAudio =
         word.examples_audio || word.examplesAudio || word.examplesaudio;
 
       // If empty - look in bank
+
       const audioArr = examplesAudio?.length
         ? examplesAudio
         : window.wordBank?.find(
@@ -9497,44 +18293,77 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
         const voicePreference = window.user_settings?.voice || 'female';
 
         // Use same CEFR logic as speakWord
+
         if (!word.cefr && word.en && window.WordBankDB) {
           window.WordBankDB.searchWords(word.en, 5)
+
             .then(results => {
               const bankWord = results.find(
                 r => r.en.toLowerCase() === word.en.toLowerCase(),
               );
+
               const foundCefr = bankWord?.cefr || 'A1';
+
               // Save CEFR back to word
+
               if (foundCefr && foundCefr !== 'A1') {
                 word.cefr = foundCefr;
               }
 
               const audioFolder = `${foundCefr}/${voicePreference === 'male' ? 'man' : 'women'}`;
+
               const audio = new Audio(
                 `${audioFolder}/${audioArr[exampleIndex]}`,
               );
-              audio.play().catch(err => speakText(fallbackText));
+
+              audio.addEventListener('ended', restoreButton);
+
+              audio.play().catch(err => {
+                speakText(fallbackText);
+
+                restoreButton();
+              });
             })
+
             .catch(() => {
               const audioFolder = `A1/${voicePreference === 'male' ? 'man' : 'women'}`;
+
               const audio = new Audio(
                 `${audioFolder}/${audioArr[exampleIndex]}`,
               );
-              audio.play().catch(err => speakText(fallbackText));
+
+              audio.addEventListener('ended', restoreButton);
+
+              audio.play().catch(err => {
+                speakText(fallbackText);
+
+                restoreButton();
+              });
             });
+
           return;
         }
 
         const cefr = word.cefr || 'A1';
+
         const audioFolder = `${cefr}/${voicePreference === 'male' ? 'man' : 'women'}`;
+
         const audio = new Audio(`${audioFolder}/${audioArr[exampleIndex]}`);
+
+        audio.addEventListener('ended', restoreButton);
 
         audio.play().catch(err => {
           speakText(fallbackText);
+
+          restoreButton();
         });
       } else {
         speakText(fallbackText);
+
+        restoreButton();
       }
+    } else {
+      restoreButton();
     }
 
     return;
@@ -9555,6 +18384,14 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
   }
 
   // Обработка кнопок редактирования/удаления (они теперь внутри раскрытой карточки)
+
+  if (e.target.closest('.edit-collocations-btn')) {
+    const id = e.target.closest('.edit-collocations-btn').dataset.id;
+
+    startEditCollocations(id);
+
+    return;
+  }
 
   if (e.target.closest('.edit-btn')) {
     const id = e.target.closest('.edit-btn').dataset.id;
@@ -9590,123 +18427,350 @@ function startEditWord(id) {
 
   const card = document.querySelector(`.word-card[data-id="${id}"]`);
 
+  if (!card) return;
+
   card.classList.add('editing');
+
+  const exText = w.examples?.[0]?.text || w.ex || '';
+
+  const exTranslation = w.examples?.[0]?.translation || '';
+
+  const phonetic = w.phonetic || '';
 
   card.innerHTML = `
 
+    <div class="form-group">
 
+      <label>English</label>
 
+      <input type="text" class="e-en form-control" value="${safeAttr(w.en)}">
 
+    </div>
 
+    <div class="form-group">
 
+      <label>Русский</label>
 
-    <div class="form-group"><label>English</label><input type="text" class="e-en form-control" value="${safeAttr(w.en)}"></div>
+      <input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}">
 
+    </div>
 
+    <div class="form-group">
 
+      <label>Транскрипция</label>
 
+      <input type="text" class="e-phonetic form-control" value="${safeAttr(phonetic)}">
 
+    </div>
 
+    <div class="form-group">
 
-    <div class="form-group"><label>Русский</label><input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}"></div>
+      <label>Пример</label>
 
+      <input type="text" class="e-ex form-control" value="${safeAttr(exText)}">
 
+    </div>
 
+    <div class="form-group">
 
+      <label>Перевод примера</label>
 
+      <input type="text" class="e-ex-translation form-control" value="${safeAttr(exTranslation)}">
 
+    </div>
 
-    <div class="form-group"><label>Пример</label><input type="text" class="e-ex form-control" value="${safeAttr(w.ex)}"></div>
+    <div class="form-group">
 
+      <label>Теги</label>
 
+      <input type="text" class="e-tags form-control" value="${safeAttr((w.tags || []).join(', '))}">
 
-
-
-
-
-    <div class="form-group"><label>Перевод примера</label><input type="text" class="e-ex-translation form-control" value="${safeAttr(w.examples?.[0]?.translation || '')}"></div>
-
-
-
-
-
-
-
-    <div class="form-group"><label>Теги</label><input type="text" class="e-tags form-control" value="${safeAttr(w.tags.join(', '))}"></div>
-
-
-
-
-
-
+    </div>
 
     <div class="form-actions">
 
+      <button class="save-edit-btn" data-id="${w.id}">
 
+        <span class="material-symbols-outlined">save</span>
 
+      </button>
 
+      <button class="cancel-edit-btn">
 
+        <span class="material-symbols-outlined">close</span>
 
+      </button>
 
-      <button class="save-edit-btn" data-id="${w.id}"><span class="material-symbols-outlined">save</span></button>
+    </div>
 
+  `;
 
+  card
 
+    .querySelector('.save-edit-btn')
 
+    .addEventListener('click', async function (e) {
+      e.stopPropagation();
 
+      const currentWord = window.words.find(x => x.id === id);
 
+      const card = this.closest('.word-card');
 
-      <button class="cancel-edit-btn"><span class="material-symbols-outlined">close</span></button>
+      const newExampleText = card.querySelector('.e-ex').value.trim();
 
+      const newExampleTranslation = card
 
+        .querySelector('.e-ex-translation')
 
+        .value.trim();
 
+      const preservedCollocations =
+        currentWord?.grammar?.collocations ||
+        JSON.parse(card.dataset.collocations || '[]') ||
+        [];
 
+      this.disabled = true;
 
+      this.innerHTML =
+        '<span class="material-symbols-outlined">hourglass_top</span>';
+
+      await updWord(id, {
+        en: card.querySelector('.e-en').value.trim(),
+
+        ru: card.querySelector('.e-ru').value.trim(),
+
+        phonetic: card.querySelector('.e-phonetic').value.trim(),
+
+        ex: newExampleText,
+
+        examples: newExampleText
+          ? [{ text: newExampleText, translation: newExampleTranslation }]
+          : [],
+
+        tags: normalizeTags(card.querySelector('.e-tags').value),
+
+        grammar: {
+          ...(currentWord?.grammar || {}),
+
+          collocations: preservedCollocations,
+        },
+      });
+
+      toast('Сохранено', 'success', 'edit');
+
+      renderWords();
+    });
+
+  card
+
+    .querySelector('.cancel-edit-btn')
+
+    .addEventListener('click', function (e) {
+      e.stopPropagation();
+
+      renderWords();
+    });
+}
+
+function startEditCollocations(id) {
+  const w = window.words.find(x => x.id === id);
+
+  if (!w) return;
+
+  const card = document.querySelector(`.word-card[data-id="${id}"]`);
+
+  if (!card) return;
+
+  card.classList.add('editing');
+
+  function decodeHtmlEntities(str) {
+    const div = document.createElement('div');
+
+    div.innerHTML = str;
+
+    return div.textContent || div.innerText || '';
+  }
+
+  let currentCollocations = [];
+
+  try {
+    currentCollocations = JSON.parse(
+      decodeHtmlEntities(card.dataset.collocations || '[]'),
+    );
+  } catch (e) {
+    currentCollocations = [];
+  }
+
+  if (!currentCollocations.length) {
+    currentCollocations = w.grammar?.collocations || w.collocations || [];
+  }
+
+  const makeRow = (en = '', ru = '') => `
+
+    <div class="coll-row" style="display:flex;gap:0.5rem;margin-bottom:0.45rem;align-items:center;">
+
+      <input
+
+        type="text"
+
+        class="form-control coll-en"
+
+        placeholder="Английская фраза"
+
+        value="${safeAttr(en)}"
+
+        style="flex:1;min-width:0;"
+
+      >
+
+      <input
+
+        type="text"
+
+        class="form-control coll-ru"
+
+        placeholder="Перевод"
+
+        value="${safeAttr(ru)}"
+
+        style="flex:1;min-width:0;"
+
+      >
+
+      <button
+
+        type="button"
+
+        class="coll-remove-btn"
+
+        title="Удалить"
+
+        style="flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--muted);padding:0 4px;"
+
+      >
+
+        <span class="material-symbols-outlined" style="font-size:18px;">remove_circle</span>
+
+      </button>
+
+    </div>
+
+  `;
+
+  card.innerHTML = `
+
+    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">
+
+      Коллокации → <strong style="color:var(--text);">${esc(w.en)}</strong>
 
     </div>
 
 
 
+    <div class="coll-rows-container">
+
+      ${currentCollocations.map(c => makeRow(c.en, c.ru)).join('')}
+
+    </div>
 
 
 
+    <button
+
+      type="button"
+
+      class="coll-add-btn"
+
+      style="display:flex;align-items:center;gap:0.3rem;background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.82rem;font-weight:600;padding:0.3rem 0;margin-bottom:0.75rem;font-family:inherit;"
+
+    >
+
+      <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span>
+
+      Добавить
+
+    </button>
+
+
+
+    <div class="form-actions">
+
+      <button class="save-edit-btn" data-id="${w.id}">
+
+        <span class="material-symbols-outlined">save</span>
+
+      </button>
+
+      <button class="cancel-edit-btn">
+
+        <span class="material-symbols-outlined">close</span>
+
+      </button>
+
+    </div>
 
   `;
 
-  // Добавляем обработчики для кнопок
-
-  card.querySelector('.save-edit-btn').addEventListener('click', function (e) {
+  card.querySelector('.coll-add-btn').addEventListener('click', e => {
     e.stopPropagation();
 
-    const id = this.dataset.id;
+    card
 
-    const card = this.closest('.word-card');
+      .querySelector('.coll-rows-container')
 
-    updWord(id, {
-      en: card.querySelector('.e-en').value.trim(),
-
-      ru: card.querySelector('.e-ru').value.trim(),
-
-      ex: card.querySelector('.e-ex').value.trim(),
-
-      examples: card.querySelector('.e-ex').value.trim()
-        ? [
-            {
-              text: card.querySelector('.e-ex').value.trim(),
-
-              translation: card.querySelector('.e-ex-translation').value.trim(),
-            },
-          ]
-        : [],
-
-      tags: normalizeTags(card.querySelector('.e-tags').value),
-    });
-
-    toast('Слово обновлено!', 'success', 'edit');
-
-    renderWords();
+      .insertAdjacentHTML('beforeend', makeRow());
   });
+
+  card.addEventListener('click', e => {
+    const removeBtn = e.target.closest('.coll-remove-btn');
+
+    if (!removeBtn) return;
+
+    e.stopPropagation();
+
+    removeBtn.closest('.coll-row')?.remove();
+  });
+
+  card
+
+    .querySelector('.save-edit-btn')
+
+    .addEventListener('click', async function (e) {
+      e.stopPropagation();
+
+      const newCollocations = Array.from(card.querySelectorAll('.coll-row'))
+
+        .map(row => ({
+          en: row.querySelector('.coll-en')?.value.trim() || '',
+
+          ru: row.querySelector('.coll-ru')?.value.trim() || '',
+        }))
+
+        .filter(item => item.en && item.ru);
+
+      this.disabled = true;
+
+      this.innerHTML =
+        '<span class="material-symbols-outlined">hourglass_top</span>';
+
+      const currentWord = window.words.find(x => x.id === id);
+
+      await updWord(id, {
+        grammar: {
+          ...(currentWord?.grammar || {}),
+
+          collocations: newCollocations,
+        },
+      });
+
+      // Синхронизируем коллокации с window.phrases
+
+      syncCollocationsToPhrases(id, newCollocations, currentWord);
+
+      toast('Сохранено', 'success', 'edit');
+
+      renderWords();
+    });
 
   card
 
@@ -9773,7 +18837,55 @@ customOptionElements.forEach(option => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined">${icon}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9789,7 +18901,55 @@ customOptionElements.forEach(option => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined">expand_more</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9863,7 +19023,55 @@ idiomCustomOptionElements.forEach(option => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined">${icon}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9879,7 +19087,55 @@ idiomCustomOptionElements.forEach(option => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined">expand_more</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10239,7 +19495,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="form-group"><label>Идиома</label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10255,7 +19559,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="form-group"><label>Перевод</label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10271,7 +19623,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="form-group"><label>Определение</label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10287,7 +19687,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="form-group"><label>Пример</label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10303,7 +19751,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="form-group"><label>Перевод примера</label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10319,7 +19815,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="form-group"><label>Теги</label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10335,7 +19879,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="form-actions">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10351,6 +19943,30 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">save</span>
 
 
@@ -10359,7 +19975,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10375,7 +20039,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">close</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10391,7 +20103,55 @@ function startEditIdiom(id) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10428,7 +20188,7 @@ function startEditIdiom(id) {
         tags: normalizeTags(card.querySelector('.e-tags').value),
       });
 
-      toast('Сохранено!', 'success', 'edit');
+      toast('Сохранено', 'success', 'edit');
 
       renderIdioms();
     });
@@ -10563,7 +20323,55 @@ document.getElementById('single-form')?.addEventListener('submit', async e => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">${icon}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10579,7 +20387,55 @@ document.getElementById('single-form')?.addEventListener('submit', async e => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">expand_more</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10880,7 +20736,55 @@ const showSuggestions = debounce(async query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="suggestion-item" data-index="${idx}" data-word="${encodeURIComponent(JSON.stringify(c))}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10896,7 +20800,55 @@ const showSuggestions = debounce(async query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span style="color: var(--muted); font-size: 0.8rem;">${c.ru}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10912,7 +20864,55 @@ const showSuggestions = debounce(async query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11093,7 +21093,55 @@ const showRussianSuggestions = debounce(async query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="suggestion-item" data-index="${idx}" data-word="${encodeURIComponent(JSON.stringify(c))}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11109,7 +21157,55 @@ const showRussianSuggestions = debounce(async query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span style="color: var(--muted); font-size: 0.8rem;">${c.ru}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11125,7 +21221,55 @@ const showRussianSuggestions = debounce(async query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11350,7 +21494,55 @@ const showIdiomSuggestions = debounce(query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <strong>${c.idiom}</strong> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11366,7 +21558,55 @@ const showIdiomSuggestions = debounce(query => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${tags ? `<span style="color: var(--primary); font-size: 0.7rem;"> (${tags})</span>` : ''}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11630,7 +21870,55 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <tr>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11646,7 +21934,55 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <td>${esc(w.en)}${isDuplicate ? '<br><span style="color: var(--warning); font-size: 0.8em;">(уже есть)</span>' : ''}</td>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11662,6 +21998,30 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <td>${esc(w.ex || '-')}</td>
 
 
@@ -11670,7 +22030,55 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </tr>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11716,7 +22124,55 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       background: var(--warning);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11732,7 +22188,55 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       padding: 0.75rem;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11748,6 +22252,30 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       margin-bottom: 1rem;
 
 
@@ -11756,7 +22284,55 @@ function showPreview(fileParsed, importedWords, dupes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       font-size: 0.9rem;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12252,6 +22828,10 @@ if (speechModalSave && themeSelect) {
 
     // Обновляем рекомендуемое слово после смены уровня
 
+    currentBankWord = null; // сбрасываем текущее слово
+
+    shownBankWordEn.clear(); // очищаем список показанных слов
+
     renderRandomBankWord();
 
     // 6. Закрываем модалку и показываем тост
@@ -12380,7 +22960,7 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
 
 document.getElementById('clear-words-btn')?.addEventListener('click', () => {
   showConfirmModal(
-    'Вы уверены, что хотите удалить ВСЕ слова и идиомы? Это действие нельзя отменить. Ваш уровень, XP, стрик и бейджи сохранятся.',
+    'Вы уверены, что хотите удалить ВСЕ слова, идиомы и фразы? Это действие нельзя отменить. Ваш уровень, XP, стрик и бейджи сохранятся.',
 
     'стереть',
 
@@ -12388,11 +22968,13 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
     async () => {
       try {
-        // 1. Очищаем локальные слова и идиомы
+        // 1. Очищаем локальные слова, идиомы и фразы
 
         window.words = [];
 
         window.idioms = [];
+
+        window.phrases = [];
 
         // Удалено: очистка localStorage - делается в clearUserData
 
@@ -12427,7 +23009,21 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
             console.error('❌ Ошибка удаления идиом с сервера:', error);
         }
 
-        // 4. Очищаем IndexedDB
+        // 4. Удаляем фразы с сервера
+
+        if (window.currentUserId) {
+          const { error, count } = await supabase
+
+            .from('user_phrases')
+
+            .delete({ count: 'exact' })
+
+            .eq('user_id', window.currentUserId);
+
+          if (error) console.error('❌ Ошибка удаления фраз с сервера:', error);
+        }
+
+        // 5. Очищаем IndexedDB
 
         await clearUserData();
 
@@ -12436,6 +23032,8 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
         pendingWordUpdates.clear();
 
         pendingIdiomUpdates.clear();
+
+        pendingPhraseUpdates.clear();
 
         // 5. Обновляем интерфейс
 
@@ -12451,9 +23049,11 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
         markProfileDirty('total_idioms', 0);
 
+        markProfileDirty('total_phrases', 0);
+
         markProfileDirty('learned_words', 0);
 
-        toast('✅ Весь словарь (слова + идиомы) очищен!', 'success');
+        toast('✅ Весь словарь (слова + идиомы + фразы) очищен!', 'success');
       } catch (error) {
         console.error('❌ Ошибка при стирании:', error);
 
@@ -12557,6 +23157,20 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
           if (idiomsError) throw idiomsError;
         }
 
+        // 1.6. Удаляем все фразы с сервера
+
+        if (window.currentUserId) {
+          const { error: phrasesError, count: phrasesCount } = await supabase
+
+            .from('user_phrases')
+
+            .delete({ count: 'exact' })
+
+            .eq('user_id', window.currentUserId);
+
+          if (phrasesError) throw phrasesError;
+        }
+
         // 2. Сбрасываем профиль на сервере (сохраняем настройки)
 
         if (window.currentUserId) {
@@ -12607,6 +23221,8 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 
         window.idioms = [];
 
+        window.phrases = [];
+
         // Удалено: очистка localStorage - делается в clearUserData
 
         renderCache.clear();
@@ -12614,6 +23230,8 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
         pendingWordUpdates.clear();
 
         pendingIdiomUpdates.clear();
+
+        pendingPhraseUpdates.clear();
 
         // 4. Обновляем глобальные переменные статистики
 
@@ -12801,6 +23419,28 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
     practiceMode = c.dataset.mode;
 
+    // Reset exercise selections for previous mode
+    selectedWordExercises.length = 0;
+    selectedIdiomExercises.length = 0;
+    selectedPhraseExercises.length = 0;
+
+    // Reset session when switching modes
+
+    window.session = null;
+
+    window.isSessionActive = false;
+
+    document.body.classList.remove('exercise-active');
+
+    const startBtn = document.getElementById('start-btn');
+
+    if (startBtn) {
+      startBtn.disabled = false;
+
+      startBtn.innerHTML =
+        '<span class="material-symbols-outlined">rocket_launch</span> Начать';
+    }
+
     // Управляем отображением блоков в зависимости от режима
 
     const exerciseGrid = document.querySelector('.exercise-grid');
@@ -12830,7 +23470,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
-        <div class="exercise-card selected" data-ex="flash">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="exercise-card" data-ex="flash">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12846,7 +23534,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-name">Карточки</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12862,7 +23598,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12878,7 +23662,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">translate</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12894,6 +23726,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Найди правильный вариант</div>
 
 
@@ -12902,7 +23758,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12918,7 +23822,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">keyboard</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12934,6 +23886,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Введи перевод идиомы</div>
 
 
@@ -12942,7 +23918,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12958,7 +23982,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12974,6 +24046,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Составь идиому из слов</div>
 
 
@@ -12982,7 +24078,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -12998,7 +24142,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">psychology</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13014,6 +24206,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Пойми идиому по смыслу</div>
 
 
@@ -13022,7 +24238,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13038,7 +24302,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">menu_book</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13054,6 +24366,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Выбери верное определение</div>
 
 
@@ -13062,7 +24398,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13078,7 +24462,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13094,6 +24526,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Соедини идиому и смысл</div>
 
 
@@ -13102,7 +24558,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13123,6 +24627,172 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
       // Обновляем бейдж "К повторению" для идиом
 
       updateDueBadge();
+    } else if (practiceMode === 'phrases') {
+      // Добавляем класс для скрытия направления
+
+      document.body.classList.add('practice-phrases');
+
+      // Заменяем сетку упражнений на сетку для фраз (используем те же упражнения, что и для слов)
+
+      exerciseGrid.innerHTML = `
+
+
+
+
+
+
+
+        <div class="exercise-card" data-ex="flash">
+
+
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">style</span></div>
+
+
+
+          <div class="exercise-name">Карточки</div>
+
+
+
+          <div class="exercise-desc">Переворачивай и запоминай</div>
+
+
+
+        </div>
+
+
+
+        <div class="exercise-card" data-ex="multi">
+
+
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">quiz</span></div>
+
+
+
+          <div class="exercise-name">Выбор</div>
+
+
+
+          <div class="exercise-desc">Найди правильный вариант</div>
+
+
+
+        </div>
+
+
+
+        <div class="exercise-card" data-ex="type">
+
+
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">keyboard</span></div>
+
+
+
+          <div class="exercise-name">Напиши</div>
+
+
+
+          <div class="exercise-desc">Введи перевод фразы</div>
+
+
+
+        </div>
+
+
+
+        <div class="exercise-card" data-ex="dictation">
+
+
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">headphones</span></div>
+
+
+
+          <div class="exercise-name">Диктант</div>
+
+
+
+          <div class="exercise-desc">Напиши, что слышишь</div>
+
+
+
+        </div>
+
+
+
+        <div class="exercise-card" data-ex="speech">
+
+
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
+
+
+
+          <div class="exercise-name">Скажи</div>
+
+
+
+          <div class="exercise-desc">Тренируй произношение</div>
+
+
+
+        </div>
+
+
+
+        <div class="exercise-card" data-ex="match">
+
+
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
+
+
+
+          <div class="exercise-name">Пары</div>
+
+
+
+          <div class="exercise-desc">Соедини фразу и перевод</div>
+
+
+
+        </div>
+
+
+
+        <div class="exercise-card" data-ex="phrase-builder">
+
+
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
+
+
+
+          <div class="exercise-name">Собери фразу</div>
+
+
+
+          <div class="exercise-desc">Составь фразу из слов</div>
+
+
+
+        </div>
+
+
+
+      `;
+
+      const filterLabel = filterRow?.querySelector('label');
+
+      if (filterLabel)
+        filterLabel.innerHTML =
+          '<span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">filter_alt</span>Фразы для практики';
+
+      // Обновляем бейдж "К повторению" для фраз
+
+      updateDueBadge();
     } else {
       // Восстанавливаем сетку для слов
 
@@ -13134,7 +24804,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
-        <div class="exercise-card selected" data-ex="flash">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="exercise-card" data-ex="flash">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13150,7 +24868,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-name">Карточки</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13166,7 +24932,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13182,7 +24996,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">quiz</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13198,6 +25060,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Найди правильный вариант</div>
 
 
@@ -13206,7 +25092,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13222,7 +25156,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">keyboard</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13238,6 +25220,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Введи перевод слова</div>
 
 
@@ -13246,7 +25252,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13262,7 +25316,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">headphones</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13278,6 +25380,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Напиши, что слышишь</div>
 
 
@@ -13286,7 +25412,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13302,7 +25476,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13318,6 +25540,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Тренируй произношение</div>
 
 
@@ -13326,7 +25572,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13342,7 +25636,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13358,6 +25700,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Прослушай и повтори предложение</div>
 
 
@@ -13366,7 +25732,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13382,7 +25796,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13398,6 +25860,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Соедини слово и перевод</div>
 
 
@@ -13406,7 +25892,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13422,7 +25956,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13438,6 +26020,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Составь слово из букв</div>
 
 
@@ -13446,7 +26052,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13462,7 +26116,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-icon"><span class="material-symbols-outlined">psychology</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13478,6 +26180,30 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="exercise-desc">Пойми слово по смыслу</div>
 
 
@@ -13486,7 +26212,55 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13511,6 +26285,12 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
       // Убираем класс practice-idioms
 
       document.body.classList.remove('practice-idioms');
+    }
+
+    if (practiceMode !== 'phrases') {
+      // Убираем класс practice-phrases
+
+      document.body.classList.remove('practice-phrases');
     }
 
     // Обновляем выделение упражнений согласно сохраненным значениям
@@ -13613,10 +26393,14 @@ function updateExamStats() {
 // Функции для управления выбором упражнений
 
 function updateExerciseSelection() {
-  const mode = practiceMode; // 'normal' или 'idioms'
+  const mode = practiceMode; // 'normal', 'idioms' или 'phrases'
 
   const selectedArray =
-    mode === 'idioms' ? selectedIdiomExercises : selectedWordExercises;
+    mode === 'idioms'
+      ? selectedIdiomExercises
+      : mode === 'phrases'
+        ? selectedPhraseExercises
+        : selectedWordExercises;
 
   document.querySelectorAll('.exercise-card').forEach(card => {
     const exType = card.dataset.ex;
@@ -13649,7 +26433,11 @@ function handleExerciseClick(e) {
   playSound('sound/click.mp3', 0.3);
 
   const selectedArray =
-    mode === 'idioms' ? selectedIdiomExercises : selectedWordExercises;
+    mode === 'idioms'
+      ? selectedIdiomExercises
+      : mode === 'phrases'
+        ? selectedPhraseExercises
+        : selectedWordExercises;
 
   const index = selectedArray.indexOf(exType);
 
@@ -13719,6 +26507,30 @@ function startExamTimer(seconds) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <span class="material-symbols-outlined">hourglass_empty</span>
 
 
@@ -13727,7 +26539,55 @@ function startExamTimer(seconds) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <span class="timer-text">${formatTime(seconds)}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -13864,7 +26724,11 @@ function startSession(cfg) {
   // Проверяем, выбрано ли хотя бы одно упражнение
 
   const selectedArray =
-    practiceMode === 'idioms' ? selectedIdiomExercises : selectedWordExercises;
+    practiceMode === 'idioms'
+      ? selectedIdiomExercises
+      : practiceMode === 'phrases'
+        ? selectedPhraseExercises
+        : selectedWordExercises;
 
   if (selectedArray.length === 0) {
     toast('Выберите хотя бы одно упражнение!', 'warning');
@@ -13921,22 +26785,33 @@ function startSession(cfg) {
         'all';
     }
 
-    // 2. Формируем пул данных (слова или идиомы)
+    // 2. Формируем пул данных (слова, идиомы или фразы)
 
-    // Определяем источник данных (слова или идиомы)
+    // Определяем источник данных (слова, идиомы или фразы)
 
-    let dataSource = practiceMode === 'idioms' ? window.idioms : window.words;
+    let dataSource =
+      practiceMode === 'idioms'
+        ? window.idioms
+        : practiceMode === 'phrases'
+          ? window.phrases
+          : window.words;
+
+    console.log('🔍 [DEBUG] practiceMode:', practiceMode);
+
+    console.log('🔍 [DEBUG] dataSource:', dataSource?.length || 0);
 
     let pool = [...dataSource];
 
-    if (practiceMode === 'idioms') {
-      // Для идиом используем упрощенную фильтрацию
+    console.log('🔍 [DEBUG] pool before filter:', pool.length);
+
+    if (practiceMode === 'idioms' || practiceMode === 'phrases') {
+      // Для идиом и фраз используем упрощенную фильтрацию
 
       if (filterVal === 'learning')
         pool = pool.filter(item => !item.stats?.learned);
 
       if (filterVal === 'due') {
-        pool = getCardsToReview(pool); // передаем массив идиом
+        pool = getCardsToReview(pool); // передаем массив
       }
     } else {
       // Для слов сохраняем текущую логику
@@ -13950,8 +26825,17 @@ function startSession(cfg) {
 
     if (filterVal === 'random') pool = pool.sort(() => Math.random() - 0.5);
 
+    console.log('🔍 [DEBUG] pool after filter:', pool.length);
+
+    console.log('🔍 [DEBUG] filterVal:', filterVal);
+
     if (!pool.length) {
-      const itemType = practiceMode === 'idioms' ? 'идиом' : 'слов';
+      const itemType =
+        practiceMode === 'idioms'
+          ? 'идиом'
+          : practiceMode === 'phrases'
+            ? 'фраз'
+            : 'слов';
 
       toast(`Нет ${itemType} для практики`, 'warning');
 
@@ -14120,9 +27004,14 @@ function startSession(cfg) {
 
       dir: dirVal,
 
-      mode: practiceMode, // 'normal' или 'idioms'
+      mode: practiceMode, // 'normal' или 'idioms' или 'phrases'
 
-      dataType: practiceMode, // 'words' или 'idioms'
+      dataType:
+        practiceMode === 'idioms'
+          ? 'idioms'
+          : practiceMode === 'phrases'
+            ? 'phrases'
+            : 'words',
     };
 
     // Сохраняем конфигурацию для повторной сессии
@@ -14178,6 +27067,8 @@ function showResults() {
 
   window.isSessionActive = false;
 
+  window.session = null;
+
   const startBtn = document.getElementById('start-btn');
 
   if (startBtn) {
@@ -14207,7 +27098,9 @@ function showResults() {
 
   const resPct = resTotal > 0 ? Math.round((resCorrect / resTotal) * 100) : 0;
 
-  const isIdiom = window.session && window.session.dataType === 'idioms';
+  const isIdiom = practiceMode === 'idioms';
+
+  const isPhrase = practiceMode === 'phrases';
 
   // ── Время сессии ─────────────────────────────────────────────
 
@@ -14325,13 +27218,47 @@ function showResults() {
   const wrongChips = sResults.wrong
 
     .map((item, i) => {
-      const word = isIdiom ? esc(item.idiom.toLowerCase()) : esc(item.en);
+      let word, trans;
 
-      const trans = isIdiom
-        ? esc(parseAnswerVariants(item.meaning).join(' / '))
-        : esc(parseAnswerVariants(item.ru).join(' / '));
+      if (isIdiom) {
+        word = esc(item.idiom.toLowerCase());
+
+        trans = esc(parseAnswerVariants(item.meaning).join(' / '));
+      } else if (isPhrase) {
+        word = esc(item.phrase);
+
+        trans = esc(item.translation);
+      } else {
+        word = esc(item.en);
+
+        trans = esc(parseAnswerVariants(item.ru).join(' / '));
+      }
 
       return `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14347,7 +27274,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="res-chip-word">${word}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14363,7 +27338,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="res-chip-trans">${trans}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14384,15 +27407,41 @@ function showResults() {
 
   const sessionTypeLabel = isIdiom
     ? 'Идиомы'
-    : window.session?.mode === 'exam'
-      ? 'Экзамен'
-      : 'Слова';
+    : isPhrase
+      ? 'Фразы'
+      : window.session?.mode === 'exam'
+        ? 'Экзамен'
+        : 'Слова';
 
   // ── Блок ошибок / перфект ─────────────────────────────────────
 
   const wrongSection =
     sResults.wrong.length > 0
       ? `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14408,7 +27457,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="res-section-hdr">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14424,7 +27521,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <h4>Ошибки <span class="res-count-badge res-count-badge--wrong">${sResults.wrong.length}</span></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14440,7 +27585,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="res-chips-grid">${wrongChips}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14477,7 +27670,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <div class="res-content-wrapper ${resPct === 100 ? 'perfect-results' : ''}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14493,7 +27734,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="res-hero-inner">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14509,7 +27798,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <svg class="res-ring-svg" viewBox="0 0 128 128">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14525,7 +27862,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <circle class="res-ring-fill" cx="64" cy="64" r="54" stroke-dasharray="0 339.29" id="ring-fill" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14541,7 +27926,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="res-ring-inner">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14557,7 +27990,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             ${resTotal <= 20 ? `<div class="res-ring-pct">${resPct}%</div>` : ''}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14573,7 +28054,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14589,7 +28118,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="res-motiv-title">${motiv.title}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14605,6 +28182,30 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -14613,7 +28214,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14629,7 +28278,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="res-stats-row">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14645,7 +28342,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">schedule</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14661,7 +28406,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14677,7 +28470,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">${isIdiom ? 'theater_comedy' : 'menu_book'}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14693,7 +28534,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14711,7 +28600,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="res-stat-chip res-stat-chip--xp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14727,7 +28664,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           +${xpEarned} XP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14743,9 +28728,57 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       `
           : ''
       }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14763,7 +28796,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="res-stat-chip res-stat-chip--perfect">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14779,6 +28860,30 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           Бонус +10 XP
 
 
@@ -14787,7 +28892,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14805,7 +28958,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14821,7 +29022,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="res-actions">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14837,7 +29086,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <button class="res-action-btn res-action-btn--repeat" id="repeat-btn">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14853,6 +29150,30 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         Ещё раз
 
 
@@ -14861,7 +29182,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14877,7 +29246,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">tune</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14893,7 +29310,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14909,7 +29374,55 @@ function showResults() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15048,6 +29561,8 @@ function resetPracticeToStart() {
 }
 
 function cleanupExercise() {
+  exerciseAudioToken++;
+
   if (currentExerciseTimer) {
     clearInterval(currentExerciseTimer);
 
@@ -15061,6 +29576,14 @@ function cleanupExercise() {
 
     currentRecognition = null;
   }
+
+  if (window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
+  }
+
+  stopCurrentMediaAudio();
 
   window._matchTimerCancel?.();
 
@@ -15148,6 +29671,9 @@ function nextExercise() {
         Math.floor(Math.random() * window.session.exTypes.length)
       ];
 
+    const isIdiom = window.session.dataType === 'idioms';
+    const isPhrase = window.session.dataType === 'phrases';
+
     // Добавляем класс для упражнений с клавиатурой
 
     const practiceEx = document.getElementById('practice-ex');
@@ -15156,6 +29682,24 @@ function nextExercise() {
       practiceEx.classList.add('keyboard-exercise');
     } else {
       practiceEx.classList.remove('keyboard-exercise');
+    }
+
+    // Capture current token for safe audio
+    const currentToken = ++exerciseAudioToken;
+
+    function safeExerciseAudio(fn, delay = 300) {
+      const tokenAtSchedule = currentToken;
+
+      setTimeout(() => {
+        if (!window.session || sIdx >= window.session.items.length) return;
+        if (exerciseAudioToken !== tokenAtSchedule) return;
+
+        try {
+          fn();
+        } catch (e) {
+          console.warn('[AUDIO] safeExerciseAudio error:', e);
+        }
+      }, delay);
     }
 
     // Проверяем поддержку речи
@@ -15189,6 +29733,8 @@ function nextExercise() {
 
       const isIdiom = window.session.dataType === 'idioms';
 
+      const isPhrase = window.session.dataType === 'phrases';
+
       let frontWord, backWord, showRU;
 
       if (isIdiom) {
@@ -15197,6 +29743,21 @@ function nextExercise() {
         backWord = w.meaning;
 
         showRU = false; // ← просто фиксируем значение чтобы шаблон не упал
+      } else if (isPhrase) {
+        const dir = window.session.dir || 'both';
+
+        const showRU =
+          dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
+
+        if (showRU) {
+          frontWord = w.translation;
+
+          backWord = w.phrase;
+        } else {
+          frontWord = w.phrase;
+
+          backWord = w.translation;
+        }
       } else {
         const dir = window.session.dir || 'both';
 
@@ -15231,7 +29792,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="flashcard-scene" id="fc-scene">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15247,7 +29856,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               <div class="card-face front">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15263,15 +29920,70 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   <div class="card-word">${esc(frontWord)}</div>
 
+                  ${frontWord === w.en || (isPhrase && frontWord === w.phrase) ? `<button class="btn-audio" id="fc-audio-btn" title="Proounce"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
 
 
 
 
 
 
-                  ${frontWord === w.en || isIdiom ? `<button class="btn-audio" id="fc-audio-btn" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15287,7 +29999,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15303,6 +30063,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 <div style="display:flex;align-items:center;gap:.75rem;justify-content:center">
 
 
@@ -15311,7 +30095,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   <div class="card-trans">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15331,6 +30163,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   </div>
 
 
@@ -15339,7 +30195,55 @@ function nextExercise() {
 
 
 
-                  ${backWord === w.en || (isIdiom && backWord === w.idiom) ? `<button class="btn-audio" id="fc-audio-btn-back" title="Произнести"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  ${backWord === w.en || (isIdiom && backWord === w.idiom) || (isPhrase && backWord === w.phrase) ? `<button class="btn-audio" id="fc-audio-btn-back" title="Proounce"><span class="material-symbols-outlined">volume_up</span></button>` : ''}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15355,7 +30259,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15371,7 +30323,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15391,8 +30391,13 @@ function nextExercise() {
       } else {
         // Озвучиваем только когда на рубашке английское слово (frontWord === w.en)
 
-        if (autoPron && frontWord === w.en)
-          setTimeout(() => window.speakWord(w), 300);
+        if (autoPron) {
+          if (isPhrase && frontWord === w.phrase) {
+            safeExerciseAudio(() => window.speakPhrase(w));
+          } else if (!isPhrase && frontWord === w.en) {
+            safeExerciseAudio(() => window.speakWord(w));
+          }
+        }
       }
 
       // Изначально скрываем кнопки ответа для карточек
@@ -15428,28 +30433,36 @@ function nextExercise() {
             else speakText(w.idiom);
           });
       } else {
-        if (frontWord === w.en) {
+        if (frontWord === w.en || (isPhrase && frontWord === w.phrase)) {
           const fcAudioBtn = document.getElementById('fc-audio-btn');
 
           if (fcAudioBtn) {
             fcAudioBtn.addEventListener('click', e => {
               e.stopPropagation();
 
-              window.speakWord(w);
+              if (isPhrase) {
+                window.speakPhrase(w);
+              } else {
+                window.speakWord(w);
+              }
             });
           }
         }
 
         // Добавляем обработку для кнопки на обратной стороне
 
-        if (backWord === w.en) {
+        if (backWord === w.en || (isPhrase && backWord === w.phrase)) {
           const fcAudioBtnBack = document.getElementById('fc-audio-btn-back');
 
           if (fcAudioBtnBack) {
             fcAudioBtnBack.addEventListener('click', e => {
               e.stopPropagation();
 
-              window.speakWord(w);
+              if (isPhrase) {
+                window.speakPhrase(w);
+              } else {
+                window.speakWord(w);
+              }
             });
           }
         }
@@ -15481,7 +30494,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <div class="flash-answer-btns">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15497,6 +30558,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined">close</span> Не знаю
 
 
@@ -15505,7 +30590,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15521,7 +30654,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined">check</span> Знаю
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15537,12 +30718,40 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   </div>`;
 
               // Автоозвучивание при перевороте на английскую сторону
 
-              if (autoPron && backWord === w.en && !isIdiom) {
-                setTimeout(() => window.speakWord(w), 300);
+              if (autoPron && !isIdiom && !isPhrase) {
+                if (backWord === w.en) {
+                  safeExerciseAudio(() => window.speakWord(w));
+                }
+              } else if (autoPron && isPhrase && backWord === w.phrase) {
+                safeExerciseAudio(() => window.speakPhrase(w));
               }
 
               // Для идиом не озвучиваем при перевороте, т.к. на обороте русский перевод
@@ -15592,6 +30801,8 @@ function nextExercise() {
 
       const isIdiom = window.session.dataType === 'idioms';
 
+      const isPhrase = window.session.dataType === 'phrases';
+
       // Объявляем field для использования в дистракторах
 
       const field = isIdiom
@@ -15607,6 +30818,7 @@ function nextExercise() {
 
       const isRUEN =
         !isIdiom &&
+        !isPhrase &&
         (dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5));
 
       let question, correctFull;
@@ -15626,6 +30838,18 @@ function nextExercise() {
           question = w.idiom.toLowerCase();
 
           correctFull = w.meaning;
+        }
+      } else if (isPhrase) {
+        // Для фраз используем поля phrase/translation
+
+        if (isRUEN) {
+          question = w.translation;
+
+          correctFull = w.phrase;
+        } else {
+          question = w.phrase;
+
+          correctFull = w.translation;
         }
       } else {
         // Для слов используем стандартную логику
@@ -15652,7 +30876,11 @@ function nextExercise() {
 
       // --- Сбор дистракторов ---
 
-      let dataSource = isIdiom ? window.idioms : window.words;
+      let dataSource = isIdiom
+        ? window.idioms
+        : isPhrase
+          ? window.phrases
+          : window.words;
 
       let otherWords = dataSource.filter(x => x.id !== w.id);
 
@@ -15663,6 +30891,8 @@ function nextExercise() {
 
           if (isIdiom) {
             trans = field === 'definition' ? x.idiom.toLowerCase() : x.meaning;
+          } else if (isPhrase) {
+            trans = isRUEN ? x.phrase : x.translation;
           } else {
             // ⚠️ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ:
 
@@ -15737,7 +30967,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="mc-question">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15753,6 +31031,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             ${!isRUEN && !(isIdiom && field === 'definition') ? '' : ''}
 
 
@@ -15761,7 +31063,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15777,6 +31127,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             ${options.map(o => `<button class="mc-btn" data-id="${o.id}">${esc(o.text)}</button>`).join('')}
 
 
@@ -15785,7 +31159,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15843,7 +31265,11 @@ function nextExercise() {
               if (isIdiom) {
                 if (w.audio) playIdiomAudio(w.audio);
                 else speakText(w.idiom);
-              } else window.speakWord(w);
+              } else if (isPhrase) {
+                window.speakPhrase(w);
+              } else {
+                window.speakWord(w);
+              }
             }
 
             if (ok) {
@@ -15852,7 +31278,11 @@ function nextExercise() {
               if (isIdiom) {
                 if (w.audio) playIdiomAudio(w.audio);
                 else speakText(w.idiom);
-              } else window.speakWord(w);
+              } else if (isPhrase) {
+                window.speakPhrase(w);
+              } else {
+                window.speakWord(w);
+              }
             }
 
             setTimeout(
@@ -15895,6 +31325,8 @@ function nextExercise() {
 
       const isIdiom = window.session.dataType === 'idioms';
 
+      const isPhrase = window.session.dataType === 'phrases';
+
       let question, answer;
 
       let isRUEN = false; // ← добавь эту строку
@@ -15903,6 +31335,14 @@ function nextExercise() {
         question = w.meaning; // показываем перевод
 
         answer = w.idiom.toLowerCase(); // нужно написать идиому
+      } else if (isPhrase) {
+        const dir = window.session.dir || 'both';
+
+        isRUEN = dir === 'ru-en' || (dir === 'both' && Math.random() > 0.5);
+
+        question = isRUEN ? w.translation : w.phrase;
+
+        answer = isRUEN ? w.phrase : w.translation;
       } else {
         const dir = window.session.dir || 'both';
 
@@ -15916,11 +31356,39 @@ function nextExercise() {
       // Автоозвучка для EN→RU
 
       if (autoPron && !isRUEN && speechSupported) {
-        setTimeout(() => window.speakWord(w), 300);
+        if (isPhrase) {
+          safeExerciseAudio(() => window.speakPhrase(w));
+        } else {
+          safeExerciseAudio(() => window.speakWord(w));
+        }
       }
 
       if (exContent) {
         exContent.innerHTML = `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15936,7 +31404,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="ta-prompt">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15954,7 +31470,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
              <span class="material-symbols-outlined">volume_up</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15972,7 +31536,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -15988,7 +31600,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <input type="text" class="form-control" id="ta-input"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16004,6 +31664,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         autocomplete="off" autocorrect="off" spellcheck="false">
 
 
@@ -16012,7 +31696,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16028,7 +31760,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <button class="btn-pill btn-pill--secondary" id="ta-submit">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16044,7 +31824,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16060,7 +31888,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16080,7 +31956,11 @@ function nextExercise() {
           taAudioBtn.addEventListener('click', e => {
             e.stopPropagation();
 
-            window.speakWord(w);
+            if (isPhrase) {
+              window.speakPhrase(w);
+            } else {
+              window.speakWord(w);
+            }
           });
         }
       }
@@ -16145,7 +32025,11 @@ function nextExercise() {
               if (isIdiom) {
                 if (w.audio) playIdiomAudio(w.audio);
                 else speakText(w.idiom);
-              } else window.speakWord(w);
+              } else if (isPhrase) {
+                window.speakPhrase(w);
+              } else {
+                window.speakWord(w);
+              }
 
               playSound('correct');
             } else {
@@ -16195,7 +32079,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <div class="ta-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16211,7 +32143,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <button class="btn-icon btn-secondary" id="dict-replay">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16227,6 +32207,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
 
 
@@ -16235,7 +32239,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16251,7 +32303,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <input type="text" id="dict-input"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16267,6 +32367,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         autocomplete="off" autocorrect="off" spellcheck="false">
 
 
@@ -16275,7 +32399,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16291,7 +32463,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <button class="btn-pill btn-pill--secondary" id="dict-submit">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16307,7 +32527,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16323,7 +32591,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16334,7 +32650,17 @@ function nextExercise() {
         `;
       }
 
-      setTimeout(() => window.speakWord(w), 200);
+      if (isPhrase) {
+        safeExerciseAudio(() => window.speakPhrase(w), 200);
+        const answerVariants = parseAnswerVariants(w.phrase).map(v =>
+          v.replace(/["'`]/g, '').toLowerCase(),
+        );
+      } else {
+        safeExerciseAudio(() => window.speakWord(w), 200);
+        const answerVariants = parseAnswerVariants(w.en).map(v =>
+          v.replace(/["'`]/g, '').toLowerCase(),
+        );
+      }
 
       const dictInput = document.getElementById('dict-input');
 
@@ -16343,7 +32669,8 @@ function nextExercise() {
       const dictReplay = document.getElementById('dict-replay');
 
       if (dictReplay) {
-        dictReplay.onclick = () => window.speakWord(w);
+        dictReplay.onclick = () =>
+          isPhrase ? window.speakPhrase(w) : window.speakWord(w);
       }
 
       if (dictInput) {
@@ -16361,9 +32688,13 @@ function nextExercise() {
 
             const normalizedVal = normalizeRussian(val);
 
-            const answerVariants = parseAnswerVariants(w.en).map(v =>
-              v.replace(/["'`]/g, '').toLowerCase(),
-            );
+            const answerVariants = isPhrase
+              ? parseAnswerVariants(w.phrase).map(v =>
+                  v.replace(/["'`]/g, '').toLowerCase(),
+                )
+              : parseAnswerVariants(w.en).map(v =>
+                  v.replace(/["'`]/g, '').toLowerCase(),
+                );
 
             const ok = answerVariants.some(v =>
               checkAnswerWithNormalization(normalizedVal, v),
@@ -16423,6 +32754,15 @@ function nextExercise() {
           });
         }
       }
+    } else if (t === 'phrase-builder') {
+      runPhraseBuilderExercise(
+        w,
+        () => {
+          sIdx++;
+          nextExercise();
+        },
+        t,
+      );
     } else if (t === 'builder') {
       if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
 
@@ -16435,13 +32775,10 @@ function nextExercise() {
         exCounter.textContent = `${sIdx + 1} / ${window.session.items.length}`;
       }
 
-      const word = w.en
-
+      const word = (w.en || w.phrase || '')
         .toLowerCase()
-
         .replace(/[^a-z]/g, '')
-
-        .replace(/["'`]/g, ''); // только буквы, апострофы как отдельные символы
+        .replace(/["'`]/g, ''); // only letters, apostrophes as separate symbols
 
       const letters = word.split('');
 
@@ -16449,6 +32786,30 @@ function nextExercise() {
 
       if (exContent) {
         exContent.innerHTML = `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16464,7 +32825,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="builder-question">${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16480,7 +32889,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="builder-letters-container">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16496,7 +32953,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16512,7 +33017,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16528,7 +33081,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <button class="btn-pill btn-pill--secondary" id="builder-hint-btn">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16544,6 +33145,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   </button>
 
 
@@ -16552,7 +33177,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16903,18 +33576,47 @@ function nextExercise() {
         exCounter.textContent = `${sIdx + 1} / ${window.session.items.length}`;
       }
 
-      const promptWord = w.en
-
-        .replace(/\([^)]*\)/g, '')
-
-        .replace(/\s+/g, ' ')
-
-        .trim();
-
-      const expectedWord = promptWord;
+      let promptWord, expectedWord;
+      if (isPhrase) {
+        promptWord = w.phrase
+          .replace(/\([^)]*\)/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        expectedWord = promptWord;
+      } else {
+        promptWord = w.en
+          .replace(/\([^)]*\)/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        expectedWord = promptWord;
+      }
 
       if (exContent) {
         exContent.innerHTML = `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16930,7 +33632,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="speech-prompt">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16946,7 +33696,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 <div class="speech-word">${esc(promptWord)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16962,7 +33760,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   <span class="material-symbols-outlined">volume_up</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16978,7 +33824,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16994,6 +33888,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 ${esc(w.ru)}
 
 
@@ -17002,7 +33920,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17018,7 +33984,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17034,7 +34048,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               <div class="mic-visualizer" id="mic-visualizer">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17050,7 +34112,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17066,7 +34176,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 <span class="material-symbols-outlined">mic</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17082,7 +34240,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17098,6 +34304,30 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         `;
       }
 
@@ -17106,14 +34336,21 @@ function nextExercise() {
       const startBtn = document.getElementById('speech-start-btn');
 
       // Автоматическая озвучка
-
       setTimeout(() => {
-        window.speakWord(w);
+        if (isPhrase) {
+          window.speakPhrase(w);
+        } else {
+          window.speakWord(w);
+        }
       }, 500);
 
       if (replayBtn) {
         replayBtn.addEventListener('click', () => {
-          window.speakWord(w);
+          if (isPhrase) {
+            window.speakPhrase(w);
+          } else {
+            window.speakWord(w);
+          }
         });
       }
 
@@ -17361,7 +34598,55 @@ function nextExercise() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <span class="material-symbols-outlined">skip_next</span> Пропустить
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17392,6 +34677,8 @@ function nextExercise() {
 
             startBtn.style.display = 'flex';
 
+            playSound('wrong');
+
             recordAnswer(false, t);
 
             sIdx++;
@@ -17403,6 +34690,18 @@ function nextExercise() {
       try {
         if (window.session.dataType === 'idioms') {
           runIdiomMatchExercise(
+            window.session.items.slice(sIdx, sIdx + 6),
+
+            elapsed => {
+              sIdx++;
+
+              nextExercise();
+            },
+
+            t,
+          );
+        } else if (window.session.dataType === 'phrases') {
+          runPhraseMatchExercise(
             window.session.items.slice(sIdx, sIdx + 6),
 
             elapsed => {
@@ -17512,7 +34811,7 @@ function updIdiomStats(idiomId, correct, exerciseType) {
 
       easeFactor: 2.5,
 
-      correctExerciseTypes: [], // добавим на всякий случай
+      correctExerciseTypes: [],
     };
   }
 
@@ -17596,59 +34895,54 @@ function updIdiomStats(idiomId, correct, exerciseType) {
 
   // Mark idiom for synchronization with server
 
-  markIdiomDirty(id);
+  markIdiomDirty(idiomId);
 }
 
 function recordAnswer(correct, exerciseType) {
-  // Увеличиваем дневной счётчик
+  const currentItem = window.session.items[sIdx];
+  if (!currentItem) {
+    console.error('recordAnswer: no element at index', sIdx);
+    return;
+  }
 
+  // Increase daily counter
   incrementDailyCount();
 
-  // Останавливаем и удаляем таймер если он есть
-
+  // Stop and remove timer if exists
   if (currentExerciseTimer) {
     clearInterval(currentExerciseTimer);
-
     currentExerciseTimer = null;
   }
 
-  // Используем сохраненный таймер из session для надежности
-
+  // Use saved timer from session for reliability
   const timerEl =
     window.session.currentTimerEl || document.getElementById('exercise-timer');
 
   if (timerEl) {
     timerEl.remove();
-
-    window.session.currentTimerEl = null; // Очищаем ссылку
+    window.session.currentTimerEl = null; // Clear reference
   }
 
-  // Звук больше не нужен в recordAnswer - все звуки играют напрямую в упражнениях
+  // Sound no longer needed in recordAnswer - all sounds play directly in exercises
 
-  // Используем соответствующую функцию статистики
-
+  // Use appropriate stats function
   if (window.session.dataType === 'idioms') {
-    updIdiomStats(window.session.items[sIdx].id, correct, exerciseType);
+    updIdiomStats(currentItem.id, correct, exerciseType);
+  } else if (window.session.dataType === 'phrases') {
+    updPhraseStats(currentItem.id, correct, exerciseType);
   } else {
-    updStats(window.session.items[sIdx].id, correct, exerciseType);
+    updStats(currentItem.id, correct, exerciseType);
   }
-
-  updStreak();
-
-  // Обновляем прогресс челленджей для practice_time
 
   if (window.currentUserId && window.updateAllChallengesProgress) {
     window.updateAllChallengesProgress(
       window.currentUserId,
-
       'practice_time',
-
       1,
     );
   }
 
   // В режиме экзамена подсчитываем отвеченные вопросы
-
   if (practiceMode === 'exam') {
     window.session.questionsAnswered++;
 
@@ -17659,18 +34953,14 @@ function recordAnswer(correct, exerciseType) {
     }
 
     // Проверяем, отвечены ли все вопросы
-
     if (window.session.questionsAnswered >= window.session.questionsTotal) {
       // Все вопросы отвечены — завершаем экзамен
-
       finishExam();
-
       return;
     }
   }
 
   // Обычный режим - существующая логика
-
   if (correct) sResults.correct.push(window.session.items[sIdx]);
   else sResults.wrong.push(window.session.items[sIdx]);
 
@@ -17817,7 +35107,55 @@ function spawnGoodConfetti() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           left:${x}vw;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17833,7 +35171,55 @@ function spawnGoodConfetti() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           width:4px;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17849,7 +35235,55 @@ function spawnGoodConfetti() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           background:#FFD700;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17865,7 +35299,55 @@ function spawnGoodConfetti() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           animation:confettiBurst 1s ease-out forwards;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17959,7 +35441,55 @@ let addedBankWordEn = new Set(); // слова, которые пользова�
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  * Получить случайное слово из банка, исключая уже показанные и добавленные
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17983,7 +35513,55 @@ async function getRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  * Отрисовать блок со случайным словом из банка
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17994,6 +35572,10 @@ async function getRandomBankWord() {
  */
 
 async function renderRandomBankWord() {
+  // Не рендерим, если профиль ещё не загружен
+
+  if (!window.profileFullyLoaded) return;
+
   const wrap = document.getElementById('wotd-wrap');
 
   if (!wrap) return;
@@ -18033,7 +35615,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="word-bank-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18049,7 +35679,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="word-bank-label">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18065,6 +35743,30 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           Рекомендуемое слово
 
 
@@ -18073,7 +35775,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18089,7 +35839,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="word-bank-en">${esc(word.en)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18105,7 +35903,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">volume_up</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18121,7 +35967,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18137,6 +36031,30 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${word.tags?.length ? `<div class="word-bank-tags">${word.tags.map(tag => `<span class="tag">${esc(formatTag(tag))}</span>`).join('')}</div>` : ''}
 
 
@@ -18145,7 +36063,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18161,7 +36127,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="word-bank-nav">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18177,7 +36191,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18193,6 +36255,30 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -18201,7 +36287,55 @@ async function renderRandomBankWord() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18254,13 +36388,25 @@ async function renderRandomBankWord() {
 
       // Проигрываем аудио и по окончании возвращаем кнопку
 
-      window.speakWord(word, () => {
-        if (wave.parentNode && wave._originalBtn) {
-          wave.parentNode.replaceChild(wave._originalBtn, wave);
+      if (word.phrase) {
+        window.speakPhrase(word);
 
-          wave._originalBtn.style.display = ''; // возвращаем видимость
-        }
-      });
+        setTimeout(() => {
+          if (wave.parentNode && wave._originalBtn) {
+            wave.parentNode.replaceChild(wave._originalBtn, wave);
+
+            wave._originalBtn.style.display = '';
+          }
+        }, 1000);
+      } else {
+        window.speakWord(word, () => {
+          if (wave.parentNode && wave._originalBtn) {
+            wave.parentNode.replaceChild(wave._originalBtn, wave);
+
+            wave._originalBtn.style.display = ''; // возвращаем видимость
+          }
+        });
+      }
     });
   }
 
@@ -18347,9 +36493,14 @@ async function renderRandomBankWord() {
         currentBankWord.audio, // ← добавить
 
         currentBankWord.examplesAudio, // ← добавить
+
+        currentBankWord.grammar, // грамматика с коллокациями
       );
 
       window.words.unshift(newWord);
+
+      // Создаем фразы из коллокаций всех слов
+      buildPhrasesFromWords();
 
       // === ОБНОВЛЕНИЕ ЕЖЕДНЕВНЫХ ЦЕЛЕЙ ===
 
@@ -18521,7 +36672,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="word-bank-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18537,7 +36736,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="word-bank-label">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18553,6 +36800,30 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           Рекомендуемая идиома
 
 
@@ -18561,7 +36832,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18577,7 +36896,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="word-bank-en">${esc(idiom.idiom).toLowerCase()}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18593,7 +36960,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">volume_up</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18609,7 +37024,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18625,6 +37088,30 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${idiom.tags?.length ? `<div class="word-bank-tags">${idiom.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
 
 
@@ -18633,7 +37120,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18649,7 +37184,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="word-bank-nav">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18665,7 +37248,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">chevron_right</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18681,7 +37312,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18697,7 +37376,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">add</span> Добавить
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18713,6 +37440,30 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -18721,7 +37472,55 @@ async function renderRandomBankIdiom() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18911,7 +37710,55 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="match-timer" id="match-timer">0.0s</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18927,7 +37774,55 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="match-grid" id="match-grid"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -18988,7 +37883,7 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
     enBtn.dataset.side = 'en';
 
-    enBtn.textContent = enW.en;
+    enBtn.textContent = enW.en || enW.phrase || '';
 
     const ruBtn = document.createElement('button');
 
@@ -18998,7 +37893,7 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
     ruBtn.dataset.side = 'ru';
 
-    ruBtn.textContent = ruW.ru;
+    ruBtn.textContent = ruW.ru || ruW.translation || '';
 
     grid.appendChild(enBtn);
 
@@ -19148,7 +38043,55 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="match-timer" id="match-timer">0.0s</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19164,7 +38107,55 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="match-grid" id="match-grid"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19368,6 +38359,8 @@ function runContextExercise(item, onComplete, exerciseType) {
 
   const isIdiom = window.session.dataType === 'idioms';
 
+  const isPhrase = window.session.dataType === 'phrases';
+
   if (exTypeLbl) {
     exTypeLbl.innerHTML =
       '<span class="material-symbols-outlined">psychology</span> Контекст';
@@ -19407,6 +38400,14 @@ function runContextExercise(item, onComplete, exerciseType) {
     exampleTranslation = item.example_translation || '';
 
     correctAnswer = item.idiom;
+  } else if (isPhrase) {
+    // Для фраз используем example/exampleTranslation если есть, иначе саму фразу
+
+    exampleText = item.example || item.phrase || '';
+
+    exampleTranslation = item.exampleTranslation || item.translation || '';
+
+    correctAnswer = item.phrase;
   } else {
     exampleText = item.ex || '';
 
@@ -19437,7 +38438,55 @@ function runContextExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="context-exercise">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19453,7 +38502,55 @@ function runContextExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="context-text" onclick="this.nextElementSibling.style.display='block'; this.style.background='transparent'; this.onmouseover=null; this.onmouseout=null;" style="cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s;" title="Нажмите для перевода" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19469,7 +38566,55 @@ function runContextExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19485,7 +38630,55 @@ function runContextExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ${esc(exampleTranslation)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19501,7 +38694,55 @@ function runContextExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19517,7 +38758,55 @@ function runContextExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19534,7 +38823,12 @@ function runContextExercise(item, onComplete, exerciseType) {
 
     btn.className = 'context-option-btn';
 
-    btn.textContent = (isIdiom ? option.idiom : option.en).toLowerCase();
+    let displayText;
+    if (isIdiom) displayText = option.idiom;
+    else if (isPhrase) displayText = option.phrase;
+    else displayText = option.en;
+
+    btn.textContent = displayText.toLowerCase();
 
     btn.dataset.id = option.id;
 
@@ -19589,6 +38883,8 @@ function runContextExercise(item, onComplete, exerciseType) {
         if (isIdiom) {
           if (item.audio) playIdiomAudio(item.audio);
           else speakText(item.idiom);
+        } else if (isPhrase) {
+          window.speakPhrase(item);
         } else {
           window.speakWord(item);
         }
@@ -19609,7 +38905,55 @@ function runContextExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <span class="material-symbols-outlined">skip_next</span> Пропустить
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19620,6 +38964,7 @@ function runContextExercise(item, onComplete, exerciseType) {
 </button>`;
 
     document.getElementById('context-skip')?.addEventListener('click', () => {
+      playSound('wrong');
       recordAnswer(false, exerciseType);
 
       onComplete();
@@ -19627,42 +38972,215 @@ function runContextExercise(item, onComplete, exerciseType) {
   }
 }
 
-function runSpeechSentenceExercise(word, onComplete, exerciseType) {
+function runPhraseMatchExercise(items, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');
-
   const btns = document.getElementById('ex-btns');
-
-  const exTypeLbl = document.getElementById('ex-type-lbl');
-
-  const exCounter = document.getElementById('ex-counter');
-
-  if (exTypeLbl) {
-    exTypeLbl.innerHTML =
-      '<span class="material-symbols-outlined">record_voice_over</span> Фраза';
-  }
-
-  if (exCounter) {
-    exCounter.textContent = `${sIdx + 1} / ${window.session.items.length}`;
-  }
-
-  const hasExample = word.ex && word.ex.trim().length > 0;
-
-  const promptText = hasExample ? word.ex : word.en;
-
-  const expectedWord = promptText
-
-    .replace(/\([^)]*\)/g, '')
-
-    .replace(/\s+/g, ' ')
-
-    .trim();
-
-  const exampleTranslation =
-    hasExample && word.examples && word.examples[0]
-      ? word.examples[0].translation
-      : null;
+  btns.innerHTML = '';
+  document.getElementById('ex-type-lbl').innerHTML =
+    '<span class="material-symbols-outlined">extension</span> Сопоставь фразу и перевод';
 
   content.innerHTML = `
+    <div class="match-timer" id="match-timer">0.0s</div>
+    <div class="match-progress" id="match-progress"></div>
+    <div class="match-grid" id="match-grid"></div>
+  `;
+
+  const timerEl = document.getElementById('match-timer');
+  const progressEl = document.getElementById('match-progress');
+  const grid = document.getElementById('match-grid');
+
+  let startTime = Date.now();
+  const wordsCount = Math.min(items.length, 6);
+  const currentItems = items.slice(0, wordsCount);
+  progressEl.textContent = `Найди ${wordsCount} пар`;
+
+  let timerRunning = true;
+  function updateTimer() {
+    if (!timerRunning) return;
+    timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+    requestAnimationFrame(updateTimer);
+  }
+  requestAnimationFrame(updateTimer);
+  window._matchTimerCancel = () => {
+    timerRunning = false;
+  };
+
+  // Левая колонка – английские фразы, правая – переводы (перемешаны)
+  const leftItems = [...currentItems];
+  const rightItems = [...currentItems].sort(() => Math.random() - 0.5);
+
+  grid.innerHTML = '';
+  for (let i = 0; i < currentItems.length; i++) {
+    const left = leftItems[i];
+    const right = rightItems[i];
+
+    const leftBtn = document.createElement('button');
+    leftBtn.className = 'match-btn';
+    leftBtn.dataset.id = left.id;
+    leftBtn.dataset.side = 'left';
+    leftBtn.textContent = left.phrase.toLowerCase();
+
+    const rightBtn = document.createElement('button');
+    rightBtn.className = 'match-btn';
+    rightBtn.dataset.id = right.id;
+    rightBtn.dataset.side = 'right';
+    rightBtn.textContent = right.translation.toLowerCase();
+
+    grid.appendChild(leftBtn);
+    grid.appendChild(rightBtn);
+  }
+
+  let matchedInRound = 0;
+  const totalInRound = currentItems.length;
+  let selected = null;
+
+  function clickHandler(e) {
+    const btn = e.target.closest('.match-btn');
+    if (!btn || btn.disabled || btn.classList.contains('correct')) return;
+
+    const side = btn.dataset.side;
+    const id = btn.dataset.id;
+
+    // Отмена выбора
+    if (selected && selected.element === btn) {
+      selected.element.classList.remove('selected');
+      selected = null;
+      return;
+    }
+
+    if (!selected) {
+      btn.classList.add('selected');
+      selected = { id, side, element: btn };
+      return;
+    }
+
+    // Проверка пары
+    if (selected.id === id && selected.side !== side) {
+      playSound('correct');
+      matchedInRound++;
+
+      const matchedBtn1 = btn;
+      const matchedBtn2 = selected.element;
+
+      btn.classList.add('correct');
+      btn.disabled = true;
+      selected.element.classList.add('correct');
+      selected.element.disabled = true;
+
+      // Обновляем статистику фразы
+      updPhraseStats(id, true, exerciseType);
+      sResults.correct.push(currentItems.find(i => i.id === id));
+
+      selected = null;
+
+      setTimeout(() => {
+        matchedBtn1.classList.add('match-fade-out');
+        matchedBtn2.classList.add('match-fade-out');
+      }, 280);
+      setTimeout(() => {
+        matchedBtn1.style.visibility = 'hidden';
+        matchedBtn2.style.visibility = 'hidden';
+      }, 600);
+
+      if (matchedInRound === totalInRound) {
+        if (window._matchTimerCancel) window._matchTimerCancel();
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        setTimeout(() => onComplete(elapsed), 600);
+      }
+    } else {
+      playSound('wrong');
+      btn.classList.add('wrong');
+      selected.element.classList.add('wrong');
+
+      updPhraseStats(selected.id, false, exerciseType);
+      sResults.wrong.push(currentItems.find(i => i.id === selected.id));
+
+      setTimeout(() => {
+        btn.classList.remove('wrong');
+        if (selected) {
+          selected.element.classList.remove('wrong', 'selected');
+          selected = null;
+        }
+      }, 400);
+    }
+  }
+
+  grid.addEventListener('click', clickHandler);
+}
+
+function runSpeechSentenceExercise(word, onComplete, exerciseType) {
+  const content = document.getElementById('ex-content');
+  const btns = document.getElementById('ex-btns');
+  const exTypeLbl = document.getElementById('ex-type-lbl');
+  const exCounter = document.getElementById('ex-counter');
+  const isPhrase = window.session.dataType === 'phrases';
+  const isIdiom = window.session.dataType === 'idioms';
+
+  if (exTypeLbl)
+    exTypeLbl.innerHTML =
+      '<span class="material-symbols-outlined">record_voice_over</span> Phrase';
+  if (exCounter)
+    exCounter.textContent = `${sIdx + 1} / ${window.session.items.length}`;
+
+  // Define text and audio based on type
+  let promptText = '';
+  let exampleTranslation = '';
+  let audioFile = null;
+  let hasExample = false;
+
+  if (isPhrase) {
+    promptText = word.phrase;
+    if (word.example) {
+      promptText = word.example;
+      hasExample = true;
+    }
+    exampleTranslation = word.exampleTranslation || '';
+    audioFile = word.audio;
+  } else if (isIdiom) {
+    promptText = word.idiom;
+    if (word.example) {
+      promptText = word.example;
+      hasExample = true;
+    }
+    exampleTranslation = word.example_translation || '';
+    audioFile = word.audio;
+  } else {
+    hasExample = word.ex && word.ex.trim().length > 0;
+    promptText = hasExample ? word.ex : word.en;
+    exampleTranslation =
+      hasExample && word.examples && word.examples[0]
+        ? word.examples[0].translation
+        : null;
+    audioFile = word.audio;
+  }
+
+  const expectedWord = promptText
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  content.innerHTML = `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19678,7 +39196,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="speech-prompt">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19694,7 +39260,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="speech-word speech-sentence">${esc(promptText)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19710,7 +39324,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">volume_up</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19726,6 +39388,30 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -19734,7 +39420,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
-        <div class="speech-hint">${!hasExample ? 'Прослушайте слово, затем повторите его' : ''}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="speech-hint">${!isPhrase && !isIdiom && !hasExample ? 'Прослушайте слово, затем повторите его' : ''}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19750,7 +39484,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ${!hasExample ? `${parseAnswerVariants(word.ru).join(', ') || esc(word.ru)}` : exampleTranslation ? `${esc(exampleTranslation)}` : ''}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19766,7 +39548,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19782,7 +39612,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="mic-visualizer" id="speech-sentence-visualizer">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19798,7 +39676,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19814,7 +39740,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">mic</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19830,6 +39804,30 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -19838,7 +39836,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19857,14 +39903,22 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
   // Автоматическая озвучка при запуске упражнения
 
   setTimeout(() => {
-    if (hasExample && word.examplesAudio && word.examplesAudio.length > 0) {
-      // Если есть пример с аудио - используем его
-
+    if (
+      hasExample &&
+      !isPhrase &&
+      !isIdiom &&
+      word.examplesAudio &&
+      word.examplesAudio.length > 0
+    ) {
+      // If there's an example with audio - use it
       window.playExampleAudio(word);
     } else {
-      // Иначе озвучиваем как обычное слово
-
-      window.speakWord(word);
+      // Otherwise, voice as a normal word or phrase
+      if (isPhrase) {
+        window.speakPhrase(word);
+      } else {
+        window.speakWord(word);
+      }
     }
   }, 1000);
 
@@ -19872,14 +39926,24 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
   if (replayBtn) {
     replayBtn.addEventListener('click', () => {
-      if (hasExample && word.examplesAudio && word.examplesAudio.length > 0) {
+      if (
+        hasExample &&
+        !isPhrase &&
+        !isIdiom &&
+        word.examplesAudio &&
+        word.examplesAudio.length > 0
+      ) {
         // Если есть пример с аудио - используем его
 
         window.playExampleAudio(word);
       } else {
-        // Иначе озвучиваем как обычное слово
+        // Иначе озвучиваем как обычное слово или фразу
 
-        window.speakWord(word);
+        if (isPhrase) {
+          window.speakPhrase(word);
+        } else {
+          window.speakWord(word);
+        }
       }
     });
   }
@@ -20154,7 +40218,55 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <span class="material-symbols-outlined">skip_next</span> Пропустить
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20188,6 +40300,8 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
         if (visualizer) {
           visualizer.classList.remove('active');
         }
+
+        playSound('wrong');
 
         recordAnswer(false, exerciseType);
 
@@ -20224,7 +40338,55 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="builder-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20240,7 +40402,55 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="builder-answer" id="idiom-builder-answer"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20256,7 +40466,55 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="builder-letters" id="idiom-builder-words"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20272,7 +40530,55 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20288,7 +40594,55 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <button class="btn-pill btn-pill--secondary" id="idiom-builder-hint-btn">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20304,6 +40658,30 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
 
 
@@ -20312,7 +40690,55 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20630,6 +41056,220 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
   // Убираем кнопку пропуска - не нужна как в собери слово
 }
 
+function runPhraseBuilderExercise(item, onComplete, exerciseType) {
+  const content = document.getElementById('ex-content');
+  const btns = document.getElementById('ex-btns');
+  const exTypeLbl = document.getElementById('ex-type-lbl');
+  const exCounter = document.getElementById('ex-counter');
+
+  exTypeLbl.innerHTML =
+    '<span class="material-symbols-outlined">construction</span> Собери фразу';
+  exCounter.textContent = `${sIdx + 1} / ${window.session.items.length}`;
+
+  const phrase = item.phrase.toLowerCase(); // "just finished"
+  const words = phrase.split(' '); // ["just", "finished"]
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+
+  content.innerHTML = `
+    <div class="builder-card">
+      <div class="builder-question">${esc(item.translation)}</div>
+      <div class="builder-answer" id="phrase-builder-answer"></div>
+      <div class="builder-letters-container">
+        <div class="builder-letters" id="phrase-builder-words"></div>
+      </div>
+    </div>
+    <div class="builder-controls">
+      <button class="btn-pill btn-pill--secondary" id="phrase-builder-hint-btn">
+        <span class="material-symbols-outlined">lightbulb</span> Подсказка
+      </button>
+    </div>
+  `;
+  const answerContainer = document.getElementById('phrase-builder-answer');
+  const wordsContainer = document.getElementById('phrase-builder-words');
+
+  // Создаём пустые ячейки для ответа
+  for (let i = 0; i < words.length; i++) {
+    const placeholder = document.createElement('span');
+    placeholder.className = 'builder-answer-letter placeholder';
+    placeholder.dataset.index = i;
+    answerContainer.appendChild(placeholder);
+  }
+
+  // Создаём кнопки для слов
+  shuffled.forEach((word, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'builder-letter';
+    btn.textContent = word;
+    btn.dataset.word = word;
+    btn.dataset.index = index;
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      const firstPlaceholder = answerContainer.querySelector(
+        '.builder-answer-letter.placeholder',
+      );
+      if (!firstPlaceholder) return;
+
+      firstPlaceholder.classList.remove('placeholder');
+      firstPlaceholder.textContent = word;
+      firstPlaceholder.style.cursor = 'pointer';
+      firstPlaceholder.title = 'Нажмите, чтобы убрать';
+      firstPlaceholder.dataset.word = word;
+      btn.disabled = true;
+      btn.style.visibility = 'hidden';
+
+      // Добавляем возможность убрать слово кликом на ячейку
+      firstPlaceholder.addEventListener('click', function removeHandler() {
+        if (!firstPlaceholder.classList.contains('placeholder')) {
+          const targetBtn = Array.from(wordsContainer.children).find(
+            b => b.dataset.word === word && b.disabled,
+          );
+          if (targetBtn) {
+            targetBtn.disabled = false;
+            targetBtn.style.visibility = 'visible';
+          }
+          firstPlaceholder.classList.add('placeholder');
+          firstPlaceholder.textContent = '';
+          firstPlaceholder.style.cursor = 'default';
+          firstPlaceholder.title = '';
+          delete firstPlaceholder.dataset.word;
+          firstPlaceholder.removeEventListener('click', removeHandler);
+        }
+        checkAnswer();
+      });
+      checkAnswer();
+    });
+    wordsContainer.appendChild(btn);
+  });
+
+  function checkAnswer() {
+    const current = Array.from(answerContainer.children)
+      .map(el => el.textContent)
+      .join(' ');
+    const normalizedCurrent = current.toLowerCase().trim();
+    const normalizedPhrase = phrase.toLowerCase().trim();
+
+    if (normalizedCurrent === normalizedPhrase) {
+      wordsContainer.style.display = 'none';
+      getFeedbackHTML(
+        { en: phrase, ru: item.translation },
+        true,
+        null,
+        () => {
+          hideFeedbackSheet();
+          recordAnswer(true, exerciseType);
+          onComplete();
+        },
+        null,
+      );
+      window.speakPhrase(item);
+      playSound('correct');
+    } else if (current.length >= phrase.length) {
+      wordsContainer.style.display = 'none';
+      const resetAction = () => {
+        // полный сброс – пересоздаём всё заново
+        answerContainer.innerHTML = '';
+        for (let i = 0; i < words.length; i++) {
+          const placeholder = document.createElement('span');
+          placeholder.className = 'builder-answer-letter placeholder';
+          placeholder.dataset.index = i;
+          answerContainer.appendChild(placeholder);
+        }
+        wordsContainer.innerHTML = '';
+        shuffled.forEach((word, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'builder-letter';
+          btn.textContent = word;
+          btn.dataset.word = word;
+          btn.dataset.index = idx;
+          btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            const firstPlaceholder = answerContainer.querySelector(
+              '.builder-answer-letter.placeholder',
+            );
+            if (!firstPlaceholder) return;
+
+            firstPlaceholder.classList.remove('placeholder');
+            firstPlaceholder.textContent = word;
+            firstPlaceholder.style.cursor = 'pointer';
+            firstPlaceholder.title = 'Нажмите, чтобы убрать';
+            firstPlaceholder.dataset.word = word;
+            btn.disabled = true;
+            btn.style.visibility = 'hidden';
+
+            firstPlaceholder.addEventListener(
+              'click',
+              function removeHandler() {
+                if (!firstPlaceholder.classList.contains('placeholder')) {
+                  const targetBtn = Array.from(wordsContainer.children).find(
+                    b => b.dataset.word === word && b.disabled,
+                  );
+                  if (targetBtn) {
+                    targetBtn.disabled = false;
+                    targetBtn.style.visibility = 'visible';
+                  }
+                  firstPlaceholder.classList.add('placeholder');
+                  firstPlaceholder.textContent = '';
+                  firstPlaceholder.style.cursor = 'default';
+                  firstPlaceholder.title = '';
+                  delete firstPlaceholder.dataset.word;
+                  firstPlaceholder.removeEventListener('click', removeHandler);
+                }
+                checkAnswer();
+              },
+            );
+            checkAnswer();
+          });
+          wordsContainer.appendChild(btn);
+        });
+        wordsContainer.style.display = 'flex';
+      };
+      showBuilderIncorrectFeedback(resetAction);
+      playSound('wrong');
+    }
+  }
+
+  // Логика подсказки
+  const hintBtn = document.getElementById('phrase-builder-hint-btn');
+  if (hintBtn) {
+    hintBtn.addEventListener('click', () => {
+      const current = Array.from(answerContainer.children)
+        .map(el => el.textContent)
+        .join(' ')
+        .trim();
+      const currentWords = current ? current.split(' ') : [];
+      const nextWord = words[currentWords.length];
+      if (!nextWord) return;
+      const targetBtn = Array.from(wordsContainer.children).find(
+        b => b.dataset.word === nextWord && !b.disabled,
+      );
+      if (targetBtn) {
+        const orig = {
+          background: targetBtn.style.background,
+          borderColor: targetBtn.style.borderColor,
+          color: targetBtn.style.color,
+          boxShadow: targetBtn.style.boxShadow,
+          transform: targetBtn.style.transform,
+          transition: targetBtn.style.transition,
+        };
+        targetBtn.style.transition = 'all 0.2s ease';
+        targetBtn.style.background = '#ffc107';
+        targetBtn.style.borderColor = '#ffc107';
+        targetBtn.style.color = '#fff';
+        targetBtn.style.boxShadow = '0 0 16px rgba(255,193,7,0.8)';
+        targetBtn.style.transform = 'scale(1.15)';
+        setTimeout(() => {
+          targetBtn.style.background = orig.background;
+          targetBtn.style.borderColor = orig.borderColor;
+          targetBtn.style.color = orig.color;
+          targetBtn.style.boxShadow = orig.boxShadow;
+          targetBtn.style.transform = orig.transform;
+          targetBtn.style.transition = orig.transition;
+        }, 2000);
+      }
+    });
+  }
+}
+
 // === EXIT SESSION ===
 
 document.getElementById('ex-exit-btn').addEventListener('click', () => {
@@ -20657,7 +41297,55 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="modal-box">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20673,7 +41361,55 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <p>Весь прогресс будет сохранён</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20689,7 +41425,55 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="btn-icon" id="exit-confirm">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20705,7 +41489,55 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20721,7 +41553,55 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">close</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20737,6 +41617,30 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -20745,7 +41649,55 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20763,21 +41715,17 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
     modal.remove();
   });
 
-  // Подтверждение — завершаем сессию и возвращаем интерфейс
-
+  // Confirm - end session and return interface
   document.getElementById('exit-confirm').addEventListener('click', () => {
     modal.remove();
 
-    // Возвращаем хедер и навбар ТОЛЬКО после подтверждения
+    window.session = null; // Add explicit session reset
+    window.isSessionActive = false; // Add explicit session reset
 
+    // Return header and navbar ONLY after confirmation
     document.body.classList.remove('exercise-active');
 
-    // Сбрасываем флаг активной сессии
-
-    window.isSessionActive = false;
-
-    // Очищаем все активные процессы
-
+    // Clear all active processes
     window.words.forEach(w => delete w._matched);
 
     if (window._matchTimerCancel) {
@@ -20837,7 +41785,55 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function initPWA() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20853,7 +41849,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     name: 'EngLift',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20869,7 +41913,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     description: 'Учи английские слова',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20885,7 +41977,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     display: 'standalone',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20901,7 +42041,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     theme_color: '#6C63FF',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20917,6 +42105,30 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       {
 
 
@@ -20925,7 +42137,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%236C63FF"/><text y=".9em" font-size="80" x="10">📚</text></svg>',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20941,6 +42201,30 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         type: 'image/svg+xml',
 
 
@@ -20949,7 +42233,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20965,7 +42297,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%236C63FF"/><text y=".9em" font-size="80" x="10">📚</text></svg>',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20981,7 +42361,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         type: 'image/svg+xml',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20997,7 +42425,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     ],
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21013,7 +42489,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const blob = new Blob([JSON.stringify(manifest)], {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21029,7 +42553,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21045,7 +42617,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const swCode = `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21061,7 +42681,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       const ASSETS = [self.location.href];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21077,7 +42745,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21093,7 +42809,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const swBlob = new Blob([swCode], { type: 'application/javascript' });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21109,7 +42873,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       .register(URL.createObjectURL(swBlob))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21125,6 +42937,30 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }
 
 
@@ -21133,7 +42969,55 @@ function initPWA() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21156,7 +43040,11 @@ window.clearUserData = async function (isExplicitLogout = false) {
 
   window.idioms = []; // очищаем идиомы
 
+  window.phrases = []; // очищаем фразы
+
   window.pendingWordUpdates?.clear();
+
+  window.pendingPhraseUpdates?.clear();
 
   updateIdiomsCount(); // обновляем счётчик после очистки
 
@@ -21166,6 +43054,8 @@ window.clearUserData = async function (isExplicitLogout = false) {
     await clearAllWords();
 
     await clearAllIdioms();
+
+    await clearAllPhrases();
   } catch (error) {
     console.error('❌ Ошибка очистки IndexedDB в clearUserData:', error);
   }
@@ -21174,9 +43064,13 @@ window.clearUserData = async function (isExplicitLogout = false) {
 
   dirtyIdiomIds.clear();
 
+  dirtyPhraseIds.clear();
+
   deletedWordIds.clear();
 
   deletedIdiomIds.clear();
+
+  deletedPhraseIds.clear();
 
   if (window.wordSyncTimer) clearTimeout(window.wordSyncTimer);
 
@@ -21474,7 +43368,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="progress-indicators">${indicators}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21490,6 +43432,30 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="word-main">
 
 
@@ -21498,7 +43464,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <h3 class="word-title">${esc(i.idiom).toLowerCase()}</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21530,7 +43544,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21546,7 +43608,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="audio-btn" data-idiom="${i.id}" title="Прослушать">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21562,7 +43672,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21578,7 +43736,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21594,7 +43800,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="word-card-footer">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21610,6 +43864,30 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="material-symbols-outlined expand-icon">expand_more</span>
 
 
@@ -21618,7 +43896,55 @@ function makeIdiomCard(i) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21712,7 +44038,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="idiom-example">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21728,7 +44102,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <p style="margin:0; flex:1;">${esc(example)}</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21744,7 +44166,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21760,7 +44230,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21780,7 +44298,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="word-tags">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21796,7 +44362,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21815,7 +44429,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="word-actions-extra">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21831,6 +44493,30 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">edit</span>
 
 
@@ -21839,7 +44525,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21855,7 +44589,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">delete</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -21871,7 +44653,55 @@ function updateIdiomExpandedContent(card) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22156,7 +44986,55 @@ document.addEventListener('visibilitychange', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const profileData = JSON.stringify({
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22172,7 +45050,55 @@ document.addEventListener('visibilitychange', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       xp: window.xpData?.xp || 0,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22188,7 +45114,55 @@ document.addEventListener('visibilitychange', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       streak: window.streak?.count || 0,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22204,6 +45178,30 @@ document.addEventListener('visibilitychange', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     });
 
 
@@ -22212,7 +45210,55 @@ document.addEventListener('visibilitychange', () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     localStorage.setItem('englift_lastknown_progress', profileData);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22259,6 +45305,16 @@ window.onProfileFullyLoaded = async function () {
     // 2. Быстрая загрузка из кеша (без рендера)
 
     await loadFromCache();
+
+    // 2.5. Обновляем существующие слова данными из WordBankDB (включая grammar)
+
+    await updateWordsFromBank();
+
+    // 2.6. Build phrases from word collocations after words are updated with grammar data
+
+    if (window.words.length > 0) {
+      buildPhrasesFromWords();
+    }
 
     // 3. Применяем данные профиля (они уже должны быть загружены из Supabase)
 
@@ -22365,8 +45421,6 @@ window.onProfileFullyLoaded = async function () {
     });
 
     renderWeekChart();
-
-    renderRandomBankWord();
 
     // УБРАЛИ неправильную синхронизацию XP - она перетирала локальные данные!
 
@@ -22482,7 +45536,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div style="text-align: left; line-height: 1.6;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22498,7 +45600,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <ol style="padding-left: 1.5rem;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22514,7 +45664,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <li>Прокрутите вниз и выберите <strong>«На экран «Домой»»</strong>.</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22530,7 +45728,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </ol>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22546,7 +45792,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22564,7 +45858,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div style="text-align: left; line-height: 1.6;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22580,7 +45922,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <ol style="padding-left: 1.5rem;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22596,7 +45986,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <li>Выберите <strong>«Добавить на главный экран»</strong>.</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22612,7 +46050,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </ol>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22628,7 +46114,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22646,7 +46180,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <p>На вашем устройстве можно установить EngLift как приложение через меню браузера (обычно «Установить приложение» или «Добавить на главный экран»).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22671,7 +46253,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="modal-box" style="max-width: 500px;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22687,7 +46317,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <h3><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px;">download</span>Установка приложения</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22703,7 +46381,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">close</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22719,7 +46445,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22735,7 +46509,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22751,6 +46573,30 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -22759,7 +46605,55 @@ function showManualInstallInstructions() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23291,7 +47185,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="activity-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23307,6 +47249,30 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">${e.icon}</span>
 
 
@@ -23315,7 +47281,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23331,7 +47345,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <b>${e.text.split('<b>')[1].split('</b>')[0]}</b> получил бейдж 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23347,7 +47409,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <b>«${e.badgeName}»</b>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23363,7 +47473,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23383,7 +47541,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="activity-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23399,7 +47605,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">${e.icon}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23415,6 +47669,30 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <span class="activity-text">${e.text}</span>
 
 
@@ -23423,7 +47701,55 @@ async function loadFriendActivity() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23552,7 +47878,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div style="text-align:center;padding:2rem;color:var(--muted)">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23568,6 +47942,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
 
 
@@ -23576,7 +47974,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23613,7 +48059,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="lb-row ${isMe ? 'lb-row--me' : ''}" data-userid="${user.id}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23629,6 +48123,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ${i < 3 ? `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: ${i === 0 ? 'var(--primary)' : i === 1 ? 'var(--muted)' : 'var(--warning)'};">${medal}</span>` : medal}
 
 
@@ -23637,7 +48155,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23653,7 +48219,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="lb-info">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23669,6 +48283,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-level">Уровень ${user.level || 1}</div>
 
 
@@ -23677,7 +48315,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23693,7 +48379,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-xp-num">${user.periodXp.toLocaleString()}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23709,6 +48443,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -23717,7 +48475,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23836,7 +48642,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="friends-empty">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23852,6 +48706,30 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <p>Добавь друзей — увидишь лидерборд</p>
 
 
@@ -23860,7 +48738,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23899,7 +48825,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="lb-top3">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23922,7 +48896,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-podium-item ${isMe ? 'me' : ''} rank-${podiumRanks[i]}" data-id="${user.id}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23938,7 +48960,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="lb-podium-name">${esc(user.username)}${isMe ? ' (ты)' : ''}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23954,7 +49024,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="lb-podium-level">lv.${user.level || 1}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23973,7 +49091,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23996,7 +49162,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="lb-row ${isMe ? 'me' : ''}" data-id="${user.id}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24012,7 +49226,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="lb-avatar">${user.username?.[0]?.toUpperCase() || '?'}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24028,7 +49290,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-name">${esc(user.username)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24044,7 +49354,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">menu_book</span>${user.totalwords || user.total_words || 0}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24060,6 +49418,30 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
 
 
@@ -24068,7 +49450,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24084,7 +49514,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="lb-streak">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24100,6 +49578,30 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ${user.streak || 0}
 
 
@@ -24108,7 +49610,55 @@ function renderFriendsLeaderboard() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24155,43 +49705,163 @@ function renderFriendsList() {
     friendsData.requests.forEach(req => {
       allItems.push(`
 
+
+
+
+
+
+
         <div class="friend-card-modern horizontal request-card" data-id="${req.id}" data-type="request" style="animation-delay: 0ms">
+
+
+
+
+
+
 
           <div class="friend-card-left">
 
+
+
+
+
+
+
             <div class="friend-avatar-modern request-avatar">
+
+
+
+
+
+
 
               ${req.username?.[0]?.toUpperCase() || '?'}
 
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
 
             <div class="friend-header-info">
 
+
+
+
+
+
+
               <div class="friend-name-modern">${esc(req.username)}</div>
+
+
+
+
+
+
 
               <div class="request-meta">lv.${req.level || 1} · ${req.xp || 0} XP</div>
 
+
+
+
+
+
+
             </div>
 
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
 
           <div class="friend-card-actions">
 
+
+
+
+
+
+
             <button class="friend-action-btn accept-req-btn" data-id="${req.id}" title="Принять">
+
+
+
+
+
+
 
               <span class="material-symbols-outlined">check</span>
 
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
 
             <button class="friend-action-btn reject-req-btn" data-id="${req.id}" title="Отклонить">
 
+
+
+
+
+
+
               <span class="material-symbols-outlined">close</span>
+
+
+
+
+
+
 
             </button>
 
+
+
+
+
+
+
           </div>
 
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
 
       `);
     });
@@ -24203,45 +49873,171 @@ function renderFriendsList() {
     friendsData.friends.forEach((friend, index) => {
       allItems.push(`
 
+
+
+
+
+
+
         <div class="friend-card-modern horizontal" data-id="${friend.id}" data-type="friend" style="animation-delay: ${index * 50}ms">
+
+
+
+
+
+
 
           <div class="friend-card-left">
 
+
+
+
+
+
+
             <div class="friend-avatar-modern theme-avatar">
+
+
+
+
+
+
 
               ${friend.username?.[0]?.toUpperCase() || '?'}
 
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
 
             <div class="friend-status ${friend.last_activity ? 'online' : 'offline'}"></div>
 
+
+
+
+
+
+
             <div class="friend-header-info">
+
+
+
+
+
+
 
               <div class="friend-name-modern">${esc(friend.username)}</div>
 
+
+
+
+
+
+
             </div>
 
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
 
           <div class="friend-card-actions">
 
+
+
+
+
+
+
             <button class="friend-action-btn info-btn" title="Подробная информация">
+
+
+
+
+
+
 
               <span class="material-symbols-outlined">info</span>
 
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
 
             <button class="friend-action-btn message-btn" title="Написать" data-friend-id="${friend.id}">
 
+
+
+
+
+
+
               <span class="material-symbols-outlined">chat</span>
+
+
+
+
+
+
 
               <span class="friend-chat-badge" id="friend-chat-badge-${friend.id}" style="display: none"></span>
 
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
 
           </div>
 
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
 
       `);
     });
@@ -24250,13 +50046,43 @@ function renderFriendsList() {
   if (!allItems.length) {
     container.innerHTML = `
 
+
+
+
+
+
+
       <div class="friends-empty">
+
+
+
+
+
+
 
         <span class="material-symbols-outlined">people</span>
 
+
+
+
+
+
+
         <p>Пока нет друзей — найди их через поиск или пригласи по ссылке!</p>
 
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
 
     `;
 
@@ -24433,7 +50259,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="friend-modal-content">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24449,7 +50323,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">close</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24465,7 +50387,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="friend-modal-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24481,7 +50451,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friend-modal-name">${esc(friend.username)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24497,7 +50515,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24513,7 +50579,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friend-stat-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24529,7 +50643,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="friend-stat-label">XP</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24545,7 +50707,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friend-stat-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24561,7 +50771,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="friend-stat-label">Дней</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24577,7 +50835,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friend-stat-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24593,7 +50899,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="friend-stat-label">Уровень</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24609,7 +50963,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friend-stat-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24625,7 +51027,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="friend-stat-label">Слова</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24641,7 +51091,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friend-stat-item">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24657,6 +51155,30 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="friend-stat-label">Идиомы</div>
 
 
@@ -24665,7 +51187,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24681,7 +51251,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="friend-stat-value">${friend.learned_words || friend.learnedWords || 0}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24697,7 +51315,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24713,7 +51379,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="friend-badges">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24729,7 +51443,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="badges-grid-mini">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24761,6 +51523,30 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -24769,7 +51555,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24785,7 +51619,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="modal-action-btn primary" id="challenge-friend">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24801,6 +51683,30 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           Бросить вызов
 
 
@@ -24809,7 +51715,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24825,7 +51779,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">compare</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24841,7 +51843,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24857,7 +51907,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">card_giftcard</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24873,7 +51971,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24889,7 +52035,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">person_remove</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24905,7 +52099,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24921,7 +52163,55 @@ async function openFriendModal(friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25025,7 +52315,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="modal-box" style="max-width: 400px;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25041,7 +52379,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <h3>Подарить XP ${friendName}</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25057,7 +52443,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25073,7 +52507,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="form-group">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25089,6 +52571,30 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <input type="number" id="gift-amount" class="form-control" placeholder="10" min="1" max="100">
 
 
@@ -25097,7 +52603,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25113,7 +52667,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <label for="gift-message">Сообщение (необязательно)</label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25129,6 +52731,30 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -25137,7 +52763,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25153,7 +52827,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="btn-pill btn-pill--secondary" id="cancel-gift">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25169,7 +52891,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25185,7 +52955,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">card_giftcard</span> Подарить
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25201,6 +53019,30 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -25209,7 +53051,55 @@ function showGiftModal(friendId, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25360,7 +53250,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div style="text-align:center;padding:2rem;color:var(--muted)">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25376,6 +53314,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <p style="margin-top:0.5rem">Добавь друзей чтобы соревноваться!</p>
 
 
@@ -25384,7 +53346,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25425,7 +53435,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="lb-row ${isMe ? 'lb-row--me' : ''}" data-userid="${user.id}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25441,6 +53499,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ${i < 3 ? `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: ${i === 0 ? 'var(--primary)' : i === 1 ? 'var(--muted)' : 'var(--warning)'};">${medal}</span>` : medal}
 
 
@@ -25449,7 +53531,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25465,7 +53595,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="lb-info">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25481,6 +53659,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-level">Уровень ${user.level || 1}</div>
 
 
@@ -25489,7 +53691,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25505,7 +53755,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-xp-num">${user.periodXp.toLocaleString()}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25521,6 +53819,30 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
@@ -25529,7 +53851,55 @@ function renderLeaderboard(scores, period) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25595,7 +53965,55 @@ function renderIncomingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="request-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25611,7 +54029,55 @@ function renderIncomingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${req.username?.[0]?.toUpperCase() || '?'}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25627,7 +54093,55 @@ function renderIncomingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="request-name">${esc(req.username)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25643,7 +54157,55 @@ function renderIncomingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25659,7 +54221,55 @@ function renderIncomingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="btn-icon accept-req-btn" data-id="${req.id}" title="Принять">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25675,7 +54285,55 @@ function renderIncomingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25765,7 +54423,55 @@ function renderOutgoingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="request-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25781,7 +54487,55 @@ function renderOutgoingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${user.username?.[0]?.toUpperCase() || '?'}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25797,7 +54551,55 @@ function renderOutgoingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="request-name">${esc(user.username)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25813,7 +54615,55 @@ function renderOutgoingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25829,7 +54679,55 @@ function renderOutgoingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="btn-icon btn-danger cancel-req-btn" data-id="${user.id}" title="Отменить">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25845,7 +54743,55 @@ function renderOutgoingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25861,7 +54807,55 @@ function renderOutgoingRequests() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25944,7 +54938,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friends-empty">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25952,11 +54970,47 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <p>Пользователи не найдены</p>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25979,11 +55033,47 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                    <span class="material-symbols-outlined">person_add</span>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                    Добавить
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -25993,7 +55083,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="friend-card-new no-arrow">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26001,7 +55115,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <div class="friend-username">${user.username}</div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26009,7 +55147,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <span>Уровень ${user.level || 1}</span>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26017,7 +55179,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26025,7 +55211,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26033,7 +55243,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26079,7 +55313,31 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="friends-empty">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26087,11 +55345,47 @@ async function doAddFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <p>Ошибка поиска</p>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26144,7 +55438,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friends-empty">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26160,6 +55502,30 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <p>Никого не нашли по запросу "${esc(q)}"</p>
 
 
@@ -26168,7 +55534,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26207,7 +55621,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <span class="material-symbols-outlined">person_add</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26226,7 +55688,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="search-result-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26242,7 +55752,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="search-result-info">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26258,6 +55816,30 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="search-result-meta">lv.${user.level || 1} · ${user.xp || 0} XP · ${user.totalwords || user.total_words || 0} слов</div>
 
 
@@ -26266,7 +55848,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26282,7 +55912,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             ${actionBtn}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26298,7 +55976,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26368,7 +56094,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="friends-empty">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26384,7 +56158,55 @@ async function doFriendSearch(q) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <p>Ошибка поиска</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -26996,7 +56818,31 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="challenge-invite-card" data-invite-id="${invite.id}">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27004,11 +56850,47 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">${icon}</span>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27016,7 +56898,31 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="challenge-invite-title">${esc(ch.title)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27024,7 +56930,31 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27032,7 +56962,31 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <button class="challenge-invite-btn accept" data-invite-id="${invite.id}" title="Принять">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27040,7 +56994,31 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27048,7 +57026,31 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <span class="material-symbols-outlined">close</span>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27056,11 +57058,47 @@ async function renderChallengeInvites() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27223,7 +57261,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="challenge-card" data-challenge="${ch.id}">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27231,7 +57293,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="challenge-icon">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27239,7 +57325,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27247,7 +57357,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <h4 class="challenge-title">${esc(ch.title || 'Челлендж')}</h4>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27255,7 +57389,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <span class="challenge-type">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27263,7 +57421,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               </span>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27271,7 +57453,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <span class="challenge-deadline">До ${deadline}</span>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27279,7 +57485,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27287,7 +57517,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="progress-ring" style="background: conic-gradient(var(--primary) 0deg, var(--primary) ${progressDegrees}deg, var(--surface) ${progressDegrees}deg)">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27295,7 +57549,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27303,7 +57581,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27311,7 +57613,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="progress-bar">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27319,7 +57645,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27327,11 +57677,47 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <span>Прогресс: ${progress} / ${target} ${progressLabel}</span>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27339,7 +57725,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">group</span>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27347,7 +57757,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27355,7 +57789,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="challenge-actions">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27365,7 +57823,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <button class="modal-action-btn invite-challenge-btn" data-id="${ch.id}">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27373,11 +57855,47 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               Пригласить друга
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27385,11 +57903,47 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <span class="material-symbols-outlined">delete</span>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27398,7 +57952,31 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <button class="modal-action-btn leave-challenge-btn" data-id="${ch.id}">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27406,11 +57984,47 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               Выйти из челленджа
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27419,11 +58033,47 @@ async function renderChallenges() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27595,7 +58245,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="friends-empty">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27603,7 +58277,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <p>У вас пока нет друзей для приглашения</p>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27616,7 +58314,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="invite-friend-card" data-friend-id="${friend.id}">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27624,7 +58346,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="invite-friend-main">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27632,11 +58378,47 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <span class="material-symbols-outlined">person</span>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27644,7 +58426,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <div class="invite-friend-name">${esc(friend.username)}</div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27652,7 +58458,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27660,7 +58490,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <button class="invite-friend-btn" data-friend-id="${friend.id}" title="Пригласить">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27668,7 +58522,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27676,7 +58554,31 @@ async function openInviteChallengeModal(challengeId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27782,7 +58684,31 @@ async function renderGifts() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="lb-row">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27790,7 +58716,31 @@ async function renderGifts() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="lb-info">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27798,7 +58748,31 @@ async function renderGifts() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-level">+${g.amount} XP</div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27806,7 +58780,31 @@ async function renderGifts() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27814,7 +58812,31 @@ async function renderGifts() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="lb-xp-num">${new Date(g.created_at).toLocaleDateString('ru-RU')}</div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27822,7 +58844,31 @@ async function renderGifts() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28032,7 +59078,55 @@ function animateReaction(messageId, emoji) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     position: absolute;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28048,7 +59142,55 @@ function animateReaction(messageId, emoji) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     animation: reactionFloat 1s ease-out forwards;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28064,7 +59206,55 @@ function animateReaction(messageId, emoji) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     z-index: 1000;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28114,7 +59304,55 @@ window.toggleStickerPicker = function (friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="sticker-picker-header">Стикеры</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28130,6 +59368,30 @@ window.toggleStickerPicker = function (friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       ${STICKERS.map(sticker => `<div class="sticker-item" data-sticker="${sticker}">${sticker}</div>`).join('')}
 
 
@@ -28138,7 +59400,55 @@ window.toggleStickerPicker = function (friendId) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28278,7 +59588,55 @@ window.sendSticker = async function (friendId, sticker) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="chat-message chat-message--outgoing" data-message-id="${tempId}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28294,7 +59652,55 @@ window.sendSticker = async function (friendId, sticker) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="sticker-message">${sticker}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28310,6 +59716,30 @@ window.sendSticker = async function (friendId, sticker) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -28318,7 +59748,55 @@ window.sendSticker = async function (friendId, sticker) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28693,7 +60171,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="modal-box modal-box--large" style="max-width: 700px; width: 90%;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28709,7 +60235,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28725,7 +60299,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           Сравнение словарей с ${esc(friendName)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28741,6 +60363,30 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="modal-close"><span class="material-symbols-outlined">close</span></button>
 
 
@@ -28749,7 +60395,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28765,7 +60459,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${renderComparisonSection('words', 'Слова', data.words)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28781,7 +60523,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28797,7 +60587,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <button class="btn btn-primary" id="add-missing-words">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28813,7 +60651,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           Добавить всё недостающее
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28829,6 +60715,30 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
 
@@ -28837,7 +60747,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28866,7 +60824,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="comparison-section" data-type="${type}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28882,7 +60888,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="comparison-section-title">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28898,6 +60952,30 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             ${label}
 
 
@@ -28906,7 +60984,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28922,7 +61048,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <span class="material-symbols-outlined">expand_more</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28938,7 +61112,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28954,7 +61176,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="comparison-search">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28970,7 +61240,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               <span class="material-symbols-outlined search-icon">search</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28986,7 +61304,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29002,7 +61368,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ${renderSubsection('common', 'Общие', common, type)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29018,7 +61432,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ${renderSubsection('unique', 'Ваши уникальные', unique, type)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29034,7 +61496,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29055,7 +61565,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="comparison-subsection" data-subsection="${key}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29071,7 +61629,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <strong>${title}</strong> <span class="subsection-count">0</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29087,7 +61693,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29103,7 +61757,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="empty-message">—</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29119,7 +61821,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29153,7 +61903,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div class="comparison-subsection" data-subsection="${key}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29169,7 +61967,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <strong>${title}</strong> <span class="subsection-count">${items.length}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29185,7 +62031,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29201,7 +62095,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div class="badges-grid-mini" data-list="${key}">${itemsHtml}</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29217,7 +62159,55 @@ function showComparisonModal(data, friendName) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29618,11 +62608,47 @@ function updateOfflineIndicator() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <span class="material-symbols-outlined">wifi_off</span>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         Офлайн. Сообщения будут отправлены позже
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29701,7 +62727,55 @@ const addIncomingMessageLocally = (message, senderUsername) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="chat-message chat-message--incoming" data-message-id="${message.id}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29717,7 +62791,55 @@ const addIncomingMessageLocally = (message, senderUsername) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         ${isSticker ? `<div class="sticker-message">${message.text}</div>` : esc(message.text)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29733,7 +62855,55 @@ const addIncomingMessageLocally = (message, senderUsername) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <div class="chat-reactions" id="reactions-${message.id}"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29749,7 +62919,55 @@ const addIncomingMessageLocally = (message, senderUsername) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -30485,7 +63703,55 @@ async function showReactionPicker(messageId, updateReactionLocally) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="emoji-picker-header">Реакции</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -30501,6 +63767,30 @@ async function showReactionPicker(messageId, updateReactionLocally) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       ${EMOJI_REACTIONS.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('')}
 
 
@@ -30509,7 +63799,55 @@ async function showReactionPicker(messageId, updateReactionLocally) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
