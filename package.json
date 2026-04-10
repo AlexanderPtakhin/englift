@@ -2,8 +2,7 @@
   "name": "englift",
   "source": [
     "index.html",
-    "login.html",
-    "sw-register.js"
+    "login.html"
   ],
   "scripts": {
     "start": "parcel . --port 1234 --open chrome",

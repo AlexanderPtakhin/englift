@@ -1,37 +1,37 @@
 {
   "A1": {
     "file": "dict-A1.json",
-    "version": "1.0",
+    "version": "2.0",
     "words": 1177,
     "lastUpdated": "2026-03-27T12:00:00Z"
   },
   "A2": {
     "file": "dict-A2.json",
-    "version": "1.0",
+    "version": "2.0",
     "words": 1694,
     "lastUpdated": "2026-03-27T12:00:00Z"
   },
   "B1": {
     "file": "dict-B1.json",
-    "version": "1.0",
+    "version": "2.0",
     "words": 4667,
     "lastUpdated": "2026-03-27T12:00:00Z"
   },
   "B2": {
     "file": "dict-B2.json",
-    "version": "1.0",
+    "version": "2.0",
     "words": 8549,
     "lastUpdated": "2026-03-27T12:00:00Z"
   },
   "C1": {
     "file": "dict-C1.json",
-    "version": "1.0",
+    "version": "2.0",
     "words": 4857,
     "lastUpdated": "2026-03-27T12:00:00Z"
   },
   "C2": {
     "file": "dict-C2.json",
-    "version": "1.0",
+    "version": "2.0",
     "words": 307,
     "lastUpdated": "2026-03-27T12:00:00Z"
   },

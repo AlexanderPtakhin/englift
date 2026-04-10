@@ -1731,10 +1731,9 @@ body.exam-mode .setup-row:nth-of-type(5) {
   display: none;
 }
 
-/* Скрываем строку с направлением для идиом и фраз */
+/* Скрываем строку с направлением для идиом */
 
-body.practice-idioms .setup-row:nth-of-type(7),
-body.practice-phrases .setup-row:nth-of-type(7) {
+body.practice-idioms .setup-row:nth-of-type(7) {
   display: none;
 }
 
@@ -22427,6 +22426,17 @@ html
 .collocation-ru {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.collocation-due {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.collocation-due .material-symbols-outlined {
+  font-size: 0.75rem;
+  vertical-align: middle;
 }
 
 /* Empty tab */

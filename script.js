@@ -455,35 +455,13 @@ async function loadFromCache() {
   try {
     const [words, idioms, phrases] = await Promise.all([
       window.UserDataCache.getAllWords(),
-
       window.UserDataCache.getAllIdioms(),
-
       window.UserDataCache.getAllPhrases(),
     ]);
-
-    console.log('🔍 [DEBUG] loadFromCache - phrases from DB:', phrases.length);
-
-    console.log('🔍 [DEBUG] loadFromCache - phrases content:', phrases);
-
     window.words = words.length ? words.map(normalizeWord) : [];
-
     window.idioms = idioms.length ? idioms.map(normalizeIdiom) : [];
-
     window.phrases = phrases.length ? phrases.map(normalizePhrase) : [];
-
-    console.log(
-      '🔍 [DEBUG] loadFromCache - window.phrases after load:',
-
-      window.phrases.length,
-    );
-
-    // ← ВОТ ЭТО ДОБАВИТЬ:
     await cleanupOrphanedPhrases();
-
-    let hasData = words.length || idioms.length;
-
-    if (hasData) {
-    }
   } catch (e) {
     console.error('Ошибка загрузки кеша', e);
   }
@@ -513,7 +491,7 @@ async function syncFromSupabase() {
 
       .eq('user_id', window.currentUserId)
 
-      .order('updated_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (wordsError) throw wordsError;
 
@@ -544,7 +522,22 @@ async function syncFromSupabase() {
     let needRefresh = false;
 
     if (dataHasChanged(remoteWords, window.words)) {
-      const normalized = (remoteWords || []).map(normalizeWord);
+      const normalized = (remoteWords || [])
+        .map(word => {
+          const localWord = window.words.find(w => w.id === word.id);
+          return {
+            ...word,
+            // Сохраняем локальный createdAt если он существует
+            created_at: localWord?.createdAt || word.created_at,
+            stats: word.stats
+              ? {
+                  ...word.stats,
+                  correctExerciseTypes: word.correct_exercise_types || [],
+                }
+              : undefined,
+          };
+        })
+        .map(normalizeWord);
 
       window.words = normalized;
 
@@ -1141,6 +1134,8 @@ let activeFilter = 'all',
   searchQ = '',
   sortBy = 'date-desc',
   tagFilter = '';
+
+window.sortBy = sortBy;
 
 // Infinite scroll variables
 
@@ -2101,7 +2096,15 @@ window.pendingIdiomUpdates = pendingIdiomUpdates;
 function normalizeWord(word) {
   const camel = toCamelCase(word);
 
-  return {
+  const correctExerciseTypes = Array.isArray(camel.stats.correctExerciseTypes)
+    ? camel.stats.correctExerciseTypes
+    : Array.isArray(camel.stats.correct_exercise_types)
+      ? camel.stats.correct_exercise_types
+      : camel.stats.learned
+        ? ['legacy']
+        : [];
+
+  const normalized = {
     ...camel,
 
     examplesAudio:
@@ -2114,15 +2117,12 @@ function normalizeWord(word) {
     stats: camel.stats
       ? {
           ...camel.stats,
-
-          correctExerciseTypes: Array.isArray(camel.stats.correctExerciseTypes)
-            ? camel.stats.correctExerciseTypes
-            : camel.stats.learned
-              ? ['legacy']
-              : [],
+          correctExerciseTypes,
         }
       : undefined,
   };
+
+  return normalized;
 }
 
 function normalizeIdiom(idiom) {
@@ -2406,11 +2406,15 @@ function buildPhrasesFromWords() {
   const newPhrases = [];
 
   window.words.forEach(word => {
+    console.log(
+      `🔍 [BUILD_PHRASES] Processing word: ${word.en}, has grammar: ${!!word.grammar}, collocations count: ${word.grammar?.collocations?.length || 0}`,
+    );
     const collocations = word.grammar?.collocations || word.collocations || [];
 
     if (collocations.length === 0) return;
 
-    collocations.forEach(coll => {
+    collocations.forEach((coll, idx) => {
+      console.log(`🔍 [BUILD_PHRASES] Coll ${idx} for word ${word.en}:`, coll);
       if (!coll.en || !coll.ru) return;
 
       // Проверяем, существует ли уже такая фраза
@@ -2425,6 +2429,7 @@ function buildPhrasesFromWords() {
       if (existingPhrase) {
         // Фраза уже существует - пропускаем
 
+        console.log(`🔍 [BUILD_PHRASES] Phrase already exists: ${coll.en}`);
         return;
       }
 
@@ -2471,6 +2476,9 @@ function buildPhrasesFromWords() {
         updatedAt: new Date().toISOString(),
       };
 
+      console.log(
+        `🔍 [BUILD_PHRASES] Created phrase: phrase="${newPhrase.phrase}", translation="${newPhrase.translation}", audio="${newPhrase.audio}"`,
+      );
       newPhrases.push(newPhrase);
     });
   });
@@ -2733,17 +2741,15 @@ async function syncPendingWords() {
 
   const wordsToSync = Array.from(pendingWordUpdates.values()).filter(word => {
     if (!word || !word.en) {
-      console.warn(
-        '[SYNC] ⚠️ Пропускаем некорректное слово при синхронизации:',
-
-        word,
-      );
-
       return false;
     }
-
     return true;
   });
+
+  if (wordsToSync.length === 0) {
+    pendingWordUpdates.clear();
+    return;
+  }
 
   for (const item of wordsToSync) {
     if (item._deleted) {
@@ -2762,6 +2768,12 @@ async function syncPendingWords() {
       // Сохраняем или обновляем слово через saveWordToDb с upsert
 
       try {
+        // Если слово уже существует, удаляем created_at чтобы не перезаписывать
+        const existingWord = window.words.find(w => w.id === item.id);
+        if (existingWord && existingWord.createdAt) {
+          delete item.created_at;
+        }
+
         await saveWordToDb(item);
 
         pendingWordUpdates.delete(item.id);
@@ -9087,11 +9099,11 @@ function generateId() {
 
 async function clearUserData() {
   try {
-    await clearAllWords();
+    await window.UserDataCache.clearAllWords();
 
-    await clearAllIdioms();
+    await window.UserDataCache.clearAllIdioms();
 
-    await clearAllPhrases();
+    await window.UserDataCache.clearAllPhrases();
   } catch (error) {
     console.error('❌ Ошибка очистки IndexedDB:', error);
   }
@@ -9220,7 +9232,18 @@ async function addWord(
 
   examplesAudio = null,
 ) {
+  console.log(`🔍 [ADD_WORD_FORM] Adding word: en="${en}", ru="${ru}"`);
+  console.log(`🔍 [ADD_WORD_FORM] phonetic="${phonetic}"`);
+  console.log(`🔍 [ADD_WORD_FORM] audio="${audio}"`);
+  console.log(`🔍 [ADD_WORD_FORM] examplesAudio="${examplesAudio}"`);
+
   // Валидация входных данных
+
+  if (!en || !ru) {
+    toast('Введите слово и перевод', 'error');
+
+    return false;
+  }
 
   if (!validateEnglish(en)) {
     toast(
@@ -9414,13 +9437,7 @@ async function addWord(
 
     recalculateCefrLevels();
 
-    // Sync phrases from word examples
-
-    if (newWord.examples && newWord.examples.length > 0) {
-      syncPhrasesForWord(newWord).catch(e =>
-        console.warn('syncPhrasesForWord error', e),
-      );
-    }
+    // УБРАНО: Sync phrases from word examples - фразы создаются только из коллокаций через buildPhrasesFromWords
 
     // Update UI to show daily goals progress immediately
 
@@ -9534,15 +9551,7 @@ async function updWord(id, data) {
     markWordDirty(id);
   }
 
-  // Sync phrases if examples changed
-
-  const newExamples = w.examples || [];
-
-  if (JSON.stringify(oldExamples) !== JSON.stringify(newExamples)) {
-    syncPhrasesForWord(w).catch(e =>
-      console.warn('syncPhrasesForWord error', e),
-    );
-  }
+  // УБРАНО: Sync phrases from word examples - фразы создаются только из коллокаций через buildPhrasesFromWords
 }
 
 // ─── PHRASES CRUD ─────────────────────────────────────
@@ -10010,13 +10019,9 @@ function updStats(wordId, correct, exerciseType) {
       Math.min(2.5, w.stats.easeFactor + 0.05),
     );
 
-    // Добавляем тип упражнения, если его ещё нет
-
     if (!w.stats.correctExerciseTypes.includes(exerciseType)) {
       w.stats.correctExerciseTypes.push(exerciseType);
     }
-
-    // Проверяем, пора ли увеличивать интервал (только если слово было запланировано)
 
     const now = new Date();
 
@@ -10078,6 +10083,9 @@ function updStats(wordId, correct, exerciseType) {
   // Отмечаем слово для пакетной синхронизации
 
   markWordDirty(wordId);
+
+  // Сохраняем в IndexedDB
+  markWordDirtyForCache(wordId);
 }
 
 function updPhraseStats(phraseId, correct, exerciseType) {
@@ -17204,7 +17212,7 @@ async function updateExpandedContent(card) {
   console.log('updateExpandedContent: item.stats =', item?.stats);
 
   let reviewInfo =
-    '<span class="due-later"><span class="material-symbols-outlined">refresh</span> Soon</span>';
+    '<span class="due-later"><span class="material-symbols-outlined">refresh</span> —</span>';
 
   if (item && item.stats && item.stats.nextReview) {
     const nextReviewDate = new Date(item.stats.nextReview);
@@ -17221,12 +17229,19 @@ async function updateExpandedContent(card) {
 
     if (diffDays <= 0)
       reviewInfo =
-        '<span class="due-now"><span class="material-symbols-outlined">refresh</span> Today</span>';
+        '<span class="due-now"><span class="material-symbols-outlined">refresh</span> Сегодня</span>';
     else if (diffDays === 1)
       reviewInfo =
-        '<span class="due-soon"><span class="material-symbols-outlined">refresh</span> Tomorrow</span>';
-    else
-      reviewInfo = `<span class="due-later"><span class="material-symbols-outlined">refresh</span> ${diffDays} days</span>`;
+        '<span class="due-soon"><span class="material-symbols-outlined">refresh</span> Завтра</span>';
+    else {
+      const dayWord =
+        diffDays === 1
+          ? 'день'
+          : diffDays >= 2 && diffDays <= 4
+            ? 'дня'
+            : 'дней';
+      reviewInfo = `<span class="due-later"><span class="material-symbols-outlined">refresh</span> ${diffDays} ${dayWord}</span>`;
+    }
   }
 
   const editBtn =
@@ -17242,24 +17257,26 @@ async function updateExpandedContent(card) {
 
      </button>`;
 
-  const actionsHtml = `
-
-  <div class="word-actions-extra" style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0;">
-
-    <div class="word-review-info">${reviewInfo}</div>
-
+  const actionsHtml =
+    activeTab === 'collocations'
+      ? `
+  <div class="word-actions-extra" style="display:flex;justify-content:flex-end;align-items:center;margin:2.5rem 0 0.5rem 0;">
     <div style="display:flex;gap:0.5rem;">
-
       ${editBtn}
-
       <button class="delete-btn btn-icon" data-id="${card.dataset.id}" title="Удалить">
-
         <span class="material-symbols-outlined">delete</span>
-
       </button>
-
     </div>
-
+  </div>`
+      : `
+  <div class="word-actions-extra" style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0;">
+    <div class="word-review-info">${reviewInfo}</div>
+    <div style="display:flex;gap:0.5rem;">
+      ${editBtn}
+      <button class="delete-btn btn-icon" data-id="${card.dataset.id}" title="Удалить">
+        <span class="material-symbols-outlined">delete</span>
+      </button>
+    </div>
   </div>`;
 
   if (activeTab === 'example') {
@@ -17313,8 +17330,30 @@ async function updateExpandedContent(card) {
     const collHtml = collocations.length
       ? `<div class="word-examples"><ul class="collocation-list">${collocations
 
-          .map(
-            (c, i) => `
+          .map((c, i) => {
+            // Находим фразу из window.phrases
+            const phrase = window.phrases.find(
+              p => p.sourceWordId === wordId && p.phrase === c.en,
+            );
+            let dueHtml = '';
+            if (phrase && phrase.stats && phrase.stats.nextReview) {
+              const nextReviewDate = new Date(phrase.stats.nextReview);
+              const now = new Date();
+              const diffDays = Math.ceil(
+                (nextReviewDate - now) / (1000 * 60 * 60 * 24),
+              );
+              if (diffDays <= 0)
+                dueHtml =
+                  '<span class="due-now"><span class="material-symbols-outlined">refresh</span></span>';
+              else if (diffDays === 1)
+                dueHtml =
+                  '<span class="due-soon"><span class="material-symbols-outlined">refresh</span></span>';
+              else
+                dueHtml = `<span class="due-later"><span class="material-symbols-outlined">refresh</span> ${diffDays}</span>`;
+            } else {
+              dueHtml = '<span class="due-later">—</span>';
+            }
+            return `
 
         <li class="collocation-item">
 
@@ -17327,6 +17366,8 @@ async function updateExpandedContent(card) {
               <div class="collocation-ru">${esc(c.ru)}</div>
 
             </div>
+
+            <div class="collocation-due">${dueHtml}</div>
 
             <button
 
@@ -17346,8 +17387,8 @@ async function updateExpandedContent(card) {
 
           </div>
 
-        </li>`,
-          )
+        </li>`;
+          })
 
           .join('')}</ul></div>`
       : `<div class="wc-empty-tab">
@@ -18972,6 +19013,8 @@ customOptionElements.forEach(option => {
     // Trigger change event
 
     sortBy = value;
+
+    window.sortBy = sortBy;
 
     visibleLimit = 30; // <-- сброс
 
@@ -35585,7 +35628,7 @@ async function renderRandomBankWord() {
   if (wrap.children.length > 0) {
     wrap.classList.add('fade-out');
 
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 50));
   }
 
   const word = await getRandomBankWord();
@@ -36445,11 +36488,26 @@ async function renderRandomBankWord() {
   });
 
   document
-
     .getElementById('bank-word-add')
-
     ?.addEventListener('click', async () => {
       if (!currentBankWord) return;
+
+      console.log(
+        ' [ADD_WORD_BANK] Adding word from bank:',
+        currentBankWord.en,
+      );
+      console.log(
+        ' [ADD_WORD_BANK] currentBankWord.audio:',
+        currentBankWord.audio,
+      );
+      console.log(
+        ' [ADD_WORD_BANK] currentBankWord.grammar:',
+        currentBankWord.grammar,
+      );
+      console.log(
+        ' [ADD_WORD_BANK] currentBankWord.grammar?.collocations:',
+        currentBankWord.grammar?.collocations,
+      );
 
       const enLower = currentBankWord.en.toLowerCase();
 
@@ -38973,6 +39031,13 @@ function runContextExercise(item, onComplete, exerciseType) {
 }
 
 function runPhraseMatchExercise(items, onComplete, exerciseType) {
+  console.log('🔍 [PHRASE_MATCH] Items:', items);
+  items.forEach((item, idx) => {
+    console.log(
+      `🔍 [PHRASE_MATCH] Item ${idx}: phrase="${item.phrase}", translation="${item.translation}", audio="${item.audio}", example="${item.example}"`,
+    );
+  });
+
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   btns.innerHTML = '';
@@ -41057,6 +41122,12 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 }
 
 function runPhraseBuilderExercise(item, onComplete, exerciseType) {
+  console.log('🔍 [PHRASE_BUILDER] Item:', item);
+  console.log('🔍 [PHRASE_BUILDER] item.phrase:', item.phrase);
+  console.log('🔍 [PHRASE_BUILDER] item.translation:', item.translation);
+  console.log('🔍 [PHRASE_BUILDER] item.audio:', item.audio);
+  console.log('🔍 [PHRASE_BUILDER] item.example:', item.example);
+
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
   const exTypeLbl = document.getElementById('ex-type-lbl');
@@ -45413,12 +45484,6 @@ window.onProfileFullyLoaded = async function () {
     // Инициализируем бейджи друзей (заявки + сообщения)
 
     initFriendsBadges();
-
-    // Инициализация загрузки словаря в IndexedDB (фоновая загрузка)
-
-    window.WordAPI.loadWordBank().catch(err => {
-      console.error('❌ Ошибка фоновой загрузки словаря:', err);
-    });
 
     renderWeekChart();
 
@@ -56711,7 +56776,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cleanedCorrect = cleanText(c);
 
-    // Берём первое слово, если в транскрипте нескольких
+    // Определяем, это фраза (несколько слов) или одно слово
+    const isPhrase = cleanedCorrect.includes(' ');
+
+    // Для фраз используем пословное сравнение
+    if (isPhrase) {
+      const wordsSpoken = s.split(/\s+/);
+      const wordsCorrect = cleanedCorrect.split(/\s+/);
+
+      // Точное совпадение фразы
+      if (s === cleanedCorrect) {
+        return true;
+      }
+
+      // Пословное сравнение - считаем сколько слов совпало
+      const commonWords = wordsSpoken.filter(w => wordsCorrect.includes(w));
+      const wordSimilarity = commonWords.length / wordsCorrect.length;
+
+      // Порог для фраз - 70% слов должно совпасть
+      if (wordSimilarity >= 0.7) {
+        return true;
+      }
+
+      // Дополнительная проверка через Левенштейн для полной фразы
+      const distance = levenshteinDistance(s, cleanedCorrect);
+      const maxLen = Math.max(s.length, cleanedCorrect.length);
+      const similarity = 1 - distance / maxLen;
+
+      // Для фраз более мягкий порог - 65%
+      if (similarity >= 0.65) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // Для одного слова - старая логика (берём первое слово, если в транскрипте нескольких)
 
     if (s.includes(' ')) {
       s = s.split(/\s+/)[0];

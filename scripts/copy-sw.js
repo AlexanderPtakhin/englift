@@ -19,3 +19,9 @@ const src = path.join(__dirname, '../sw.js');
 const dest = path.join(__dirname, '../dist', swFileName);
 fs.copyFileSync(src, dest);
 console.log(`📁 Скопирован SW: ${swFileName}`);
+
+// Копируем data-manifest.json в dist
+const manifestSrc = path.join(__dirname, '../data-manifest.json');
+const manifestDest = path.join(__dirname, '../dist/data-manifest.json');
+fs.copyFileSync(manifestSrc, manifestDest);
+console.log(`📁 Скопирован data-manifest.json`);

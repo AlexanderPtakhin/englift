@@ -95,6 +95,80 @@ if (document.readyState === 'loading') {
     await import('./script.js');
     await import('./auth.js');
     console.log('[INIT] ✅ Все скрипты импортированы');
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      const swFileMeta = document.querySelector(
+        'meta[name="sw-file"]',
+      )?.content;
+      const SW_URL = swFileMeta || '/sw.js';
+      console.log('[SW] Регистрация:', SW_URL);
+
+      try {
+        const registration = await navigator.serviceWorker.register(SW_URL, {
+          updateViaCache: 'none',
+          scope: '/',
+        });
+        console.log('[SW] Зарегистрирован:', registration);
+
+        // Проверка обновлений каждые 5 минут
+        setInterval(
+          () => {
+            const isInLesson =
+              document.body.classList.contains('exercise-active') ||
+              document.body.classList.contains('modal-open') ||
+              document.body.classList.contains('bs-open') ||
+              window.isSessionActive;
+
+            if (!isInLesson) {
+              console.log('[SW] Проверка обновлений...');
+              registration.update();
+            }
+          },
+          5 * 60 * 1000,
+        );
+
+        // Принудительное обновление при загрузке страницы
+        setTimeout(() => {
+          console.log('[SW] Принудительная проверка при загрузке...');
+          registration.update();
+        }, 1000);
+
+        if (registration.waiting) {
+          console.log('[SW] Найден waiting worker, отправляем SKIP_WAITING');
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        registration.addEventListener('updatefound', () => {
+          console.log('[SW] Найдено обновление SW');
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            console.log('[SW] Состояние нового worker:', newWorker.state);
+            if (
+              newWorker.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
+              console.log(
+                '[SW] Новый worker установлен, отправляем SKIP_WAITING',
+              );
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              if (window.toast) {
+                window.toast(
+                  '🔄 Доступна новая версия, обновляем...',
+                  'info',
+                  'refresh',
+                );
+              }
+              setTimeout(() => window.location.reload(), 2000);
+            }
+          });
+        });
+      } catch (err) {
+        console.error('[SW] Ошибка регистрации:', err);
+      }
+    } else {
+      console.log('[SW] Service Worker не поддерживается');
+    }
   });
 } else {
   console.log('[INIT] 📦 DOM уже загружен, немедленный импорт');

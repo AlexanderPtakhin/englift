@@ -25,6 +25,7 @@ self.addEventListener('install', event => {
       const staticFiles = [
         '/offline.html',
         '/manifest.json',
+        '/data-manifest.json',
         '/A1/dict-A1.json',
         '/A2/dict-A2.json',
         '/B1/dict-B1.json',

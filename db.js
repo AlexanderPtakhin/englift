@@ -72,24 +72,42 @@ export async function saveWordToDb(word) {
       }
     : undefined;
 
+  // Проверяем существует ли слово (по id)
+  const { data: existingWord } = await supabase
+    .from('user_words')
+    .select('id')
+    .eq('id', word.id)
+    .eq('user_id', user.id)
+    .single();
+
   const wordPayload = {
     ...wordRest,
     user_id: user.id,
     updated_at: new Date().toISOString(),
-    created_at: createdAt ?? new Date().toISOString(),
     examples_audio: examplesAudio ?? null,
     correct_exercise_types: correctExerciseTypes,
     grammar: word.grammar ?? null,
     stats: cleanStats,
   };
 
-  console.log('WORD PAYLOAD', JSON.stringify(wordPayload, null, 2));
-
-  const { error } = await supabase
-    .from('user_words')
-    .upsert(wordPayload, { onConflict: 'id' });
-
-  if (error) throw error;
+  // Если слово уже существует - используем update (не перезаписываем created_at)
+  // Если новое слово - используем upsert с created_at
+  if (existingWord) {
+    console.log('WORD PAYLOAD (UPDATE)', JSON.stringify(wordPayload, null, 2));
+    const { error } = await supabase
+      .from('user_words')
+      .update(wordPayload)
+      .eq('id', word.id)
+      .eq('user_id', user.id);
+    if (error) throw error;
+  } else {
+    wordPayload.created_at = createdAt ?? new Date().toISOString();
+    console.log('WORD PAYLOAD (INSERT)', JSON.stringify(wordPayload, null, 2));
+    const { error } = await supabase
+      .from('user_words')
+      .upsert(wordPayload, { onConflict: 'id' });
+    if (error) throw error;
+  }
 }
 
 // Удалить слово
