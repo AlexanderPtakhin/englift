@@ -55,7 +55,8 @@ export async function saveWordToDb(word) {
     throw new Error('Word object or word.en is required');
   }
 
-  const { updatedAt, createdAt, examplesAudio, ...wordRest } = word;
+  const { updatedAt, createdAt, examplesAudio, examples_audio, ...wordRest } =
+    word;
 
   // Берём типы упражнений из stats (учитывая оба формата: camelCase и snake_case)
   const correctExerciseTypes =
@@ -84,7 +85,7 @@ export async function saveWordToDb(word) {
     ...wordRest,
     user_id: user.id,
     updated_at: new Date().toISOString(),
-    examples_audio: examplesAudio ?? null,
+    examples_audio: examplesAudio || examples_audio || null,
     correct_exercise_types: correctExerciseTypes,
     grammar: word.grammar ?? null,
     stats: cleanStats,
