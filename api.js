@@ -438,3 +438,121 @@ window.WordAPI = {
     return status;
   },
 };
+
+// =============================================
+// ИДИОМЫ - IndexedDB кеширование (аналог WordAPI)
+// =============================================
+
+let idiomLoadingPromise = null;
+let idiomDataManifest = null;
+let idiomLoadStarted = false;
+
+async function loadIdiomDataManifest() {
+  if (idiomDataManifest) return idiomDataManifest;
+  try {
+    const response = await fetch('/idioms-manifest.json');
+    if (response.ok) {
+      idiomDataManifest = await response.json();
+      console.log('[API] Идиомы манифест загружен');
+    } else {
+      throw new Error('Manifest not found');
+    }
+  } catch {
+    console.log(
+      '[API] Идиомы манифест не найден, используем значения по умолчанию',
+    );
+    idiomDataManifest = { version: '1.0', total: 0 };
+  }
+  return idiomDataManifest;
+}
+
+async function checkIdiomVersion() {
+  const manifest = await loadIdiomDataManifest();
+  const storedVersion = localStorage.getItem('idiom_bank_version');
+  return storedVersion === manifest.version;
+}
+
+async function loadIdiomBank() {
+  if (!window.IdiomBankDB) {
+    console.error('[API] IdiomBankDB не доступен');
+    return;
+  }
+  if (idiomLoadingPromise) return idiomLoadingPromise;
+  if (idiomLoadStarted) {
+    console.log('[API] Загрузка идиом уже запущена');
+    return;
+  }
+  idiomLoadStarted = true;
+
+  idiomLoadingPromise = (async () => {
+    try {
+      await loadIdiomDataManifest();
+      const isCurrentVersion = await checkIdiomVersion();
+      const loaded = await window.IdiomBankDB.isBankLoaded();
+
+      if (loaded && isCurrentVersion) {
+        console.log('[API] Идиомы уже загружены и актуальны');
+        return;
+      }
+
+      if (loaded && !isCurrentVersion) {
+        console.log('[API] Идиомы устарели, очищаем...');
+        await window.IdiomBankDB.clearAll();
+      }
+
+      console.log('[API] Загрузка идиом из JSON...');
+      const response = await fetch('/idioms/idioms.json');
+      if (!response.ok) throw new Error('Failed to load idioms.json');
+      const idioms = await response.json();
+
+      const idiomsWithId = idioms.map((idiom, idx) => ({
+        ...idiom,
+        id: `idiom_${idx}_${idiom.idiom.replace(/\s/g, '_')}`,
+      }));
+
+      const saved = await window.IdiomBankDB.saveIdiomsBatch(idiomsWithId);
+      localStorage.setItem('idiom_bank_version', idiomDataManifest.version);
+      console.log(`[API] Загружено ${saved} идиом в IndexedDB`);
+    } catch (error) {
+      console.error('[API] Ошибка загрузки идиом:', error);
+      idiomLoadStarted = false;
+      throw error;
+    }
+  })();
+  return idiomLoadingPromise;
+}
+
+window.IdiomAPI = {
+  loadIdiomBank,
+  getRandomNewIdiom: async (level = 'all') => {
+    await loadIdiomBank();
+    const allIdioms = await window.IdiomBankDB.getAllIdioms();
+    if (!allIdioms.length) return null;
+
+    // Идиомы пока не имеют поля level, поэтому игнорируем фильтрацию по уровню
+    let pool = allIdioms;
+
+    // Исключаем уже добавленные пользователем идиомы
+    const userIdiomsSet = new Set(
+      (window.idioms || []).map(i => i.idiom.toLowerCase()),
+    );
+    const available = pool.filter(
+      i => !userIdiomsSet.has(i.idiom.toLowerCase()),
+    );
+
+    if (available.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * available.length);
+    return available[randomIndex];
+  },
+  searchIdioms: async (query, limit = 15) => {
+    await loadIdiomBank();
+    return window.IdiomBankDB.searchIdioms(query, limit);
+  },
+  forceUpdateAllIdioms: async () => {
+    localStorage.removeItem('idiom_bank_version');
+    await window.IdiomBankDB.clearAll();
+    idiomLoadingPromise = null;
+    idiomLoadStarted = false;
+    await loadIdiomBank();
+  },
+};

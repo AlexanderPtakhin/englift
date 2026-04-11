@@ -71,6 +71,33 @@ function toSnakeCase(obj) {
   }
   return result;
 }
+
+// Нормализация stats: поддерживает и camelCase, и snake_case
+function normalizeStats(stats) {
+  if (!stats) {
+    return {
+      shown: 0,
+      correct: 0,
+      streak: 0,
+      lastPracticed: null,
+      learned: false,
+      nextReview: new Date().toISOString(),
+      interval: 1,
+      easeFactor: 2.5,
+    };
+  }
+  return {
+    shown: stats.shown ?? 0,
+    correct: stats.correct ?? 0,
+    streak: stats.streak ?? 0,
+    lastPracticed: stats.lastPracticed ?? stats.last_practiced ?? null,
+    learned: stats.learned ?? false,
+    nextReview:
+      stats.nextReview ?? stats.next_review ?? new Date().toISOString(),
+    interval: stats.interval ?? 1,
+    easeFactor: stats.easeFactor ?? stats.ease_factor ?? 2.5,
+  };
+}
 // ========== БЛОКИРОВКА СКРОЛЛА ДЛЯ МОДАЛОК ==========
 // Предотвращает прокрутку body когда скроллишь колесом над модалкой
 function initModalScrollLock(modalBackdrop) {
@@ -225,7 +252,7 @@ window.user_settings = window.user_settings || {
 window.words = [];
 window.idioms = [];
 window.phrases = [];
-window.idiomsBank = [];
+// window.idiomsBank удалено - теперь используем IdiomBankDB (IndexedDB)
 function markWordDirtyForCache(wordId) {
   dirtyWordIds.add(wordId);
   scheduleCacheSave();
@@ -705,8 +732,8 @@ if ('scrollRestoration' in history) {
 }
 // Глобальные переменные
 window.DEBUG = false;
-window.idioms = []; // глобальный массив идиом
-window.idiomsBank = []; // банк идиом из JSON
+window.idioms = []; // глобальный массив идиом (только пользовательские)
+// window.idiomsBank удалено - теперь используем IdiomBankDB (IndexedDB)
 // User settings and progress
 window.user_settings = {
   voice: 'female',
@@ -1291,6 +1318,115 @@ const BADGES_DEF = [
     rarity: 'rare',
     xp: 100,
   },
+  // ─── ФРАЗЫ — количество ───
+  {
+    id: 'phrases10',
+    name: '💬 Коллокатор',
+    description: 'Добавь 10 фраз',
+    icon: 'forum',
+    category: 'phrases',
+    rarity: 'common',
+    xp: 30,
+    condition: d => d.totalPhrases >= 10,
+    progress: d => ({ current: Math.min(d.totalPhrases, 10), target: 10 }),
+  },
+
+  {
+    id: 'phrases25',
+    name: '🗣 Говорун',
+    description: 'Добавь 25 фраз',
+    icon: 'record_voice_over',
+    category: 'phrases',
+    rarity: 'common',
+    xp: 75,
+    condition: d => d.totalPhrases >= 25,
+    progress: d => ({ current: Math.min(d.totalPhrases, 25), target: 25 }),
+  },
+
+  {
+    id: 'phrases50',
+    name: '📖 Разговорник',
+    description: 'Добавь 50 фраз',
+    icon: 'menu_book',
+    category: 'phrases',
+    rarity: 'rare',
+    xp: 150,
+    condition: d => d.totalPhrases >= 50,
+    progress: d => ({ current: Math.min(d.totalPhrases, 50), target: 50 }),
+  },
+
+  {
+    id: 'phrases100',
+    name: '🔥 Фразовый маньяк',
+    description: 'Добавь 100 фраз',
+    icon: 'local_fire_department',
+    category: 'phrases',
+    rarity: 'epic',
+    xp: 400,
+    condition: d => d.totalPhrases >= 100,
+    progress: d => ({ current: Math.min(d.totalPhrases, 100), target: 100 }),
+  },
+
+  {
+    id: 'phrases250',
+    name: '🌟 Полиглот-экспресс',
+    description: 'Добавь 250 фраз',
+    icon: 'auto_awesome',
+    category: 'phrases',
+    rarity: 'legendary',
+    xp: 1000,
+    condition: d => d.totalPhrases >= 250,
+    progress: d => ({ current: Math.min(d.totalPhrases, 250), target: 250 }),
+  },
+
+  // ─── ФРАЗЫ — изученные ───
+  {
+    id: 'phraselearned10',
+    name: '✅ Выученный болтун',
+    description: 'Выучи 10 фраз',
+    icon: 'check_circle',
+    category: 'phrases',
+    rarity: 'common',
+    xp: 50,
+    condition: d => d.learnedPhrases >= 10,
+    progress: d => ({ current: Math.min(d.learnedPhrases, 10), target: 10 }),
+  },
+
+  {
+    id: 'phraselearned25',
+    name: '💡 Свободная речь',
+    description: 'Выучи 25 фраз',
+    icon: 'psychology',
+    category: 'phrases',
+    rarity: 'rare',
+    xp: 150,
+    condition: d => d.learnedPhrases >= 25,
+    progress: d => ({ current: Math.min(d.learnedPhrases, 25), target: 25 }),
+  },
+
+  {
+    id: 'phraselearned50',
+    name: '🏆 Фразовый ас',
+    description: 'Выучи 50 фраз',
+    icon: 'emoji_events',
+    category: 'phrases',
+    rarity: 'epic',
+    xp: 400,
+    condition: d => d.learnedPhrases >= 50,
+    progress: d => ({ current: Math.min(d.learnedPhrases, 50), target: 50 }),
+  },
+
+  {
+    id: 'phraselearned100',
+    name: '👑 Языковой мастер',
+    description: 'Выучи 100 фраз',
+    icon: 'workspace_premium',
+    category: 'phrases',
+    rarity: 'legendary',
+    xp: 1000,
+    condition: d => d.learnedPhrases >= 100,
+    progress: d => ({ current: Math.min(d.learnedPhrases, 100), target: 100 }),
+  },
 ];
 // Global flags
 window.profileFullyLoaded = false;
@@ -1727,6 +1863,10 @@ async function syncPendingWords() {
     } else {
       // Сохраняем или обновляем слово через saveWordToDb с upsert
       try {
+        // Нормализуем stats (поддерживаем и camelCase, и snake_case)
+        if (item.stats) {
+          item.stats = normalizeStats(item.stats);
+        }
         // Если слово уже существует, удаляем created_at чтобы не перезаписывать
         const existingWord = window.words.find(w => w.id === item.id);
         if (existingWord && existingWord.createdAt) {
@@ -2178,41 +2318,19 @@ window.debugLimits = function () {
   // Отладочная информация о лимитах
 };
 // window.isProfileEmpty = isProfileEmpty;
-async function loadIdiomsBank() {
-  try {
-    // Используем импортированные данные напрямую
-    if (idiomsBankData && Array.isArray(idiomsBankData)) {
-      window.idiomsBank = idiomsBankData;
-      return;
-    }
-    // Fallback: пробуем разные пути к файлу
-    const paths = ['idioms/idioms.json', './idioms/idioms.json'];
-    let data = null;
-    for (const path of paths) {
-      try {
-        const response = await fetch(path);
-        if (response.ok) {
-          data = await response.json();
-          break;
-        }
-      } catch (e) {
-        // Пробуем следующий путь
-      }
-    }
-    if (!data) {
-      throw new Error('Не удалось загрузить idioms.json ни по одному из путей');
-    }
-    window.idiomsBank = data;
-  } catch (e) {
-    console.error('Ошибка загрузки банка идиом:', e);
-    window.idiomsBank = [];
-  }
-}
-// Вызываем сразу после объявления window.words
-// Удалено: загружаем из IndexedDB в onProfileFullyLoaded
+// Удалено: старая функция loadIdiomsBank заменена на IdiomAPI.loadIdiomBank
+// Идиомы теперь загружаются из IndexedDB в onProfileFullyLoaded
 // Debounce функция перенесена в js/utils.js
 import { debounce, stopCurrentMediaAudio } from './js/utils.js';
 const debouncedRenderStats = debounce(renderStats, 800);
+
+// Handle window resize to update stats display based on screen width
+window.addEventListener(
+  'resize',
+  debounce(() => {
+    renderStats();
+  }, 200),
+);
 // Функции debouncedSaveUserData и immediateSaveUserData удалены - заменены на markProfileDirty
 // ...
 // ============================================================
@@ -2365,6 +2483,7 @@ function renderWeekChart() {
               <div class="week-bars">
                 <div class="week-bar words-bar" style="height: ${(d.words / maxTotal) * 40}px"></div>
                 <div class="week-bar idioms-bar" style="height: ${(d.idioms / maxTotal) * 40}px"></div>
+                <div class="week-bar phrases-bar" style="height:${(d.phrases / maxTotal) * 40}px"></div>
               </div>
               <div class="week-count">${d.total}</div>
             </div>
@@ -2385,6 +2504,14 @@ function renderWeekChart() {
             'идиомы',
             'идиом',
           )}</span>
+          <span><span class="material-symbols-outlined">forum</span>
+  ${pluralize(
+    days.reduce((a, d) => a + d.phrases, 0),
+    'фраза',
+    'фразы',
+    'фраз',
+  )}
+</span>
         </div>
       </div>
     </div>
@@ -4071,6 +4198,29 @@ function getBadgeProgress(def) {
       progress: Math.min(100, (current / target) * 100),
     };
   }
+  if (def.id.startsWith('phrases') && !def.id.startsWith('phraselearned')) {
+    const target = parseInt(def.id.replace('phrases', ''));
+    const current = window.phrases.length;
+    return {
+      type: 'phrases',
+      current,
+      target,
+      remaining: Math.max(0, target - current),
+      progress: Math.min(100, (current / target) * 100),
+    };
+  }
+
+  if (def.id.startsWith('phraselearned')) {
+    const target = parseInt(def.id.replace('phraselearned', ''));
+    const current = window.phrases.filter(p => p.stats?.learned).length;
+    return {
+      type: 'phraselearned',
+      current,
+      target,
+      remaining: Math.max(0, target - current),
+      progress: Math.min(100, (current / target) * 100),
+    };
+  }
   return null;
 }
 function renderBadges() {
@@ -4130,6 +4280,13 @@ function getProgressText(progress) {
       return `ещё ${pluralize(progress.remaining, 'идиома', 'идиомы', 'идиом')}`;
     case 'idiomlearned':
       return `ещё ${pluralize(progress.remaining, 'идиома', 'идиомы', 'идиом')} выучить`;
+    case 'phrases':
+      return pluralize(progress.remaining, 'фраза', 'фразы', 'фраз');
+    case 'phraselearned':
+      return (
+        pluralize(progress.remaining, 'фраза', 'фразы', 'фраз') +
+        ' до изученных'
+      );
     default:
       return '';
   }
@@ -4389,6 +4546,31 @@ function renderStats() {
       idiomsDue > 0
         ? `<span class="stat-due-chip"><span class="material-symbols-outlined">schedule</span> ${idiomsDue}</span>`
         : '';
+    const dueBadgeP =
+      phrasesDue > 0
+        ? `<span class="stat-due-chip"><span class="material-symbols-outlined">schedule</span>${phrasesDue}</span>`
+        : '';
+    const isSmallScreen = window.innerWidth < 800;
+    const learnedIcon = 'psychology';
+    const wordsLearnedText = isSmallScreen
+      ? `${wordsLearned}`
+      : `${wordsLearned} выучено`;
+    const wordsTotalText = isSmallScreen
+      ? `${wordsTotal}`
+      : `${wordsTotal} всего`;
+    const idiomsLearnedText = isSmallScreen
+      ? `${idiomsLearned}`
+      : `${idiomsLearned} выучено`;
+    const idiomsTotalText = isSmallScreen
+      ? `${idiomsTotal}`
+      : `${idiomsTotal} всего`;
+    const phrasesLearnedText = isSmallScreen
+      ? `${phrasesLearned}`
+      : `${phrasesLearned} выучено`;
+    const phrasesTotalText = isSmallScreen
+      ? `${phrasesTotal}`
+      : `${phrasesTotal} всего`;
+
     pc.innerHTML = `
       <div class="spc-card">
         <div class="spc-header">
@@ -4400,8 +4582,8 @@ function renderStats() {
           <div class="spc-bar-fill words" style="width:${wordsPct}%"></div>
         </div>
         <div class="spc-nums">
-          <span><span class="material-symbols-outlined stat-icon-small">check_circle</span> ${wordsLearned} выучено</span>
-          <span><span class="material-symbols-outlined stat-icon-small">menu_book</span> ${wordsTotal} всего</span>
+          <span><span class="material-symbols-outlined stat-icon-small learned-icon">${learnedIcon}</span> ${wordsLearnedText}</span>
+          <span><span class="material-symbols-outlined stat-icon-small">menu_book</span> ${wordsTotalText}</span>
           ${dueBadgeW}
         </div>
       </div>
@@ -4415,9 +4597,24 @@ function renderStats() {
           <div class="spc-bar-fill idioms" style="width:${idiomsPct}%"></div>
         </div>
         <div class="spc-nums">
-          <span><span class="material-symbols-outlined stat-icon-small">check_circle</span> ${idiomsLearned} выучено</span>
-          <span><span class="material-symbols-outlined stat-icon-small">theater_comedy</span> ${idiomsTotal} всего</span>
+          <span><span class="material-symbols-outlined stat-icon-small learned-icon">${learnedIcon}</span> ${idiomsLearnedText}</span>
+          <span><span class="material-symbols-outlined stat-icon-small">theater_comedy</span> ${idiomsTotalText}</span>
           ${dueBadgeI}
+        </div>
+      </div>
+      <div class="spc-card">
+        <div class="spc-header">
+          <span class="material-symbols-outlined spc-icon phrases-icon">forum</span>
+          <span class="spc-title">Фразы</span>
+          <span class="spc-pct">${phrasesPct}%</span>
+        </div>
+        <div class="spc-bar-wrap">
+          <div class="spc-bar-fill phrases" style="width:${phrasesPct}%"></div>
+        </div>
+        <div class="spc-nums">
+          <span><span class="material-symbols-outlined stat-icon-small learned-icon">${learnedIcon}</span>${phrasesLearnedText}</span>
+          <span><span class="material-symbols-outlined stat-icon-small">forum</span>${phrasesTotalText}</span>
+          ${dueBadgeP}
         </div>
       </div>
       <div class="spc-card spc-total">
@@ -4429,10 +4626,12 @@ function renderStats() {
         <div class="spc-bar-wrap combined">
           <div class="spc-bar-fill words" style="width:${totalAll ? (wordsLearned / totalAll) * 100 : 0}%"></div>
           <div class="spc-bar-fill idioms" style="width:${totalAll ? (idiomsLearned / totalAll) * 100 : 0}%; margin-left: 2px"></div>
+          <div class="spc-bar-fill phrases" style="width:${totalAll ? (phrasesLearned / totalAll) * 100 : 0}%; margin-left:2px"></div>
         </div>
         <div class="spc-legend">
           <span><span class="spc-dot words"></span>Слова</span>
           <span><span class="spc-dot idioms"></span>Идиомы</span>
+          <span><span class="spc-dot phrases"></span>Фразы</span>
         </div>
         <div class="spc-nums">
           <span><span class="material-symbols-outlined stat-icon-small">psychology</span> ${totalLearned} из ${totalAll} единиц</span>
@@ -4498,6 +4697,44 @@ function renderStats() {
     stEasyIdiomsEl.innerHTML = easyIdioms.length
       ? easyIdioms.map(makeIdiomItem).join('')
       : `<li class="stat-empty">Попрактикуйся в идиомах!</li>`;
+  // Сложные/лёгкие ФРАЗЫ
+  const phraseMap = new Map();
+  const makePhraseItem = p => {
+    const phraseObj = window.phrases.find(ph => ph.id === p.id);
+    if (phraseObj) {
+      phraseMap.set(p.id, phraseObj);
+    }
+    return `
+  <li>
+    <span class="word-info"><strong>${esc(p.phrase)}</strong></span>
+    <button class="btn-audio audio-card-btn" onclick="window.speakPhrase(window._statPhraseMap?.get('${esc(p.id)}') || '${esc(p.phrase)}')" title="Прослушать">
+      <span class="material-symbols-outlined">volume_up</span>
+    </button>
+  </li>`;
+  };
+  window._statPhraseMap = phraseMap;
+
+  const hardPhrases = [...phrasesWithStats]
+    .map(p => ({ ...p, accuracy: p.stats.correct / p.stats.shown }))
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 5);
+
+  const easyPhrases = [...phrasesWithStats]
+    .map(p => ({ ...p, accuracy: p.stats.correct / p.stats.shown }))
+    .sort((a, b) => b.accuracy - a.accuracy)
+    .slice(0, 5);
+
+  const stHardPhrasesEl = document.getElementById('st-hard-phrases');
+  if (stHardPhrasesEl)
+    stHardPhrasesEl.innerHTML = hardPhrases.length
+      ? hardPhrases.map(makePhraseItem).join('')
+      : '<li class="stat-empty">–</li>';
+
+  const stEasyPhrasesEl = document.getElementById('st-easy-phrases');
+  if (stEasyPhrasesEl)
+    stEasyPhrasesEl.innerHTML = easyPhrases.length
+      ? easyPhrases.map(makePhraseItem).join('')
+      : '<li class="stat-empty">–</li>';
   renderDailyGoals();
   recalculateCefrLevels();
   renderCefrLevels();
@@ -5153,7 +5390,6 @@ function makeCard(w) {
     tooltipText = `Прогресс: ${progressLevel}/3 ${pluralize(3, 'упражнение', 'упражнения', 'упражнений')}`;
   }
   card.innerHTML = `
-    <div class="progress-indicators">${indicators}</div>
     <div class="word-card-header">
       <div class="word-main">
         <h3 class="word-title">${esc(w.en)}</h3>
@@ -5166,6 +5402,7 @@ function makeCard(w) {
       </div>
     </div>
     <div class="word-translation">${parseAnswerVariants(w.ru).join(', ') || esc(w.ru)}</div>
+    <div class="progress-indicators">${indicators}</div>
     <div class="word-card-footer word-card-tabs">
       <button class="wc-tab-btn" data-tab="example">
         <span class="material-symbols-outlined">format_quote</span>
@@ -6042,7 +6279,7 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
   renderWords();
 });
 // Обработчик кликов для карточек идиом
-document.getElementById('idioms-grid')?.addEventListener('click', e => {
+document.getElementById('idioms-grid')?.addEventListener('click', async e => {
   // Фильтр по тегу
   const tagBtn = e.target.closest('.tag');
   if (tagBtn && tagBtn.dataset.tag) {
@@ -6105,12 +6342,14 @@ document.getElementById('idioms-grid')?.addEventListener('click', e => {
     if (!idiom) return;
     const examplesAudio =
       idiom.examples_audio || idiom.examplesAudio || idiom.examplesaudio;
-    // Если пусто — смотрим в банке
-    const audioArr = examplesAudio?.length
-      ? examplesAudio
-      : window.idiomsBank?.find(
-          b => b.idiom.toLowerCase() === idiom.idiom.toLowerCase(),
-        )?.examplesAudio;
+    // Если пусто — смотрим в банке через IndexedDB
+    let audioArr = examplesAudio?.length ? examplesAudio : null;
+    if (!audioArr) {
+      const allIdioms = await window.IdiomBankDB.getAllIdioms();
+      audioArr = allIdioms.find(
+        b => b.idiom.toLowerCase() === idiom.idiom.toLowerCase(),
+      )?.examplesAudio;
+    }
     // Текст для озвучки (пример или сама идиома)
     const fallbackText = idiom.example || idiom.ex || idiom.idiom;
     if (audioArr?.length > exampleIndex) {
@@ -6462,11 +6701,8 @@ document
         exampleTranslation,
       );
       if (success) {
-        const remaining = window.idiomsBank
-          ? window.idiomsBank.filter(
-              b => !window.idioms.find(i => i.idiom === b.idiom),
-            ).length
-          : 0;
+        const allIdioms = await window.IdiomBankDB.getAllIdioms();
+        const remaining = allIdioms.length - window.idioms.length;
         toast(
           `"${esc(idiom)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} идиом в банке</span>`,
           'success',
@@ -6724,27 +6960,26 @@ idiomSuggestionsContainer.id = 'idiom-autocomplete-suggestions';
 idiomSuggestionsContainer.className = 'autocomplete-suggestions';
 idiomEnInput.parentNode.style.position = 'relative';
 idiomEnInput.parentNode.appendChild(idiomSuggestionsContainer);
-const showIdiomSuggestions = debounce(query => {
+const showIdiomSuggestions = debounce(async query => {
   if (!query || query.length < 2) {
     idiomSuggestionsContainer.style.display = 'none';
     return;
   }
   const lowerQuery = query.toLowerCase();
-  // Ищем в банке идиом
-  const candidates = (window.idiomsBank || [])
-    .filter(item => item.idiom.toLowerCase().startsWith(lowerQuery))
-    .map(item => ({
-      idiom: item.idiom,
-      meaning: item.meaning,
-      definition: item.definition,
-      example: item.example,
-      example_translation: item.example_translation,
-      tags: item.tags || [],
-      phonetic: item.phonetic || null,
-      audio: item.audio,
-      examplesAudio: item.examplesAudio || [],
-      source: 'bank',
-    }));
+  // Ищем в банке идиом через IdiomAPI
+  const bankIdioms = await window.IdiomAPI.searchIdioms(lowerQuery, 15);
+  const candidates = bankIdioms.map(item => ({
+    idiom: item.idiom,
+    meaning: item.meaning,
+    definition: item.definition,
+    example: item.example,
+    example_translation: item.example_translation,
+    tags: item.tags || [],
+    phonetic: item.phonetic || null,
+    audio: item.audio,
+    examplesAudio: item.examplesAudio || [],
+    source: 'bank',
+  }));
   // Множество уже добавленных идиом (по idiom)
   const userIdiomsSet = new Set(window.idioms.map(i => i.idiom.toLowerCase()));
   // Оставляем только те, которых ещё нет у пользователя
@@ -10296,28 +10531,24 @@ async function renderRandomBankIdiom() {
     wrap.classList.add('fade-out');
     await new Promise(r => setTimeout(r, 200));
   }
-  if (!window.idiomsBank || window.idiomsBank.length === 0) {
-    wrap.innerHTML =
-      '<div class="word-bank-card">Не удалось загрузить идиомы</div>';
-    return;
-  }
-  // Множество идиом пользователя (по полю idiom)
-  const userIdiomsSet = new Set(window.idioms.map(i => i.idiom.toLowerCase()));
-  // Отфильтровываем те, что уже есть у пользователя
-  const available = window.idiomsBank.filter(
-    item => !userIdiomsSet.has(item.idiom.toLowerCase()),
-  );
-  if (available.length === 0) {
-    // Если все идиомы уже добавлены, показываем сообщение
-    wrap.innerHTML =
-      '<div class="word-bank-card">Поздравляем! Все идиомы из банка уже в вашем словаре 🎉</div>';
+
+  // Идиомы пока не имеют поля level, поэтому всегда используем 'all'
+  const idiom = await window.IdiomAPI.getRandomNewIdiom('all');
+
+  if (!idiom) {
+    wrap.innerHTML = `
+      <div class="word-bank-card">
+        <div class="word-bank-content">
+          <div class="word-bank-label">🎉 Поздравляем!</div>
+          <div class="word-bank-en">Все идиомы из банка уже в вашем словаре</div>
+        </div>
+      </div>`;
     wrap.classList.remove('fade-out');
     wrap.classList.add('fade-in');
     setTimeout(() => wrap.classList.remove('fade-in'), 300);
     return;
   }
-  const randomIndex = Math.floor(Math.random() * available.length);
-  const idiom = available[randomIndex];
+
   currentBankIdiom = idiom;
   wrap.innerHTML = `
     <div class="word-bank-card">
@@ -10418,11 +10649,8 @@ async function renderRandomBankIdiom() {
         newIdiom.example_translation, // Передаем перевод примера
       );
       if (success) {
-        const remaining = window.idiomsBank
-          ? window.idiomsBank.filter(
-              b => !window.idioms.find(i => i.idiom === b.idiom),
-            ).length
-          : 0;
+        const allIdioms = await window.IdiomBankDB.getAllIdioms();
+        const remaining = allIdioms.length - window.idioms.length;
         toast(
           `"${esc(currentBankIdiom.idiom)}" добавлено!<br><span style="opacity:0.8;font-size:0.85em">Ещё ${remaining} идиом в банке</span>`,
           'success',
@@ -10437,7 +10665,7 @@ async function renderRandomBankIdiom() {
 (async () => {
   // updStreak();
   // updateDueBadge();
-  await loadIdiomsBank(); // загружаем банк идиом
+  // Идиомы теперь загружаются через IdiomAPI.loadIdiomBank в onProfileFullyLoaded
   renderRandomBankWord(); // для слов
   renderRandomBankIdiom(); // для идиом
 })();
@@ -12192,7 +12420,6 @@ function makeIdiomCard(i) {
     tooltipText = `Прогресс: ${progressLevel}/3 ${pluralize(3, 'упражнение', 'упражнения', 'упражнений')}`;
   }
   card.innerHTML = `
-    <div class="progress-indicators">${indicators}</div>
     <div class="word-card-header">
       <div class="word-main">
         <h3 class="word-title">${esc(i.idiom).toLowerCase()}</h3>
@@ -12219,6 +12446,7 @@ function makeIdiomCard(i) {
       </div>
     </div>
     <div class="word-translation">${esc(i.meaning)}</div>
+    <div class="progress-indicators">${indicators}</div>
     <div class="word-card-footer">
       <span class="expand-hint">Нажмите, чтобы раскрыть</span>
       <span class="material-symbols-outlined expand-icon">expand_more</span>
@@ -12498,6 +12726,10 @@ window.onProfileFullyLoaded = async function () {
     await updateWordsFromBank();
     // 2.55. Обогащаем старые слова аудио примеров и CEFR из банка
     await enrichWordsWithBankData();
+    // 2.56. Запускаем загрузку банка идиом (как и слов)
+    if (window.IdiomAPI) {
+      window.IdiomAPI.loadIdiomBank().catch(console.warn);
+    }
     // 2.6. Build phrases from word collocations after words are updated with grammar data
     if (window.words.length > 0) {
       buildPhrasesFromWords();

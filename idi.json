@@ -1,0 +1,6434 @@
+[
+  {
+    "idiom": "A Bite at The Cherry",
+    "meaning": "An opportunity to achieve something."
+  },
+  {
+    "idiom": "A Bit Much",
+    "meaning": "Somewhat excessive or over the top."
+  },
+  {
+    "idiom": "A Busy Bee",
+    "meaning": "A person who is very active and industrious."
+  },
+  {
+    "idiom": "A Cat Has Nine Lives",
+    "meaning": "Cats are resilient and can survive accidents."
+  },
+  {
+    "idiom": "A Cat in Gloves Catches No Mice",
+    "meaning": "If you are too careful or polite, you may not achieve your goal."
+  },
+  {
+    "idiom": "A Cat Nap",
+    "meaning": "A short, light sleep."
+  },
+  {
+    "idiom": "A Cold Day In July",
+    "meaning": "An event that is very unlikely to happen."
+  },
+  {
+    "idiom": "A Cold Fish",
+    "meaning": "A person who is unemotional and unfriendly."
+  },
+  {
+    "idiom": "A Cut Above",
+    "meaning": "Slightly better than others."
+  },
+  {
+    "idiom": "A Cut Below",
+    "meaning": "Slightly inferior."
+  },
+  {
+    "idiom": "A Day Late And A Dollar Short",
+    "meaning": "Too late and insufficient; failing to meet a deadline or requirement."
+  },
+  {
+    "idiom": "A Dog in The Manger",
+    "meaning": "A person who prevents others from using something they have no use for themselves."
+  },
+  {
+    "idiom": "A Few Sandwiches Short Of A Picnic",
+    "meaning": "Not very intelligent; mentally deficient."
+  },
+  {
+    "idiom": "A Good Deal",
+    "meaning": "A large amount; also a bargain."
+  },
+  {
+    "idiom": "A Great Deal",
+    "meaning": "A large amount."
+  },
+  {
+    "idiom": "A Guinea Pig",
+    "meaning": "A subject of experimentation."
+  },
+  {
+    "idiom": "A Hair’s Breadth",
+    "meaning": "A very small distance or margin."
+  },
+  {
+    "idiom": "A Home Bird",
+    "meaning": "A person who prefers to stay at home."
+  },
+  {
+    "idiom": "A Hundred And Ten Percent",
+    "meaning": "Maximum effort."
+  },
+  {
+    "idiom": "A Lame Duck",
+    "meaning": "An official in the final period of office, powerless."
+  },
+  {
+    "idiom": "A Leg Up",
+    "meaning": "An advantage or boost."
+  },
+  {
+    "idiom": "A Lemon",
+    "meaning": "A defective product, especially a car."
+  },
+  {
+    "idiom": "A Life Of Its Own",
+    "meaning": "Something that seems to exist and develop independently."
+  },
+  {
+    "idiom": "A Little Bird Told Me",
+    "meaning": "I heard it from a secret source."
+  },
+  {
+    "idiom": "A Little from Column A, a Little from Column B",
+    "meaning": "A combination of two things."
+  },
+  {
+    "idiom": "A Lone Wolf",
+    "meaning": "A person who prefers to act alone."
+  },
+  {
+    "idiom": "A Lot on One’s Plate",
+    "meaning": "Having many responsibilities or problems."
+  },
+  {
+    "idiom": "A Million and One",
+    "meaning": "A very large number."
+  },
+  {
+    "idiom": "A Notch Above",
+    "meaning": "Slightly better."
+  },
+  {
+    "idiom": "A Plum Job",
+    "meaning": "A highly desirable job."
+  },
+  {
+    "idiom": "A Rare Bird",
+    "meaning": "An unusual person or thing."
+  },
+  {
+    "idiom": "A Scaredy-Cat",
+    "meaning": "A timid person."
+  },
+  {
+    "idiom": "A Second Bite At The Cherry",
+    "meaning": "Another opportunity."
+  },
+  {
+    "idiom": "A Sight for Sore Eyes",
+    "meaning": "A welcome sight."
+  },
+  {
+    "idiom": "A Sitting Duck",
+    "meaning": "An easy target."
+  },
+  {
+    "idiom": "A Snowball’s Chance in Hell",
+    "meaning": "No chance at all."
+  },
+  {
+    "idiom": "A Stitch in Time Saves Nine",
+    "meaning": "Fixing a problem early prevents it from getting worse."
+  },
+  {
+    "idiom": "A Stone’s Throw",
+    "meaning": "A short distance."
+  },
+  {
+    "idiom": "A Tall Order",
+    "meaning": "A difficult task."
+  },
+  {
+    "idiom": "A Week Is A Long Time In _____",
+    "meaning": "Things can change quickly."
+  },
+  {
+    "idiom": "About Time",
+    "meaning": "Finally, after a long wait."
+  },
+  {
+    "idiom": "About To",
+    "meaning": "On the point of doing something."
+  },
+  {
+    "idiom": "Above And Beyond",
+    "meaning": "More than required."
+  },
+  {
+    "idiom": "Above Board",
+    "meaning": "Honest, legitimate."
+  },
+  {
+    "idiom": "Above The Law",
+    "meaning": "Exempt from laws."
+  },
+  {
+    "idiom": "Above The Salt",
+    "meaning": "In a position of honor."
+  },
+  {
+    "idiom": "Above Water",
+    "meaning": "Out of difficulty, especially financial."
+  },
+  {
+    "idiom": "Accident Of Birth",
+    "meaning": "A situation determined by birth."
+  },
+  {
+    "idiom": "Accident Waiting To Happen",
+    "meaning": "A situation likely to cause an accident."
+  },
+  {
+    "idiom": "According To Hoyle",
+    "meaning": "Following the rules."
+  },
+  {
+    "idiom": "Ace In The Hole",
+    "meaning": "A hidden advantage or resource kept in reserve."
+  },
+  {
+    "idiom": "Ace Up One’s Sleeve",
+    "meaning": "A secret advantage or plan."
+  },
+  {
+    "idiom": "Acid Test",
+    "meaning": "A critical test that proves the value or quality of something."
+  },
+  {
+    "idiom": "Acknowledge The Corn",
+    "meaning": "Admit the truth; confess (American, somewhat dated)."
+  },
+  {
+    "idiom": "Acquired Taste",
+    "meaning": "Something that one learns to like over time."
+  },
+  {
+    "idiom": "Across The Board",
+    "meaning": "Applying to all situations or people."
+  },
+  {
+    "idiom": "Across The Pond",
+    "meaning": "On the other side of the Atlantic Ocean (used in both US and UK)."
+  },
+  {
+    "idiom": "Act High and Mighty",
+    "meaning": "Behave in a superior or arrogant manner."
+  },
+  {
+    "idiom": "Act Of Congress",
+    "meaning": "Something very difficult to accomplish (American reference)."
+  },
+  {
+    "idiom": "Act One’s Age",
+    "meaning": "Behave maturely."
+  },
+  {
+    "idiom": "Achilles’ Heel",
+    "meaning": "A weak point or vulnerability."
+  },
+  {
+    "idiom": "Actions Speak Louder Than Words",
+    "meaning": "What you do shows your true intentions."
+  },
+  {
+    "idiom": "Add Fuel To The Fire",
+    "meaning": "Make a bad situation worse."
+  },
+  {
+    "idiom": "Add Insult To Injury",
+    "meaning": "Make a situation worse."
+  },
+  {
+    "idiom": "After One’s Own Heart",
+    "meaning": "Sharing one’s own preferences or values."
+  },
+  {
+    "idiom": "After The Fact",
+    "meaning": "After something has happened."
+  },
+  {
+    "idiom": "Against The Clock",
+    "meaning": "In a hurry; with limited time."
+  },
+  {
+    "idiom": "Against The Grain",
+    "meaning": "Contrary to one’s natural inclination or the prevailing trend."
+  },
+  {
+    "idiom": "Against The Run Of Play",
+    "meaning": "Contrary to the expected course (sports, general)."
+  },
+  {
+    "idiom": "Age Before Beauty",
+    "meaning": "A humorous way to let an older person go first."
+  },
+  {
+    "idiom": "Agree To Disagree",
+    "meaning": "To accept that two people disagree."
+  },
+  {
+    "idiom": "Agreement In Principle",
+    "meaning": "A fundamental agreement before final details."
+  },
+  {
+    "idiom": "Aha Moment",
+    "meaning": "A moment of sudden insight or discovery."
+  },
+  {
+    "idiom": "Ahead Of One’s Time",
+    "meaning": "Having ideas too advanced for the current era."
+  },
+  {
+    "idiom": "Ahead Of The Curve",
+    "meaning": "More advanced than others; innovative."
+  },
+  {
+    "idiom": "Ahead Of The Game",
+    "meaning": "In a position of advantage; prepared for what may happen."
+  },
+  {
+    "idiom": "Air Rage",
+    "meaning": "Violent or angry behavior on an airplane."
+  },
+  {
+    "idiom": "Airy Fairy",
+    "meaning": "Vague, unrealistic, or light-headed."
+  },
+  {
+    "idiom": "Albatross Around One’s Neck",
+    "meaning": "A burden that hinders progress."
+  },
+  {
+    "idiom": "Alive and Kicking",
+    "meaning": "Still active or existing."
+  },
+  {
+    "idiom": "All Along",
+    "meaning": "From the beginning."
+  },
+  {
+    "idiom": "All And Sundry",
+    "meaning": "Everyone, without distinction."
+  },
+  {
+    "idiom": "All Bark And No Bite",
+    "meaning": "Threatening but harmless."
+  },
+  {
+    "idiom": "All Bets Are Off",
+    "meaning": "The situation has changed and previous predictions may not hold."
+  },
+  {
+    "idiom": "All Dressed Up And Nowhere To Go",
+    "meaning": "Prepared for an event that doesn’t happen."
+  },
+  {
+    "idiom": "All Ears",
+    "meaning": "Listening closely; eager to hear."
+  },
+  {
+    "idiom": "All Eyes And Ears",
+    "meaning": "Paying close attention."
+  },
+  {
+    "idiom": "All Eyes Are On",
+    "meaning": "Everyone is watching."
+  },
+  {
+    "idiom": "All Fur Coat And No Knickers",
+    "meaning": "Superficially impressive but lacking substance."
+  },
+  {
+    "idiom": "All Hands on Deck",
+    "meaning": "Everyone’s help is needed."
+  },
+  {
+    "idiom": "All Hat And No Cattle",
+    "meaning": "Full of talk but no action (American)."
+  },
+  {
+    "idiom": "All Hell Breaks Loose",
+    "meaning": "Chaos erupts."
+  },
+  {
+    "idiom": "All In A Day’s Work",
+    "meaning": "Part of one’s normal routine."
+  },
+  {
+    "idiom": "All In Good Time",
+    "meaning": "In due course; eventually."
+  },
+  {
+    "idiom": "All in One Piece",
+    "meaning": "Safely, without harm."
+  },
+  {
+    "idiom": "All It’s Cracked Up To Be",
+    "meaning": "As good as claimed."
+  },
+  {
+    "idiom": "All Mouth And No Trousers",
+    "meaning": "Full of talk but no action."
+  },
+  {
+    "idiom": "All Over But The Shouting",
+    "meaning": "The outcome is decided, only formalities remain."
+  },
+  {
+    "idiom": "All Over Hell’s Half Acre",
+    "meaning": "Everywhere; in many places (American)."
+  },
+  {
+    "idiom": "All Over The Board",
+    "meaning": "In many directions; widely."
+  },
+  {
+    "idiom": "All Over The Map",
+    "meaning": "Scattered, inconsistent."
+  },
+  {
+    "idiom": "All Over The Place",
+    "meaning": "Everywhere; disorganized."
+  },
+  {
+    "idiom": "All Rights Reserved",
+    "meaning": "A copyright statement indicating that all rights are retained."
+  },
+  {
+    "idiom": "All Roads Lead to Rome",
+    "meaning": "Many ways lead to the same goal."
+  },
+  {
+    "idiom": "All Set",
+    "meaning": "Ready; prepared."
+  },
+  {
+    "idiom": "All Sizzle And No Steak",
+    "meaning": "Impressive but lacking substance (American)."
+  },
+  {
+    "idiom": "All Talk and No Trousers",
+    "meaning": "Same as all mouth and no trousers."
+  },
+  {
+    "idiom": "All That Jazz",
+    "meaning": "And other similar things."
+  },
+  {
+    "idiom": "All The Marbles",
+    "meaning": "The entire prize; everything at stake."
+  },
+  {
+    "idiom": "All The Rage",
+    "meaning": "Very popular and fashionable at the moment."
+  },
+  {
+    "idiom": "All The Same",
+    "meaning": "Nevertheless; anyway."
+  },
+  {
+    "idiom": "All The Tea In China",
+    "meaning": "An enormous amount of money or value."
+  },
+  {
+    "idiom": "All Things Being Equal",
+    "meaning": "If circumstances are unchanged."
+  },
+  {
+    "idiom": "All Things Considered",
+    "meaning": "Taking everything into account."
+  },
+  {
+    "idiom": "All Thumbs",
+    "meaning": "Clumsy, especially with one's hands."
+  },
+  {
+    "idiom": "All Told",
+    "meaning": "In total; including everything."
+  },
+  {
+    "idiom": "All Very Well",
+    "meaning": "Used to express that something is acceptable but not ideal."
+  },
+  {
+    "idiom": "All Wet",
+    "meaning": "Completely mistaken (American)."
+  },
+  {
+    "idiom": "Along The Lines Of",
+    "meaning": "Similar to; in the style of."
+  },
+  {
+    "idiom": "Amateur Hour",
+    "meaning": "A situation characterized by incompetence (American)."
+  },
+  {
+    "idiom": "American Dream (The)",
+    "meaning": "The ideal of prosperity and success achievable through hard work in the US."
+  },
+  {
+    "idiom": "An Apple a Day Keeps the Doctor Away",
+    "meaning": "Eating healthily can prevent illness."
+  },
+  {
+    "idiom": "An Axe",
+    "meaning": "Usually part of 'have an axe to grind' – a hidden personal motive."
+  },
+  {
+    "idiom": "An Early Bird",
+    "meaning": "A person who gets up early or arrives before others."
+  },
+  {
+    "idiom": "An Eye for an Eye",
+    "meaning": "Retaliation in kind; justice through revenge."
+  },
+  {
+    "idiom": "An Offer One Can’t Refuse",
+    "meaning": "An extremely persuasive proposal, often with implied threat (from The Godfather)."
+  },
+  {
+    "idiom": "Ancient History",
+    "meaning": "Something long past and no longer relevant."
+  },
+  {
+    "idiom": "And All That",
+    "meaning": "And other similar things."
+  },
+  {
+    "idiom": "And Counting",
+    "meaning": "And more to come (used after a number)."
+  },
+  {
+    "idiom": "And Change",
+    "meaning": "And a small amount extra (especially money)."
+  },
+  {
+    "idiom": "And His Mother",
+    "meaning": "Used in phrases like 'everyone and his mother' meaning a huge number of people."
+  },
+  {
+    "idiom": "And So Forth",
+    "meaning": "And other similar items; et cetera."
+  },
+  {
+    "idiom": "And So On",
+    "meaning": "Continuing in the same way."
+  },
+  {
+    "idiom": "And The Like",
+    "meaning": "And similar things."
+  },
+  {
+    "idiom": "And Then Some",
+    "meaning": "And even more; considerably more."
+  },
+  {
+    "idiom": "Another Nail In One’s Coffin",
+    "meaning": "An action or event that hastens failure or death."
+  },
+  {
+    "idiom": "Answer Back",
+    "meaning": "To reply rudely or impertinently."
+  },
+  {
+    "idiom": "Ants In Your Pants",
+    "meaning": "Restlessness; inability to sit still."
+  },
+  {
+    "idiom": "Any Port in a Storm",
+    "meaning": "In a crisis, any solution is acceptable."
+  },
+  {
+    "idiom": "Any Tom, Dick or Harry",
+    "meaning": "Any ordinary person; just anyone."
+  },
+  {
+    "idiom": "Angel’s Advocate",
+    "meaning": "Someone who argues for the positive side (opposite of devil's advocate)."
+  },
+  {
+    "idiom": "Angle For",
+    "meaning": "To try to get something indirectly."
+  },
+  {
+    "idiom": "Apple of One’s Eye",
+    "meaning": "A person who is cherished above all others."
+  },
+  {
+    "idiom": "Apples and Oranges",
+    "meaning": "Two things that are fundamentally different and cannot be compared."
+  },
+  {
+    "idiom": "Arm Candy",
+    "meaning": "An attractive companion, often for show."
+  },
+  {
+    "idiom": "Armed to the Teeth",
+    "meaning": "Carrying many weapons; heavily armed."
+  },
+  {
+    "idiom": "Around the Clock",
+    "meaning": "All day and night; continuously."
+  },
+  {
+    "idiom": "As American as Apple Pie",
+    "meaning": "Typically or traditionally American."
+  },
+  {
+    "idiom": "As Far as I Can Throw (someone)",
+    "meaning": "A phrase indicating distrust or dislike: 'I wouldn't trust him as far as I can throw him.'"
+  },
+  {
+    "idiom": "As Pale as Death",
+    "meaning": "Extremely pale, usually from fear or illness."
+  },
+  {
+    "idiom": "As Poor as a Church Mouse",
+    "meaning": "Very poor; having no money."
+  },
+  {
+    "idiom": "As Red as A Cherry",
+    "meaning": "Bright red, often describing blushing or color."
+  },
+  {
+    "idiom": "Asleep at the Wheel (Switch)",
+    "meaning": "Not paying attention; failing to perform one's duties."
+  },
+  {
+    "idiom": "At Death’s Door",
+    "meaning": "Very close to dying."
+  },
+  {
+    "idiom": "At Each Other’s Throats",
+    "meaning": "Fighting or arguing intensely."
+  },
+  {
+    "idiom": "At Loggerheads",
+    "meaning": "In strong disagreement."
+  },
+  {
+    "idiom": "At Sixes and Sevens",
+    "meaning": "In a state of confusion or disorder."
+  },
+  {
+    "idiom": "At the Drop of a Hat",
+    "meaning": "Immediately; without hesitation."
+  },
+  {
+    "idiom": "At the Eleventh Hour",
+    "meaning": "At the last possible moment."
+  },
+  {
+    "idiom": "At the End of One’s Rope (Tether)",
+    "meaning": "Having no more patience or endurance."
+  },
+  {
+    "idiom": "At the End of the Day",
+    "meaning": "Ultimately; when all is said and done."
+  },
+  {
+    "idiom": "At Wit’s End",
+    "meaning": "Frustrated because all options are exhausted."
+  },
+  {
+    "idiom": "Babe In Arms",
+    "meaning": "A very young baby, still carried."
+  },
+  {
+    "idiom": "Babe In The Woods",
+    "meaning": "An innocent or naive person, especially one who is easily deceived."
+  },
+  {
+    "idiom": "Babe Magnet",
+    "meaning": "Someone or something that attracts attractive people (slang)."
+  },
+  {
+    "idiom": "Baby Blues",
+    "meaning": "Postpartum depression; sadness after childbirth."
+  },
+  {
+    "idiom": "Baby Boomer",
+    "meaning": "A person born during the baby boom (approximately 1946–1964)."
+  },
+  {
+    "idiom": "Babysitter Test",
+    "meaning": "A test to see if someone can handle responsibility (American context)."
+  },
+  {
+    "idiom": "Back And Forth",
+    "meaning": "Moving in one direction and then the opposite; also, an argument or discussion."
+  },
+  {
+    "idiom": "Back At You",
+    "meaning": "Used to return a greeting, insult, or compliment."
+  },
+  {
+    "idiom": "Back Burner (On The)",
+    "meaning": "Given low priority; postponed."
+  },
+  {
+    "idiom": "Back Forty",
+    "meaning": "A remote or uncultivated part of a farm; also, any outlying area (American)."
+  },
+  {
+    "idiom": "Back in the Day",
+    "meaning": "A long time ago; in the past."
+  },
+  {
+    "idiom": "Back Of Beyond",
+    "meaning": "A very remote or isolated place."
+  },
+  {
+    "idiom": "Back Office",
+    "meaning": "The administrative and support staff of a business."
+  },
+  {
+    "idiom": "Back on One’s Feet",
+    "meaning": "Recovered from illness or misfortune."
+  },
+  {
+    "idiom": "Back to Square One",
+    "meaning": "Return to the beginning; start over."
+  },
+  {
+    "idiom": "Back to the Drawing Board",
+    "meaning": "Start over because a plan failed."
+  },
+  {
+    "idiom": "Back to the Salt Mine(s)",
+    "meaning": "Return to work (humorous, often after a break)."
+  },
+  {
+    "idiom": "Back the Wrong Horse",
+    "meaning": "Support a losing candidate or venture."
+  },
+  {
+    "idiom": "Backing and Filling",
+    "meaning": "Hesitation or vacillation; taking back and forth actions."
+  },
+  {
+    "idiom": "Backseat Driver",
+    "meaning": "A passenger who gives unwanted driving advice; a meddler."
+  },
+  {
+    "idiom": "Bad Apple",
+    "meaning": "A corrupt or troublesome person."
+  },
+  {
+    "idiom": "Bad Blood",
+    "meaning": "Ill feeling; hostility between people."
+  },
+  {
+    "idiom": "Bad Egg",
+    "meaning": "A dishonest or disreputable person."
+  },
+  {
+    "idiom": "Bad Taste In One’s Mouth",
+    "meaning": "An unpleasant memory or feeling after an experience."
+  },
+  {
+    "idiom": "Bag of Tricks",
+    "meaning": "A set of skills or resources."
+  },
+  {
+    "idiom": "Bail Out",
+    "meaning": "To rescue someone from financial trouble; or to abandon a situation."
+  },
+  {
+    "idiom": "Ball and Chain",
+    "meaning": "A burden; often used jokingly for a spouse."
+  },
+  {
+    "idiom": "Ballpark Figure",
+    "meaning": "A rough estimate."
+  },
+  {
+    "idiom": "Banner Year",
+    "meaning": "An exceptionally good year."
+  },
+  {
+    "idiom": "Bang for Your Buck",
+    "meaning": "Value for money."
+  },
+  {
+    "idiom": "Bang One’s Head Against the Wall (Against a Brick Wall)",
+    "meaning": "To waste effort trying to do something impossible."
+  },
+  {
+    "idiom": "Baptism by Fire",
+    "meaning": "A difficult first experience in a new role."
+  },
+  {
+    "idiom": "Bar Fly (or Barfly)",
+    "meaning": "A person who spends much time in bars."
+  },
+  {
+    "idiom": "Bare One’s Heart (Soul)",
+    "meaning": "To reveal one's deepest feelings."
+  },
+  {
+    "idiom": "Bark Up the Wrong Tree",
+    "meaning": "To pursue a mistaken course."
+  },
+  {
+    "idiom": "Basket Case",
+    "meaning": "A person who is very anxious or unable to cope."
+  },
+  {
+    "idiom": "Bat/Play for Both Teams",
+    "meaning": "To be bisexual (slang)."
+  },
+  {
+    "idiom": "Bat/Play for the Other Team",
+    "meaning": "To be homosexual (slang)."
+  },
+  {
+    "idiom": "Batten Down the Hatches",
+    "meaning": "Prepare for trouble."
+  },
+  {
+    "idiom": "Be A Barrel of Laughs",
+    "meaning": "To be very amusing."
+  },
+  {
+    "idiom": "Be A Cold Day In Hell",
+    "meaning": "Something that will never happen."
+  },
+  {
+    "idiom": "Be An Item",
+    "meaning": "To be in a romantic relationship."
+  },
+  {
+    "idiom": "Be Footloose and Fancy-Free",
+    "meaning": "To be free of commitments."
+  },
+  {
+    "idiom": "Be Head Over Heels (In love)",
+    "meaning": "To be deeply in love."
+  },
+  {
+    "idiom": "Be in Seventh Heaven",
+    "meaning": "To be extremely happy."
+  },
+  {
+    "idiom": "Be in Two Minds (about something)",
+    "meaning": "To be undecided (common in US as well)."
+  },
+  {
+    "idiom": "Be Like Chalk and Cheese",
+    "meaning": "To be completely different (used in US)."
+  },
+  {
+    "idiom": "Be Lovey – Dovey",
+    "meaning": "To be very affectionate in a cloying way."
+  },
+  {
+    "idiom": "Be on the Mend",
+    "meaning": "To be recovering from illness."
+  },
+  {
+    "idiom": "Be Snowed Under",
+    "meaning": "To be overwhelmed with work."
+  },
+  {
+    "idiom": "Bean Counters",
+    "meaning": "Accountants or financial officers (often derogatory)."
+  },
+  {
+    "idiom": "Beat a Hasty Retreat",
+    "meaning": "To leave quickly."
+  },
+  {
+    "idiom": "Beat a Dead Horse",
+    "meaning": "To waste effort on something futile."
+  },
+  {
+    "idiom": "Beat Around the Bush",
+    "meaning": "To avoid the main topic."
+  },
+  {
+    "idiom": "Beat Someone To The Draw",
+    "meaning": "To do something before someone else; to react faster."
+  },
+  {
+    "idiom": "Beat Someone to the Punch",
+    "meaning": "To do something before someone else does it."
+  },
+  {
+    "idiom": "Beat the Drum for (Something)",
+    "meaning": "To promote or support something enthusiastically."
+  },
+  {
+    "idiom": "Beat the Pants Off",
+    "meaning": "To win easily."
+  },
+  {
+    "idiom": "Bed of Roses",
+    "meaning": "A comfortable or easy situation."
+  },
+  {
+    "idiom": "Bedroom Eyes",
+    "meaning": "A seductive or suggestive look."
+  },
+  {
+    "idiom": "Bee in One’s Bonnet",
+    "meaning": "An obsession or fixation on an idea."
+  },
+  {
+    "idiom": "Beggar Thy Neighbor",
+    "meaning": "A policy of gaining at a neighbor's expense (economic term)."
+  },
+  {
+    "idiom": "Behind the Eight (or 8) Ball",
+    "meaning": "In a difficult or unfavorable position (from pool)."
+  },
+  {
+    "idiom": "Behind the Scenes",
+    "meaning": "Out of public view; in secret."
+  },
+  {
+    "idiom": "Behind the Times",
+    "meaning": "Old-fashioned; not up-to-date."
+  },
+  {
+    "idiom": "Bell the Cat",
+    "meaning": "To attempt something dangerous or difficult for the common good."
+  },
+  {
+    "idiom": "Bells And Whistles",
+    "meaning": "Attractive but non-essential features."
+  },
+  {
+    "idiom": "Belly Laugh",
+    "meaning": "A deep, hearty laugh."
+  },
+  {
+    "idiom": "Bend an Elbow",
+    "meaning": "To drink alcohol."
+  },
+  {
+    "idiom": "Bend Over Backwards",
+    "meaning": "To try very hard."
+  },
+  {
+    "idiom": "Best (Greatest) Thing Since Sliced Bread",
+    "meaning": "An excellent new invention or idea."
+  },
+  {
+    "idiom": "Best of Both Worlds",
+    "meaning": "A situation where one can enjoy two different advantages."
+  },
+  {
+    "idiom": "Bet One’s Bottom Dollar (On Something)",
+    "meaning": "To be completely certain about something."
+  },
+  {
+    "idiom": "Bet the Farm",
+    "meaning": "To risk everything on a single venture."
+  },
+  {
+    "idiom": "Better late Than Never",
+    "meaning": "It's better to arrive or do something late than not at all."
+  },
+  {
+    "idiom": "Between a Rock and a Hard Place",
+    "meaning": "Faced with two equally unpleasant alternatives."
+  },
+  {
+    "idiom": "Between the Devil and the Deep Blue Sea",
+    "meaning": "In a difficult situation with two bad options."
+  },
+  {
+    "idiom": "Beyond the Pale",
+    "meaning": "Unacceptable; outside the bounds of decency."
+  },
+  {
+    "idiom": "Beyond the Shadow of a Doubt",
+    "meaning": "Completely certain."
+  },
+  {
+    "idiom": "Big Apple",
+    "meaning": "Nickname for New York City."
+  },
+  {
+    "idiom": "Big Brother",
+    "meaning": "A government or authority that monitors citizens (from Orwell)."
+  },
+  {
+    "idiom": "Big Cheese",
+    "meaning": "An important or influential person."
+  },
+  {
+    "idiom": "Big Deal",
+    "meaning": "An important matter; often used sarcastically to mean the opposite."
+  },
+  {
+    "idiom": "Big Fish",
+    "meaning": "An important person in a particular context."
+  },
+  {
+    "idiom": "Big Picture",
+    "meaning": "The overall perspective, ignoring minor details."
+  },
+  {
+    "idiom": "Big time",
+    "meaning": "The highest level of success; also used as an adverb meaning 'very much'."
+  },
+  {
+    "idiom": "Birds of a Feather",
+    "meaning": "People with similar interests or characteristics."
+  },
+  {
+    "idiom": "Bird’s-Eye View",
+    "meaning": "A view from above; a broad overview."
+  },
+  {
+    "idiom": "Bite Off More Than You Can Chew",
+    "meaning": "To take on more responsibility than one can handle."
+  },
+  {
+    "idiom": "Bite the Bullet",
+    "meaning": "To endure a painful or unpleasant situation."
+  },
+  {
+    "idiom": "Bite the Dust",
+    "meaning": "To fail, collapse, or die."
+  },
+  {
+    "idiom": "Bite the Hand That Feeds You",
+    "meaning": "To harm someone who helps you."
+  },
+  {
+    "idiom": "Bite Your Tongue",
+    "meaning": "To stay silent; to refrain from speaking."
+  },
+  {
+    "idiom": "Bitter Pill to Swallow",
+    "meaning": "An unpleasant fact or situation that must be accepted."
+  },
+  {
+    "idiom": "Black and White",
+    "meaning": "Clear-cut, with no gray areas."
+  },
+  {
+    "idiom": "Black Eye",
+    "meaning": "A bruise around the eye; also, damage to one's reputation."
+  },
+  {
+    "idiom": "Black Sheep",
+    "meaning": "A disreputable member of a family or group."
+  },
+  {
+    "idiom": "Black-and-Blue",
+    "meaning": "Bruised, as from a beating."
+  },
+  {
+    "idiom": "Blank Check",
+    "meaning": "Unlimited authority or freedom to act."
+  },
+  {
+    "idiom": "Blind Date",
+    "meaning": "A romantic meeting arranged between strangers."
+  },
+  {
+    "idiom": "Blinded by Love",
+    "meaning": "Unable to see faults in the person one loves."
+  },
+  {
+    "idiom": "Blood and Thunder",
+    "meaning": "Melodramatic excitement; violent action."
+  },
+  {
+    "idiom": "Blood Is Thicker Than Water",
+    "meaning": "Family ties are stronger than other relationships."
+  },
+  {
+    "idiom": "Blow Away the Cobwebs",
+    "meaning": "To refresh oneself; to clear one's mind."
+  },
+  {
+    "idiom": "Blow Hot and Cold",
+    "meaning": "To alternate inconsistently between enthusiasm and disinterest."
+  },
+  {
+    "idiom": "Blow Off Steam",
+    "meaning": "To release pent-up energy or anger."
+  },
+  {
+    "idiom": "Blow One’s Top",
+    "meaning": "To lose one's temper."
+  },
+  {
+    "idiom": "Blow One’s Stack",
+    "meaning": "To become very angry."
+  },
+  {
+    "idiom": "Blow the Cobwebs Away (or Out of Something)",
+    "meaning": "To freshen something; to revitalize."
+  },
+  {
+    "idiom": "Blow the Whistle",
+    "meaning": "To report wrongdoing, especially within an organization."
+  },
+  {
+    "idiom": "Blow Up",
+    "meaning": "To explode; or to enlarge (as a photo); or to lose one's temper."
+  },
+  {
+    "idiom": "Blow Your Own Trumpet",
+    "meaning": "To boast or brag about one's achievements."
+  },
+  {
+    "idiom": "Blue Blood (adj. blue-blooded)",
+    "meaning": "Aristocratic or noble birth."
+  },
+  {
+    "idiom": "Blue Eyed Boy",
+    "meaning": "A favorite; someone who is highly regarded."
+  },
+  {
+    "idiom": "Blue Light Special",
+    "meaning": "A special sale item in a store (American, from Kmart)."
+  },
+  {
+    "idiom": "Bolt From the Blue",
+    "meaning": "A sudden, unexpected event."
+  },
+  {
+    "idiom": "Bone Dry",
+    "meaning": "Completely dry."
+  },
+  {
+    "idiom": "Bone to Pick",
+    "meaning": "An issue to discuss (usually a complaint)."
+  },
+  {
+    "idiom": "Born on The Wrong Side of the Blanket",
+    "meaning": "Illegitimate; born out of wedlock."
+  },
+  {
+    "idiom": "Born with a Silver Spoon",
+    "meaning": "Born into a wealthy family."
+  },
+  {
+    "idiom": "Borrow Trouble",
+    "meaning": "To worry unnecessarily about something that may not happen."
+  },
+  {
+    "idiom": "Bottom of the Barrel",
+    "meaning": "The lowest or worst possible quality or option."
+  },
+  {
+    "idiom": "Boy Toy",
+    "meaning": "A young, attractive male lover of an older woman."
+  },
+  {
+    "idiom": "Boys will be Boys",
+    "meaning": "Used to excuse typically masculine behavior."
+  },
+  {
+    "idiom": "Brainstorm",
+    "meaning": "A sudden idea; also a group idea-generating session."
+  },
+  {
+    "idiom": "Break a Leg",
+    "meaning": "Good luck! (said to performers)."
+  },
+  {
+    "idiom": "Break Out in A Cold Sweat",
+    "meaning": "To sweat due to fear or anxiety."
+  },
+  {
+    "idiom": "Break the Bank",
+    "meaning": "To cost more money than one has."
+  },
+  {
+    "idiom": "Break the Ice",
+    "meaning": "To initiate conversation in a social setting."
+  },
+  {
+    "idiom": "Break the Mold",
+    "meaning": "To do something unique; to be different."
+  },
+  {
+    "idiom": "Break up/ Split up (With Somebody)",
+    "meaning": "To end a romantic relationship."
+  },
+  {
+    "idiom": "Bring Home the Bacon",
+    "meaning": "To earn a living; to succeed."
+  },
+  {
+    "idiom": "Bringing a Knife to a Gunfight",
+    "meaning": "Being underprepared for a confrontation."
+  },
+  {
+    "idiom": "Come Full Circle",
+    "meaning": "To return to the original position or state."
+  },
+  {
+    "idiom": "Come Hell or High Water",
+    "meaning": "No matter what obstacles arise."
+  },
+  {
+    "idiom": "Come Out in the Wash",
+    "meaning": "A problem will eventually be resolved."
+  },
+  {
+    "idiom": "Come Out of the Closet",
+    "meaning": "To reveal one's homosexuality or a secret."
+  },
+  {
+    "idiom": "Come Out of Your Shell",
+    "meaning": "To become more outgoing and confident."
+  },
+  {
+    "idiom": "Come Out Swinging",
+    "meaning": "To respond aggressively to an attack."
+  },
+  {
+    "idiom": "Come Rain and Shine",
+    "meaning": "Regardless of weather or circumstances; always."
+  },
+  {
+    "idiom": "Come Rain or Shine",
+    "meaning": "No matter what the circumstances."
+  },
+  {
+    "idiom": "Come to Grips With",
+    "meaning": "To confront and deal with a problem."
+  },
+  {
+    "idiom": "Come to Terms With (Something)",
+    "meaning": "To accept an unpleasant situation."
+  },
+  {
+    "idiom": "Come Up Trumps",
+    "meaning": "To succeed unexpectedly."
+  },
+  {
+    "idiom": "Coming Down the Pike",
+    "meaning": "About to appear or happen soon (American)."
+  },
+  {
+    "idiom": "Cook Someone’s Goose",
+    "meaning": "To ruin someone's plans or chances."
+  },
+  {
+    "idiom": "Cook the Books",
+    "meaning": "To falsify financial records."
+  },
+  {
+    "idiom": "Cook Up a Storm",
+    "meaning": "To cook energetically and abundantly."
+  },
+  {
+    "idiom": "Cool as A Cucumber",
+    "meaning": "Very calm and composed."
+  },
+  {
+    "idiom": "Cool Cat",
+    "meaning": "A stylish, hip person."
+  },
+  {
+    "idiom": "Cool Your Heels",
+    "meaning": "To wait or be kept waiting."
+  },
+  {
+    "idiom": "Couch Potato",
+    "meaning": "A lazy person who watches a lot of TV."
+  },
+  {
+    "idiom": "Crash a Party",
+    "meaning": "To attend a party uninvited."
+  },
+  {
+    "idiom": "Cream of the Crop",
+    "meaning": "The best of a group."
+  },
+  {
+    "idiom": "Crickets",
+    "meaning": "Silence or lack of response (from the sound of crickets)."
+  },
+  {
+    "idiom": "Crocodile Tears",
+    "meaning": "Fake or insincere sadness."
+  },
+  {
+    "idiom": "Cross a Bridge Before One Comes to It",
+    "meaning": "To worry about something before it happens."
+  },
+  {
+    "idiom": "Cross My Heart and Hope to Die",
+    "meaning": "A sincere promise."
+  },
+  {
+    "idiom": "Cross That Bridge When You Come to It",
+    "meaning": "To deal with a problem when it arises, not before."
+  },
+  {
+    "idiom": "Cross to Bear",
+    "meaning": "A burden or trial one must endure."
+  },
+  {
+    "idiom": "Crossing the Rubicon",
+    "meaning": "To pass a point of no return."
+  },
+  {
+    "idiom": "Crunch Time",
+    "meaning": "A critical period when pressure is high."
+  },
+  {
+    "idiom": "Crunch the Numbers",
+    "meaning": "To perform calculations."
+  },
+  {
+    "idiom": "Cry for the Moon",
+    "meaning": "To desire something unattainable."
+  },
+  {
+    "idiom": "Cry Me a River",
+    "meaning": "Used to express that someone's complaints are exaggerated."
+  },
+  {
+    "idiom": "Cry Over Spilled Milk",
+    "meaning": "To regret something that cannot be undone."
+  },
+  {
+    "idiom": "Cry the Blues",
+    "meaning": "To complain about one's misfortune."
+  },
+  {
+    "idiom": "Cry Wolf",
+    "meaning": "To raise a false alarm."
+  },
+  {
+    "idiom": "Cry Your Eyes Out",
+    "meaning": "To cry very hard."
+  },
+  {
+    "idiom": "Cry Your Heart Out",
+    "meaning": "To cry very hard."
+  },
+  {
+    "idiom": "Curiosity Killed The Cat",
+    "meaning": "Being too inquisitive can lead to trouble."
+  },
+  {
+    "idiom": "Cut (Someone) To the Quick",
+    "meaning": "To hurt someone deeply emotionally."
+  },
+  {
+    "idiom": "Cut a Rug",
+    "meaning": "To dance energetically."
+  },
+  {
+    "idiom": "Cut Corners",
+    "meaning": "To do something in the cheapest or easiest way, often sacrificing quality."
+  },
+  {
+    "idiom": "Cut from the Same Cloth",
+    "meaning": "Very similar in character."
+  },
+  {
+    "idiom": "Cut It Fine",
+    "meaning": "To leave very little time to spare."
+  },
+  {
+    "idiom": "Cut No Ice",
+    "meaning": "To fail to impress or have influence."
+  },
+  {
+    "idiom": "Cut Off Your Nose to Spite Your Face",
+    "meaning": "To act out of revenge in a way that hurts oneself."
+  },
+  {
+    "idiom": "Cut Someone Some Slack",
+    "meaning": "To be less critical or give someone a break."
+  },
+  {
+    "idiom": "Cut the Gordian Knot",
+    "meaning": "To solve a complex problem in a simple, direct way."
+  },
+  {
+    "idiom": "Cut the Mustard",
+    "meaning": "To meet expectations; to perform adequately."
+  },
+  {
+    "idiom": "Cut to the Chase",
+    "meaning": "To get to the point without wasting time."
+  },
+  {
+    "idiom": "Cut to the Quick",
+    "meaning": "To hurt someone's feelings deeply."
+  },
+  {
+    "idiom": "Cut Your Teeth on Something",
+    "meaning": "To gain initial experience from something."
+  },
+  {
+    "idiom": "Cutting-Edge",
+    "meaning": "The most advanced; state-of-the-art."
+  },
+  {
+    "idiom": "Da Man (Slang)",
+    "meaning": "The boss; the best person (slang)."
+  },
+  {
+    "idiom": "Dance to Someone’s Tune",
+    "meaning": "To do what someone wants; to be under their control."
+  },
+  {
+    "idiom": "Dance with the Devil",
+    "meaning": "To engage in risky or immoral behavior."
+  },
+  {
+    "idiom": "Dark Horse",
+    "meaning": "A little-known contender who unexpectedly wins."
+  },
+  {
+    "idiom": "Darken Someone’s Door (Step)",
+    "meaning": "To visit someone (often used negatively)."
+  },
+  {
+    "idiom": "Dead Ahead",
+    "meaning": "Directly ahead."
+  },
+  {
+    "idiom": "Dead as a Doornail",
+    "meaning": "Completely dead."
+  },
+  {
+    "idiom": "Dead as the Dodo",
+    "meaning": "Extinct; no longer existing or relevant."
+  },
+  {
+    "idiom": "Dead Eye",
+    "meaning": "An expert marksman."
+  },
+  {
+    "idiom": "Dead Heat",
+    "meaning": "A tie in a race or competition."
+  },
+  {
+    "idiom": "Dead of Winter",
+    "meaning": "The coldest, darkest part of winter."
+  },
+  {
+    "idiom": "Dead ringer",
+    "meaning": "An exact lookalike."
+  },
+  {
+    "idiom": "Dead Run",
+    "meaning": "Running at full speed."
+  },
+  {
+    "idiom": "Dead Shot",
+    "meaning": "A very accurate shot."
+  },
+  {
+    "idiom": "Deep Pockets",
+    "meaning": "Having substantial financial resources."
+  },
+  {
+    "idiom": "Deliver the Goods",
+    "meaning": "To fulfill expectations; to do what is required."
+  },
+  {
+    "idiom": "Devil’s Advocate",
+    "meaning": "Someone who argues a contrary position for debate."
+  },
+  {
+    "idiom": "A Different Kettle of Fish",
+    "meaning": "A completely different matter."
+  },
+  {
+    "idiom": "Dime a Dozen",
+    "meaning": "Very common; easily found."
+  },
+  {
+    "idiom": "Dirty Look",
+    "meaning": "A facial expression showing disapproval or anger."
+  },
+  {
+    "idiom": "Do 12-Ounce Curls",
+    "meaning": "To drink beer (humorous)."
+  },
+  {
+    "idiom": "Dodge a Bullet",
+    "meaning": "To narrowly avoid a problem or disaster."
+  },
+  {
+    "idiom": "Doesn’t Amount to a Hill of Beans",
+    "meaning": "Is unimportant or trivial."
+  },
+  {
+    "idiom": "Dog Days of the Summer",
+    "meaning": "The hottest period of summer."
+  },
+  {
+    "idiom": "Dog in the Manger",
+    "meaning": "A person who prevents others from using something they don't need."
+  },
+  {
+    "idiom": "Dog-and-Pony Show",
+    "meaning": "An elaborate presentation or event designed to impress."
+  },
+  {
+    "idiom": "Dog-Eat-Dog",
+    "meaning": "Ruthlessly competitive."
+  },
+  {
+    "idiom": "Don’t Count Your Chickens Before They Hatch",
+    "meaning": "Don't assume success too soon."
+  },
+  {
+    "idiom": "Don’t Cry Over Spilled Milk",
+    "meaning": "Don't waste time regretting something that cannot be changed."
+  },
+  {
+    "idiom": "Don’t Hold Your Breath",
+    "meaning": "Don't wait eagerly; it's unlikely to happen soon."
+  },
+  {
+    "idiom": "Don’t Judge a Book by Its Cover",
+    "meaning": "Don't judge by appearances."
+  },
+  {
+    "idiom": "Don’t Look a Gift Horse in the Mouth",
+    "meaning": "Don't criticize a gift or something given freely."
+  },
+  {
+    "idiom": "Don’t Put All Your Eggs in One Basket",
+    "meaning": "Don't risk everything on a single venture."
+  },
+  {
+    "idiom": "Don’t Put the Cart Before the Horse",
+    "meaning": "Do things in the correct order."
+  },
+  {
+    "idiom": "Double-Dip",
+    "meaning": "To receive money from two sources at once, often improperly."
+  },
+  {
+    "idiom": "Double-Edged Sword",
+    "meaning": "Something that has both positive and negative consequences."
+  },
+  {
+    "idiom": "Down and Out",
+    "meaning": "Completely without resources; destitute."
+  },
+  {
+    "idiom": "Down for the Count",
+    "meaning": "Defeated; out of action."
+  },
+  {
+    "idiom": "Down in the Dumps",
+    "meaning": "Feeling sad or depressed."
+  },
+  {
+    "idiom": "Down the Hatch",
+    "meaning": "Said before drinking something (especially alcohol)."
+  },
+  {
+    "idiom": "Down the Road",
+    "meaning": "In the future; later."
+  },
+  {
+    "idiom": "Down to Earth",
+    "meaning": "Practical and realistic."
+  },
+  {
+    "idiom": "Down to the Wire",
+    "meaning": "Until the last moment."
+  },
+  {
+    "idiom": "Drag One’s Feet (or Heels)",
+    "meaning": "To delay or act slowly."
+  },
+  {
+    "idiom": "Drain the Lizard",
+    "meaning": "To urinate (slang)."
+  },
+  {
+    "idiom": "Draw a Blank",
+    "meaning": "To fail to remember or find something."
+  },
+  {
+    "idiom": "Draw a Line in the Sand",
+    "meaning": "To set a clear boundary or limit."
+  },
+  {
+    "idiom": "Draw a Line Under (Something)",
+    "meaning": "To consider something finished and move on."
+  },
+  {
+    "idiom": "Draw a Long Bow",
+    "meaning": "To exaggerate or tell tall tales."
+  },
+  {
+    "idiom": "Draw the Line",
+    "meaning": "To set a limit on what one will accept."
+  },
+  {
+    "idiom": "Dressed to the Nines",
+    "meaning": "Dressed very elegantly or formally."
+  },
+  {
+    "idiom": "Dressed Up to the Nines",
+    "meaning": "Wearing very stylish or formal clothes."
+  },
+  {
+    "idiom": "Drink the Kool-Aid",
+    "meaning": "To blindly accept a doctrine or belief (from Jonestown)."
+  },
+  {
+    "idiom": "Drive a Hard Bargain",
+    "meaning": "To negotiate aggressively and effectively."
+  },
+  {
+    "idiom": "Drive a Wedge Between",
+    "meaning": "To cause division or disagreement between people."
+  },
+  {
+    "idiom": "Drive Someone Up the Wall",
+    "meaning": "To annoy or irritate someone greatly."
+  },
+  {
+    "idiom": "Drop a Bombshell",
+    "meaning": "To reveal shocking news."
+  },
+  {
+    "idiom": "Drop a Line",
+    "meaning": "To send a brief message or note."
+  },
+  {
+    "idiom": "Drop in the Bucket",
+    "meaning": "A very small amount compared to what is needed."
+  },
+  {
+    "idiom": "Drop in the Ocean",
+    "meaning": "A very small amount compared to what is needed."
+  },
+  {
+    "idiom": "Drop the Ball",
+    "meaning": "To make a mistake or fail to do something."
+  },
+  {
+    "idiom": "Dropping Like Flies",
+    "meaning": "Collapsing or failing in large numbers."
+  },
+  {
+    "idiom": "Dry Run",
+    "meaning": "A rehearsal or practice session."
+  },
+  {
+    "idiom": "Dutch Courage",
+    "meaning": "Courage gained from drinking alcohol."
+  },
+  {
+    "idiom": "Dutch Uncle",
+    "meaning": "A person who gives stern advice."
+  },
+  {
+    "idiom": "Dyed-In-The-Wool (adj.)",
+    "meaning": "Thorough; complete; unchanging in opinion."
+  },
+  {
+    "idiom": "Eager Beaver",
+    "meaning": "An enthusiastic and hardworking person."
+  },
+  {
+    "idiom": "Eagle-Eyed",
+    "meaning": "Having sharp vision; observant."
+  },
+  {
+    "idiom": "Early Bird",
+    "meaning": "A person who arrives early or wakes early."
+  },
+  {
+    "idiom": "Easier Said Than Done",
+    "meaning": "Sounds easy but is difficult to do."
+  },
+  {
+    "idiom": "Easy as ABC",
+    "meaning": "Very simple."
+  },
+  {
+    "idiom": "Easy as Pie",
+    "meaning": "Very easy."
+  },
+  {
+    "idiom": "Eat Crow",
+    "meaning": "To admit being wrong and apologize humbly."
+  },
+  {
+    "idiom": "Eat Humble Pie",
+    "meaning": "To be forced to apologize humbly."
+  },
+  {
+    "idiom": "Eat Someone’s Lunch",
+    "meaning": "To defeat or outdo someone decisively."
+  },
+  {
+    "idiom": "Eat Your Heart Out!",
+    "meaning": "An exclamation meaning 'be jealous!'"
+  },
+  {
+    "idiom": "Egg on Your Face",
+    "meaning": "To be embarrassed by something you did."
+  },
+  {
+    "idiom": "Eighty-Six (v.)",
+    "meaning": "To discard, cancel, or eject someone."
+  },
+  {
+    "idiom": "Elbow Grease",
+    "meaning": "Hard physical work, especially scrubbing."
+  },
+  {
+    "idiom": "Elephant in the Room",
+    "meaning": "An obvious problem that everyone ignores."
+  },
+  {
+    "idiom": "Elevator Music",
+    "meaning": "Bland, background music."
+  },
+  {
+    "idiom": "Elevator Pitch",
+    "meaning": "A brief, persuasive speech."
+  },
+  {
+    "idiom": "Eleventh Hour",
+    "meaning": "The last possible moment."
+  },
+  {
+    "idiom": "Elvis Has Left the Building",
+    "meaning": "The show is over; the main attraction is gone."
+  },
+  {
+    "idiom": "Even Keel",
+    "meaning": "Stable and balanced."
+  },
+  {
+    "idiom": "Even Steven",
+    "meaning": "Equal; having no debt."
+  },
+  {
+    "idiom": "Every Cloud Has a Silver Lining",
+    "meaning": "There is something good in every bad situation."
+  },
+  {
+    "idiom": "Every Dog Has His Day",
+    "meaning": "Everyone gets a moment of success or good fortune."
+  },
+  {
+    "idiom": "Every Man and His Dog",
+    "meaning": "A large number of people."
+  },
+  {
+    "idiom": "Every Man for Himself",
+    "meaning": "Everyone looks out for their own interests."
+  },
+  {
+    "idiom": "Every Nook and Cranny",
+    "meaning": "Everywhere; all parts of a place."
+  },
+  {
+    "idiom": "Every Trick in the Book",
+    "meaning": "Every possible method or strategy."
+  },
+  {
+    "idiom": "Everything but the Kitchen Sink",
+    "meaning": "Almost everything imaginable."
+  },
+  {
+    "idiom": "Excused Boots",
+    "meaning": "(rare) Possibly a misprint; not a common idiom."
+  },
+  {
+    "idiom": "Extend an Olive Branch",
+    "meaning": "To offer peace or reconciliation."
+  },
+  {
+    "idiom": "Face the Music",
+    "meaning": "To accept punishment or consequences."
+  },
+  {
+    "idiom": "Fall for Something",
+    "meaning": "To be deceived; also to fall in love."
+  },
+  {
+    "idiom": "Fall in Love with Somebody",
+    "meaning": "To develop romantic feelings."
+  },
+  {
+    "idiom": "Fall Off the Wagon",
+    "meaning": "To resume drinking after quitting."
+  },
+  {
+    "idiom": "Fall on Deaf Ears",
+    "meaning": "To be ignored."
+  },
+  {
+    "idiom": "Fall on Hard Times",
+    "meaning": "To experience financial or personal difficulties."
+  },
+  {
+    "idiom": "Fall on One’s Sword",
+    "meaning": "To take responsibility and resign or accept blame."
+  },
+  {
+    "idiom": "Fall Prey to",
+    "meaning": "To be victimized by."
+  },
+  {
+    "idiom": "Far Cry From",
+    "meaning": "Very different from."
+  },
+  {
+    "idiom": "Farther (On) Down the Road",
+    "meaning": "Later; in the future."
+  },
+  {
+    "idiom": "Fashion-Forward",
+    "meaning": "Trendy; ahead of fashion."
+  },
+  {
+    "idiom": "Fat Cat",
+    "meaning": "A wealthy and privileged person."
+  },
+  {
+    "idiom": "Father Figure",
+    "meaning": "An older man who is respected and trusted like a father."
+  },
+  {
+    "idiom": "Feast Your Eyes On",
+    "meaning": "To look at something with great pleasure."
+  },
+  {
+    "idiom": "Feather in One’s Cap",
+    "meaning": "An achievement to be proud of."
+  },
+  {
+    "idiom": "Feather One’s (Own) Nest",
+    "meaning": "To enrich oneself, often dishonestly."
+  },
+  {
+    "idiom": "Fed Up With",
+    "meaning": "Annoyed or bored; having had enough."
+  },
+  {
+    "idiom": "Feel a Bit Under the Weather",
+    "meaning": "To feel slightly ill."
+  },
+  {
+    "idiom": "Feel Like a Million Dollars",
+    "meaning": "To feel extremely good."
+  },
+  {
+    "idiom": "Feel On Top of The World",
+    "meaning": "To feel very happy and successful."
+  },
+  {
+    "idiom": "Feeling Blue",
+    "meaning": "Feeling sad or depressed."
+  },
+  {
+    "idiom": "Fell off a Truck",
+    "meaning": "Stolen goods (euphemism)."
+  },
+  {
+    "idiom": "Fell off the Back of a Lorry",
+    "meaning": "Stolen goods (British euphemism)."
+  },
+  {
+    "idiom": "Few and Far Between",
+    "meaning": "Rare; not common."
+  },
+  {
+    "idiom": "Fifteen Minutes of Fame",
+    "meaning": "Brief celebrity or public attention."
+  },
+  {
+    "idiom": "Fifth Wheel",
+    "meaning": "An extra, unnecessary person."
+  },
+  {
+    "idiom": "Fight Fire with Fire",
+    "meaning": "To use the same methods as an opponent."
+  },
+  {
+    "idiom": "Fight Like Cat and Dog",
+    "meaning": "To argue fiercely."
+  },
+  {
+    "idiom": "Fight Tooth and Nail",
+    "meaning": "To fight fiercely."
+  },
+  {
+    "idiom": "Find One’s Voice",
+    "meaning": "To gain confidence to express oneself."
+  },
+  {
+    "idiom": "Find Your Feet",
+    "meaning": "To become confident in a new situation."
+  },
+  {
+    "idiom": "Finger in Every Pie",
+    "meaning": "Involved in many things."
+  },
+  {
+    "idiom": "Finger-Pointing",
+    "meaning": "Blaming others."
+  },
+  {
+    "idiom": "Fire in the Belly",
+    "meaning": "Strong motivation or determination."
+  },
+  {
+    "idiom": "Firing on All Cylinders",
+    "meaning": "Functioning at maximum capacity."
+  },
+  {
+    "idiom": "First In, Best Dressed",
+    "meaning": "The first to arrive gets the best choice."
+  },
+  {
+    "idiom": "Fish for Compliments",
+    "meaning": "To try to get praise indirectly."
+  },
+  {
+    "idiom": "Fish or Cut Bait",
+    "meaning": "Make a decision or step aside."
+  },
+  {
+    "idiom": "Fish Out of Water",
+    "meaning": "Someone uncomfortable in an unfamiliar situation."
+  },
+  {
+    "idiom": "Fit as a Fiddle",
+    "meaning": "Very healthy."
+  },
+  {
+    "idiom": "Fit for a King",
+    "meaning": "Very luxurious."
+  },
+  {
+    "idiom": "Fit the Bill",
+    "meaning": "To be suitable or adequate."
+  },
+  {
+    "idiom": "Fits and Starts",
+    "meaning": "Irregular bursts of activity."
+  },
+  {
+    "idiom": "Five-Finger Discount",
+    "meaning": "Shoplifting."
+  },
+  {
+    "idiom": "Flash in the Pan",
+    "meaning": "Something that shows promise but fails quickly."
+  },
+  {
+    "idiom": "Flat as a Pancake",
+    "meaning": "Very flat."
+  },
+  {
+    "idiom": "Flat Broke",
+    "meaning": "Having no money at all."
+  },
+  {
+    "idiom": "Flat Out Like a Lizard Drinking",
+    "meaning": "Working very hard; very busy."
+  },
+  {
+    "idiom": "Flesh and Blood",
+    "meaning": "Human; also one's relatives."
+  },
+  {
+    "idiom": "Flew the Coop",
+    "meaning": "Escaped or left."
+  },
+  {
+    "idiom": "Flip-Flop (v. or n.)",
+    "meaning": "To change one's opinion; also a type of sandal."
+  },
+  {
+    "idiom": "Fly by the Seat of One’s Pants",
+    "meaning": "To act without preparation, relying on instinct."
+  },
+  {
+    "idiom": "Fly High",
+    "meaning": "To be very successful."
+  },
+  {
+    "idiom": "Fly Off The Handle",
+    "meaning": "To lose one's temper suddenly."
+  },
+  {
+    "idiom": "Fly on the Wall",
+    "meaning": "An unnoticed observer."
+  },
+  {
+    "idiom": "Follow In Someone’s Footsteps (Tracks)",
+    "meaning": "To do the same as a predecessor."
+  },
+  {
+    "idiom": "Follow Your Heart",
+    "meaning": "To act according to one's feelings."
+  },
+  {
+    "idiom": "Food for Thought",
+    "meaning": "Something worth thinking about."
+  },
+  {
+    "idiom": "Fool's Gold",
+    "meaning": "Something that seems valuable but is not."
+  },
+  {
+    "idiom": "For a Song",
+    "meaning": "Very cheaply."
+  },
+  {
+    "idiom": "For All Intents and Purposes",
+    "meaning": "In effect; practically speaking."
+  },
+  {
+    "idiom": "For Crying Out Loud (excl.)",
+    "meaning": "Exclamation of frustration."
+  },
+  {
+    "idiom": "For Good Measure",
+    "meaning": "In addition; as an extra."
+  },
+  {
+    "idiom": "For Xyz Reasons",
+    "meaning": "For unspecified reasons."
+  },
+  {
+    "idiom": "Forty Winks",
+    "meaning": "A short nap."
+  },
+  {
+    "idiom": "Foul Play",
+    "meaning": "Unfair or criminal activity."
+  },
+  {
+    "idiom": "Fourth Estate",
+    "meaning": "The press; news media."
+  },
+  {
+    "idiom": "Fox in the Henhouse (Chickenhouse)",
+    "meaning": "A dangerous person in a position of trust."
+  },
+  {
+    "idiom": "Freak Out",
+    "meaning": "To become very upset or excited."
+  },
+  {
+    "idiom": "French Leave",
+    "meaning": "Leaving without permission."
+  },
+  {
+    "idiom": "Freudian Slip",
+    "meaning": "A mistake in speech that reveals subconscious thoughts."
+  },
+  {
+    "idiom": "From Pillar to Post",
+    "meaning": "From one place to another, often aimlessly."
+  },
+  {
+    "idiom": "From Rags to Riches",
+    "meaning": "From poverty to wealth."
+  },
+  {
+    "idiom": "From Scratch",
+    "meaning": "From the beginning, using basic ingredients."
+  },
+  {
+    "idiom": "From Soup to Nuts",
+    "meaning": "From start to finish; everything."
+  },
+  {
+    "idiom": "From the Bottom of One’s Heart",
+    "meaning": "With sincere feeling."
+  },
+  {
+    "idiom": "FUBAR",
+    "meaning": "Fouled Up Beyond All Recognition (military slang)."
+  },
+  {
+    "idiom": "Fuck (Or Screw) The Dog (Pooch)",
+    "meaning": "To mess up; to waste time (vulgar)."
+  },
+  {
+    "idiom": "Full Fathom Five",
+    "meaning": "Literary: deep underwater (from Shakespeare)."
+  },
+  {
+    "idiom": "Full of Beans",
+    "meaning": "Energetic and lively."
+  },
+  {
+    "idiom": "Full of Hot Air",
+    "meaning": "Talking boastfully without substance."
+  },
+  {
+    "idiom": "Full of the Joys of Spring",
+    "meaning": "Very happy and energetic."
+  },
+  {
+    "idiom": "Full Steam Ahead",
+    "meaning": "Proceeding with maximum effort."
+  },
+  {
+    "idiom": "Game of Chicken",
+    "meaning": "A confrontation where each side dares the other to back down."
+  },
+  {
+    "idiom": "Genie in a Bottle",
+    "meaning": "Hidden potential or opportunity."
+  },
+  {
+    "idiom": "Get a Charley Horse",
+    "meaning": "To experience a muscle cramp, especially in the leg."
+  },
+  {
+    "idiom": "Get a Leg Up",
+    "meaning": "To gain an advantage."
+  },
+  {
+    "idiom": "Get a Taste of Your Own Medicine",
+    "meaning": "To experience the same unpleasant treatment you've given others."
+  },
+  {
+    "idiom": "Get a Word In Edgewise",
+    "meaning": "To manage to say something when someone else is talking a lot."
+  },
+  {
+    "idiom": "Get Along (with Someone)",
+    "meaning": "To have a friendly relationship."
+  },
+  {
+    "idiom": "Get Bent Out of Shape",
+    "meaning": "To become angry or upset."
+  },
+  {
+    "idiom": "Get Carried Away",
+    "meaning": "To become overly excited or emotional."
+  },
+  {
+    "idiom": "Get Down to Brass Tacks",
+    "meaning": "To focus on the essential details."
+  },
+  {
+    "idiom": "Get In on the Ground Floor",
+    "meaning": "To become involved at the beginning of an enterprise."
+  },
+  {
+    "idiom": "Get in Shape",
+    "meaning": "To become physically fit."
+  },
+  {
+    "idiom": "Get Off Scot Free",
+    "meaning": "To escape punishment without consequences."
+  },
+  {
+    "idiom": "Get One’s Ducks in a Row",
+    "meaning": "To get organized."
+  },
+  {
+    "idiom": "Get One’s Hands Dirty",
+    "meaning": "To do physical or unpleasant work."
+  },
+  {
+    "idiom": "Get Someone’s Goat",
+    "meaning": "To annoy or irritate someone."
+  },
+  {
+    "idiom": "Get the Ball Rolling",
+    "meaning": "To start something."
+  },
+  {
+    "idiom": "Get the Picture",
+    "meaning": "To understand the situation."
+  },
+  {
+    "idiom": "Get the Runaround",
+    "meaning": "To receive evasive or unhelpful responses."
+  },
+  {
+    "idiom": "Get the Sack, Be Sacked",
+    "meaning": "To be fired from a job."
+  },
+  {
+    "idiom": "Get the Third Degree",
+    "meaning": "To be interrogated intensely."
+  },
+  {
+    "idiom": "Get Wind of",
+    "meaning": "To hear about something secret."
+  },
+  {
+    "idiom": "Get With the Program",
+    "meaning": "To adopt current methods or ideas; to cooperate."
+  },
+  {
+    "idiom": "Getting a Second Wind",
+    "meaning": "Gaining new energy after being tired."
+  },
+  {
+    "idiom": "Gift of Gab",
+    "meaning": "The ability to speak well and persuasively."
+  },
+  {
+    "idiom": "Give and Take",
+    "meaning": "Mutual compromise and cooperation."
+  },
+  {
+    "idiom": "Give ’em Hell (often excl.)",
+    "meaning": "To encourage someone to fight or perform vigorously."
+  },
+  {
+    "idiom": "Give Lip Service to",
+    "meaning": "To express support insincerely."
+  },
+  {
+    "idiom": "Give One’s Two Cents (That’s My Two Cents)",
+    "meaning": "To offer one's opinion."
+  },
+  {
+    "idiom": "Give Someone a Holler",
+    "meaning": "To call or contact someone."
+  },
+  {
+    "idiom": "Give Someone a Piece of Your Mind",
+    "meaning": "To tell someone angrily what you think."
+  },
+  {
+    "idiom": "Give Someone a Run for Their Money",
+    "meaning": "To compete well against someone."
+  },
+  {
+    "idiom": "Give Someone an Earful",
+    "meaning": "To reprimand or tell someone a lot of information."
+  },
+  {
+    "idiom": "Give Someone the Cold Shoulder",
+    "meaning": "To ignore or snub someone."
+  },
+  {
+    "idiom": "Give Someone The Old Heave-Ho",
+    "meaning": "To dismiss or reject someone."
+  },
+  {
+    "idiom": "Give Something a Whirl",
+    "meaning": "To try something."
+  },
+  {
+    "idiom": "Give the Benefit of the Doubt",
+    "meaning": "To trust someone despite doubts."
+  },
+  {
+    "idiom": "Give the Green Light",
+    "meaning": "To give permission to proceed."
+  },
+  {
+    "idiom": "Go Along (With)",
+    "meaning": "To agree or comply."
+  },
+  {
+    "idiom": "Go Ape",
+    "meaning": "To become very excited or angry."
+  },
+  {
+    "idiom": "Go Around in Circles",
+    "meaning": "To keep doing or talking about the same thing without progress."
+  },
+  {
+    "idiom": "Go Ballistic",
+    "meaning": "To become extremely angry."
+  },
+  {
+    "idiom": "Go Bananas",
+    "meaning": "To go crazy or become very excited."
+  },
+  {
+    "idiom": "Go Belly Up",
+    "meaning": "To fail or go bankrupt."
+  },
+  {
+    "idiom": "Go Berserk",
+    "meaning": "To lose control; go crazy with rage."
+  },
+  {
+    "idiom": "Go Bonkers",
+    "meaning": "To go crazy or become very excited."
+  },
+  {
+    "idiom": "Go Cold Turkey",
+    "meaning": "To stop an addictive habit abruptly."
+  },
+  {
+    "idiom": "Go Down a Storm",
+    "meaning": "To be received very well (British)."
+  },
+  {
+    "idiom": "Go Down in Flames",
+    "meaning": "To fail spectacularly."
+  },
+  {
+    "idiom": "Go for Broke",
+    "meaning": "To risk everything on a venture."
+  },
+  {
+    "idiom": "Go Mental",
+    "meaning": "To become extremely angry or upset."
+  },
+  {
+    "idiom": "Go Nuclear",
+    "meaning": "To become extremely angry; to use extreme measures."
+  },
+  {
+    "idiom": "Go Nuts",
+    "meaning": "To become very excited or angry."
+  },
+  {
+    "idiom": "Go Off Half-Cocked",
+    "meaning": "To act prematurely or without preparation."
+  },
+  {
+    "idiom": "Go Off the Deep End",
+    "meaning": "To become very angry or irrational."
+  },
+  {
+    "idiom": "Go Off The Rails",
+    "meaning": "To go wrong; to deviate from plan."
+  },
+  {
+    "idiom": "Go Out on a Limb",
+    "meaning": "To take a risk; to express an unpopular opinion."
+  },
+  {
+    "idiom": "Go Pear-Shaped",
+    "meaning": "To go wrong (originally British, but used in US)."
+  },
+  {
+    "idiom": "Go See a Man About a Dog",
+    "meaning": "To leave discreetly, often to urinate or for a drink."
+  },
+  {
+    "idiom": "Go the Extra Mile",
+    "meaning": "To make more effort than expected."
+  },
+  {
+    "idiom": "Go to the Dogs",
+    "meaning": "To deteriorate."
+  },
+  {
+    "idiom": "Go to the Mattresses",
+    "meaning": "To prepare for a gang war; to get ready for a fight (from The Godfather)."
+  },
+  {
+    "idiom": "Go Under the Knife",
+    "meaning": "To have surgery."
+  },
+  {
+    "idiom": "Go Viral",
+    "meaning": "To spread rapidly online."
+  },
+  {
+    "idiom": "Go with the Flow",
+    "meaning": "To accept events as they happen."
+  },
+  {
+    "idiom": "Going for Broke",
+    "meaning": "Risking everything."
+  },
+  {
+    "idiom": "Going the Whole Nine Yards",
+    "meaning": "Doing everything possible."
+  },
+  {
+    "idiom": "Gone to the Dogs",
+    "meaning": "Become very bad."
+  },
+  {
+    "idiom": "Good Samaritan",
+    "meaning": "Someone who helps others."
+  },
+  {
+    "idiom": "Grab (Take) the Bull by the Horns",
+    "meaning": "To confront a problem directly."
+  },
+  {
+    "idiom": "Grain of Salt",
+    "meaning": "Skepticism; to take something with a grain of salt."
+  },
+  {
+    "idiom": "Grasp (Grab) at Straws",
+    "meaning": "To make a desperate attempt."
+  },
+  {
+    "idiom": "Grasp the Nettle",
+    "meaning": "To face a difficulty boldly."
+  },
+  {
+    "idiom": "Grease Monkey",
+    "meaning": "A mechanic."
+  },
+  {
+    "idiom": "Grease the Wheels",
+    "meaning": "To make a process go smoothly, often with money."
+  },
+  {
+    "idiom": "Greasy Spoon",
+    "meaning": "A cheap, low-quality diner."
+  },
+  {
+    "idiom": "Green Around the Gills",
+    "meaning": "Looking pale or nauseated."
+  },
+  {
+    "idiom": "Green as Grass",
+    "meaning": "Inexperienced or naive."
+  },
+  {
+    "idiom": "Green Light",
+    "meaning": "Permission to proceed."
+  },
+  {
+    "idiom": "Green Thumb",
+    "meaning": "A talent for gardening."
+  },
+  {
+    "idiom": "Green with Envy",
+    "meaning": "Very jealous."
+  },
+  {
+    "idiom": "Grind One’s Teeth",
+    "meaning": "To clench or grind teeth, often from stress or anger."
+  },
+  {
+    "idiom": "Guilty Pleasure",
+    "meaning": "Something enjoyable that causes guilt or shame."
+  },
+  {
+    "idiom": "Hail Mary (n. or adj.)",
+    "meaning": "A desperate last-minute attempt to win (from American football)."
+  },
+  {
+    "idiom": "Hair of the Dog (That Bit You)",
+    "meaning": "A drink of alcohol to cure a hangover."
+  },
+  {
+    "idiom": "Hands are Tied",
+    "meaning": "Unable to act or help due to restrictions."
+  },
+  {
+    "idiom": "Hands Down",
+    "meaning": "Without a doubt; easily."
+  },
+  {
+    "idiom": "Hang in There",
+    "meaning": "Don't give up; persevere."
+  },
+  {
+    "idiom": "Hang It Up",
+    "meaning": "To quit or retire."
+  },
+  {
+    "idiom": "Hang Tough",
+    "meaning": "To remain strong and resolute."
+  },
+  {
+    "idiom": "Hanging by a Thread",
+    "meaning": "In a very precarious situation."
+  },
+  {
+    "idiom": "Happy as a Clam",
+    "meaning": "Very happy."
+  },
+  {
+    "idiom": "Happy-Go-Lucky",
+    "meaning": "Carefree and cheerful."
+  },
+  {
+    "idiom": "Hard Nut to Crack",
+    "meaning": "A difficult problem or person to understand."
+  },
+  {
+    "idiom": "Has the Cat Got Your Tongue?",
+    "meaning": "Asked to someone who is silent when expected to speak."
+  },
+  {
+    "idiom": "Hat Trick",
+    "meaning": "Three successes in a row (especially in sports)."
+  },
+  {
+    "idiom": "Hatchet Job",
+    "meaning": "A fierce, malicious attack on someone's reputation."
+  },
+  {
+    "idiom": "Haul Over the Coals",
+    "meaning": "To reprimand severely."
+  },
+  {
+    "idiom": "Have (one’s) head in the clouds",
+    "meaning": "To be daydreaming or unrealistic."
+  },
+  {
+    "idiom": "Have a Ball",
+    "meaning": "To have a great time."
+  },
+  {
+    "idiom": "Have a Bone to Pick (with Someone)",
+    "meaning": "To have something to complain about or discuss."
+  },
+  {
+    "idiom": "Have a Chip on One’s Shoulder",
+    "meaning": "To hold a grudge or be easily angered."
+  },
+  {
+    "idiom": "Have a Dog in the Hunt (Fight, Race)",
+    "meaning": "To have a personal stake in something."
+  },
+  {
+    "idiom": "Have a Lead Foot",
+    "meaning": "To drive fast."
+  },
+  {
+    "idiom": "Have a Lot on One’s Plate",
+    "meaning": "To have many responsibilities."
+  },
+  {
+    "idiom": "Have a Lot Riding On (Something)",
+    "meaning": "To have much at stake."
+  },
+  {
+    "idiom": "Have a Nose for (Something)",
+    "meaning": "To have a talent for finding or detecting something."
+  },
+  {
+    "idiom": "Have a Screw Loose",
+    "meaning": "To be slightly crazy."
+  },
+  {
+    "idiom": "Have a Tough Row to Hoe",
+    "meaning": "To have a difficult task."
+  },
+  {
+    "idiom": "Have A Whale of A Time",
+    "meaning": "To have a great time."
+  },
+  {
+    "idiom": "Have an Ace Up One’s Sleeve",
+    "meaning": "To have a secret advantage."
+  },
+  {
+    "idiom": "Have Bigger Fish to Fry",
+    "meaning": "To have more important things to do."
+  },
+  {
+    "idiom": "Have Egg on Your Face",
+    "meaning": "To be embarrassed by something you did."
+  },
+  {
+    "idiom": "Have Foot-in-Mouth Disease",
+    "meaning": "To often say embarrassing or inappropriate things."
+  },
+  {
+    "idiom": "Have Hand of Aces/Hold All the Aces",
+    "meaning": "To be in a strong position."
+  },
+  {
+    "idiom": "Have It Out with Someone",
+    "meaning": "To resolve a conflict through argument."
+  },
+  {
+    "idiom": "Have One Foot in The Grave",
+    "meaning": "To be near death (often elderly)."
+  },
+  {
+    "idiom": "Have One Over the Eight",
+    "meaning": "To be slightly drunk."
+  },
+  {
+    "idiom": "Have One Too Many",
+    "meaning": "To drink too much alcohol."
+  },
+  {
+    "idiom": "Have One’s Cake and Eat It, Too",
+    "meaning": "To want two incompatible things."
+  },
+  {
+    "idiom": "Have Skin in the Game",
+    "meaning": "To have a personal stake or risk in something."
+  },
+  {
+    "idiom": "Have Something in the Bag",
+    "meaning": "To be certain of success."
+  },
+  {
+    "idiom": "Have the Blues",
+    "meaning": "To feel sad."
+  },
+  {
+    "idiom": "Have the Hots for (Somebody)",
+    "meaning": "To be sexually attracted to someone."
+  },
+  {
+    "idiom": "Have The Time of Your Life",
+    "meaning": "To have a wonderful experience."
+  },
+  {
+    "idiom": "Have Your Nose in the Air",
+    "meaning": "To act snobbish."
+  },
+  {
+    "idiom": "Have Your Say",
+    "meaning": "To express your opinion."
+  },
+  {
+    "idiom": "Have Your Thumb Up Your Ass",
+    "meaning": "To be idle or useless (vulgar)."
+  },
+  {
+    "idiom": "He Who Laughs Last Laughs Best",
+    "meaning": "The person who succeeds in the end is the real winner."
+  },
+  {
+    "idiom": "He Would Put Legs Under A Chicken",
+    "meaning": "He is extremely persuasive or deceptive."
+  },
+  {
+    "idiom": "Head (Go) South",
+    "meaning": "To decline or fail (informal)."
+  },
+  {
+    "idiom": "Head and Shoulders Above",
+    "meaning": "Far superior to."
+  },
+  {
+    "idiom": "Head Start",
+    "meaning": "An early advantage."
+  },
+  {
+    "idiom": "Heads Up (excl.)",
+    "meaning": "Warning to look out or pay attention."
+  },
+  {
+    "idiom": "Heads Will Roll (Are Going to Roll)",
+    "meaning": "People will be punished or fired."
+  },
+  {
+    "idiom": "Hear (Something) Through the Grapevine",
+    "meaning": "To hear a rumor."
+  },
+  {
+    "idiom": "Heart and Soul",
+    "meaning": "With complete devotion."
+  },
+  {
+    "idiom": "Heavens Open",
+    "meaning": "It starts raining heavily."
+  },
+  {
+    "idiom": "Heavy Hitter",
+    "meaning": "An influential or powerful person."
+  },
+  {
+    "idiom": "Helicopter Parenting",
+    "meaning": "Overprotective parenting."
+  },
+  {
+    "idiom": "Hell for Leather",
+    "meaning": "As fast as possible."
+  },
+  {
+    "idiom": "High as a Kite",
+    "meaning": "Intoxicated or very happy."
+  },
+  {
+    "idiom": "Hightail It (Out of There)",
+    "meaning": "To leave quickly."
+  },
+  {
+    "idiom": "Highways and Byways",
+    "meaning": "All kinds of roads; everywhere."
+  },
+  {
+    "idiom": "Hit a Wall",
+    "meaning": "To reach an obstacle and be unable to progress."
+  },
+  {
+    "idiom": "Hit It Out of the Park",
+    "meaning": "To achieve great success."
+  },
+  {
+    "idiom": "Hit the Books",
+    "meaning": "To study."
+  },
+  {
+    "idiom": "Hit the Bullseye",
+    "meaning": "To achieve a perfect result."
+  },
+  {
+    "idiom": "Hit the Ground Running",
+    "meaning": "To start a task with great energy and enthusiasm."
+  },
+  {
+    "idiom": "Hit the Hay",
+    "meaning": "To go to bed."
+  },
+  {
+    "idiom": "Hit the Jackpot",
+    "meaning": "To have great success or luck."
+  },
+  {
+    "idiom": "Hit the Nail on the Head",
+    "meaning": "To be exactly right."
+  },
+  {
+    "idiom": "Hit the Road",
+    "meaning": "To leave."
+  },
+  {
+    "idiom": "Hit the Roof",
+    "meaning": "To become very angry."
+  },
+  {
+    "idiom": "Hit the Sack",
+    "meaning": "To go to bed."
+  },
+  {
+    "idiom": "Hit the Spot",
+    "meaning": "To be exactly what is needed."
+  },
+  {
+    "idiom": "Hit the Target",
+    "meaning": "To achieve a goal."
+  },
+  {
+    "idiom": "Hive Mind",
+    "meaning": "A collective consciousness or groupthink."
+  },
+  {
+    "idiom": "Hobson’s Choice",
+    "meaning": "The choice of taking what is offered or nothing at all."
+  },
+  {
+    "idiom": "Hold One’s Liquor",
+    "meaning": "To be able to drink alcohol without getting drunk."
+  },
+  {
+    "idiom": "Hold One’s Peace",
+    "meaning": "To remain silent."
+  },
+  {
+    "idiom": "Hold the Key",
+    "meaning": "To have the solution."
+  },
+  {
+    "idiom": "Hold the Phone",
+    "meaning": "To wait or pause (often exclamation)."
+  },
+  {
+    "idiom": "Hold Your Horses",
+    "meaning": "Be patient."
+  },
+  {
+    "idiom": "Home Away from Home",
+    "meaning": "A place where one feels as comfortable as home."
+  },
+  {
+    "idiom": "Home Is Where the Heart Is",
+    "meaning": "Home is the place you love most."
+  },
+  {
+    "idiom": "Home Sweet Home",
+    "meaning": "Expression of comfort upon returning home."
+  },
+  {
+    "idiom": "Home Truths",
+    "meaning": "Unpleasant facts about oneself."
+  },
+  {
+    "idiom": "Honor System",
+    "meaning": "A system based on trust rather than enforcement."
+  },
+  {
+    "idiom": "Hot Mess",
+    "meaning": "A person or thing in a state of chaos or disarray."
+  },
+  {
+    "idiom": "Hot on the Heels (of)",
+    "meaning": "Close behind; pursuing closely."
+  },
+  {
+    "idiom": "Hot Potato",
+    "meaning": "A controversial issue."
+  },
+  {
+    "idiom": "I Wouldn’t Put It Past (Someone)",
+    "meaning": "I wouldn't be surprised if they did something (usually bad)."
+  },
+  {
+    "idiom": "If It Had Been a Snake, It Would Have Bitten Me",
+    "meaning": "Said when something was very obvious but you missed it."
+  },
+  {
+    "idiom": "If the Shoe Fits, Wear It",
+    "meaning": "If a criticism applies to you, accept it."
+  },
+  {
+    "idiom": "I’m All Ears",
+    "meaning": "I'm listening intently."
+  },
+  {
+    "idiom": "In a Fog",
+    "meaning": "Confused or dazed; not thinking clearly."
+  },
+  {
+    "idiom": "In a Heartbeat",
+    "meaning": "Immediately; without hesitation."
+  },
+  {
+    "idiom": "In a Jam",
+    "meaning": "In a difficult situation."
+  },
+  {
+    "idiom": "In a New York Minute",
+    "meaning": "Very quickly; instantly (American)."
+  },
+  {
+    "idiom": "In a Nutshell",
+    "meaning": "In a few words; concisely."
+  },
+  {
+    "idiom": "In a Pickle",
+    "meaning": "In a difficult or messy situation."
+  },
+  {
+    "idiom": "In a Rut",
+    "meaning": "Stuck in a boring, unchanging routine."
+  },
+  {
+    "idiom": "In Broad Daylight",
+    "meaning": "During the day; openly, when everyone can see."
+  },
+  {
+    "idiom": "In Clover",
+    "meaning": "Living a life of ease and comfort."
+  },
+  {
+    "idiom": "In Cold Blood",
+    "meaning": "Deliberately and without emotion (often murder)."
+  },
+  {
+    "idiom": "In For a Penny, In for a Pound",
+    "meaning": "If you start something, you might as well commit fully."
+  },
+  {
+    "idiom": "In Full Swing",
+    "meaning": "At the peak of activity."
+  },
+  {
+    "idiom": "In His Cups",
+    "meaning": "Drunk."
+  },
+  {
+    "idiom": "In Hot Water",
+    "meaning": "In trouble."
+  },
+  {
+    "idiom": "In One Fell Swoop",
+    "meaning": "All in a single action; suddenly."
+  },
+  {
+    "idiom": "In One’s Element",
+    "meaning": "In a situation where one feels comfortable and performs well."
+  },
+  {
+    "idiom": "In Someone’s Wheelhouse",
+    "meaning": "Within someone's area of expertise or interest."
+  },
+  {
+    "idiom": "In the Blink of an Eye",
+    "meaning": "Very quickly."
+  },
+  {
+    "idiom": "In the Cards",
+    "meaning": "Likely to happen; destined."
+  },
+  {
+    "idiom": "In the Crosshairs (Cross Hairs)",
+    "meaning": "Being targeted or focused on."
+  },
+  {
+    "idiom": "In the Dark",
+    "meaning": "Uninformed; unaware."
+  },
+  {
+    "idiom": "In the Driver’s Seat",
+    "meaning": "In control."
+  },
+  {
+    "idiom": "In the Heat of the Moment",
+    "meaning": "While angry or excited, without thinking."
+  },
+  {
+    "idiom": "In the Interim",
+    "meaning": "In the meantime."
+  },
+  {
+    "idiom": "In the Limelight, In the Spotlight",
+    "meaning": "At the center of public attention."
+  },
+  {
+    "idiom": "In the Long Run",
+    "meaning": "Over a long period; ultimately."
+  },
+  {
+    "idiom": "In the Nick of Time",
+    "meaning": "Just in time; at the last moment."
+  },
+  {
+    "idiom": "In the Pipeline",
+    "meaning": "In progress; being developed."
+  },
+  {
+    "idiom": "In the Red",
+    "meaning": "Owing money; in debt."
+  },
+  {
+    "idiom": "In the Same Boat",
+    "meaning": "In the same situation."
+  },
+  {
+    "idiom": "In the Toilet",
+    "meaning": "Going badly; failing (slang)."
+  },
+  {
+    "idiom": "In the Works",
+    "meaning": "Being planned or developed."
+  },
+  {
+    "idiom": "Iron Out (Problems, Difficulties)",
+    "meaning": "To resolve problems."
+  },
+  {
+    "idiom": "Is the Pope Catholic?",
+    "meaning": "A rhetorical answer meaning 'obviously yes'."
+  },
+  {
+    "idiom": "It Never Rains but It Pours",
+    "meaning": "Misfortunes often come together."
+  },
+  {
+    "idiom": "It Takes Two to Tango",
+    "meaning": "Both parties are responsible for a situation."
+  },
+  {
+    "idiom": "It Won’t Fly",
+    "meaning": "It won't be accepted or succeed."
+  },
+  {
+    "idiom": "Itchy Feet",
+    "meaning": "A strong desire to travel or move."
+  },
+  {
+    "idiom": "It’s a Small World",
+    "meaning": "Used when you unexpectedly meet someone you know in a distant place."
+  },
+  {
+    "idiom": "It’s a Wash",
+    "meaning": "A situation where gains and losses cancel out."
+  },
+  {
+    "idiom": "It’s All Greek to Me",
+    "meaning": "I don't understand it at all."
+  },
+  {
+    "idiom": "It’s No Skin off My (Your) Nose (Back)",
+    "meaning": "It doesn't matter to me; it's not my problem."
+  },
+  {
+    "idiom": "It’s Not Over Till the Fat Lady Sings",
+    "meaning": "The outcome isn't decided until the very end."
+  },
+  {
+    "idiom": "It’s Not Rocket Science",
+    "meaning": "It's not complicated."
+  },
+  {
+    "idiom": "I’ve Had It Up to Here",
+    "meaning": "I can't take any more; I'm very frustrated."
+  },
+  {
+    "idiom": "Jack of All Trades",
+    "meaning": "A person who can do many different kinds of work."
+  },
+  {
+    "idiom": "Jam on the Brakes",
+    "meaning": "To brake suddenly and hard."
+  },
+  {
+    "idiom": "Jam Session",
+    "meaning": "An informal musical performance."
+  },
+  {
+    "idiom": "Jim Crow",
+    "meaning": "Laws enforcing racial segregation in the US South."
+  },
+  {
+    "idiom": "Join the Club (excl.)",
+    "meaning": "You're not alone; many of us share that experience."
+  },
+  {
+    "idiom": "Jump in with Both Feet",
+    "meaning": "To get fully involved."
+  },
+  {
+    "idiom": "Jump on the Bandwagon",
+    "meaning": "To join a popular trend."
+  },
+  {
+    "idiom": "Jump the Gun",
+    "meaning": "To start too early."
+  },
+  {
+    "idiom": "Jump the Shark",
+    "meaning": "To reach a point where something declines in quality (from TV)."
+  },
+  {
+    "idiom": "Jump the Track",
+    "meaning": "To go off course; to derail."
+  },
+  {
+    "idiom": "Jump Through Hoops",
+    "meaning": "To do difficult or complicated tasks to achieve something."
+  },
+  {
+    "idiom": "Just Around the Corner",
+    "meaning": "Very near in time or distance."
+  },
+  {
+    "idiom": "Just for the Record",
+    "meaning": "For the sake of clarity; to establish a fact."
+  },
+  {
+    "idiom": "Just What the Doctor Ordered",
+    "meaning": "Exactly what is needed."
+  },
+  {
+    "idiom": "Kangaroo Court",
+    "meaning": "An unfair or biased court proceeding."
+  },
+  {
+    "idiom": "Keep (Something) at Bay",
+    "meaning": "To prevent something from approaching or affecting you."
+  },
+  {
+    "idiom": "Keep a Stiff Upper Lip",
+    "meaning": "To remain brave and uncomplaining in the face of adversity."
+  },
+  {
+    "idiom": "Keep an Eye On",
+    "meaning": "To watch carefully."
+  },
+  {
+    "idiom": "Keep an Eye Peeled",
+    "meaning": "To watch attentively."
+  },
+  {
+    "idiom": "Keep It Under Your Hat",
+    "meaning": "To keep it a secret."
+  },
+  {
+    "idiom": "Keep Someone at Arm’s Length",
+    "meaning": "To avoid becoming too friendly with someone."
+  },
+  {
+    "idiom": "Keep Your Chin Up",
+    "meaning": "Stay positive."
+  },
+  {
+    "idiom": "Keep Your Eyes Peeled",
+    "meaning": "Watch carefully."
+  },
+  {
+    "idiom": "Keep Your Fingers Crossed",
+    "meaning": "Hope for good luck."
+  },
+  {
+    "idiom": "Keep Your Nose Clean",
+    "meaning": "To stay out of trouble."
+  },
+  {
+    "idiom": "Keep Your Nose to the Grindstone",
+    "meaning": "To work hard and steadily."
+  },
+  {
+    "idiom": "Keep Your Powder Dry",
+    "meaning": "To stay ready for action."
+  },
+  {
+    "idiom": "Keeping One’s Nose to the Grindstone",
+    "meaning": "Working hard."
+  },
+  {
+    "idiom": "Kick Ass, Kick Butt",
+    "meaning": "To be impressive or to defeat someone (slang)."
+  },
+  {
+    "idiom": "Kick the Bucket",
+    "meaning": "To die."
+  },
+  {
+    "idiom": "Kick the Can Down the Road",
+    "meaning": "To postpone a decision or solution."
+  },
+  {
+    "idiom": "Kill a Fly With an Elephant Gun",
+    "meaning": "To use excessive force for a small problem."
+  },
+  {
+    "idiom": "Kill the Goose That Laid the Golden Egg",
+    "meaning": "To destroy a source of future profit by being greedy."
+  },
+  {
+    "idiom": "Kill Two Birds with One Stone",
+    "meaning": "To achieve two things with one action."
+  },
+  {
+    "idiom": "King of the Hill",
+    "meaning": "The top dog; the most powerful person in a group."
+  },
+  {
+    "idiom": "Kink in One’s Neck",
+    "meaning": "A painful muscle cramp in the neck."
+  },
+  {
+    "idiom": "Kiss and Make Up",
+    "meaning": "To reconcile after an argument."
+  },
+  {
+    "idiom": "Kith and Kin",
+    "meaning": "Friends and family."
+  },
+  {
+    "idiom": "Knee Jerk Reaction",
+    "meaning": "An automatic, unthinking response."
+  },
+  {
+    "idiom": "Knock on Wood; Touch Wood",
+    "meaning": "A superstitious act to avoid bad luck."
+  },
+  {
+    "idiom": "Knock Some Sense Into",
+    "meaning": "To physically or verbally force someone to be reasonable."
+  },
+  {
+    "idiom": "Knock Someone’s Socks Off",
+    "meaning": "To impress someone greatly."
+  },
+  {
+    "idiom": "Knock Up",
+    "meaning": "To make pregnant (slang); also to wake someone by knocking."
+  },
+  {
+    "idiom": "Knockout",
+    "meaning": "A very attractive person; also a winning blow in boxing."
+  },
+  {
+    "idiom": "Know (Something) Like the Back of One’s Hand",
+    "meaning": "To know something very well."
+  },
+  {
+    "idiom": "Larger Than Life",
+    "meaning": "Having a very strong or flamboyant personality."
+  },
+  {
+    "idiom": "Last But Not Least",
+    "meaning": "Finally, though equally important."
+  },
+  {
+    "idiom": "Last Straw",
+    "meaning": "The final problem in a series that causes a breakdown."
+  },
+  {
+    "idiom": "Laughter is the Best Medicine",
+    "meaning": "Laughing makes you feel better."
+  },
+  {
+    "idiom": "Learn the Ropes",
+    "meaning": "To learn the basics of a job or activity."
+  },
+  {
+    "idiom": "Leave No Stone Unturned",
+    "meaning": "To search everywhere; to do everything possible."
+  },
+  {
+    "idiom": "Leave Someone in the Lurch",
+    "meaning": "To abandon someone in a difficult situation."
+  },
+  {
+    "idiom": "A Left-Handed Compliment",
+    "meaning": "An insult disguised as a compliment."
+  },
+  {
+    "idiom": "Lend an Ear",
+    "meaning": "To listen carefully or sympathetically."
+  },
+  {
+    "idiom": "Let Bygones Be Bygones",
+    "meaning": "To forgive and forget past offenses."
+  },
+  {
+    "idiom": "Let Off Steam",
+    "meaning": "To release pent-up energy or anger."
+  },
+  {
+    "idiom": "Let One’s Hair Down",
+    "meaning": "To relax and behave informally."
+  },
+  {
+    "idiom": "Let Sleeping Dogs Lie",
+    "meaning": "To avoid stirring up old trouble."
+  },
+  {
+    "idiom": "Let the Cat Out of the Bag",
+    "meaning": "To reveal a secret."
+  },
+  {
+    "idiom": "Let the Genie Out of the Bottle",
+    "meaning": "To unleash something that cannot be controlled."
+  },
+  {
+    "idiom": "Letter of the Law",
+    "meaning": "The exact wording, as opposed to the spirit."
+  },
+  {
+    "idiom": "Lick One’s Wounds",
+    "meaning": "To recover after a defeat."
+  },
+  {
+    "idiom": "Life is A Bowl of Cherries",
+    "meaning": "Life is pleasant and easy."
+  },
+  {
+    "idiom": "Light a Fire Under Someone",
+    "meaning": "To motivate someone to act."
+  },
+  {
+    "idiom": "Light at the End of the Tunnel",
+    "meaning": "Hope after a difficult period."
+  },
+  {
+    "idiom": "Like a Bat Out of Hell",
+    "meaning": "Very fast."
+  },
+  {
+    "idiom": "Like a Fish Out of Water",
+    "meaning": "Uncomfortable in an unfamiliar situation."
+  },
+  {
+    "idiom": "Like a Kid in a Candy Store",
+    "meaning": "Very excited and enthusiastic."
+  },
+  {
+    "idiom": "Like a Moth to a Flame",
+    "meaning": "Irresistibly attracted to something dangerous."
+  },
+  {
+    "idiom": "Like Father, Like Son",
+    "meaning": "Children resemble their parents in character."
+  },
+  {
+    "idiom": "Like Shooting Fish in a Barrel",
+    "meaning": "Extremely easy."
+  },
+  {
+    "idiom": "Like Taking Candy from a Baby",
+    "meaning": "Extremely easy."
+  },
+  {
+    "idiom": "Like The Cat That Got The Cream",
+    "meaning": "Looking very self-satisfied."
+  },
+  {
+    "idiom": "Like Two Peas in a Pod",
+    "meaning": "Very similar; close friends."
+  },
+  {
+    "idiom": "Lion’s Den",
+    "meaning": "A dangerous or hostile place."
+  },
+  {
+    "idiom": "Lion’s Share",
+    "meaning": "The largest part."
+  },
+  {
+    "idiom": "Live and Let Live",
+    "meaning": "Tolerate others' choices."
+  },
+  {
+    "idiom": "Live Large",
+    "meaning": "To live extravagantly."
+  },
+  {
+    "idiom": "Living in Cloud Cuckooland",
+    "meaning": "Having unrealistic, fantasy beliefs."
+  },
+  {
+    "idiom": "Living on Borrowed Time",
+    "meaning": "Living longer than expected."
+  },
+  {
+    "idiom": "Living Under a Rock",
+    "meaning": "Being ignorant of important events."
+  },
+  {
+    "idiom": "Loaded for Bear",
+    "meaning": "Fully prepared for a challenge."
+  },
+  {
+    "idiom": "Loan Shark",
+    "meaning": "A person who lends money at extremely high interest."
+  },
+  {
+    "idiom": "Lock Horns",
+    "meaning": "To get into an argument or conflict."
+  },
+  {
+    "idiom": "Long Shot",
+    "meaning": "An unlikely success."
+  },
+  {
+    "idiom": "Look the Other Way",
+    "meaning": "To ignore something deliberately."
+  },
+  {
+    "idiom": "Look What the Cat Dragged In",
+    "meaning": "Said when someone arrives looking disheveled or unwelcome."
+  },
+  {
+    "idiom": "Loose Cannon",
+    "meaning": "An unpredictable person who causes trouble."
+  },
+  {
+    "idiom": "Lose It",
+    "meaning": "To lose control; become very angry or upset."
+  },
+  {
+    "idiom": "Lose One’s Touch",
+    "meaning": "To lose a former skill or ability."
+  },
+  {
+    "idiom": "Lose the Thread",
+    "meaning": "To lose track of a conversation or line of thought."
+  },
+  {
+    "idiom": "Lose Touch",
+    "meaning": "To lose contact with someone."
+  },
+  {
+    "idiom": "Lose Your Marbles",
+    "meaning": "To go crazy."
+  },
+  {
+    "idiom": "Lost in the Stars",
+    "meaning": "Dreaming or contemplating."
+  },
+  {
+    "idiom": "Love at First Sight",
+    "meaning": "Instant romantic attraction."
+  },
+  {
+    "idiom": "Love Rat",
+    "meaning": "An unfaithful partner (British)."
+  },
+  {
+    "idiom": "Love Someone With All of One’s Heart And Soul",
+    "meaning": "To love completely."
+  },
+  {
+    "idiom": "Lower the Boom",
+    "meaning": "To punish or reprimand harshly."
+  },
+  {
+    "idiom": "Low-Hanging Fruit",
+    "meaning": "The easiest tasks or goals to achieve."
+  },
+  {
+    "idiom": "Luck of the Draw",
+    "meaning": "Result determined by chance."
+  },
+  {
+    "idiom": "Mad As A Box Of (Soapy) Frogs",
+    "meaning": "Crazy (Australian)."
+  },
+  {
+    "idiom": "Mad as A Hatter",
+    "meaning": "Completely insane."
+  },
+  {
+    "idiom": "Main Squeeze",
+    "meaning": "One's primary romantic partner."
+  },
+  {
+    "idiom": "Make a Break for It",
+    "meaning": "To try to escape."
+  },
+  {
+    "idiom": "Make a House a Home",
+    "meaning": "To make a place feel warm and personal."
+  },
+  {
+    "idiom": "Make a Long Story Short",
+    "meaning": "To summarize."
+  },
+  {
+    "idiom": "Make a Mountain out of a Molehill",
+    "meaning": "To exaggerate a minor problem."
+  },
+  {
+    "idiom": "Make a Scene",
+    "meaning": "To cause a public disturbance."
+  },
+  {
+    "idiom": "Make a Silk Purse out of a Sow’s Ear",
+    "meaning": "To create something good from poor material."
+  },
+  {
+    "idiom": "Make Ends Meet",
+    "meaning": "To have enough money to live on."
+  },
+  {
+    "idiom": "Make Hay (While the Sun Shines)",
+    "meaning": "To take advantage of favorable conditions."
+  },
+  {
+    "idiom": "Make Love",
+    "meaning": "To have sex."
+  },
+  {
+    "idiom": "Make Nice",
+    "meaning": "To be friendly, especially after a conflict."
+  },
+  {
+    "idiom": "Make One’s Mark",
+    "meaning": "To become famous or successful."
+  },
+  {
+    "idiom": "Make Someone’s Day",
+    "meaning": "To make someone happy."
+  },
+  {
+    "idiom": "Make Waves",
+    "meaning": "To cause a disturbance or create a new situation."
+  },
+  {
+    "idiom": "Man Cave",
+    "meaning": "A room in a house where a man can relax alone."
+  },
+  {
+    "idiom": "March to the Beat of Your Own Drum",
+    "meaning": "To act independently."
+  },
+  {
+    "idiom": "Match Made in Heaven",
+    "meaning": "A perfect relationship or partnership."
+  },
+  {
+    "idiom": "May-December (adj.)",
+    "meaning": "A relationship with a large age difference."
+  },
+  {
+    "idiom": "May-December Marriage",
+    "meaning": "Marriage between a much older and a much younger person."
+  },
+  {
+    "idiom": "Me Time",
+    "meaning": "Time spent relaxing alone."
+  },
+  {
+    "idiom": "Meeting of the Minds",
+    "meaning": "An agreement or shared understanding."
+  },
+  {
+    "idiom": "Mend Fences",
+    "meaning": "To repair a relationship."
+  },
+  {
+    "idiom": "Method to My Madness",
+    "meaning": "There is a reason behind my seemingly crazy actions."
+  },
+  {
+    "idiom": "Mind One’s P’s and Q’s",
+    "meaning": "To be careful about one's manners and behavior."
+  },
+  {
+    "idiom": "Mind Over Matter",
+    "meaning": "Mental strength can overcome physical obstacles."
+  },
+  {
+    "idiom": "Miss the Boat",
+    "meaning": "To miss an opportunity."
+  },
+  {
+    "idiom": "Miss the Mark",
+    "meaning": "To fail to achieve the intended goal."
+  },
+  {
+    "idiom": "Monday Morning Quarterback",
+    "meaning": "Someone who criticizes or gives advice after the fact."
+  },
+  {
+    "idiom": "Month of Sundays",
+    "meaning": "A very long time."
+  },
+  {
+    "idiom": "More Fun Than A Barrel of Monkeys",
+    "meaning": "Very enjoyable."
+  },
+  {
+    "idiom": "Mother Nature",
+    "meaning": "Nature personified as a female force."
+  },
+  {
+    "idiom": "Move Heaven and Earth",
+    "meaning": "To do everything possible."
+  },
+  {
+    "idiom": "Move the Needle",
+    "meaning": "To make a noticeable change."
+  },
+  {
+    "idiom": "Move Up in the World",
+    "meaning": "To become more successful."
+  },
+  {
+    "idiom": "Movers and Shakers",
+    "meaning": "Influential people."
+  },
+  {
+    "idiom": "Much Of A Muchness",
+    "meaning": "Very similar; alike."
+  },
+  {
+    "idiom": "Mum’s the Word",
+    "meaning": "Say nothing; keep quiet."
+  },
+  {
+    "idiom": "Music to My Ears",
+    "meaning": "Good news; pleasant information."
+  },
+  {
+    "idiom": "Mutton Dressed Up as Lamb",
+    "meaning": "An older person dressed in a style meant for the young."
+  },
+  {
+    "idiom": "My Dogs Are Barking",
+    "meaning": "My feet hurt."
+  },
+  {
+    "idiom": "My Old Man, My Old Lady",
+    "meaning": "My father / my mother or wife (slang)."
+  },
+  {
+    "idiom": "My Way or the Highway",
+    "meaning": "Accept my way or leave."
+  },
+  {
+    "idiom": "Nail It Down",
+    "meaning": "To make something final or certain."
+  },
+  {
+    "idiom": "Nail-Biter",
+    "meaning": "A suspenseful situation."
+  },
+  {
+    "idiom": "Nailing Jelly/Jello/Pudding To A Wall/Tree",
+    "meaning": "Trying to do something impossible."
+  },
+  {
+    "idiom": "Neck and Neck",
+    "meaning": "Very close in a race or competition."
+  },
+  {
+    "idiom": "Neck of the Woods",
+    "meaning": "A particular area or neighborhood."
+  },
+  {
+    "idiom": "Needle in a Haystack",
+    "meaning": "Something very hard to find."
+  },
+  {
+    "idiom": "Nest Egg",
+    "meaning": "Savings set aside for the future."
+  },
+  {
+    "idiom": "Never in A Million Years",
+    "meaning": "Absolutely never."
+  },
+  {
+    "idiom": "Never Look a Gift Horse in the Mouth",
+    "meaning": "Don't criticize a gift."
+  },
+  {
+    "idiom": "New Dawn",
+    "meaning": "A fresh start."
+  },
+  {
+    "idiom": "New Moon",
+    "meaning": "The beginning of a lunar cycle; a fresh start."
+  },
+  {
+    "idiom": "New Wrinkle",
+    "meaning": "A new problem or development."
+  },
+  {
+    "idiom": "Nice Chunk of Change",
+    "meaning": "A significant amount of money."
+  },
+  {
+    "idiom": "Nickel and Dime",
+    "meaning": "To charge many small amounts; to penny-pinch."
+  },
+  {
+    "idiom": "Night Owl",
+    "meaning": "A person who stays up late."
+  },
+  {
+    "idiom": "Nine Times Out of Ten",
+    "meaning": "Almost always."
+  },
+  {
+    "idiom": "Nine-to-Five Job",
+    "meaning": "A typical office job with regular hours."
+  },
+  {
+    "idiom": "Nip (Something) In The Bud",
+    "meaning": "To stop something at an early stage."
+  },
+  {
+    "idiom": "No Holds Barred (usually adj., often hyphenated)",
+    "meaning": "Without restrictions or rules."
+  },
+  {
+    "idiom": "No Love Lost Between",
+    "meaning": "Mutual dislike."
+  },
+  {
+    "idiom": "No Names, No Pack Drill",
+    "meaning": "If no one is named, no one can be punished."
+  },
+  {
+    "idiom": "No Pain, No Gain",
+    "meaning": "Effort is required to achieve something."
+  },
+  {
+    "idiom": "No Rhyme or Reason (to)",
+    "meaning": "No logical explanation."
+  },
+  {
+    "idiom": "No Room to Swing A Cat",
+    "meaning": "Very little space."
+  },
+  {
+    "idiom": "No Shit, Sherlock",
+    "meaning": "Sarcastic response to something obvious."
+  },
+  {
+    "idiom": "No Tree Grows to the Sky",
+    "meaning": "Nothing lasts forever; growth is limited."
+  },
+  {
+    "idiom": "Not a Spark of Decency",
+    "meaning": "Completely without morals."
+  },
+  {
+    "idiom": "Not Cut Out for (Something)",
+    "meaning": "Not suited for something."
+  },
+  {
+    "idiom": "Not Enough Room to Swing a Cat",
+    "meaning": "Very cramped space."
+  },
+  {
+    "idiom": "Not Give A Fig",
+    "meaning": "To not care at all."
+  },
+  {
+    "idiom": "Not Have A Cat In Hell’s Chance",
+    "meaning": "No chance at all."
+  },
+  {
+    "idiom": "Not Have a Prayer",
+    "meaning": "To have no chance."
+  },
+  {
+    "idiom": "Not Know Jack",
+    "meaning": "To know nothing."
+  },
+  {
+    "idiom": "Not Lift a Finger",
+    "meaning": "To make no effort to help."
+  },
+  {
+    "idiom": "Not Mince Words",
+    "meaning": "To speak bluntly."
+  },
+  {
+    "idiom": "Not My Cup of Tea",
+    "meaning": "Not something one enjoys or prefers."
+  },
+  {
+    "idiom": "Not Playing with A Full Deck",
+    "meaning": "Mentally deficient; crazy."
+  },
+  {
+    "idiom": "Not Ready for Prime Time",
+    "meaning": "Not yet ready for public attention."
+  },
+  {
+    "idiom": "Not Ring a Bell",
+    "meaning": "Not sound familiar."
+  },
+  {
+    "idiom": "Not Sit Well with (Someone)",
+    "meaning": "To be unacceptable or cause discomfort."
+  },
+  {
+    "idiom": "Nothing to Write Home About",
+    "meaning": "Unremarkable; mediocre."
+  },
+  {
+    "idiom": "Notch Up",
+    "meaning": "To achieve something."
+  },
+  {
+    "idiom": "Nuts and Bolts",
+    "meaning": "The basic, practical details."
+  },
+  {
+    "idiom": "Nutty as a Fruitcake",
+    "meaning": "Crazy."
+  },
+  {
+    "idiom": "Off His Trolley",
+    "meaning": "Crazy (British)."
+  },
+  {
+    "idiom": "Off One’s Rocker",
+    "meaning": "Crazy."
+  },
+  {
+    "idiom": "Off the Beaten Path",
+    "meaning": "Away from the usual routes; less frequented."
+  },
+  {
+    "idiom": "Off the Charts",
+    "meaning": "Extremely high or exceptional."
+  },
+  {
+    "idiom": "Off the Hook",
+    "meaning": "No longer in trouble or under obligation."
+  },
+  {
+    "idiom": "Off the Radar",
+    "meaning": "Not attracting attention; not well-known."
+  },
+  {
+    "idiom": "Off the Rails",
+    "meaning": "Out of control."
+  },
+  {
+    "idiom": "Off the Top of My Head",
+    "meaning": "Improvising; without much thought."
+  },
+  {
+    "idiom": "Off the Wall",
+    "meaning": "Crazy; unconventional."
+  },
+  {
+    "idiom": "Old Flame",
+    "meaning": "A former romantic partner."
+  },
+  {
+    "idiom": "Old Hat",
+    "meaning": "Old-fashioned; out of date."
+  },
+  {
+    "idiom": "Old Man Winter",
+    "meaning": "A personification of winter."
+  },
+  {
+    "idiom": "Olive Branch",
+    "meaning": "A peace offering."
+  },
+  {
+    "idiom": "On a Hiding to Nothing",
+    "meaning": "In a situation where success is impossible."
+  },
+  {
+    "idiom": "On a Lark",
+    "meaning": "For fun; on a whim."
+  },
+  {
+    "idiom": "On a Roll",
+    "meaning": "Experiencing a series of successes."
+  },
+  {
+    "idiom": "On a Wing and a Prayer",
+    "meaning": "With only a small chance of success."
+  },
+  {
+    "idiom": "On All Fours",
+    "meaning": "On hands and knees."
+  },
+  {
+    "idiom": "On Cloud Nine",
+    "meaning": "Extremely happy."
+  },
+  {
+    "idiom": "On Deck Next",
+    "meaning": "Next in line."
+  },
+  {
+    "idiom": "On Life Support",
+    "meaning": "Near failure or death."
+  },
+  {
+    "idiom": "On Point",
+    "meaning": "Excellent; exactly right."
+  },
+  {
+    "idiom": "On Steroids",
+    "meaning": "Enhanced; more extreme."
+  },
+  {
+    "idiom": "On Tenterhooks",
+    "meaning": "In a state of suspense or anxiety."
+  },
+  {
+    "idiom": "On the Back Foot",
+    "meaning": "At a disadvantage."
+  },
+  {
+    "idiom": "On the Ball",
+    "meaning": "Alert; competent."
+  },
+  {
+    "idiom": "On the Bubble",
+    "meaning": "In a situation where the outcome is uncertain."
+  },
+  {
+    "idiom": "On the Dot",
+    "meaning": "Exactly on time."
+  },
+  {
+    "idiom": "On the Down Low (D.L.)",
+    "meaning": "Secretly; discreetly."
+  },
+  {
+    "idiom": "On the Fence",
+    "meaning": "Undecided."
+  },
+  {
+    "idiom": "On the Fly",
+    "meaning": "Quickly and informally, while in motion."
+  },
+  {
+    "idiom": "On the Fritz",
+    "meaning": "Broken; malfunctioning."
+  },
+  {
+    "idiom": "On the Home Stretch",
+    "meaning": "In the final phase of a task."
+  },
+  {
+    "idiom": "On the Nose",
+    "meaning": "Exactly; precisely."
+  },
+  {
+    "idiom": "On the Q.T.",
+    "meaning": "Quietly; secretly."
+  },
+  {
+    "idiom": "On the Radar",
+    "meaning": "Attracting attention."
+  },
+  {
+    "idiom": "On the Right Track",
+    "meaning": "Proceeding correctly."
+  },
+  {
+    "idiom": "On the Same Page",
+    "meaning": "In agreement."
+  },
+  {
+    "idiom": "On the Same Wavelength",
+    "meaning": "Thinking alike; understanding each other."
+  },
+  {
+    "idiom": "On the Spot",
+    "meaning": "Immediately; or in a difficult situation requiring action."
+  },
+  {
+    "idiom": "On the Spur of the Moment",
+    "meaning": "Impulsively; without planning."
+  },
+  {
+    "idiom": "On the Take",
+    "meaning": "Accepting bribes."
+  },
+  {
+    "idiom": "On the Wagon",
+    "meaning": "Abstaining from alcohol."
+  },
+  {
+    "idiom": "On the Warpath",
+    "meaning": "Angry and looking for a fight."
+  },
+  {
+    "idiom": "On Thin Ice",
+    "meaning": "In a risky situation."
+  },
+  {
+    "idiom": "On Top of the World",
+    "meaning": "Feeling very happy or successful."
+  },
+  {
+    "idiom": "Once Bitten, Twice Shy",
+    "meaning": "After a bad experience, one becomes cautious."
+  },
+  {
+    "idiom": "Once in a Blue Moon",
+    "meaning": "Very rarely."
+  },
+  {
+    "idiom": "Once in a While",
+    "meaning": "Occasionally."
+  },
+  {
+    "idiom": "One for the Road",
+    "meaning": "A final drink before leaving."
+  },
+  {
+    "idiom": "One Foot in the Door",
+    "meaning": "A good initial step toward a goal."
+  },
+  {
+    "idiom": "One-Two Punch",
+    "meaning": "Two forceful actions in quick succession."
+  },
+  {
+    "idiom": "One-Trick Pony",
+    "meaning": "Someone with only one skill or talent."
+  },
+  {
+    "idiom": "Open a Can of Worms",
+    "meaning": "To create a new set of problems."
+  },
+  {
+    "idiom": "Open Season",
+    "meaning": "A period when something is allowed or widespread."
+  },
+  {
+    "idiom": "Open the Door to",
+    "meaning": "To create opportunities for."
+  },
+  {
+    "idiom": "Open the Floodgates",
+    "meaning": "To allow a sudden release or access."
+  },
+  {
+    "idiom": "Open-and-Shut Case",
+    "meaning": "A straightforward, easily decided case."
+  },
+  {
+    "idiom": "Or Else (by itself)",
+    "meaning": "A threat of consequences."
+  },
+  {
+    "idiom": "Out in the Sticks",
+    "meaning": "In a remote rural area."
+  },
+  {
+    "idiom": "Out of Left Field",
+    "meaning": "Unexpected; from an unlikely source."
+  },
+  {
+    "idiom": "Out of Line",
+    "meaning": "Inappropriate or unacceptable behavior."
+  },
+  {
+    "idiom": "Out of Luck",
+    "meaning": "Unlucky; having no success."
+  },
+  {
+    "idiom": "Out of Nowhere",
+    "meaning": "Suddenly and unexpectedly."
+  },
+  {
+    "idiom": "Out of Order",
+    "meaning": "Not working properly; inappropriate."
+  },
+  {
+    "idiom": "Out of Sight, Out of Mind",
+    "meaning": "Easily forgotten when not visible."
+  },
+  {
+    "idiom": "Out of Sorts",
+    "meaning": "Feeling slightly unwell or unhappy."
+  },
+  {
+    "idiom": "Out of the Blue",
+    "meaning": "Unexpectedly."
+  },
+  {
+    "idiom": "Out of the Frying Pan, Into the Fire",
+    "meaning": "From a bad situation to a worse one."
+  },
+  {
+    "idiom": "Out of the Loop",
+    "meaning": "Not informed about something."
+  },
+  {
+    "idiom": "Out of the Picture",
+    "meaning": "No longer involved."
+  },
+  {
+    "idiom": "Out of the Way",
+    "meaning": "Remote; also, removed from consideration."
+  },
+  {
+    "idiom": "Out of the Woods",
+    "meaning": "Out of danger or difficulty."
+  },
+  {
+    "idiom": "Out of This World",
+    "meaning": "Extraordinary; amazing."
+  },
+  {
+    "idiom": "Out of Work",
+    "meaning": "Unemployed."
+  },
+  {
+    "idiom": "Out the Door",
+    "meaning": "Having left; also, the final price including everything."
+  },
+  {
+    "idiom": "Over My Dead Body",
+    "meaning": "Emphatic refusal."
+  },
+  {
+    "idiom": "Over One’s Head",
+    "meaning": "Too difficult to understand."
+  },
+  {
+    "idiom": "Over the Hill",
+    "meaning": "Past one's prime; too old."
+  },
+  {
+    "idiom": "Over the Moon",
+    "meaning": "Extremely happy."
+  },
+  {
+    "idiom": "Over the Rainbow",
+    "meaning": "In an idealized, dreamlike place."
+  },
+  {
+    "idiom": "Pack a Punch",
+    "meaning": "To have a strong effect."
+  },
+  {
+    "idiom": "Pack Heat",
+    "meaning": "To carry a gun (slang)."
+  },
+  {
+    "idiom": "Pack Your Bags",
+    "meaning": "Prepare to leave."
+  },
+  {
+    "idiom": "Paddle One’s Own Canoe",
+    "meaning": "To be independent."
+  },
+  {
+    "idiom": "Page-Turner",
+    "meaning": "A very engaging book."
+  },
+  {
+    "idiom": "Pain in the Ass; Pain in the Butt; Pain in the Neck",
+    "meaning": "An annoying person or thing."
+  },
+  {
+    "idiom": "Paint the Town Red",
+    "meaning": "To go out and celebrate wildly."
+  },
+  {
+    "idiom": "Paint with Broad Strokes",
+    "meaning": "To describe in general terms, ignoring details."
+  },
+  {
+    "idiom": "Par for the Course",
+    "meaning": "Typical; expected."
+  },
+  {
+    "idiom": "Party Animal",
+    "meaning": "A person who loves to party."
+  },
+  {
+    "idiom": "Party Pooper",
+    "meaning": "Someone who spoils the fun."
+  },
+  {
+    "idiom": "Pass the Buck",
+    "meaning": "To shift responsibility to someone else."
+  },
+  {
+    "idiom": "Pass With Flying Colors",
+    "meaning": "To succeed brilliantly."
+  },
+  {
+    "idiom": "Passing Fancy",
+    "meaning": "A temporary interest."
+  },
+  {
+    "idiom": "Pay Through the Nose (For Something)",
+    "meaning": "To pay an excessively high price."
+  },
+  {
+    "idiom": "Peaches and Cream",
+    "meaning": "A perfect, pleasant situation or complexion."
+  },
+  {
+    "idiom": "Pecking Order",
+    "meaning": "A hierarchy of status or authority."
+  },
+  {
+    "idiom": "Pedal to the Metal",
+    "meaning": "Full speed ahead; maximum effort."
+  },
+  {
+    "idiom": "Pencil Something In",
+    "meaning": "To schedule tentatively."
+  },
+  {
+    "idiom": "Penny for Your Thoughts",
+    "meaning": "What are you thinking?"
+  },
+  {
+    "idiom": "Penny Saved is A Penny Earned",
+    "meaning": "Saving money is as good as earning it."
+  },
+  {
+    "idiom": "Penny-Pinching",
+    "meaning": "Being stingy; thrifty."
+  },
+  {
+    "idiom": "Pep Talk",
+    "meaning": "A motivational speech."
+  },
+  {
+    "idiom": "Perfect Storm",
+    "meaning": "A rare combination of events causing a disaster."
+  },
+  {
+    "idiom": "Pet Peeve",
+    "meaning": "A frequent annoyance."
+  },
+  {
+    "idiom": "Pick a Fight",
+    "meaning": "To provoke a confrontation."
+  },
+  {
+    "idiom": "Pick Up the Slack",
+    "meaning": "To take over the work of someone who is not doing it."
+  },
+  {
+    "idiom": "Pick Up the Tab",
+    "meaning": "To pay the bill."
+  },
+  {
+    "idiom": "Picture Perfect",
+    "meaning": "Flawless; ideal."
+  },
+  {
+    "idiom": "Pie in the Sky",
+    "meaning": "An unrealistic hope or promise."
+  },
+  {
+    "idiom": "Piece of Cake",
+    "meaning": "Very easy."
+  },
+  {
+    "idiom": "Piece of the Puzzle",
+    "meaning": "An essential part of a larger problem."
+  },
+  {
+    "idiom": "Pin Someone Down",
+    "meaning": "To force someone to make a decision or reveal something."
+  },
+  {
+    "idiom": "Pinch Pennies",
+    "meaning": "To be thrifty; to save money."
+  },
+  {
+    "idiom": "Pink Slip",
+    "meaning": "A notice of termination from a job."
+  },
+  {
+    "idiom": "Pipe Dream",
+    "meaning": "An unrealistic fantasy."
+  },
+  {
+    "idiom": "Piping Hot",
+    "meaning": "Very hot (food or drink)."
+  },
+  {
+    "idiom": "Pipped to the Post",
+    "meaning": "To be beaten at the last moment (British)."
+  },
+  {
+    "idiom": "Pissing Contest",
+    "meaning": "A pointless, competitive argument (vulgar)."
+  },
+  {
+    "idiom": "Plant the Seeds",
+    "meaning": "To initiate a process that will develop later."
+  },
+  {
+    "idiom": "Play Ball",
+    "meaning": "To cooperate; to start something."
+  },
+  {
+    "idiom": "Play Cat And Mouse",
+    "meaning": "To engage in a chase or teasing game."
+  },
+  {
+    "idiom": "Play Hardball",
+    "meaning": "To act aggressively or ruthlessly."
+  },
+  {
+    "idiom": "Play It by Ear",
+    "meaning": "To improvise; to decide as you go."
+  },
+  {
+    "idiom": "Play the Percentages",
+    "meaning": "To choose the most likely winning option."
+  },
+  {
+    "idiom": "Play the Ponies",
+    "meaning": "To bet on horse races."
+  },
+  {
+    "idiom": "Play With Fire",
+    "meaning": "To take foolish risks."
+  },
+  {
+    "idiom": "Play Your Cards Right",
+    "meaning": "To act skillfully to achieve a goal."
+  },
+  {
+    "idiom": "Point of No Return",
+    "meaning": "The point after which you cannot go back."
+  },
+  {
+    "idiom": "Point the Finger At",
+    "meaning": "To accuse or blame."
+  },
+  {
+    "idiom": "Poison Pill (n)",
+    "meaning": "A strategy to prevent a takeover (business)."
+  },
+  {
+    "idiom": "Poke the Bear",
+    "meaning": "To provoke someone or something dangerous."
+  },
+  {
+    "idiom": "Pop One’s Clogs",
+    "meaning": "To die (British slang)."
+  },
+  {
+    "idiom": "Pop One’s Cork",
+    "meaning": "To lose one's temper."
+  },
+  {
+    "idiom": "Pop the Question",
+    "meaning": "To propose marriage."
+  },
+  {
+    "idiom": "Pot Calling the Kettle Black",
+    "meaning": "Hypocritical criticism."
+  },
+  {
+    "idiom": "Pour (Rub) Salt into (on) the Wound (an open wound)",
+    "meaning": "To make a bad situation worse."
+  },
+  {
+    "idiom": "Pour Out One's Heart",
+    "meaning": "To express deep emotions."
+  },
+  {
+    "idiom": "Powder Keg",
+    "meaning": "A volatile situation."
+  },
+  {
+    "idiom": "Powder One’s Nose",
+    "meaning": "Euphemism for going to the toilet (women)."
+  },
+  {
+    "idiom": "Preach to the Choir",
+    "meaning": "To try to convince people who already agree."
+  },
+  {
+    "idiom": "Pretty Penny",
+    "meaning": "A large sum of money."
+  },
+  {
+    "idiom": "Price Yourself Out of the Market",
+    "meaning": "To charge so much that nobody buys."
+  },
+  {
+    "idiom": "Pull a Rabbit Out of a Hat",
+    "meaning": "To do something surprising and ingenious."
+  },
+  {
+    "idiom": "Pull Out All the Stops",
+    "meaning": "To make every possible effort."
+  },
+  {
+    "idiom": "Pull Someone’s Leg",
+    "meaning": "To tease or joke with someone."
+  },
+  {
+    "idiom": "Pull Strings",
+    "meaning": "To use influence to get things done."
+  },
+  {
+    "idiom": "Pull the Plug On",
+    "meaning": "To stop something; to end support."
+  },
+  {
+    "idiom": "Pull Yourself Together",
+    "meaning": "To regain composure."
+  },
+  {
+    "idiom": "Pulling Your Leg",
+    "meaning": "Joking with you."
+  },
+  {
+    "idiom": "Puppies And Rainbows",
+    "meaning": "An idealized, happy situation."
+  },
+  {
+    "idiom": "Puppy Dog Eyes",
+    "meaning": "A pleading, innocent look."
+  },
+  {
+    "idiom": "Puppy Love",
+    "meaning": "Young, immature romantic feelings."
+  },
+  {
+    "idiom": "Pure as the Driven Snow",
+    "meaning": "Completely innocent; chaste."
+  },
+  {
+    "idiom": "Push the Envelope",
+    "meaning": "To go beyond normal limits; to innovate."
+  },
+  {
+    "idiom": "Pushing Up Daisies",
+    "meaning": "Dead and buried."
+  },
+  {
+    "idiom": "Put a Thumb on the Scale",
+    "meaning": "To unfairly influence something."
+  },
+  {
+    "idiom": "Put Down Roots",
+    "meaning": "To settle in a place."
+  },
+  {
+    "idiom": "Put in One’s Two Cents",
+    "meaning": "To give one's opinion."
+  },
+  {
+    "idiom": "Put Lipstick on a Pig",
+    "meaning": "To try to make something ugly look attractive."
+  },
+  {
+    "idiom": "Put One’s Face On",
+    "meaning": "To apply makeup."
+  },
+  {
+    "idiom": "Put on a Show",
+    "meaning": "To perform; to pretend."
+  },
+  {
+    "idiom": "Put on Your Thinking Cap",
+    "meaning": "To think hard."
+  },
+  {
+    "idiom": "Put Out Feelers",
+    "meaning": "To make tentative inquiries."
+  },
+  {
+    "idiom": "Put Pen to Paper",
+    "meaning": "To start writing."
+  },
+  {
+    "idiom": "Put Someone on the Spot",
+    "meaning": "To force someone to answer or act immediately."
+  },
+  {
+    "idiom": "Put That in Your Pipe and Smoke It",
+    "meaning": "Accept what you've been told, even if you don't like it."
+  },
+  {
+    "idiom": "Put the Best Face On (Something)",
+    "meaning": "To present something in the most positive way."
+  },
+  {
+    "idiom": "Put the Brakes On",
+    "meaning": "To slow or stop something."
+  },
+  {
+    "idiom": "Put the Cart Before The Horse",
+    "meaning": "To do things in the wrong order."
+  },
+  {
+    "idiom": "Put the Cat Among The Pigeons",
+    "meaning": "To cause trouble or controversy."
+  },
+  {
+    "idiom": "Put the Genie Back in the Bottle",
+    "meaning": "To try to reverse something irreversible."
+  },
+  {
+    "idiom": "Put the Pedal to the Metal",
+    "meaning": "To go full speed; to make maximum effort."
+  },
+  {
+    "idiom": "Put Up with (Something)",
+    "meaning": "To tolerate."
+  },
+  {
+    "idiom": "Put Words Into Someone’s Mouth",
+    "meaning": "To claim someone said something they didn't."
+  },
+  {
+    "idiom": "Put Your Best Foot Forward",
+    "meaning": "To make a good first impression."
+  },
+  {
+    "idiom": "Put Your Foot Down",
+    "meaning": "To be firm; to insist."
+  },
+  {
+    "idiom": "Put Your Foot In Your Mouth",
+    "meaning": "To say something embarrassing or inappropriate."
+  },
+  {
+    "idiom": "Put Your Money Where Your Mouth Is",
+    "meaning": "To back up your words with action or money."
+  },
+  {
+    "idiom": "Put Your Shoulder to the Wheel",
+    "meaning": "To work hard."
+  },
+  {
+    "idiom": "Quake In One’s Boots",
+    "meaning": "To be very afraid."
+  },
+  {
+    "idiom": "Quarter Past",
+    "meaning": "15 minutes past the hour."
+  },
+  {
+    "idiom": "Quarter To/Of",
+    "meaning": "15 minutes before the hour."
+  },
+  {
+    "idiom": "Queer the Pitch",
+    "meaning": "To spoil someone's chances (British)."
+  },
+  {
+    "idiom": "Quick as a Flash",
+    "meaning": "Very fast."
+  },
+  {
+    "idiom": "Quick-and-Dirty",
+    "meaning": "Done hastily and cheaply."
+  },
+  {
+    "idiom": "Quote Unquote",
+    "meaning": "Used to indicate a quoted word or phrase, often ironically."
+  },
+  {
+    "idiom": "Race Against Time",
+    "meaning": "A situation where you must hurry to meet a deadline."
+  },
+  {
+    "idiom": "Rain on Someone’s Parade",
+    "meaning": "To spoil someone's plans or fun."
+  },
+  {
+    "idiom": "Raindrops of Joy",
+    "meaning": "Small happy moments."
+  },
+  {
+    "idiom": "Raining Cats and Dogs",
+    "meaning": "Raining very heavily."
+  },
+  {
+    "idiom": "Raise a Glass",
+    "meaning": "To make a toast."
+  },
+  {
+    "idiom": "Raise a Red Flag",
+    "meaning": "To signal a problem or danger."
+  },
+  {
+    "idiom": "Raise One’s Voice",
+    "meaning": "To speak louder, often in anger."
+  },
+  {
+    "idiom": "Raise Red Flags",
+    "meaning": "To warn of potential problems."
+  },
+  {
+    "idiom": "Raise the Bar",
+    "meaning": "To set higher standards."
+  },
+  {
+    "idiom": "Raise the Roof",
+    "meaning": "To make a lot of noise (cheering, partying)."
+  },
+  {
+    "idiom": "Raise the White Flag",
+    "meaning": "To surrender."
+  },
+  {
+    "idiom": "Rake (Someone) Over the Coals",
+    "meaning": "To reprimand severely."
+  },
+  {
+    "idiom": "Rake Over the Ashes",
+    "meaning": "To revive an old argument or grievance."
+  },
+  {
+    "idiom": "Rake Someone Over the Coals",
+    "meaning": "Same as rake over the coals."
+  },
+  {
+    "idiom": "Rake in the Money",
+    "meaning": "To earn a lot of money."
+  },
+  {
+    "idiom": "Rank and File",
+    "meaning": "Ordinary members of an organization."
+  },
+  {
+    "idiom": "Read Between the Lines",
+    "meaning": "To understand the hidden meaning."
+  },
+  {
+    "idiom": "Read the Fine Print",
+    "meaning": "To examine the details carefully."
+  },
+  {
+    "idiom": "Read the Tea Leaves",
+    "meaning": "To predict the future by interpreting signs."
+  },
+  {
+    "idiom": "Read the Writing on the Wall",
+    "meaning": "To recognize an impending problem."
+  },
+  {
+    "idiom": "Rear Its Ugly Head",
+    "meaning": "To appear (said of a problem)."
+  },
+  {
+    "idiom": "Rearrange the Deck Chairs on the Titanic",
+    "meaning": "To make minor changes while ignoring a major disaster."
+  },
+  {
+    "idiom": "Red Flag",
+    "meaning": "A warning sign."
+  },
+  {
+    "idiom": "Red Herring",
+    "meaning": "A misleading clue."
+  },
+  {
+    "idiom": "Red Meat",
+    "meaning": "Something that excites a particular audience (e.g., political rhetoric)."
+  },
+  {
+    "idiom": "Red Tape",
+    "meaning": "Excessive bureaucracy."
+  },
+  {
+    "idiom": "Red-Light District",
+    "meaning": "An area with many brothels."
+  },
+  {
+    "idiom": "Reinvent the Wheel",
+    "meaning": "To waste time on something already done."
+  },
+  {
+    "idiom": "Restful Slumber",
+    "meaning": "Peaceful sleep."
+  },
+  {
+    "idiom": "Ride Off into the Sunset",
+    "meaning": "To depart happily or contentedly."
+  },
+  {
+    "idiom": "Ride the Tide",
+    "meaning": "To go along with circumstances."
+  },
+  {
+    "idiom": "Ride the Wave",
+    "meaning": "To take advantage of an opportunity."
+  },
+  {
+    "idiom": "Riding High",
+    "meaning": "Being very successful."
+  },
+  {
+    "idiom": "Right as Rain",
+    "meaning": "Perfectly fine."
+  },
+  {
+    "idiom": "Right on Target",
+    "meaning": "Accurate."
+  },
+  {
+    "idiom": "Right Under (One’s) Nose",
+    "meaning": "In plain sight but unnoticed."
+  },
+  {
+    "idiom": "Right-Hand Man",
+    "meaning": "A trusted assistant."
+  },
+  {
+    "idiom": "Ring a Bell",
+    "meaning": "To sound familiar."
+  },
+  {
+    "idiom": "Ring in the New Year",
+    "meaning": "To celebrate the start of a new year."
+  },
+  {
+    "idiom": "Ring the Alarm",
+    "meaning": "To sound the warning."
+  },
+  {
+    "idiom": "Rise and Shine",
+    "meaning": "Wake up and get ready."
+  },
+  {
+    "idiom": "Rise with the Sun",
+    "meaning": "To wake up early."
+  },
+  {
+    "idiom": "Rob Peter to Pay Paul",
+    "meaning": "To take from one to give to another."
+  },
+  {
+    "idiom": "Rob the Cradle",
+    "meaning": "To have a relationship with a much younger person."
+  },
+  {
+    "idiom": "Rock and Roll",
+    "meaning": "Live life with excitement."
+  },
+  {
+    "idiom": "Rock Bottom",
+    "meaning": "The lowest possible point."
+  },
+  {
+    "idiom": "Rock the Boat",
+    "meaning": "To cause disruption."
+  },
+  {
+    "idiom": "Roll the Dice",
+    "meaning": "To take a chance."
+  },
+  {
+    "idiom": "Roll With the Punches",
+    "meaning": "To adapt to difficulties."
+  },
+  {
+    "idiom": "Rome Wasn’t Built in a Day",
+    "meaning": "Great things take time."
+  },
+  {
+    "idiom": "Rookie Mistake",
+    "meaning": "A beginner's error."
+  },
+  {
+    "idiom": "Rotten to the Core",
+    "meaning": "Completely corrupt or evil."
+  },
+  {
+    "idiom": "Rub (Something) in Someone’s Face",
+    "meaning": "To emphasize something humiliating."
+  },
+  {
+    "idiom": "Rub It In",
+    "meaning": "To emphasize an embarrassing fact."
+  },
+  {
+    "idiom": "Rub Off",
+    "meaning": "To be transferred by contact; to influence."
+  },
+  {
+    "idiom": "Rub Someone’s Nose in (Something)",
+    "meaning": "To force someone to acknowledge something unpleasant."
+  },
+  {
+    "idiom": "Rub Shoulders With",
+    "meaning": "To socialize with."
+  },
+  {
+    "idiom": "Rubber-Stamp (v.)",
+    "meaning": "To approve automatically without thought."
+  },
+  {
+    "idiom": "Rule of Thumb",
+    "meaning": "A general principle."
+  },
+  {
+    "idiom": "Run a Tight Ship",
+    "meaning": "To manage strictly and efficiently."
+  },
+  {
+    "idiom": "Run in the Family",
+    "meaning": "To be a common family trait."
+  },
+  {
+    "idiom": "Run into a Buzz",
+    "meaning": "(Unclear, possibly 'run into a buzzsaw' – to encounter trouble.)"
+  },
+  {
+    "idiom": "Run like the Wind",
+    "meaning": "To run fast."
+  },
+  {
+    "idiom": "Run off at the Mouth",
+    "meaning": "To talk excessively."
+  },
+  {
+    "idiom": "Run on Fumes",
+    "meaning": "To continue with little energy or resources."
+  },
+  {
+    "idiom": "Run Out of Steam",
+    "meaning": "To lose energy or momentum."
+  },
+  {
+    "idiom": "Run the Table",
+    "meaning": "To win everything in a competition."
+  },
+  {
+    "idiom": "Sacred Cow",
+    "meaning": "Something immune from criticism."
+  },
+  {
+    "idiom": "Sail Through",
+    "meaning": "To complete something easily."
+  },
+  {
+    "idiom": "Save for a Rainy Day",
+    "meaning": "To save money for future emergencies."
+  },
+  {
+    "idiom": "Save Your Bacon",
+    "meaning": "To rescue someone from trouble."
+  },
+  {
+    "idiom": "Saved by the Bell",
+    "meaning": "Rescued at the last moment."
+  },
+  {
+    "idiom": "Saving Grace",
+    "meaning": "A redeeming quality."
+  },
+  {
+    "idiom": "Scare the Living Daylights Out of Someone",
+    "meaning": "To frighten severely."
+  },
+  {
+    "idiom": "School Of Hard Knocks",
+    "meaning": "Learning through difficult experiences."
+  },
+  {
+    "idiom": "Scorched Earth (Tactics, Policy, etc.)",
+    "meaning": "A strategy of total destruction."
+  },
+  {
+    "idiom": "Screw The Pooch",
+    "meaning": "To make a serious mistake (vulgar)."
+  },
+  {
+    "idiom": "Seal the Deal",
+    "meaning": "To finalize an agreement."
+  },
+  {
+    "idiom": "Second Banana",
+    "meaning": "A subordinate; a supporting role."
+  },
+  {
+    "idiom": "Second Stringer",
+    "meaning": "A substitute or backup player."
+  },
+  {
+    "idiom": "Second Wind",
+    "meaning": "New energy after being tired."
+  },
+  {
+    "idiom": "See Eye to Eye",
+    "meaning": "To agree."
+  },
+  {
+    "idiom": "See Something Out of the Corner of Your Eye",
+    "meaning": "To see something peripherally."
+  },
+  {
+    "idiom": "Seeing the Sunrise",
+    "meaning": "Witnessing a new beginning."
+  },
+  {
+    "idiom": "Seize the Day",
+    "meaning": "Make the most of the present moment."
+  },
+  {
+    "idiom": "Seize (Take) the Bull By the Horns",
+    "meaning": "To confront a problem directly."
+  },
+  {
+    "idiom": "Sell (Someone) a Bill of Goods",
+    "meaning": "To deceive someone."
+  },
+  {
+    "idiom": "Sell Like Hotcakes",
+    "meaning": "To sell very quickly."
+  },
+  {
+    "idiom": "Selling Point",
+    "meaning": "An attractive feature of a product."
+  },
+  {
+    "idiom": "Set in Stone",
+    "meaning": "Fixed and unchangeable."
+  },
+  {
+    "idiom": "Set something to Music",
+    "meaning": "To compose music for words."
+  },
+  {
+    "idiom": "Set the Bar (Too) High",
+    "meaning": "To set high standards."
+  },
+  {
+    "idiom": "Set the Thames on Fire",
+    "meaning": "To do something remarkable (usually in negative)."
+  },
+  {
+    "idiom": "Set the World on Fire",
+    "meaning": "To achieve great success."
+  },
+  {
+    "idiom": "Shake the Dust off Your Shoes (Feet)",
+    "meaning": "To leave a place and forget it."
+  },
+  {
+    "idiom": "Shape Up or Ship Out",
+    "meaning": "Improve or leave."
+  },
+  {
+    "idiom": "Sharp as A Tack",
+    "meaning": "Very intelligent."
+  },
+  {
+    "idiom": "Shedding Light On",
+    "meaning": "Providing clarity."
+  },
+  {
+    "idiom": "Shell Game",
+    "meaning": "A swindling trick; deception."
+  },
+  {
+    "idiom": "Shift Gears",
+    "meaning": "To change approach or speed."
+  },
+  {
+    "idiom": "Shine Like a Star",
+    "meaning": "To excel; to stand out."
+  },
+  {
+    "idiom": "Ship Has Sailed",
+    "meaning": "The opportunity has passed."
+  },
+  {
+    "idiom": "Shipshape And Bristol Fashion",
+    "meaning": "Neat and tidy (nautical)."
+  },
+  {
+    "idiom": "Shit a Brick",
+    "meaning": "To be very scared or surprised (vulgar)."
+  },
+  {
+    "idiom": "Shoot for the Moon",
+    "meaning": "To aim high."
+  },
+  {
+    "idiom": "Shoot for the Stars",
+    "meaning": "To set ambitious goals."
+  },
+  {
+    "idiom": "Shoot from the Hip",
+    "meaning": "To speak or act impulsively."
+  },
+  {
+    "idiom": "Shoot Off One’s Mouth",
+    "meaning": "To talk carelessly."
+  },
+  {
+    "idiom": "Shoot Oneself In The Foot",
+    "meaning": "To harm one's own cause."
+  },
+  {
+    "idiom": "Shoot Yourself in the Foot",
+    "meaning": "To harm oneself unintentionally."
+  },
+  {
+    "idiom": "Shopping Spree",
+    "meaning": "A period of extravagant shopping."
+  },
+  {
+    "idiom": "Short Fuse",
+    "meaning": "A quick temper."
+  },
+  {
+    "idiom": "Shot Across the Bow",
+    "meaning": "A warning."
+  },
+  {
+    "idiom": "Shoulder A Weight Off Your Shoulders",
+    "meaning": "To relieve a burden."
+  },
+  {
+    "idiom": "Shout from the Mountaintops",
+    "meaning": "To announce publicly."
+  },
+  {
+    "idiom": "Shout It from the Rooftops",
+    "meaning": "To tell everyone."
+  },
+  {
+    "idiom": "Show Me an X And I’ll Show You a Y",
+    "meaning": "A formula for making a point."
+  },
+  {
+    "idiom": "Show One’s True Colors",
+    "meaning": "To reveal one's real character."
+  },
+  {
+    "idiom": "Show Your Cards",
+    "meaning": "To reveal one's intentions."
+  },
+  {
+    "idiom": "Sick and Tired of",
+    "meaning": "Annoyed and bored by something."
+  },
+  {
+    "idiom": "Sick as a Dog",
+    "meaning": "Very ill."
+  },
+  {
+    "idiom": "Sick as a Parrot",
+    "meaning": "Very disappointed (British)."
+  },
+  {
+    "idiom": "Sight for Sore Eyes",
+    "meaning": "A welcome sight."
+  },
+  {
+    "idiom": "Silver Bullet",
+    "meaning": "A simple, magical solution."
+  },
+  {
+    "idiom": "Simmer Down",
+    "meaning": "To calm down."
+  },
+  {
+    "idiom": "Sing a Different Tune",
+    "meaning": "To change one's opinion or attitude."
+  },
+  {
+    "idiom": "Sing Your Heart Out",
+    "meaning": "To sing with great emotion."
+  },
+  {
+    "idiom": "Sink or Swim",
+    "meaning": "To succeed or fail on your own."
+  },
+  {
+    "idiom": "Sit On (Something)",
+    "meaning": "To delay dealing with something."
+  },
+  {
+    "idiom": "Sit Tight",
+    "meaning": "To wait patiently."
+  },
+  {
+    "idiom": "Sitting Duck",
+    "meaning": "An easy target."
+  },
+  {
+    "idiom": "Sitting Pretty",
+    "meaning": "In a very good position."
+  },
+  {
+    "idiom": "Six Feet Under",
+    "meaning": "Dead and buried."
+  },
+  {
+    "idiom": "Six of One, a Half Dozen of the Other",
+    "meaning": "Two options are essentially the same."
+  },
+  {
+    "idiom": "Six Ways to (from) Sunday",
+    "meaning": "In every possible way."
+  },
+  {
+    "idiom": "Skeletons in the Closet",
+    "meaning": "Hidden secrets."
+  },
+  {
+    "idiom": "Sky's the Limit",
+    "meaning": "Unlimited possibilities."
+  },
+  {
+    "idiom": "Slam Dunk",
+    "meaning": "A sure thing; an easy success."
+  },
+  {
+    "idiom": "Sleep Like a Baby",
+    "meaning": "To sleep soundly."
+  },
+  {
+    "idiom": "Sleep Like a Log",
+    "meaning": "To sleep very soundly."
+  },
+  {
+    "idiom": "Sleep on It",
+    "meaning": "To delay a decision until the next day."
+  },
+  {
+    "idiom": "Sleep with the Fishes",
+    "meaning": "To be dead (especially by murder)."
+  },
+  {
+    "idiom": "Slice of the Pie",
+    "meaning": "A share of something."
+  },
+  {
+    "idiom": "Slip Someone a Mickey",
+    "meaning": "To secretly drug someone."
+  },
+  {
+    "idiom": "Slippery Slope",
+    "meaning": "A course that leads to disaster."
+  },
+  {
+    "idiom": "Slow and Steady Wins the Race",
+    "meaning": "Consistency beats speed."
+  },
+  {
+    "idiom": "Slow as a Turtle",
+    "meaning": "Very slow."
+  },
+  {
+    "idiom": "Slower than Molasses",
+    "meaning": "Very slow."
+  },
+  {
+    "idiom": "Small Beer",
+    "meaning": "Something unimportant."
+  },
+  {
+    "idiom": "Small Fry",
+    "meaning": "Unimportant people or things."
+  },
+  {
+    "idiom": "Small Potatoes",
+    "meaning": "Something insignificant."
+  },
+  {
+    "idiom": "Smell a Rat",
+    "meaning": "To suspect something is wrong."
+  },
+  {
+    "idiom": "Smoking Gun",
+    "meaning": "Conclusive evidence of wrongdoing."
+  },
+  {
+    "idiom": "Smooth Sailing",
+    "meaning": "Easy progress."
+  },
+  {
+    "idiom": "Snafu",
+    "meaning": "A chaotic situation (military slang)."
+  },
+  {
+    "idiom": "Snake in the Grass",
+    "meaning": "A deceitful person."
+  },
+  {
+    "idiom": "Snake Oil",
+    "meaning": "A fake remedy; fraud."
+  },
+  {
+    "idiom": "Sneak Peek",
+    "meaning": "A preview."
+  },
+  {
+    "idiom": "Soak Up the Sun",
+    "meaning": "To enjoy the sunshine."
+  },
+  {
+    "idiom": "Sold On (Something)",
+    "meaning": "Convinced of something's value."
+  },
+  {
+    "idiom": "Some Eggs",
+    "meaning": "Probably incomplete; possibly 'have some eggs in the basket'? Not standard."
+  },
+  {
+    "idiom": "Someone’s Fingerprints Are All Over (Something)",
+    "meaning": "Clear evidence of involvement."
+  },
+  {
+    "idiom": "Something to Crow About",
+    "meaning": "Something to boast about."
+  },
+  {
+    "idiom": "Son of a Gun",
+    "meaning": "A mild exclamation; a rogue."
+  },
+  {
+    "idiom": "Sore Point",
+    "meaning": "A sensitive topic."
+  },
+  {
+    "idiom": "Sour Grapes",
+    "meaning": "Pretending to despise something you can't have."
+  },
+  {
+    "idiom": "Spare The Rod And Spoil The Child",
+    "meaning": "Without discipline, children become unruly."
+  },
+  {
+    "idiom": "Speak of the Devil (and He Shall Appear)",
+    "meaning": "The person we were just talking about appears."
+  },
+  {
+    "idiom": "Speak with A Plum in (one’s) Mouth",
+    "meaning": "To speak in an upper-class accent."
+  },
+  {
+    "idiom": "Speak Your Mind",
+    "meaning": "To express your thoughts openly."
+  },
+  {
+    "idiom": "Spick and Span",
+    "meaning": "Neat and clean."
+  },
+  {
+    "idiom": "Spill the Beans",
+    "meaning": "To reveal a secret."
+  },
+  {
+    "idiom": "Spin A Yarn",
+    "meaning": "To tell a long, exaggerated story."
+  },
+  {
+    "idiom": "Spin One’s Wheels",
+    "meaning": "To waste effort without progress."
+  },
+  {
+    "idiom": "Spit into The Wind",
+    "meaning": "To waste effort."
+  },
+  {
+    "idiom": "Spoiling for a Fight",
+    "meaning": "Eager to fight."
+  },
+  {
+    "idiom": "Square the Circle",
+    "meaning": "To attempt something impossible."
+  },
+  {
+    "idiom": "Stab Someone in the Back",
+    "meaning": "To betray someone."
+  },
+  {
+    "idiom": "Stalking Horse",
+    "meaning": "A person used to conceal someone's intentions."
+  },
+  {
+    "idiom": "Stand (Someone) In Good Stead",
+    "meaning": "To be useful."
+  },
+  {
+    "idiom": "Stand On One’s Own Two Feet",
+    "meaning": "To be independent."
+  },
+  {
+    "idiom": "Stand One’s Ground",
+    "meaning": "To maintain one's position."
+  },
+  {
+    "idiom": "Stand Your Ground",
+    "meaning": "To refuse to back down."
+  },
+  {
+    "idiom": "Star in the Making",
+    "meaning": "A future star."
+  },
+  {
+    "idiom": "Star-Studded",
+    "meaning": "Featuring many famous people."
+  },
+  {
+    "idiom": "Start with a Clean Slate",
+    "meaning": "To start fresh, forgetting the past."
+  },
+  {
+    "idiom": "Stay on Track",
+    "meaning": "To remain focused."
+  },
+  {
+    "idiom": "Steal Someone’s Thunder",
+    "meaning": "To take credit for someone else's idea."
+  },
+  {
+    "idiom": "Steal the Show",
+    "meaning": "To be the most popular performer."
+  },
+  {
+    "idiom": "Steer Clear",
+    "meaning": "To avoid."
+  },
+  {
+    "idiom": "Stem the Tide",
+    "meaning": "To stop something from increasing."
+  },
+  {
+    "idiom": "Step Up One’s Game",
+    "meaning": "To improve performance."
+  },
+  {
+    "idiom": "Step Up to the Plate",
+    "meaning": "To take responsibility."
+  },
+  {
+    "idiom": "Stick It to the Man",
+    "meaning": "To rebel against authority."
+  },
+  {
+    "idiom": "Stick Your Nose into Something",
+    "meaning": "To interfere in someone else's business."
+  },
+  {
+    "idiom": "Sticker Shock",
+    "meaning": "Surprise at a high price."
+  },
+  {
+    "idiom": "Stick-in-the-Mud",
+    "meaning": "A person who resists change."
+  },
+  {
+    "idiom": "Sticky Wicket",
+    "meaning": "A difficult situation (cricket)."
+  },
+  {
+    "idiom": "Stiff-Necked",
+    "meaning": "Stubborn."
+  },
+  {
+    "idiom": "Stir the Pot",
+    "meaning": "To cause trouble."
+  },
+  {
+    "idiom": "Storm in a Teacup",
+    "meaning": "A lot of fuss over something small."
+  },
+  {
+    "idiom": "Stormy Relationship",
+    "meaning": "A turbulent relationship."
+  },
+  {
+    "idiom": "Straight Arrow",
+    "meaning": "An honest, morally upright person."
+  },
+  {
+    "idiom": "Straight as an Arrow",
+    "meaning": "Very honest and direct."
+  },
+  {
+    "idiom": "Straight from the Horse’s Mouth",
+    "meaning": "From the original source."
+  },
+  {
+    "idiom": "Strain at a Gnat and Swallow a Camel",
+    "meaning": "To focus on small issues while ignoring big ones."
+  },
+  {
+    "idiom": "Strike a Chord",
+    "meaning": "To resonate emotionally."
+  },
+  {
+    "idiom": "Stumbling Block",
+    "meaning": "An obstacle."
+  },
+  {
+    "idiom": "Sugar Daddy",
+    "meaning": "An older man who gives money to a younger partner."
+  },
+  {
+    "idiom": "Sunny Disposition",
+    "meaning": "A cheerful personality."
+  },
+  {
+    "idiom": "Sure-Fire",
+    "meaning": "Certain to succeed."
+  },
+  {
+    "idiom": "Swan Song",
+    "meaning": "A final performance or work."
+  },
+  {
+    "idiom": "Sweep Under the Carpet",
+    "meaning": "To hide a problem."
+  },
+  {
+    "idiom": "Sweep Under the Rug",
+    "meaning": "To conceal a problem."
+  },
+  {
+    "idiom": "Sweet Dreams!",
+    "meaning": "A bedtime wish."
+  },
+  {
+    "idiom": "Sweeten the Deal",
+    "meaning": "To make an offer more attractive."
+  },
+  {
+    "idiom": "Sweeten the Pot",
+    "meaning": "To add incentive."
+  },
+  {
+    "idiom": "Swim Against the Tide",
+    "meaning": "To go against the majority."
+  },
+  {
+    "idiom": "Swim with Sharks",
+    "meaning": "To operate in a dangerous environment."
+  },
+  {
+    "idiom": "Swim with the Fishes",
+    "meaning": "To be dead (gangster slang)."
+  },
+  {
+    "idiom": "Swing for the Fences",
+    "meaning": "To try to achieve something big."
+  },
+  {
+    "idiom": "Sword of Damocles",
+    "meaning": "An impending danger."
+  },
+  {
+    "idiom": "Take (Someone) to the Cleaners",
+    "meaning": "To cheat or rob someone."
+  },
+  {
+    "idiom": "Take a Deep Dive (Into)",
+    "meaning": "To investigate thoroughly."
+  },
+  {
+    "idiom": "Take a Flyer",
+    "meaning": "To take a risk."
+  },
+  {
+    "idiom": "Take a Gander",
+    "meaning": "To take a look."
+  },
+  {
+    "idiom": "Take a Hike",
+    "meaning": "Go away (angry dismissal)."
+  },
+  {
+    "idiom": "Take A Powder",
+    "meaning": "To leave quickly."
+  },
+  {
+    "idiom": "Take a Rain Check",
+    "meaning": "To postpone an invitation."
+  },
+  {
+    "idiom": "Take a Step Back",
+    "meaning": "To re-evaluate."
+  },
+  {
+    "idiom": "Take Five (Ten)",
+    "meaning": "To take a short break."
+  },
+  {
+    "idiom": "Take Flight",
+    "meaning": "To begin a journey or escape."
+  },
+  {
+    "idiom": "Take It Easy",
+    "meaning": "Relax; don't worry."
+  },
+  {
+    "idiom": "Take It on The Chin",
+    "meaning": "To endure hardship."
+  },
+  {
+    "idiom": "Take It or Leave It (command)",
+    "meaning": "Accept the offer or refuse it (no negotiation)."
+  },
+  {
+    "idiom": "Take Someone to Task",
+    "meaning": "To reprimand someone."
+  },
+  {
+    "idiom": "Take Something with a Pinch (grain) of Salt",
+    "meaning": "To be skeptical."
+  },
+  {
+    "idiom": "Take the Cake",
+    "meaning": "To be the most extreme example."
+  },
+  {
+    "idiom": "Take the Edge Off (of Something)",
+    "meaning": "To lessen the intensity."
+  },
+  {
+    "idiom": "Take the Fifth",
+    "meaning": "To refuse to answer (from the Fifth Amendment)."
+  },
+  {
+    "idiom": "Take the Gloves Off",
+    "meaning": "To start fighting seriously."
+  },
+  {
+    "idiom": "Take the High Road",
+    "meaning": "To act in a morally superior way."
+  },
+  {
+    "idiom": "Take The Mickey (Piss) (Out Of Someone)",
+    "meaning": "To mock or tease (British)."
+  },
+  {
+    "idiom": "Take the Shine Off (Something)",
+    "meaning": "To spoil something."
+  },
+  {
+    "idiom": "Take the Starch out of (Someone)",
+    "meaning": "To deflate someone's ego."
+  },
+  {
+    "idiom": "Take The Wind Out of Someone’s Sails",
+    "meaning": "To deflate someone's enthusiasm."
+  },
+  {
+    "idiom": "Take Your Life in Your Hands",
+    "meaning": "To take a great risk."
+  },
+  {
+    "idiom": "Take Your Medicine",
+    "meaning": "To accept something unpleasant."
+  },
+  {
+    "idiom": "Take Your Time",
+    "meaning": "Don't hurry."
+  },
+  {
+    "idiom": "Taste of Your Own Medicine",
+    "meaning": "The same bad treatment you've given others."
+  },
+  {
+    "idiom": "Teach an Old Dog New Tricks",
+    "meaning": "To change someone's long-established habits."
+  },
+  {
+    "idiom": "Tear One’s Hair out",
+    "meaning": "To be very frustrated."
+  },
+  {
+    "idiom": "Tear-Jerker",
+    "meaning": "A very sad story."
+  },
+  {
+    "idiom": "Tee Many Martoonies",
+    "meaning": "Jocular misspelling of 'too many martinis' (drunk)."
+  },
+  {
+    "idiom": "Tell It to the Marines",
+    "meaning": "I don't believe you."
+  },
+  {
+    "idiom": "Tempest in a Teapot",
+    "meaning": "A lot of fuss over a small matter."
+  },
+  {
+    "idiom": "Ten a Penny",
+    "meaning": "Very common."
+  },
+  {
+    "idiom": "Ten to One",
+    "meaning": "Very likely."
+  },
+  {
+    "idiom": "Test the Waters",
+    "meaning": "To try something out cautiously."
+  },
+  {
+    "idiom": "Thank God It’s Friday (TGIF)",
+    "meaning": "Expression of relief at the end of the work week."
+  },
+  {
+    "idiom": "That Ship Has Sailed",
+    "meaning": "That opportunity is gone."
+  },
+  {
+    "idiom": "That’s a Stretch",
+    "meaning": "That's an exaggeration or unlikely."
+  },
+  {
+    "idiom": "That’s All She Wrote",
+    "meaning": "That's the end; there's nothing more."
+  },
+  {
+    "idiom": "That’s Music to My Ears",
+    "meaning": "That's great news."
+  },
+  {
+    "idiom": "The Apple Never Falls Far From the Tree",
+    "meaning": "Children resemble their parents."
+  },
+  {
+    "idiom": "The Ball is in Your Court",
+    "meaning": "It's your decision or turn to act."
+  },
+  {
+    "idiom": "The Bee's Knees",
+    "meaning": "Something excellent."
+  },
+  {
+    "idiom": "The Best of Both Worlds",
+    "meaning": "An ideal situation combining two good things."
+  },
+  {
+    "idiom": "The Bigger Picture",
+    "meaning": "The overall perspective."
+  },
+  {
+    "idiom": "The Birds and the Bees",
+    "meaning": "Sex education (often for children)."
+  },
+  {
+    "idiom": "The Bottom Line",
+    "meaning": "The most important point."
+  },
+  {
+    "idiom": "The Calm Before the Storm",
+    "meaning": "A peaceful period before trouble."
+  },
+  {
+    "idiom": "The Cat Is Out of the Bag",
+    "meaning": "The secret has been revealed."
+  },
+  {
+    "idiom": "The Coast Is Clear",
+    "meaning": "No danger is in sight."
+  },
+  {
+    "idiom": "The Cherry On the Cake",
+    "meaning": "An extra good thing on top of something good."
+  },
+  {
+    "idiom": "The Devil is in the Details",
+    "meaning": "Small things matter."
+  },
+  {
+    "idiom": "The Early Bird Catches the Worm",
+    "meaning": "Success comes to those who act early."
+  },
+  {
+    "idiom": "The Elephant in the Room",
+    "meaning": "An obvious problem everyone ignores."
+  },
+  {
+    "idiom": "The Icing on the Cake",
+    "meaning": "An extra bonus."
+  },
+  {
+    "idiom": "The Jig Is Up",
+    "meaning": "The scheme is discovered."
+  },
+  {
+    "idiom": "The Last Straw",
+    "meaning": "The final problem in a series."
+  },
+  {
+    "idiom": "The Light at the End of the Tunnel",
+    "meaning": "Hope after difficulty."
+  },
+  {
+    "idiom": "The More Things Change, The More They Stay The Same",
+    "meaning": "Apparent change conceals continuity."
+  },
+  {
+    "idiom": "The Only Game in Town",
+    "meaning": "The only available option."
+  },
+  {
+    "idiom": "The Pen is Mightier than the Sword",
+    "meaning": "Writing has more influence than violence."
+  },
+  {
+    "idiom": "The Plot Thickens",
+    "meaning": "The situation becomes more complex."
+  },
+  {
+    "idiom": "The Powers That Be",
+    "meaning": "The authorities."
+  },
+  {
+    "idiom": "The Real McCoy",
+    "meaning": "The genuine thing."
+  },
+  {
+    "idiom": "The Sky's the Limit",
+    "meaning": "No limit to potential."
+  },
+  {
+    "idiom": "The Story Has Legs",
+    "meaning": "A story continues to attract interest."
+  },
+  {
+    "idiom": "The Time is Ripe",
+    "meaning": "The right moment has come."
+  },
+  {
+    "idiom": "The Walls Have Ears",
+    "meaning": "Someone may be listening."
+  },
+  {
+    "idiom": "The Whole Enchilada",
+    "meaning": "The whole thing; everything."
+  },
+  {
+    "idiom": "The Whole Shebang",
+    "meaning": "The whole thing; everything."
+  },
+  {
+    "idiom": "The World Is Your Oyster",
+    "meaning": "You have many opportunities."
+  },
+  {
+    "idiom": "There But For The Grace Of God Go I",
+    "meaning": "I could have suffered the same fate."
+  },
+  {
+    "idiom": "There’s More Than One Way to Skin a Cat",
+    "meaning": "There are many ways to achieve a goal."
+  },
+  {
+    "idiom": "There’s No Such Thing as a Free Lunch",
+    "meaning": "Nothing is truly free."
+  },
+  {
+    "idiom": "Thin On The Ground",
+    "meaning": "Scarce."
+  },
+  {
+    "idiom": "Think Big",
+    "meaning": "Be ambitious."
+  },
+  {
+    "idiom": "Think Outside the Box",
+    "meaning": "To think creatively."
+  },
+  {
+    "idiom": "Think Tank",
+    "meaning": "A group of experts giving advice."
+  },
+  {
+    "idiom": "Third Rail",
+    "meaning": "A dangerous or taboo topic."
+  },
+  {
+    "idiom": "Third Time’s a Charm",
+    "meaning": "The third try will be lucky."
+  },
+  {
+    "idiom": "Thirty-Thousand-Foot View",
+    "meaning": "A broad overview."
+  },
+  {
+    "idiom": "This Has (Person X) Written All Over It",
+    "meaning": "Clearly shows someone's influence."
+  },
+  {
+    "idiom": "This Is Not Your Father’s ____",
+    "meaning": "It's different from the old version."
+  },
+  {
+    "idiom": "Three Sheets to the Wind",
+    "meaning": "Very drunk (nautical)."
+  },
+  {
+    "idiom": "Through the Grapevine",
+    "meaning": "Via rumors."
+  },
+  {
+    "idiom": "Through Thick and Thin",
+    "meaning": "Through all difficulties."
+  },
+  {
+    "idiom": "Throw a Wet Blanket on (Something)",
+    "meaning": "To spoil enthusiasm."
+  },
+  {
+    "idiom": "Throw a Wrench Into",
+    "meaning": "To disrupt or cause a problem."
+  },
+  {
+    "idiom": "Throw Caution to the Wind",
+    "meaning": "To act recklessly."
+  },
+  {
+    "idiom": "Throw Down the Gauntlet",
+    "meaning": "To issue a challenge."
+  },
+  {
+    "idiom": "Throw Elbows",
+    "meaning": "To fight aggressively."
+  },
+  {
+    "idiom": "Throw in the Towel",
+    "meaning": "To give up."
+  },
+  {
+    "idiom": "Throw Someone for a Loop",
+    "meaning": "To surprise or confuse someone."
+  },
+  {
+    "idiom": "Throw Someone Under the Bus",
+    "meaning": "To betray someone for personal gain."
+  },
+  {
+    "idiom": "Throw the Baby Out with the Bath Water",
+    "meaning": "To discard something valuable while getting rid of waste."
+  },
+  {
+    "idiom": "Throw The Book At",
+    "meaning": "To charge someone with all possible crimes."
+  },
+  {
+    "idiom": "Throw the Fight",
+    "meaning": "To deliberately lose a match."
+  },
+  {
+    "idiom": "Thumbs-Up",
+    "meaning": "Approval."
+  },
+  {
+    "idiom": "Tie the Knot",
+    "meaning": "To get married."
+  },
+  {
+    "idiom": "Tighten the Screws",
+    "meaning": "To apply pressure."
+  },
+  {
+    "idiom": "Tight-Lipped",
+    "meaning": "Refusing to speak."
+  },
+  {
+    "idiom": "Til the Cows Come Home",
+    "meaning": "For a very long time."
+  },
+  {
+    "idiom": "Time Flies",
+    "meaning": "Time passes quickly."
+  },
+  {
+    "idiom": "Time is Money",
+    "meaning": "Time is valuable."
+  },
+  {
+    "idiom": "Time is of the Essence",
+    "meaning": "Hurry is necessary."
+  },
+  {
+    "idiom": "Tip of the Iceberg",
+    "meaning": "A small visible part of a much larger problem."
+  },
+  {
+    "idiom": "Tip One’s Hand",
+    "meaning": "To reveal one's intentions."
+  },
+  {
+    "idiom": "TLC",
+    "meaning": "Tender Loving Care."
+  },
+  {
+    "idiom": "To be A Peach",
+    "meaning": "To be delightful."
+  },
+  {
+    "idiom": "To be Smitten With Someone",
+    "meaning": "To be in love."
+  },
+  {
+    "idiom": "To be someone’s One and Only",
+    "meaning": "To be someone's only love."
+  },
+  {
+    "idiom": "To be the Apple of Someone’s Eye",
+    "meaning": "To be cherished."
+  },
+  {
+    "idiom": "To Bear Fruit",
+    "meaning": "To yield positive results."
+  },
+  {
+    "idiom": "To Carpool",
+    "meaning": "To share a car journey."
+  },
+  {
+    "idiom": "To Each His Own",
+    "meaning": "Everyone has their own preferences."
+  },
+  {
+    "idiom": "To Get Cold Feet",
+    "meaning": "To become nervous before an event."
+  },
+  {
+    "idiom": "To Have a Chip on One’s Shoulder",
+    "meaning": "To hold a grudge."
+  },
+  {
+    "idiom": "To Have Butterflies In Your Stomach",
+    "meaning": "To be nervous."
+  },
+  {
+    "idiom": "To Have One For the Road",
+    "meaning": "To have a final drink before leaving."
+  },
+  {
+    "idiom": "To Pay an Arm and a Leg",
+    "meaning": "To pay a very high price."
+  },
+  {
+    "idiom": "To Pop (one’s) Cherry",
+    "meaning": "To lose one's virginity (vulgar)."
+  },
+  {
+    "idiom": "To Pull Someone’s Leg",
+    "meaning": "To tease."
+  },
+  {
+    "idiom": "To Run Hot and Cold",
+    "meaning": "To be inconsistent."
+  },
+  {
+    "idiom": "To the Letter",
+    "meaning": "Exactly as written."
+  },
+  {
+    "idiom": "Toe the Line",
+    "meaning": "To conform to rules."
+  },
+  {
+    "idiom": "Tone-Deaf",
+    "meaning": "Unable to perceive tone; insensitive."
+  },
+  {
+    "idiom": "Tongue-in-Cheek",
+    "meaning": "Not serious; ironic."
+  },
+  {
+    "idiom": "Too Busy Fighting Alligators to Drain the Swamp",
+    "meaning": "Too occupied with urgent problems to deal with the root cause."
+  },
+  {
+    "idiom": "Too Many Cooks Spoil the Broth",
+    "meaning": "Too many people spoil the result."
+  },
+  {
+    "idiom": "Too Many Chiefs and Not Enough Indians",
+    "meaning": "Too many leaders, not enough workers."
+  },
+  {
+    "idiom": "Too Many To Shake A Stick At",
+    "meaning": "Too many to count."
+  },
+  {
+    "idiom": "Toot Your Own Horn",
+    "meaning": "To brag."
+  },
+  {
+    "idiom": "Top Banana",
+    "meaning": "The leader; the top person."
+  },
+  {
+    "idiom": "Top of the Line",
+    "meaning": "The best quality."
+  },
+  {
+    "idiom": "Top of the Podium",
+    "meaning": "First place."
+  },
+  {
+    "idiom": "Toss a Wrench (Spanner) Into",
+    "meaning": "To disrupt."
+  },
+  {
+    "idiom": "Touch Base",
+    "meaning": "To make contact."
+  },
+  {
+    "idiom": "Touch One’s Heart",
+    "meaning": "To evoke emotion."
+  },
+  {
+    "idiom": "Touch Water",
+    "meaning": "(Unclear – might be incomplete idiom.)"
+  },
+  {
+    "idiom": "Tough Cookie",
+    "meaning": "A strong, resilient person."
+  },
+  {
+    "idiom": "Tough Sledding",
+    "meaning": "Difficult progress."
+  },
+  {
+    "idiom": "Train Wreck",
+    "meaning": "A complete disaster."
+  },
+  {
+    "idiom": "Trash Talk",
+    "meaning": "Insults or boasting, especially in sports."
+  },
+  {
+    "idiom": "Tread Water",
+    "meaning": "To stay in one place; to make no progress."
+  },
+  {
+    "idiom": "Trial Balloon",
+    "meaning": "A test of public opinion."
+  },
+  {
+    "idiom": "Trip the Light Fantastic",
+    "meaning": "To dance gracefully."
+  },
+  {
+    "idiom": "Turn a Blind Eye",
+    "meaning": "To ignore."
+  },
+  {
+    "idiom": "Turn on a Dime",
+    "meaning": "To change direction quickly."
+  },
+  {
+    "idiom": "Turn Over a New Leaf",
+    "meaning": "To start afresh."
+  },
+  {
+    "idiom": "Turn Someone Inside Out",
+    "meaning": "To upset or exhaust someone."
+  },
+  {
+    "idiom": "Turn Something on Its Head",
+    "meaning": "To completely change the way something is understood."
+  },
+  {
+    "idiom": "Turn the Corner",
+    "meaning": "To pass the worst point and begin to improve."
+  },
+  {
+    "idiom": "Turn the Page",
+    "meaning": "To move on to the next phase."
+  },
+  {
+    "idiom": "Turn the Tables",
+    "meaning": "To reverse the situation."
+  },
+  {
+    "idiom": "Turn Turtle",
+    "meaning": "To turn upside down."
+  },
+  {
+    "idiom": "Turnabout Is Fair Play",
+    "meaning": "It's fair to do to others what they did to you."
+  },
+  {
+    "idiom": "Twenty-Four Seven",
+    "meaning": "All the time."
+  },
+  {
+    "idiom": "Twist of Fate",
+    "meaning": "An unexpected change."
+  },
+  {
+    "idiom": "Twist the Knife (in Deeper)",
+    "meaning": "To make someone's suffering worse."
+  },
+  {
+    "idiom": "Twist Someone's Arm",
+    "meaning": "To persuade someone."
+  },
+  {
+    "idiom": "Two a Penny",
+    "meaning": "Very common."
+  },
+  {
+    "idiom": "Two Peas in A Pod",
+    "meaning": "Very similar."
+  },
+  {
+    "idiom": "U Turn",
+    "meaning": "A complete change of direction."
+  },
+  {
+    "idiom": "Ugly Duckling",
+    "meaning": "Someone who becomes attractive later in life."
+  },
+  {
+    "idiom": "Under (Below) the Radar",
+    "meaning": "Not attracting attention."
+  },
+  {
+    "idiom": "Under Someone’s Spell",
+    "meaning": "Completely captivated."
+  },
+  {
+    "idiom": "Under the Impression",
+    "meaning": "Believing something (often mistakenly)."
+  },
+  {
+    "idiom": "Under the Table",
+    "meaning": "Secretly; illegally."
+  },
+  {
+    "idiom": "Under the Weather",
+    "meaning": "Feeling ill."
+  },
+  {
+    "idiom": "Under Wraps",
+    "meaning": "Kept secret."
+  },
+  {
+    "idiom": "University of Life",
+    "meaning": "Learning from experience, not school."
+  },
+  {
+    "idiom": "Until the Cows Come Home",
+    "meaning": "For a very long time."
+  },
+  {
+    "idiom": "Until You’re Blue in the Face",
+    "meaning": "Trying for a very long time without success."
+  },
+  {
+    "idiom": "Up a Creek",
+    "meaning": "In trouble."
+  },
+  {
+    "idiom": "Up for Grabs",
+    "meaning": "Available to anyone."
+  },
+  {
+    "idiom": "Up in Arms",
+    "meaning": "Protesting angrily."
+  },
+  {
+    "idiom": "Up in the Air",
+    "meaning": "Uncertain."
+  },
+  {
+    "idiom": "Up to One’s Neck",
+    "meaning": "Heavily involved or overwhelmed."
+  },
+  {
+    "idiom": "Up to Scratch",
+    "meaning": "Meeting the required standard."
+  },
+  {
+    "idiom": "Up to Snuff",
+    "meaning": "Meeting the required standard."
+  },
+  {
+    "idiom": "Up the Ante",
+    "meaning": "To increase the stakes."
+  },
+  {
+    "idiom": "Up the Duff",
+    "meaning": "Pregnant (British)."
+  },
+  {
+    "idiom": "Upset the Apple Cart",
+    "meaning": "To disturb the status quo."
+  },
+  {
+    "idiom": "Use One’s Head",
+    "meaning": "To think."
+  },
+  {
+    "idiom": "Vale of Tears",
+    "meaning": "The world as a place of sorrow (literary)."
+  },
+  {
+    "idiom": "Vicious Circle",
+    "meaning": "A situation where one problem leads to another."
+  },
+  {
+    "idiom": "Victory Lap",
+    "meaning": "A celebratory lap after a win."
+  },
+  {
+    "idiom": "Virgin Territory",
+    "meaning": "An unexplored area."
+  },
+  {
+    "idiom": "Vote with One’s Feet",
+    "meaning": "To show an opinion by leaving."
+  },
+  {
+    "idiom": "Waiting in the Wings",
+    "meaning": "Ready to take over."
+  },
+  {
+    "idiom": "Waka-Jumping",
+    "meaning": "Changing political parties (NZ)."
+  },
+  {
+    "idiom": "Wake Up and Smell the Coffee",
+    "meaning": "Face reality."
+  },
+  {
+    "idiom": "Wake Up on the Wrong Side of the Bed",
+    "meaning": "To start the day in a bad mood."
+  },
+  {
+    "idiom": "Walk in Someone Else's Shoes",
+    "meaning": "To understand someone's situation."
+  },
+  {
+    "idiom": "Walk on Eggshells",
+    "meaning": "To be very careful."
+  },
+  {
+    "idiom": "Walk the Plank",
+    "meaning": "To be forced to resign."
+  },
+  {
+    "idiom": "Wandering Eye",
+    "meaning": "Tendency to look at other people flirtatiously."
+  },
+  {
+    "idiom": "Wash Your Hands of (Something)",
+    "meaning": "To disclaim responsibility."
+  },
+  {
+    "idiom": "Water Under the Bridge",
+    "meaning": "Past events no longer important."
+  },
+  {
+    "idiom": "Watering Hole",
+    "meaning": "A bar or social meeting place."
+  },
+  {
+    "idiom": "Waving a Magic Wand",
+    "meaning": "To make something happen effortlessly."
+  },
+  {
+    "idiom": "Wear Your Heart on Your Sleeve",
+    "meaning": "To show emotions openly."
+  },
+  {
+    "idiom": "Weather the Storm",
+    "meaning": "To endure a difficult situation."
+  },
+  {
+    "idiom": "Weekend Warrior",
+    "meaning": "Someone who participates in sports only on weekends."
+  },
+  {
+    "idiom": "We’ll Cross That Bridge When We Come to It",
+    "meaning": "We'll deal with that problem later."
+  },
+  {
+    "idiom": "Welsh (Welch) on a Deal",
+    "meaning": "To fail to keep a promise."
+  },
+  {
+    "idiom": "Wet Behind the Ears",
+    "meaning": "Inexperienced."
+  },
+  {
+    "idiom": "Wet Blanket",
+    "meaning": "A person who spoils the fun."
+  },
+  {
+    "idiom": "Wet Your Whistle",
+    "meaning": "To have a drink."
+  },
+  {
+    "idiom": "What Do You Make of (Him)?",
+    "meaning": "What is your opinion?"
+  },
+  {
+    "idiom": "What Goes Around Comes Around",
+    "meaning": "Karma; you reap what you sow."
+  },
+  {
+    "idiom": "What’s Good for the Goose Is Good for the Gander",
+    "meaning": "What applies to one applies to the other."
+  },
+  {
+    "idiom": "When Hell Freezes Over",
+    "meaning": "Never."
+  },
+  {
+    "idiom": "When In Doubt, Leave It Out",
+    "meaning": "If uncertain, omit."
+  },
+  {
+    "idiom": "When in Rome, Do as the Romans Do",
+    "meaning": "Follow local customs."
+  },
+  {
+    "idiom": "When It Rains, It Pours",
+    "meaning": "Bad things happen together."
+  },
+  {
+    "idiom": "When Life Gives You Lemons, Make Lemonade",
+    "meaning": "Turn misfortune into opportunity."
+  },
+  {
+    "idiom": "When Pigs Fly",
+    "meaning": "Never."
+  },
+  {
+    "idiom": "When the Chips Are Down",
+    "meaning": "When things are difficult."
+  },
+  {
+    "idiom": "Where (When) the Rubber Hits the Road",
+    "meaning": "Where things get serious."
+  },
+  {
+    "idiom": "Where There’s a Will, There’s a Way",
+    "meaning": "Determination overcomes obstacles."
+  },
+  {
+    "idiom": "Where There’s Smoke, There’s Fire",
+    "meaning": "Rumors often have some truth."
+  },
+  {
+    "idiom": "Whisper Sweet Nothings (in Someone’s Ear)",
+    "meaning": "To say romantic things."
+  },
+  {
+    "idiom": "Whistle in the Dark",
+    "meaning": "To pretend to be brave."
+  },
+  {
+    "idiom": "Whistle Past the Graveyard",
+    "meaning": "To act cheerful in a scary situation."
+  },
+  {
+    "idiom": "Whistling Dixie",
+    "meaning": "Engaging in unrealistic fantasies."
+  },
+  {
+    "idiom": "White Elephant",
+    "meaning": "A burdensome possession; a useless item."
+  },
+  {
+    "idiom": "Who’s She, the Cat’s Mother?",
+    "meaning": "Response to someone who is over-formal."
+  },
+  {
+    "idiom": "Wild Goose Chase",
+    "meaning": "A futile search."
+  },
+  {
+    "idiom": "Win at All Costs",
+    "meaning": "To do anything to win."
+  },
+  {
+    "idiom": "Win Hands Down",
+    "meaning": "To win easily."
+  },
+  {
+    "idiom": "Window Dressing",
+    "meaning": "A superficial display to improve appearance."
+  },
+  {
+    "idiom": "Window Shop",
+    "meaning": "To look at goods without buying."
+  },
+  {
+    "idiom": "Wine and Dine",
+    "meaning": "To entertain with food and drink."
+  },
+  {
+    "idiom": "Winner Takes All",
+    "meaning": "The winner gets everything."
+  },
+  {
+    "idiom": "Winning Streak",
+    "meaning": "A series of wins."
+  },
+  {
+    "idiom": "Wish Upon a Star",
+    "meaning": "To make a wish."
+  },
+  {
+    "idiom": "Witch Hunt",
+    "meaning": "An unfair investigation."
+  },
+  {
+    "idiom": "With Bells On",
+    "meaning": "Eagerly; enthusiastically."
+  },
+  {
+    "idiom": "Work One’s Fingers to the Bone",
+    "meaning": "To work extremely hard."
+  },
+  {
+    "idiom": "Worn to a Frazzle",
+    "meaning": "Exhausted."
+  },
+  {
+    "idiom": "Wouldn’t Be Caught Dead",
+    "meaning": "Would never do something."
+  },
+  {
+    "idiom": "Wrap Your Head Around Something",
+    "meaning": "To understand something complicated."
+  },
+  {
+    "idiom": "Writing (Handwriting) on the Wall",
+    "meaning": "Signs of impending doom."
+  },
+  {
+    "idiom": "Year In, Year Out",
+    "meaning": "Every year."
+  },
+  {
+    "idiom": "You Can Lead a Horse to Water, but You Can’t Make It Drink",
+    "meaning": "You can offer an opportunity, but you can't force someone to take it."
+  },
+  {
+    "idiom": "You Can Say That Again!",
+    "meaning": "I agree strongly."
+  },
+  {
+    "idiom": "You Can Take It to the Bank",
+    "meaning": "You can be certain."
+  },
+  {
+    "idiom": "You Can’t Judge a Book by Its Cover",
+    "meaning": "Don't judge by appearance."
+  },
+  {
+    "idiom": "You Can’t Make an Omelet (Omelette) Without Breaking Eggs",
+    "meaning": "You can't achieve something without causing some harm."
+  },
+  {
+    "idiom": "You Can’t Make Fish of One and Fowl of the Other",
+    "meaning": "You can't treat similar things differently."
+  },
+  {
+    "idiom": "You Know the Drill",
+    "meaning": "You know the routine."
+  },
+  {
+    "idiom": "You Snooze, You Lose",
+    "meaning": "If you delay, you miss out."
+  },
+  {
+    "idiom": "Young at Heart",
+    "meaning": "Having a youthful outlook."
+  },
+  {
+    "idiom": "Your Guess Is as Good as Mine",
+    "meaning": "I don't know either."
+  },
+  {
+    "idiom": "Your Mileage May Vary",
+    "meaning": "Your experience may differ."
+  },
+  {
+    "idiom": "Your Number Is Up",
+    "meaning": "Your time has come (especially death)."
+  },
+  {
+    "idiom": "You’re Driving Me Nuts",
+    "meaning": "You're annoying me."
+  },
+  {
+    "idiom": "Yours Truly",
+    "meaning": "Me / I (used in letters)."
+  },
+  {
+    "idiom": "Zero In On",
+    "meaning": "To focus closely on."
+  },
+  {
+    "idiom": "Zig When One Should Be Zagging",
+    "meaning": "To do the wrong thing at the wrong time."
+  },
+  {
+    "idiom": "Zip One’s Lip",
+    "meaning": "To stop talking; to keep quiet."
+  }
+]

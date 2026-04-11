@@ -749,12 +749,6 @@ html:not(.dark) {
 
   --warning: #f59e0b;
 
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
-
   --radius: 16px;
 
   --shadow: 0 4px 20px rgba(224, 122, 95, 0.1);
@@ -790,12 +784,6 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
-
-  --idioms-color: #2e7d32;
-
-  --idioms-color-light: #43a047;
-
-  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Океан (светлая) */
@@ -819,17 +807,11 @@ html.dark {
 
   --muted: #5f7a92;
 
-  --border: #c3d9eb;
+  --border: #c8d8e0;
 
   --shadow: 0 4px 20px rgba(43, 108, 148, 0.1);
 
   --shadow-hover: 0 8px 30px rgba(43, 108, 148, 0.18);
-
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный океан */
@@ -858,12 +840,6 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
-
-  --idioms-color: #2e7d32;
-
-  --idioms-color-light: #43a047;
-
-  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Лес (светлая) */
@@ -892,12 +868,6 @@ html.dark {
   --shadow: 0 4px 20px rgba(47, 107, 60, 0.1);
 
   --shadow-hover: 0 8px 30px rgba(47, 107, 60, 0.18);
-
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный лес */
@@ -926,12 +896,6 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
-
-  --idioms-color: #2e7d32;
-
-  --idioms-color-light: #43a047;
-
-  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Лаванда (светлая) */
@@ -960,12 +924,6 @@ html.dark {
   --shadow: 0 4px 20px rgba(155, 135, 184, 0.1);
 
   --shadow-hover: 0 8px 30px rgba(155, 135, 184, 0.18);
-
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмная лаванда */
@@ -994,12 +952,6 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
-
-  --idioms-color: #2e7d32;
-
-  --idioms-color-light: #43a047;
-
-  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Закат (светлая) */
@@ -1028,12 +980,6 @@ html.dark {
   --shadow: 0 4px 20px rgba(255, 107, 107, 0.1);
 
   --shadow-hover: 0 8px 30px rgba(255, 107, 107, 0.18);
-
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный закат */
@@ -1062,12 +1008,6 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
-
-  --idioms-color: #2e7d32;
-
-  --idioms-color-light: #43a047;
-
-  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Небесная (светлая) */
@@ -1096,12 +1036,6 @@ html.dark {
   --shadow: 0 4px 20px rgba(127, 193, 224, 0.1);
 
   --shadow-hover: 0 8px 30px rgba(127, 193, 224, 0.18);
-
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмная небесная */
@@ -1130,12 +1064,6 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
-
-  --idioms-color: #2e7d32;
-
-  --idioms-color-light: #43a047;
-
-  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Песок (светлая) */
@@ -1164,12 +1092,6 @@ html.dark {
   --shadow: 0 4px 20px rgba(196, 164, 132, 0.1);
 
   --shadow-hover: 0 8px 30px rgba(196, 164, 132, 0.18);
-
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный песок */
@@ -1198,12 +1120,6 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
-
-  --idioms-color: #2e7d32;
-
-  --idioms-color-light: #43a047;
-
-  --idioms-rgb: 46, 125, 50;
 }
 
 /* Тема Графит (светлая) */
@@ -1232,12 +1148,6 @@ html.dark {
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
-
-  --idioms-color: #22c55e;
-
-  --idioms-color-light: #4ade80;
-
-  --idioms-rgb: 34, 197, 94;
 }
 
 /* Тёмный графит */
@@ -1266,12 +1176,156 @@ html.dark {
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
 
   --danger-rgb: 239, 68, 68;
+}
 
-  --idioms-color: #2e7d32;
+/* ═══════════════════════════════════════════════════════════════
+   STAT TRIADS — тематические цвета для трёх полос статистики
+   Words = --primary (уже есть в каждой теме)
+   Idioms и Phrases — новые переменные для каждой темы
+   ═══════════════════════════════════════════════════════════════ */
 
-  --idioms-color-light: #43a047;
+/* DEFAULT (тёплый лосось/апельсин) */
+:root {
+  --idioms-color: #6b8f6e;
+  --idioms-color-light: #8aaf8d;
+  --idioms-rgb: 107, 143, 110;
+  --phrases-color: #7b6eb8;
+  --phrases-color-light: #9d91d4;
+  --phrases-rgb: 123, 110, 184;
+}
+html.dark {
+  --idioms-color: #8ab48d;
+  --idioms-color-light: #a8ceac;
+  --idioms-rgb: 138, 180, 141;
+  --phrases-color: #a099d4;
+  --phrases-color-light: #bcb6e8;
+  --phrases-rgb: 160, 153, 212;
+}
 
-  --idioms-rgb: 46, 125, 50;
+/* OCEAN (океанский синий) */
+.theme-ocean {
+  --idioms-color: #3d8a7a;
+  --idioms-color-light: #5aab9a;
+  --idioms-rgb: 61, 138, 122;
+  --phrases-color: #9b7a3d;
+  --phrases-color-light: #c4a05a;
+  --phrases-rgb: 155, 122, 61;
+}
+.dark.theme-ocean {
+  --idioms-color: #5aab9a;
+  --idioms-color-light: #7acaba;
+  --idioms-rgb: 90, 171, 154;
+  --phrases-color: #d4aa5a;
+  --phrases-color-light: #ecc87a;
+  --phrases-rgb: 212, 170, 90;
+}
+
+/* FOREST (лесной зелёный) */
+.theme-forest {
+  --idioms-color: #7a5c3a;
+  --idioms-color-light: #9e7c58;
+  --idioms-rgb: 122, 92, 58;
+  --phrases-color: #4a6b8a;
+  --phrases-color-light: #6a8daa;
+  --phrases-rgb: 74, 107, 138;
+}
+.dark.theme-forest {
+  --idioms-color: #b89070;
+  --idioms-color-light: #d4aa8a;
+  --idioms-rgb: 184, 144, 112;
+  --phrases-color: #7aabcc;
+  --phrases-color-light: #9ac6e0;
+  --phrases-rgb: 122, 171, 204;
+}
+
+/* PURPLE (пыльный фиолетовый) */
+.theme-purple {
+  --idioms-color: #6a8a7a;
+  --idioms-color-light: #8aaa9a;
+  --idioms-rgb: 106, 138, 122;
+  --phrases-color: #b87a5a;
+  --phrases-color-light: #d49878;
+  --phrases-rgb: 184, 122, 90;
+}
+.dark.theme-purple {
+  --idioms-color: #8ab09e;
+  --idioms-color-light: #a8ceba;
+  --idioms-rgb: 138, 176, 158;
+  --phrases-color: #d49870;
+  --phrases-color-light: #ecba90;
+  --phrases-rgb: 212, 152, 112;
+}
+
+/* SUNSET (коралловый закат) */
+.theme-sunset {
+  --idioms-color: #5a7a9e;
+  --idioms-color-light: #7a9aba;
+  --idioms-rgb: 90, 122, 158;
+  --phrases-color: #b89030;
+  --phrases-color-light: #d4ac50;
+  --phrases-rgb: 184, 144, 48;
+}
+.dark.theme-sunset {
+  --idioms-color: #8aaece;
+  --idioms-color-light: #aacce0;
+  --idioms-rgb: 138, 174, 206;
+  --phrases-color: #e0b84a;
+  --phrases-color-light: #f0d070;
+  --phrases-rgb: 224, 184, 74;
+}
+
+/* SKY (небесно-голубой) */
+.theme-sky {
+  --idioms-color: #5a9e5a;
+  --idioms-color-light: #78be78;
+  --idioms-rgb: 90, 158, 90;
+  --phrases-color: #c49a60;
+  --phrases-color-light: #e0ba80;
+  --phrases-rgb: 196, 154, 96;
+}
+.dark.theme-sky {
+  --idioms-color: #7aca7a;
+  --idioms-color-light: #9ae09a;
+  --idioms-rgb: 122, 202, 122;
+  --phrases-color: #e0ba80;
+  --phrases-color-light: #f0d4a0;
+  --phrases-rgb: 224, 186, 128;
+}
+
+/* SAND (тёплый песок) */
+.theme-sand {
+  --idioms-color: #4a7a8a;
+  --idioms-color-light: #6a9aaa;
+  --idioms-rgb: 74, 122, 138;
+  --phrases-color: #9a6a40;
+  --phrases-color-light: #ba8a60;
+  --phrases-rgb: 154, 106, 64;
+}
+.dark.theme-sand {
+  --idioms-color: #7aaabb;
+  --idioms-color-light: #9accd4;
+  --idioms-rgb: 122, 170, 187;
+  --phrases-color: #cc9060;
+  --phrases-color-light: #e8b080;
+  --phrases-rgb: 204, 144, 96;
+}
+
+/* GRAPHITE (нейтральный серый) */
+.theme-graphite {
+  --idioms-color: #3d8888;
+  --idioms-color-light: #5aacac;
+  --idioms-rgb: 61, 136, 136;
+  --phrases-color: #9a6b6b;
+  --phrases-color-light: #bc8e8e;
+  --phrases-rgb: 154, 107, 107;
+}
+.dark.theme-graphite {
+  --idioms-color: #6aacac;
+  --idioms-color-light: #8acece;
+  --idioms-rgb: 106, 172, 172;
+  --phrases-color: #bc8e8e;
+  --phrases-color-light: #d4aaaa;
+  --phrases-rgb: 188, 142, 142;
 }
 
 *,
@@ -1493,7 +1547,7 @@ header nav {
 
 /* На мобильных такие же отступы как на десктопе */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   .spc-nums {
     gap: 0.75rem 1.5rem;
   }
@@ -1795,7 +1849,7 @@ body.exam-mode .setup-row:nth-of-type(8) {
 
 /* ===== RESPONSIVE DESIGN ===== */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   /* Показываем мобильное меню */
 
   .mobile-bottom-nav {
@@ -1824,14 +1878,6 @@ body.exam-mode .setup-row:nth-of-type(8) {
 
   .logo {
     font-size: 1.5rem;
-  }
-
-  /* Mobile toolbar styles */
-
-  .words-toolbar {
-    flex-direction: column;
-
-    align-items: stretch;
   }
 
   .filter-pills {
@@ -2081,7 +2127,7 @@ nav {
 
 /* Дополнительно для мобильного навбара (чтобы не прыгало) */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   .mobile-nav-btn .badge {
     right: 22%; /* точно как у идиом */
 
@@ -3028,7 +3074,7 @@ textarea {
 
   margin-bottom: 1.5rem;
 
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 
   align-items: center;
 }
@@ -7066,7 +7112,7 @@ html.dark .badge-learned {
   }
 }
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -8097,7 +8143,7 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
 
 /* Мобильные тосты — поднимаем над нижней навигацией */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   #toast-box {
     bottom: 80px; /* 60px нав-бар + небольшой отступ */
 
@@ -8144,10 +8190,17 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
   vertical-align: middle;
 }
 
-@media (max-width: 767px) {
+@media (min-width: 801px) and (max-width: 1000px) {
   #tab-words .words-toolbar,
   #tab-idioms .words-toolbar {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+  }
+}
+
+@media (max-width: 800px) {
+  #tab-words .words-toolbar,
+  #tab-idioms .words-toolbar {
+    flex-wrap: nowrap;
 
     overflow: visible;
 
@@ -8158,9 +8211,38 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
   #tab-idioms .search-container {
     order: -1;
 
+    flex: 1;
+
+    min-width: 120px;
+
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 612px) {
+  #tab-words .words-toolbar,
+  #tab-idioms .words-toolbar {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  #tab-words .search-container,
+  #tab-idioms .search-container {
     width: 100%;
 
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.75rem;
+
+    order: -1;
+  }
+
+  #tab-words .filter-pills,
+  #tab-idioms .filter-pills {
+    width: 100%;
+
+    justify-content: center;
+
+    flex-wrap: wrap;
   }
 }
 
@@ -8683,7 +8765,7 @@ html.dark .no-speech {
   color: #fcd34d;
 }
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   header {
     padding: 0.75rem 1rem;
 
@@ -8759,10 +8841,6 @@ html.dark .no-speech {
 
   main {
     padding: 1rem;
-  }
-
-  .words-toolbar {
-    flex-direction: column;
   }
 
   .pill {
@@ -9232,7 +9310,7 @@ html.dark .due-soon {
 
 /* Базовые transitions — нужны для плавной анимации */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   header {
     transition:
       transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
@@ -11208,7 +11286,7 @@ input:checked + .theme-slider:before {
 
 /* Показываем навбар только на мобильных */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   .mobile-bottom-nav {
     display: flex;
   }
@@ -11222,7 +11300,7 @@ input:checked + .theme-slider:before {
 
 /* Для iPhone с динамической островкой (очень важно!) */
 
-@media (max-width: 830px) and (display-mode: standalone) {
+@media (max-width: 1000px) and (display-mode: standalone) {
   .mobile-bottom-nav {
     padding-bottom: env(safe-area-inset-bottom);
 
@@ -12057,7 +12135,7 @@ html.dark header {
 
 /* Адаптация для мобильных (кнопки в шапке скрыты, но оставим для планшетов) */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   .nav-btn {
     padding: 0.4rem 1rem;
 
@@ -12628,6 +12706,15 @@ html.dark header {
   );
 }
 
+.week-bar.phrases-bar {
+  background: linear-gradient(
+    to top,
+    var(--phrases-color),
+    var(--phrases-color-light)
+  );
+  opacity: 0.85;
+}
+
 .week-count {
   font-size: 1rem;
 
@@ -12901,7 +12988,7 @@ html.dark .cefr-level:hover {
 .st-progress-cards {
   display: grid;
 
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
 
   gap: 0.75rem;
 
@@ -12953,12 +13040,22 @@ html.dark .cefr-level:hover {
   font-size: 1.2rem;
 
   font-weight: 800;
+
+  color: var(--primary);
+}
+
+.spc-card:has(.idioms-icon) .spc-pct {
+  color: var(--idioms-color);
+}
+
+.spc-card:has(.phrases-icon) .spc-pct {
+  color: var(--phrases-color);
 }
 
 .spc-nums span
 
 /* Specificity: (0,1,1) */ {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 
   font-weight: 700;
 }
@@ -13049,12 +13146,23 @@ html.dark .cefr-level:hover {
 }
 
 .words-icon {
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+}
+
+.spc-icon.words-icon {
+  background: rgba(var(--primary-rgb), 0.12);
   color: var(--primary);
 }
 
 .idioms-icon {
   background: rgba(var(--idioms-rgb), 0.12);
 
+  color: var(--idioms-color);
+}
+
+.spc-icon.idioms-icon {
+  background: rgba(var(--idioms-rgb), 0.12);
   color: var(--idioms-color);
 }
 
@@ -13112,6 +13220,23 @@ html.dark .cefr-level:hover {
     var(--idioms-color),
     var(--idioms-color-light)
   );
+}
+
+.spc-bar-fill.phrases {
+  background: linear-gradient(
+    90deg,
+    var(--phrases-color),
+    var(--phrases-color-light)
+  );
+}
+
+.spc-dot.phrases {
+  background: var(--phrases-color);
+}
+
+.spc-icon.phrases-icon {
+  background: rgba(var(--phrases-rgb), 0.12);
+  color: var(--phrases-color);
 }
 
 .spc-nums {
@@ -13629,7 +13754,7 @@ html.dark .xp-stats-row #st-xp {
 
 /* Mobile — как в оригинале */
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   .xp-stats-row {
     flex-direction: column !important;
 
@@ -14931,31 +15056,29 @@ button.floating-add-btn:hover .material-symbols-outlined,
 /* ����� ���������� ����������� - ����� � ������ ������� ���� */
 
 .word-card .progress-indicators {
-  position: absolute;
-
-  top: 12px;
-
-  right: 12px;
+  position: static !important;
 
   display: flex;
 
+  flex-direction: row;
+
   gap: 4px;
 
-  z-index: 1;
+  margin: 4px 0 2px 0;
+
+  justify-content: flex-start;
 }
 
 .word-card .progress-dot {
-  width: 8px;
+  width: 20px;
 
-  height: 8px;
+  height: 3px;
 
-  border-radius: 50%;
+  border-radius: 2px;
 
   background: var(--border);
 
   transition: all 0.3s ease;
-
-  opacity: 0.3;
 }
 
 .word-card .progress-dot.filled {
@@ -14996,130 +15119,6 @@ button.floating-add-btn:hover .material-symbols-outlined,
 
 /* ������������ ��� ��������� */
 
-@media (max-width: 768px) {
-  .word-card .progress-indicators {
-    top: 8px;
-
-    right: 8px;
-
-    gap: 3px;
-  }
-
-  .word-card .progress-dot {
-    width: 6px;
-
-    height: 6px;
-  }
-}
-
-/* �������� ��� ���������� ��������� */
-
-.progress-dot.updating {
-  animation: pulse 0.6s ease-in-out;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.3);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* �����: ��������� ��� ��������� �� ��� ������ */
-
-.word-card:hover .progress-dot {
-  opacity: 0.8;
-}
-
-.word-card:hover .progress-dot.filled {
-  opacity: 1;
-}
-
-.word-card {
-  position: relative;
-}
-
-/* ������� ������ ������� � ��������� */
-
-.word-card[data-streak='1'],
-.word-card[data-streak='2'],
-.word-card[data-streak='3'] {
-  border-left: none !important;
-
-  opacity: 1 !important;
-}
-
-/* ��������� ������� ������ ������� �������� */
-
-.word-card[data-streak] {
-  border: 2px solid transparent !important;
-
-  border-left: none !important;
-}
-
-.word-card[data-streak='1'],
-.word-card[data-streak='2'],
-.word-card[data-streak='3'] {
-  opacity: 1 !important;
-
-  border-left: none !important;
-}
-
-/* ������� ����� ����� ��������-��������� ���� ���� */
-
-.progress-segment {
-  display: none !important;
-}
-
-/* ������������ ���������� ��������� */
-
-.word-card .progress-indicators {
-  flex-direction: column;
-
-  gap: 2px;
-
-  top: 8px;
-
-  right: 8px;
-}
-
-.word-card .progress-dot {
-  width: 6px;
-
-  height: 6px;
-}
-
-/* ������������ ��� ��������� */
-
-@media (max-width: 768px) {
-  .word-card .progress-indicators {
-    top: 6px;
-
-    right: 6px;
-
-    gap: 1px;
-  }
-
-  .word-card .progress-dot {
-    width: 4px;
-
-    height: 4px;
-  }
-}
-
-.word-card .progress-indicators {
-  top: 30px;
-
-  right: 10px;
-}
-
 /* ������������� ��������� ��� �������� ��� ��������� ���� ����� */
 
 .word-card:hover {
@@ -15127,50 +15126,6 @@ button.floating-add-btn:hover .material-symbols-outlined,
 }
 
 /* ���������� ����������� ����� ����� */
-
-.word-card .progress-indicators {
-  flex-direction: column-reverse;
-
-  gap: 2px;
-
-  top: 30px;
-
-  right: 10px;
-}
-
-/* ��� ��������� ���� ������ */
-
-@media (max-width: 768px) {
-  .word-card .progress-indicators {
-    flex-direction: column-reverse;
-  }
-}
-
-/* ������� ������� ���� ��� ��������� ���� */
-
-.word-card .progress-dot.learned {
-  background: var(--primary) !important;
-
-  box-shadow: none !important;
-}
-
-/* Адаптивные стили для прогресс-индикаторов на мобильных */
-
-@media (max-width: 768px) {
-  .word-card .progress-indicators {
-    top: 30px;
-
-    right: 10px;
-
-    gap: 2px;
-  }
-
-  .word-card .progress-dot {
-    width: 6px;
-
-    height: 6px;
-  }
-}
 
 /* Friends Modal Styles */
 
@@ -16770,7 +16725,7 @@ button.floating-add-btn:hover .material-symbols-outlined,
   padding-bottom: 100px; /* место под раскрытые карточки */
 }
 
-@media (max-width: 830px) {
+@media (max-width: 1000px) {
   #tab-friends {
     padding-bottom: 120px; /* больше места на мобильных */
   }

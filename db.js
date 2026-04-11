@@ -79,7 +79,7 @@ export async function saveWordToDb(word) {
     .select('id')
     .eq('id', word.id)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   const wordPayload = {
     ...wordRest,
