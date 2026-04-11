@@ -15,3 +15,8 @@ fs.writeFileSync(path, cleaned);
 console.log(
   `Готово! Было ${lines.length} строк, стало ${cleaned.split('\n').length} строк`,
 );
+
+
+
+// Запустить скрипт 
+// node clean.js script.js
