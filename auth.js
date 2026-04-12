@@ -236,6 +236,19 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
     setTimeout(() => checkPendingInviteFromUrl(), 1000);
 
+    // Инициализируем глобальный канал сообщений после авторизации
+    console.log('[AUTH] Initializing global message subscription...');
+    if (typeof window.subscribeToMessages === 'function') {
+      window.subscribeToMessages();
+    } else {
+      console.warn('[AUTH] subscribeToMessages not available on window');
+    }
+
+    // Инициализируем подписку на реакции
+    if (typeof window.subscribeToReactions === 'function') {
+      window.subscribeToReactions();
+    }
+
     if (profileLoaded && !wordsLoaded) {
       wordsLoaded = true;
       window.authExports?.loadWordsOnce(remoteWords => {

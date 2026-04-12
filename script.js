@@ -71,7 +71,6 @@ function toSnakeCase(obj) {
   }
   return result;
 }
-
 // Нормализация stats: поддерживает и camelCase, и snake_case
 function normalizeStats(stats) {
   if (!stats) {
@@ -1332,7 +1331,6 @@ const BADGES_DEF = [
     condition: d => d.totalPhrases >= 10,
     progress: d => ({ current: Math.min(d.totalPhrases, 10), target: 10 }),
   },
-
   {
     id: 'phrases25',
     name: '🗣 Говорун',
@@ -1344,7 +1342,6 @@ const BADGES_DEF = [
     condition: d => d.totalPhrases >= 25,
     progress: d => ({ current: Math.min(d.totalPhrases, 25), target: 25 }),
   },
-
   {
     id: 'phrases50',
     name: '📖 Разговорник',
@@ -1356,7 +1353,6 @@ const BADGES_DEF = [
     condition: d => d.totalPhrases >= 50,
     progress: d => ({ current: Math.min(d.totalPhrases, 50), target: 50 }),
   },
-
   {
     id: 'phrases100',
     name: '🔥 Фразовый маньяк',
@@ -1368,7 +1364,6 @@ const BADGES_DEF = [
     condition: d => d.totalPhrases >= 100,
     progress: d => ({ current: Math.min(d.totalPhrases, 100), target: 100 }),
   },
-
   {
     id: 'phrases250',
     name: '🌟 Полиглот-экспресс',
@@ -1380,7 +1375,6 @@ const BADGES_DEF = [
     condition: d => d.totalPhrases >= 250,
     progress: d => ({ current: Math.min(d.totalPhrases, 250), target: 250 }),
   },
-
   // ─── ФРАЗЫ — изученные ───
   {
     id: 'phraselearned10',
@@ -1393,7 +1387,6 @@ const BADGES_DEF = [
     condition: d => d.learnedPhrases >= 10,
     progress: d => ({ current: Math.min(d.learnedPhrases, 10), target: 10 }),
   },
-
   {
     id: 'phraselearned25',
     name: '💡 Свободная речь',
@@ -1405,7 +1398,6 @@ const BADGES_DEF = [
     condition: d => d.learnedPhrases >= 25,
     progress: d => ({ current: Math.min(d.learnedPhrases, 25), target: 25 }),
   },
-
   {
     id: 'phraselearned50',
     name: '🏆 Фразовый ас',
@@ -1417,7 +1409,6 @@ const BADGES_DEF = [
     condition: d => d.learnedPhrases >= 50,
     progress: d => ({ current: Math.min(d.learnedPhrases, 50), target: 50 }),
   },
-
   {
     id: 'phraselearned100',
     name: '👑 Языковой мастер',
@@ -1842,7 +1833,6 @@ async function syncPendingWords() {
     !window.currentUserId
   )
     return;
-
   for (const [wordId, staleItem] of pendingWordUpdates.entries()) {
     if (staleItem._deleted) {
       try {
@@ -1853,14 +1843,12 @@ async function syncPendingWords() {
       }
       continue;
     }
-
     // Всегда берём свежак из window.words — там актуальные stats
     const freshWord = window.words?.find(w => w.id === wordId);
     if (!freshWord) {
       pendingWordUpdates.delete(wordId);
       continue;
     }
-
     try {
       await saveWordToDb(toSnakeCase(freshWord)); // Конвертируем в snake_case для БД
       pendingWordUpdates.delete(wordId);
@@ -2144,12 +2132,6 @@ function updateFloatingChatButton() {
     badge.style.display = 'none';
   }
 }
-// Периодическое обновление непрочитанных сообщений раз в 30 секунд
-setInterval(() => {
-  if (window.currentUserId && navigator.onLine) {
-    updateUnreadCounts();
-  }
-}, 30000);
 // Периодическая проверка заявок в друзья раз в минуту
 setInterval(() => {
   if (window.currentUserId && navigator.onLine) {
@@ -2309,7 +2291,6 @@ window.debugLimits = function () {
 // Debounce функция перенесена в js/utils.js
 import { debounce, stopCurrentMediaAudio } from './js/utils.js';
 const debouncedRenderStats = debounce(renderStats, 800);
-
 // Handle window resize to update stats display based on screen width
 window.addEventListener(
   'resize',
@@ -3271,7 +3252,6 @@ async function updateWordsFromBank() {
     }
   }
 }
-
 async function enrichWordsWithBankData() {
   if (!window.WordBankDB) return;
   let updated = 0;
@@ -3984,14 +3964,11 @@ function gainXP(amount, reason = '') {
     }
   }
 }
-
 // Синхронизация XP логов при восстановлении сети
 async function flushXpQueue() {
   if (pendingXpLogs.length === 0 || !navigator.onLine) return;
-
   const logsToSync = [...pendingXpLogs];
   pendingXpLogs = [];
-
   for (const log of logsToSync) {
     try {
       await supabase.from('xp_log').insert(log);
@@ -4002,11 +3979,9 @@ async function flushXpQueue() {
     }
   }
 }
-
 // Сброс ожидающих обновлений челленджей в конце сессии
 async function flushChallengeUpdates() {
   if (!navigator.onLine || !window.currentUserId) return;
-
   const practiceTimeUpdates = pendingChallengeUpdates.practice_time;
   if (practiceTimeUpdates > 0 && window.updateAllChallengesProgress) {
     try {
@@ -4021,7 +3996,6 @@ async function flushChallengeUpdates() {
     }
   }
 }
-
 function checkBadges() {
   const newBadges = [];
   const totalWords = window.words ? window.words.length : 0;
@@ -4241,7 +4215,6 @@ function getBadgeProgress(def) {
       progress: Math.min(100, (current / target) * 100),
     };
   }
-
   if (def.id.startsWith('phraselearned')) {
     const target = parseInt(def.id.replace('phraselearned', ''));
     const current = window.phrases.filter(p => p.stats?.learned).length;
@@ -4432,7 +4405,6 @@ function updateDueBadge() {
     i => new Date(i.stats?.nextReview || 0) <= now,
   ).length;
   // Считаем due фразы
-
   const phrasesDue = (window.phrases || []).filter(
     p => new Date(p.stats?.nextReview || 0) <= now,
   ).length;
@@ -4602,7 +4574,6 @@ function renderStats() {
     const phrasesTotalText = isSmallScreen
       ? `${phrasesTotal}`
       : `${phrasesTotal} всего`;
-
     pc.innerHTML = `
       <div class="spc-card">
         <div class="spc-header">
@@ -4745,23 +4716,19 @@ function renderStats() {
   </li>`;
   };
   window._statPhraseMap = phraseMap;
-
   const hardPhrases = [...phrasesWithStats]
     .map(p => ({ ...p, accuracy: p.stats.correct / p.stats.shown }))
     .sort((a, b) => a.accuracy - b.accuracy)
     .slice(0, 5);
-
   const easyPhrases = [...phrasesWithStats]
     .map(p => ({ ...p, accuracy: p.stats.correct / p.stats.shown }))
     .sort((a, b) => b.accuracy - a.accuracy)
     .slice(0, 5);
-
   const stHardPhrasesEl = document.getElementById('st-hard-phrases');
   if (stHardPhrasesEl)
     stHardPhrasesEl.innerHTML = hardPhrases.length
       ? hardPhrases.map(makePhraseItem).join('')
       : '<li class="stat-empty">–</li>';
-
   const stEasyPhrasesEl = document.getElementById('st-easy-phrases');
   if (stEasyPhrasesEl)
     stEasyPhrasesEl.innerHTML = easyPhrases.length
@@ -5043,12 +5010,10 @@ function updateSyncIndicator(status, message = '') {
 // Объединение слов с обнаружением конфликтов
 window.mergeWords = function (localWords, remoteWords) {
   const merged = new Map();
-
   // Сначала все серверные слова
   for (const w of remoteWords) {
     merged.set(w.id, w);
   }
-
   // Локальные перетирают серверные ТОЛЬКО если новее
   for (const w of localWords) {
     const remote = merged.get(w.id);
@@ -5061,7 +5026,6 @@ window.mergeWords = function (localWords, remoteWords) {
       const remoteTime = new Date(
         remote.updated_at || remote.created_at || 0,
       ).getTime();
-
       if (localTime >= remoteTime) {
         merged.set(w.id, w);
       } else {
@@ -5074,25 +5038,20 @@ window.mergeWords = function (localWords, remoteWords) {
       }
     }
   }
-
   return Array.from(merged.values());
 };
-
 // Мёрж статистики - lastPracticed как истина в последней инстанции
 function mergeStats(local, remote) {
   if (!local) return remote;
   if (!remote) return local;
-
   const localTime = new Date(local.lastPracticed || 0).getTime();
   const remoteTime = new Date(remote.lastPracticed || 0).getTime();
-
   // Объединяем массивы выполненных упражнений из обоих источников
   const localTypes =
     local.correct_exercise_types ?? local.correctExerciseTypes ?? [];
   const remoteTypes =
     remote.correct_exercise_types ?? remote.correctExerciseTypes ?? [];
   const mergedTypes = [...new Set([...localTypes, ...remoteTypes])];
-
   console.log('[MERGE STATS] Local:', {
     shown: local.shown,
     correct: local.correct,
@@ -5108,13 +5067,11 @@ function mergeStats(local, remote) {
     types: remoteTypes,
   });
   console.log('[MERGE STATS] Merged types:', mergedTypes);
-
   // Если практиковали локально позже — берём всю локальную статистику
   if (localTime > remoteTime) {
     console.log('[MERGE STATS] Using local stats (newer)');
     return { ...local, correct_exercise_types: mergedTypes };
   }
-
   // Иначе берём серверную, но суммируем shown/correct и объединяем exercise types
   // (на случай если оба варианта содержат уникальные сессии)
   console.log('[MERGE STATS] Using remote stats with merged fields');
@@ -5126,16 +5083,13 @@ function mergeStats(local, remote) {
     streak: localTime > remoteTime ? local.streak : remote.streak,
   };
 }
-
 // Объединение идиом с обнаружением конфликтов
 window.mergeIdioms = function (localIdioms, remoteIdioms) {
   const merged = new Map();
-
   // Сначала все серверные идиомы
   for (const i of remoteIdioms) {
     merged.set(i.id, i);
   }
-
   // Локальные перетирают серверные ТОЛЬКО если новее
   for (const i of localIdioms) {
     const remote = merged.get(i.id);
@@ -5148,7 +5102,6 @@ window.mergeIdioms = function (localIdioms, remoteIdioms) {
       const remoteTime = new Date(
         remote.updated_at || remote.created_at || 0,
       ).getTime();
-
       if (localTime >= remoteTime) {
         merged.set(i.id, i);
       } else {
@@ -5161,10 +5114,8 @@ window.mergeIdioms = function (localIdioms, remoteIdioms) {
       }
     }
   }
-
   return Array.from(merged.values());
 };
-
 // Показ уведомления о конфликтах
 function showConflictNotification(conflicts) {
   const message = `Обнаружено ${conflicts.length} конфликт(ов) при синхронизации. Использована версия из облака.`;
@@ -5175,7 +5126,6 @@ function showConflictNotification(conflicts) {
 // Отслеживание состояния сети
 async function syncAfterReconnect() {
   if (!navigator.onLine || !window.currentUserId) return;
-
   console.log('[SYNC RECONNECT] Starting sync after reconnect');
   console.log('[SYNC RECONNECT] Local words:', window.words?.length);
   console.log('[SYNC RECONNECT] Local idioms:', window.idioms?.length);
@@ -5187,11 +5137,9 @@ async function syncAfterReconnect() {
     '[SYNC RECONNECT] Pending idiom updates:',
     pendingIdiomUpdates.size,
   );
-
   // Снимок локального состояния до синка - защита от потери данных
   const localSnapshot = [...(window.words || [])];
   const idiomSnapshot = [...(window.idioms || [])];
-
   try {
     // ШАГ 1: СНАЧАЛА заливаем всё что накопилось оффлайн
     if (pendingWordUpdates.size > 0) {
@@ -5206,11 +5154,9 @@ async function syncAfterReconnect() {
       console.log('[SYNC RECONNECT] Flushing pending phrase updates...');
       await syncPendingPhrases();
     }
-
     // ⏳ Даём серверу время обработать запросы (1500ms)
     console.log('[SYNC RECONNECT] Waiting 1500ms for server to process...');
     await new Promise(resolve => setTimeout(resolve, 1500));
-
     // ШАГ 2: ТОЛЬКО ПОТОМ грузим с сервера
     console.log('[SYNC RECONNECT] Loading words from server...');
     await window.authExports.loadWordsOnce(async remoteWords => {
@@ -5219,19 +5165,16 @@ async function syncAfterReconnect() {
         '[SYNC RECONNECT] Local snapshot words:',
         localSnapshot?.length,
       );
-
       // ШАГ 3: Мёрж с учётом таймстампов - локальные приоритетнее если новее
       const merged = window.mergeWords
         ? window.mergeWords(localSnapshot, remoteWords)
         : remoteWords;
-
       // ✅ Страховка — локальные слова которых нет на сервере никогда не теряем
       const remoteIds = new Set((remoteWords || []).map(r => r.id));
       const mergedIds = new Set((merged || []).map(w => w.id));
       const orphans = localSnapshot.filter(
         w => !remoteIds.has(w.id) && !mergedIds.has(w.id),
       );
-
       if (orphans.length > 0) {
         console.warn(
           '[SYNC RECONNECT] Rescued local-only words:',
@@ -5239,12 +5182,10 @@ async function syncAfterReconnect() {
         );
         merged.push(...orphans);
       }
-
       console.log('[SYNC RECONNECT] Merged words:', merged?.length);
       window.words = merged;
       refreshUI();
     });
-
     // Синхронизируем идиомы
     console.log('[SYNC RECONNECT] Loading idioms from server...');
     await window.authExports.loadIdiomsOnce(async remoteIdioms => {
@@ -5256,7 +5197,6 @@ async function syncAfterReconnect() {
         '[SYNC RECONNECT] Local snapshot idioms:',
         idiomSnapshot?.length,
       );
-
       const mergedIdioms = window.mergeIdioms
         ? window.mergeIdioms(idiomSnapshot, remoteIdioms)
         : remoteIdioms;
@@ -5264,7 +5204,6 @@ async function syncAfterReconnect() {
       window.idioms = mergedIdioms;
       renderIdioms();
     });
-
     console.log('[SYNC RECONNECT] Sync completed successfully');
   } catch (e) {
     // Если синк упал — восстанавливаем снимок
@@ -6188,27 +6127,27 @@ function startEditWord(id) {
   card.innerHTML = `
     <div class="form-group">
       <label>English</label>
-      <input type="text" class="e-en form-control" value="${safeAttr(w.en)}">
+      <input type="text" class="e-en form-control" value="${safeAttr(w.en)}" name="edit-word-en" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
     </div>
     <div class="form-group">
       <label>Русский</label>
-      <input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}">
+      <input type="text" class="e-ru form-control" value="${safeAttr(w.ru)}" name="edit-word-ru" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
     </div>
     <div class="form-group">
       <label>Транскрипция</label>
-      <input type="text" class="e-phonetic form-control" value="${safeAttr(phonetic)}">
+      <input type="text" class="e-phonetic form-control" value="${safeAttr(phonetic)}" name="edit-word-phonetic" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
     </div>
     <div class="form-group">
       <label>Пример</label>
-      <input type="text" class="e-ex form-control" value="${safeAttr(exText)}">
+      <input type="text" class="e-ex form-control" value="${safeAttr(exText)}" name="edit-word-ex" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" inputmode="text">
     </div>
     <div class="form-group">
       <label>Перевод примера</label>
-      <input type="text" class="e-ex-translation form-control" value="${safeAttr(exTranslation)}">
+      <input type="text" class="e-ex-translation form-control" value="${safeAttr(exTranslation)}" name="edit-word-ex-ru" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
     </div>
     <div class="form-group">
       <label>Теги</label>
-      <input type="text" class="e-tags form-control" value="${safeAttr((w.tags || []).join(', '))}">
+      <input type="text" class="e-tags form-control" value="${safeAttr((w.tags || []).join(', '))}" name="edit-word-tags" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
     </div>
     <div class="form-actions">
       <button class="save-edit-btn" data-id="${w.id}">
@@ -6219,6 +6158,7 @@ function startEditWord(id) {
       </button>
     </div>
   `;
+  hardenStudyInputs(card);
   card
     .querySelector('.save-edit-btn')
     .addEventListener('click', async function (e) {
@@ -6666,17 +6606,17 @@ function startEditIdiom(id) {
   card.classList.add('editing');
   card.innerHTML = `
     <div class="form-group"><label>Идиома</label>
-      <input type="text" class="e-idiom form-control" value="${safeAttr(i.idiom)}"></div>
+      <input type="text" class="e-idiom form-control" value="${safeAttr(i.idiom)}" name="edit-idiom" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text"></div>
     <div class="form-group"><label>Перевод</label>
-      <input type="text" class="e-meaning form-control" value="${safeAttr(i.meaning)}"></div>
+      <input type="text" class="e-meaning form-control" value="${safeAttr(i.meaning)}" name="edit-idiom-meaning" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text"></div>
     <div class="form-group"><label>Определение</label>
-      <input type="text" class="e-definition form-control" value="${safeAttr(i.definition)}"></div>
+      <input type="text" class="e-definition form-control" value="${safeAttr(i.definition)}" name="edit-idiom-definition" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text"></div>
     <div class="form-group"><label>Пример</label>
-      <input type="text" class="e-example form-control" value="${safeAttr(i.example)}"></div>
+      <input type="text" class="e-example form-control" value="${safeAttr(i.example)}" name="edit-idiom-example" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" inputmode="text"></div>
     <div class="form-group"><label>Перевод примера</label>
-      <input type="text" class="e-exampletranslation form-control" value="${safeAttr(i.example_translation)}"></div>
+      <input type="text" class="e-exampletranslation form-control" value="${safeAttr(i.example_translation)}" name="edit-idiom-example-ru" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text"></div>
     <div class="form-group"><label>Теги</label>
-      <input type="text" class="e-tags form-control" value="${safeAttr(i.tags.join(', '))}"></div>
+      <input type="text" class="e-tags form-control" value="${safeAttr(i.tags.join(', '))}" name="edit-idiom-tags" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text"></div>
     <div class="form-actions">
       <button class="save-edit-idiom-btn" data-id="${i.id}">
         <span class="material-symbols-outlined">save</span>
@@ -6686,6 +6626,7 @@ function startEditIdiom(id) {
       </button>
     </div>
   `;
+  hardenStudyInputs(card);
   card
     .querySelector('.save-edit-idiom-btn')
     .addEventListener('click', function (e) {
@@ -8660,7 +8601,6 @@ function startSession(cfg) {
 function showResults() {
   // Сбрасываем ожидающие обновления челленджов в конце сессии
   flushChallengeUpdates();
-
   document.body.classList.remove('exercise-active'); // ← добавлено
   if (window.matchTimerCancel) {
     window.matchTimerCancel();
@@ -10738,10 +10678,8 @@ async function renderRandomBankIdiom() {
     wrap.classList.add('fade-out');
     await new Promise(r => setTimeout(r, 200));
   }
-
   // Идиомы пока не имеют поля level, поэтому всегда используем 'all'
   const idiom = await window.IdiomAPI.getRandomNewIdiom('all');
-
   if (!idiom) {
     wrap.innerHTML = `
       <div class="word-bank-card">
@@ -10755,7 +10693,6 @@ async function renderRandomBankIdiom() {
     setTimeout(() => wrap.classList.remove('fade-in'), 300);
     return;
   }
-
   currentBankIdiom = idiom;
   wrap.innerHTML = `
     <div class="word-bank-card">
@@ -12074,7 +12011,6 @@ function runPhraseBuilderExercise(item, onComplete, exerciseType) {
     });
   }
 }
-
 function runSentenceBuilderExercise(word, onComplete, exerciseType) {
   const content = document.getElementById('ex-content');
   const btns = document.getElementById('ex-btns');
@@ -12083,19 +12019,15 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
   exTypeLbl.innerHTML =
     '<span class="material-symbols-outlined">format_quote</span> Собери предложение';
   exCounter.textContent = `${sIdx + 1} / ${window.session.items.length}`;
-
   let sentence = word.examples?.[0]?.text || word.ex || '';
   let translation = word.examples?.[0]?.translation || '';
-
   if (!sentence.trim()) {
     toast('Для этого слова нет примера', 'warning');
     onComplete();
     return;
   }
-
   const words = sentence.trim().split(/\s+/);
   const shuffled = [...words].sort(() => Math.random() - 0.5);
-
   content.innerHTML = `
     <div class="builder-card">
       <div class="builder-question">${esc(translation || 'Составьте предложение')}</div>
@@ -12110,17 +12042,14 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
       </button>
     </div>
   `;
-
   const answerContainer = document.getElementById('sentence-builder-answer');
   const wordsContainer = document.getElementById('sentence-builder-words');
-
   for (let i = 0; i < words.length; i++) {
     const placeholder = document.createElement('span');
     placeholder.className = 'builder-answer-letter placeholder';
     placeholder.dataset.index = i;
     answerContainer.appendChild(placeholder);
   }
-
   shuffled.forEach((wordToken, index) => {
     const btn = document.createElement('button');
     btn.className = 'builder-letter';
@@ -12133,7 +12062,6 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
         '.builder-answer-letter.placeholder',
       );
       if (!firstPlaceholder) return;
-
       firstPlaceholder.classList.remove('placeholder');
       firstPlaceholder.textContent = wordToken;
       firstPlaceholder.style.cursor = 'pointer';
@@ -12141,7 +12069,6 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
       firstPlaceholder.dataset.word = wordToken;
       btn.disabled = true;
       btn.style.visibility = 'hidden';
-
       firstPlaceholder.addEventListener('click', function removeHandler() {
         if (!firstPlaceholder.classList.contains('placeholder')) {
           const targetBtn = Array.from(wordsContainer.children).find(
@@ -12164,7 +12091,6 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
     });
     wordsContainer.appendChild(btn);
   });
-
   function playExampleAudio() {
     const audioArr =
       word.examples_audio || word.examplesAudio || word.examplesaudio;
@@ -12182,7 +12108,6 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
       speakText(sentence);
     }
   }
-
   function checkAnswer() {
     const current = Array.from(answerContainer.children)
       .map(el => el.textContent)
@@ -12265,7 +12190,6 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
       playSound('wrong');
     }
   }
-
   const hintBtn = document.getElementById('sentence-builder-hint-btn');
   if (hintBtn) {
     hintBtn.addEventListener('click', () => {
@@ -12306,7 +12230,6 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
     });
   }
 }
-
 // === EXIT SESSION ===
 document.getElementById('ex-exit-btn').addEventListener('click', () => {
   // Останавливаем таймер match-упражнения, если есть
@@ -12494,6 +12417,9 @@ window.renderXP = renderXP; // обновление XP
 window.renderBadges = renderBadges;
 window.renderStats = renderStats;
 window.renderWords = renderWords;
+window.updateFriendsNavBadge = updateFriendsNavBadge;
+window.subscribeToMessages = subscribeToMessages; // глобальная подписка на сообщения
+window.subscribeToReactions = subscribeToReactions; // глобальная подписка на реакции
 function renderIdioms(appendOnly = false) {
   // Защита от отсутствия идиом
   if (!window.idioms || !Array.isArray(window.idioms)) {
@@ -12906,6 +12832,11 @@ document.addEventListener('visibilitychange', () => {
     });
     localStorage.setItem('englift_lastknown_progress', profileData);
     */
+  } else {
+    // ✅ Сверка с БД один раз при возврате в таб
+    if (window.currentUserId && navigator.onLine) {
+      updateUnreadCounts();
+    }
   }
 });
 // Инициализация
@@ -13269,9 +13200,17 @@ function updateFloatingButtonsForTab(tabName) {
   if (tabName === 'words') {
     floatingWordBtn.classList.remove('fab-hidden');
     floatingIdiomBtn.classList.add('fab-hidden');
+    if (floatingFriendBtn) {
+      floatingFriendBtn.classList.add('fab-hidden');
+      floatingFriendBtn.style.display = 'none';
+    }
   } else if (tabName === 'idioms') {
     floatingIdiomBtn.classList.remove('fab-hidden');
     floatingWordBtn.classList.add('fab-hidden');
+    if (floatingFriendBtn) {
+      floatingFriendBtn.classList.add('fab-hidden');
+      floatingFriendBtn.style.display = 'none';
+    }
   } else if (tabName === 'friends') {
     // Скрываем кнопки слов и идиом
     floatingWordBtn.classList.add('fab-hidden');
@@ -13317,14 +13256,37 @@ async function loadFriendsDataNew() {
     return;
   }
   try {
-    const [friends, requests, outgoing, leaderboard] = await Promise.all([
-      getFriends(window.currentUserId),
+    // Прямой запрос к friendships вместо getFriends() (который имеет баг)
+    const { data: allFriendships } = await supabase
+      .from('friendships')
+      .select('user_id, friend_id, status')
+      .or(
+        `user_id.eq.${window.currentUserId},friend_id.eq.${window.currentUserId}`,
+      );
+    // Извлекаем уникальные ID друзей со статусом accepted
+    const acceptedFriendIds = [
+      ...new Set(
+        allFriendships
+          .filter(f => f.status === 'accepted')
+          .map(f =>
+            f.user_id === window.currentUserId ? f.friend_id : f.user_id,
+          ),
+      ),
+    ];
+    // Получаем профили напрямую
+    const { data: friendProfiles } = await supabase
+      .from('profiles')
+      .select(
+        'id, username, xp, level, streak, laststreakdate, total_words, total_idioms, learned_words',
+      )
+      .in('id', acceptedFriendIds);
+    const [requests, outgoing, leaderboard] = await Promise.all([
       getFriendRequests(window.currentUserId),
       getOutgoingRequests(window.currentUserId),
       getLeaderboard('week'),
     ]);
     friendsData = {
-      friends: friends || [],
+      friends: friendProfiles || [],
       requests: requests || [],
       outgoing: outgoing || [],
       leaderboard: leaderboard || [],
@@ -14489,8 +14451,56 @@ window.generateInviteLink = async function () {
   // Вызываем обновленную функцию
   await generateInviteLink();
 };
+// --- ЗАЩИТА ОТ АВТОЗАПОЛНЕНИЯ НА МОБИЛКАХ ---
+function hardenStudyInputs(root = document) {
+  const selectors = [
+    '#add-word-form input',
+    '#add-idiom-form input',
+    '#single-form input',
+    '#confirm-input',
+    '.word-card.editing input',
+    '.word-card.editing textarea',
+    '#ta-input',
+    '#dict-input',
+    '.e-en',
+    '.e-ru',
+    '.e-phonetic',
+    '.e-ex',
+    '.e-ex-translation',
+    '.e-tags',
+    '.e-idiom',
+    '.e-meaning',
+    '.e-definition',
+    '.e-example',
+    '.e-exampletranslation',
+    '#friends-search-input-new',
+    '#add-friend-search-input',
+  ];
+
+  root.querySelectorAll(selectors.join(',')).forEach(input => {
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('autocorrect', 'off');
+    input.setAttribute('autocapitalize', 'off');
+    input.setAttribute('spellcheck', 'false');
+
+    if (!input.getAttribute('inputmode')) {
+      input.setAttribute('inputmode', 'text');
+    }
+
+    if (!input.getAttribute('name')) {
+      input.setAttribute(
+        'name',
+        'study-' +
+          (input.id || input.className || Math.random().toString(36).slice(2)),
+      );
+    }
+  });
+}
 // --- INIT TAB ---
 document.addEventListener('DOMContentLoaded', () => {
+  // Защищаем все учебные поля от автозаполнения
+  hardenStudyInputs();
+
   // Инициализация floating кнопок
   floatingWordBtn = document.getElementById('floating-add-word-btn');
   floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
@@ -16044,126 +16054,165 @@ const addIncomingMessageLocally = (message, senderUsername) => {
     showReactionPickerGlobal(message.id);
   });
 };
-// Временно переопределяем подписку с детальными логами
-if (window._originalSubscribeMessages) {
-  messagesChannel?.unsubscribe();
-}
-window._originalSubscribeMessages = subscribeToMessages;
-subscribeToMessages = function () {
-  if (messagesChannel) messagesChannel.unsubscribe();
-  const userId = window.currentUserId;
-  if (!userId) return;
-  messagesChannel = supabase
-    .channel('messages-realtime')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `receiver_id=eq.${userId}`,
-      },
-      async payload => {
-        const message = payload.new;
-        const senderId = message.sender_id;
-        // Получаем имя отправителя
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', senderId)
-          .single();
-        // Показываем уведомление
-        toast(
-          `📩 Новое сообщение от ${profile?.username || 'пользователя'}`,
-          'info',
-          'chat',
-        );
-        playSound('sound/message.mp3');
-        // Обновляем бейджи непрочитанных
-        await updateUnreadCounts();
-        // Если сейчас открыт чат с этим отправителем, добавляем сообщение локально
-        if (window.currentChatFriend === senderId) {
-          addIncomingMessageLocally(message, profile?.username);
-        }
-      },
-    )
-    .subscribe();
-};
-// Вызываем подписку сразу после переопределения
-setTimeout(() => {
-  if (window.currentUserId) {
-    subscribeToMessages();
-  }
-}, 1000);
 function subscribeToMessages() {
+  console.log(
+    '[GLOBAL MSG] subscribeToMessages called, userId:',
+    window.currentUserId,
+  );
   if (messagesChannel) {
+    console.log('[GLOBAL MSG] Unsubscribing existing channel');
     messagesChannel.unsubscribe();
   }
   const userId = window.currentUserId;
-  if (!userId) return;
-  messagesChannel = supabase
-    .channel('messages-realtime')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `receiver_id=eq.${userId}`,
-      },
-      async payload => {
-        const message = payload.new;
-        const senderId = message.sender_id;
-        // Получаем имя отправителя
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', senderId)
-          .single();
-        // Показываем уведомление
-        toast(
-          `📩 Новое сообщение от ${profile?.username || 'пользователя'}`,
-          'info',
-          'chat',
-        );
-        playSound('sound/message.mp3');
-        // Обновляем бейджи непрочитанных
-        await updateUnreadCounts();
-        // Если открыта вкладка чатов, обновляем список друзей для чата
-        if (
-          document.getElementById('fpanel-chat')?.classList.contains('active')
-        ) {
-        }
-        // Если сейчас открыт чат с этим отправителем, добавляем сообщение локально
-        if (window.currentChatFriend === senderId) {
-          addIncomingMessageLocally(message, profile?.username);
-        }
-      },
-    )
-    .subscribe();
+  if (!userId) {
+    console.warn('[GLOBAL MSG] No userId, skipping subscription');
+    return;
+  }
+  console.log(
+    '[GLOBAL MSG] Creating channel with filter: receiver_id=eq.' + userId,
+  );
+  try {
+    messagesChannel = supabase
+      .channel('messages-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${userId}`,
+        },
+        async payload => {
+          console.log('[GLOBAL MSG] Received message:', payload.new);
+          const message = payload.new;
+          const senderId = message.sender_id;
+          // Имя отправителя — один лёгкий запрос только для тоста
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', senderId)
+            .single();
+          const senderName = profile?.username || '?';
+          console.log(
+            '[GLOBAL MSG] Sender:',
+            senderName,
+            'currentChatFriend:',
+            window.currentChatFriend,
+          );
+          // Если сообщение от текущего друга — добавляем в DOM
+          if (window.currentChatFriend === senderId) {
+            addIncomingMessageLocally(message, senderName);
+          }
+          // Обновляем бейджи непрочитанных (тост и звук там)
+          await updateUnreadCounts();
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${userId}`,
+        },
+        payload => {
+          console.log(
+            '[GLOBAL MSG] Sent message updated (read status):',
+            payload.new,
+          );
+          const msg = payload.new;
+          // Обновляем статус прочтения в UI
+          const msgEl = document.querySelector(
+            `[data-id="${msg.id}"], [data-message-id="${msg.id}"]`,
+          );
+          if (msgEl) {
+            const readEl = msgEl.querySelector(
+              '.tgl-read-status, .chat-read-status',
+            );
+            if (readEl) {
+              if (msg.read) {
+                readEl.textContent = 'done_all';
+                readEl.classList.remove('tgl-read--sent', 'chat-read--sent');
+                readEl.classList.add('tgl-read--read', 'chat-read--read');
+              } else {
+                readEl.textContent = 'done';
+                readEl.classList.remove('tgl-read--read', 'chat-read--read');
+                readEl.classList.add('tgl-read--sent', 'chat-read--sent');
+              }
+            }
+          }
+        },
+      )
+      .subscribe(
+        status => {
+          console.log('[GLOBAL MSG] Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('[GLOBAL MSG] ✅ Successfully subscribed to messages');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('[GLOBAL MSG] ❌ Subscription error');
+          }
+        },
+        err => {
+          console.error('[GLOBAL MSG] Subscription error:', err);
+        },
+      );
+  } catch (err) {
+    console.error('[GLOBAL MSG] Error creating subscription:', err);
+  }
 }
 function subscribeToReactions() {
-  if (reactionsChannel) {
-    reactionsChannel.unsubscribe();
-  }
+  if (reactionsChannel) reactionsChannel.unsubscribe();
   if (!window.currentUserId) return;
-  reactionsChannel = supabase
-    .channel('reactions-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'reactions',
-      },
-      async payload => {
-        // Если открыт чат с кем-то, обновляем его
-        if (currentChatFriend) {
-          await openChatWithFriend(currentChatFriend);
-        }
-      },
-    )
-    .subscribe();
+  console.log('[GLOBAL MSG] Creating channel for reactions');
+  try {
+    reactionsChannel = supabase
+      .channel('reactions-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reactions' },
+        payload => {
+          const { eventType, new: r, old: o } = payload;
+          const msgId = eventType === 'DELETE' ? o.message_id : r.message_id;
+          const userId = eventType === 'DELETE' ? o.user_id : r.user_id;
+          const emoji = eventType === 'DELETE' ? o.emoji : r.emoji;
+          // Своя реакция — уже обновлена оптимистично, пропускаем
+          if (userId === window.currentUserId) return;
+          // Ищем элемент реакции через ГЛОБАЛЬНЫЙ showReactionPickerGlobal
+          // который уже умеет updateReactionLocally
+          const delta = eventType === 'DELETE' ? -1 : 1;
+          // Обновляем реакцию в чат-оверлее если он открыт
+          const msgEl = document.querySelector(
+            `[data-id="${msgId}"], [data-message-id="${msgId}"]`,
+          );
+          if (!msgEl) return;
+          let container = msgEl.querySelector(
+            '.tgl-reactions, .chat-reactions',
+          );
+          if (!container) {
+            container = document.createElement('div');
+            container.className = 'tgl-reactions';
+            msgEl
+              .querySelector('.tgl-msg-bubble, .chat-bubble')
+              ?.appendChild(container);
+          }
+          let reaction = container.querySelector(`[data-emoji="${emoji}"]`);
+          if (delta === 1 && !reaction) {
+            // Добавляем новую реакцию
+            reaction = document.createElement('span');
+            reaction.className = 'tgl-reaction';
+            reaction.dataset.emoji = emoji;
+            reaction.textContent = emoji;
+            container.appendChild(reaction);
+          } else if (delta === -1 && reaction) {
+            // Удаляем реакцию
+            reaction.remove();
+          }
+        },
+      )
+      .subscribe();
+  } catch (err) {
+    console.error('[GLOBAL MSG] Error creating reactions subscription:', err);
+  }
 }
 function subscribeToFriendRequests() {
   if (friendshipsChannel) {

@@ -15,11 +15,43 @@ let tglInput = null;
 let tglReactionsMap = new Map(); // msgId -> {emoji: [userIds]}
 let tglMsgChannel = null;
 let tglReactionChannel = null;
+let tglPresenceChannel = null;
+let tglTypingTimer = null;
+let tglIsTyping = false;
 let tglIsNearBottom = true;
+let tglPollingInterval = null;
 
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
 function isSticker(text) {
   return /^\p{Emoji}$/u.test(text) && text.length <= 2;
+}
+
+function setTypingStatus(isTyping) {
+  const statusEl = document.getElementById('tgl-header-status');
+  if (!statusEl) return;
+
+  if (isTyping) {
+    statusEl.textContent = 'печатает…';
+    statusEl.classList.add('tgl-header-status--typing');
+  } else {
+    statusEl.textContent = '';
+    statusEl.classList.remove('tgl-header-status--typing');
+  }
+}
+
+async function sendTypingState(isTyping) {
+  if (!tglPresenceChannel) return;
+  try {
+    tglIsTyping = isTyping;
+    await tglPresenceChannel.track({
+      user_id: tglCurrentUser,
+      friend_id: tglCurrentFriend?.id,
+      typing: isTyping,
+      ts: Date.now(),
+    });
+  } catch (err) {
+    console.warn('Typing state error:', err);
+  }
 }
 
 // === STICKERS ===
@@ -224,6 +256,29 @@ export async function openChat(friendId, friendName, friendAvatar) {
   tglCurrentUser = user.id;
   tglCurrentFriend = { id: friendId, name: friendName, avatar: friendAvatar };
 
+  // ✅ Мгновенно обнуляем счётчик для этого друга локально
+  const perFriendBadge = document.getElementById(
+    `friend-chat-badge-${friendId}`,
+  );
+  if (perFriendBadge) {
+    perFriendBadge.textContent = '';
+    perFriendBadge.style.display = 'none';
+  }
+
+  // Пересчитываем общий счётчик по всем видимым бейджам без DB
+  let totalUnread = 0;
+  document.querySelectorAll('[id^="friend-chat-badge-"]').forEach(b => {
+    totalUnread += parseInt(b.textContent) || 0;
+  });
+  window.unreadMessagesCount = totalUnread;
+  updateFloatingChatButton();
+  if (typeof window.updateFriendsNavBadge === 'function') {
+    window.updateFriendsNavBadge();
+  }
+
+  // Пишем в БД асинхронно — не блокируем UI
+  markMessagesRead(user.id, friendId).catch(console.warn);
+
   createChatUI(friendName, friendAvatar);
   setupEventListeners();
   await loadHistory();
@@ -247,6 +302,7 @@ function createChatUI(name, avatar) {
           <div class="tgl-header-avatar">${firstLetter}</div>
           <div class="tgl-header-info">
             <span class="tgl-header-name">${esc(name)}</span>
+            <span class="tgl-header-status" id="tgl-header-status"></span>
           </div>
         </div>
         <div class="tgl-header-actions">
@@ -261,7 +317,7 @@ function createChatUI(name, avatar) {
       <div class="tgl-messages" id="tgl-messages"></div>
       <div class="tgl-input-area">
         <div class="tgl-input-wrap">
-          <input type="text" class="tgl-input" placeholder="Сообщение..." maxlength="1000">
+          <input type="text" class="tgl-input" placeholder="Сообщение..." maxlength="1000" autocomplete="off" autocorrect="off" autocapitalize="off" name="chat-message">
           <button class="tgl-btn-emoji" title="Эмодзи">
             <span class="material-symbols-outlined">mood</span>
           </button>
@@ -306,6 +362,21 @@ function setupEventListeners() {
   // Enter key
   tglInput.addEventListener('keypress', e => {
     if (e.key === 'Enter') sendMessage();
+  });
+
+  // Typing indicator
+  tglInput.addEventListener('input', async () => {
+    if (!tglInput) return;
+    const hasText = !!tglInput.value.trim();
+
+    if (hasText && !tglIsTyping) {
+      await sendTypingState(true);
+    }
+
+    if (tglTypingTimer) clearTimeout(tglTypingTimer);
+    tglTypingTimer = setTimeout(() => {
+      sendTypingState(false);
+    }, 1800);
   });
 
   // Emoji picker
@@ -411,7 +482,18 @@ function renderMessage(msg) {
   } else {
     html += `<div class="tgl-msg-text">${esc(msg.text)}</div>`;
     html += `<div class="tgl-msg-meta">`;
-    html += `<span>${time}</span>`;
+    html += `<span class="tgl-msg-time">${time}</span>`;
+
+    if (isOwn) {
+      const readIcon = msg.read ? 'done_all' : 'done';
+      const readClass = msg.read ? 'tgl-read--read' : 'tgl-read--sent';
+      html += `
+        <span class="material-symbols-outlined tgl-read-status ${readClass}">
+          ${readIcon}
+        </span>
+      `;
+    }
+
     html += `</div>`;
   }
 
@@ -467,6 +549,19 @@ function updateTempMessage(tempId, realMsg) {
     );
   }
 
+  const readEl = el.querySelector('.tgl-read-status');
+  if (readEl) {
+    if (realMsg.read) {
+      readEl.textContent = 'done_all';
+      readEl.classList.remove('tgl-read--sent');
+      readEl.classList.add('tgl-read--read');
+    } else {
+      readEl.textContent = 'done';
+      readEl.classList.remove('tgl-read--read');
+      readEl.classList.add('tgl-read--sent');
+    }
+  }
+
   return true;
 }
 
@@ -483,11 +578,15 @@ async function sendMessage() {
     receiver_id: tglCurrentFriend.id,
     text: text,
     created_at: new Date().toISOString(),
+    read: false,
   };
   renderMessage(tempMsg);
   tglInput.value = '';
   scrollToBottom();
   playSound('sound/send.mp3');
+
+  if (tglTypingTimer) clearTimeout(tglTypingTimer);
+  await sendTypingState(false);
 
   try {
     const { data: realMsg, error } = await supabase
@@ -748,43 +847,177 @@ function scrollToBottom() {
 
 // === SUBSCRIBE TO REALTIME ===
 function subscribeToUpdates() {
-  // New messages
+  // Простой фильтр — ТОЛЬКО входящие тебе. Работает на всех планах Supabase.
+  // Свои сообщения ты видишь сразу через renderMessage в sendMessage().
   tglMsgChannel = supabase
-    .channel(`tgl-messages-${tglCurrentUser}`)
+    .channel(`tgl-msg-${tglCurrentUser}-${Date.now()}`)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `or(and(sender_id.eq.${tglCurrentUser},receiver_id.eq.${tglCurrentFriend.id}),and(sender_id.eq.${tglCurrentFriend.id},receiver_id.eq.${tglCurrentUser}))`,
+        filter: `receiver_id=eq.${tglCurrentUser}`,
       },
       payload => {
-        // Проверяем, не существует ли уже сообщение с таким ID
+        const msg = payload.new;
+        // Показываем только от текущего друга
+        if (msg.sender_id !== tglCurrentFriend?.id) return;
         const exists = tglMessagesContainer?.querySelector(
-          `[data-id="${payload.new.id}"]`,
+          `[data-id="${msg.id}"]`,
         );
         if (exists) return;
+        renderMessage(msg);
+        if (tglIsNearBottom) scrollToBottom();
+        playSound('sound/notification.mp3');
+        markMessagesAsRead();
+      },
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${tglCurrentUser}`,
+      },
+      payload => {
+        const msg = payload.new;
+        if (msg.sender_id !== tglCurrentFriend?.id) return;
+        const msgEl = tglMessagesContainer?.querySelector(
+          `[data-id="${msg.id}"]`,
+        );
+        if (!msgEl) return;
 
-        renderMessage(payload.new);
-        if (tglIsNearBottom) {
-          scrollToBottom();
+        const readEl = msgEl.querySelector('.tgl-read-status');
+        if (!readEl) return;
+
+        if (msg.read) {
+          readEl.textContent = 'done_all';
+          readEl.classList.remove('tgl-read--sent');
+          readEl.classList.add('tgl-read--read');
+        } else {
+          readEl.textContent = 'done';
+          readEl.classList.remove('tgl-read--read');
+          readEl.classList.add('tgl-read--sent');
         }
-        if (payload.new.sender_id !== tglCurrentUser) {
-          playSound('sound/notification.mp3');
-          markMessagesAsRead();
-        }
+      },
+    )
+    .on('system', {}, ({ status }) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('[TGL Chat] WS упал, переподключение...');
+        setTimeout(() => {
+          tglMsgChannel?.unsubscribe();
+          subscribeToUpdates();
+        }, 3000);
+      }
+    })
+    .subscribe();
+
+  // Presence для typing — отдельный канал
+  const presenceKey = [tglCurrentUser, tglCurrentFriend.id].sort().join('-');
+  tglPresenceChannel = supabase
+    .channel(`tgl-presence-${presenceKey}`, {
+      config: { presence: { key: String(tglCurrentUser) } },
+    })
+    .on('presence', { event: 'sync' }, () => {
+      const state = tglPresenceChannel.presenceState();
+      let friendTyping = false;
+      Object.values(state).forEach(entries => {
+        entries.forEach(entry => {
+          if (
+            String(entry.user_id) === String(tglCurrentFriend.id) &&
+            entry.typing
+          ) {
+            friendTyping = true;
+          }
+        });
+      });
+      setTypingStatus(friendTyping);
+    })
+    .subscribe(async status => {
+      if (status === 'SUBSCRIBED') await sendTypingState(false);
+    });
+
+  // Реакции
+  tglReactionChannel = supabase
+    .channel(`tgl-reactions-${tglCurrentUser}-${tglCurrentFriend.id}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'reactions' },
+      ({ eventType, new: r, old: o }) => {
+        const msgId = eventType === 'DELETE' ? o.message_id : r.message_id;
+        const userId = eventType === 'DELETE' ? o.user_id : r.user_id;
+        const emoji = eventType === 'DELETE' ? o.emoji : r.emoji;
+
+        // Своя реакция — уже обновлена оптимистично, пропускаем
+        if (userId === tglCurrentUser) return;
+
+        updateReactionUI(msgId, emoji, eventType === 'DELETE' ? -1 : 1);
       },
     )
     .subscribe();
 
-  // Reactions (disabled if no table)
-  tglReactionChannel = null;
+  // Polling-страховка каждые 3 секунды
+  tglPollingInterval = setInterval(pollNewMessages, 3000);
+}
+
+// === POLLING NEW MESSAGES ===
+async function pollNewMessages() {
+  if (!tglCurrentUser || !tglCurrentFriend || !tglMessagesContainer) return;
+
+  // Собираем ID сообщений, которые уже есть в DOM (кроме temp-)
+  const existingIds = new Set(
+    [...tglMessagesContainer.querySelectorAll('[data-id]')]
+      .map(el => el.dataset.id)
+      .filter(id => !id.startsWith('temp-')),
+  );
+
+  if (existingIds.size === 0) return;
+
+  // Берём последние 10 записей из БД чтобы поймать новые
+  const { data: recent } = await supabase
+    .from('messages')
+    .select('*')
+    .or(
+      `and(sender_id.eq.${tglCurrentUser},receiver_id.eq.${tglCurrentFriend.id}),` +
+        `and(sender_id.eq.${tglCurrentFriend.id},receiver_id.eq.${tglCurrentUser})`,
+    )
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (!recent) return;
+
+  const newMsgs = recent.filter(m => !existingIds.has(m.id)).reverse();
+
+  if (newMsgs.length === 0) return;
+
+  for (const msg of newMsgs) {
+    renderMessage(msg);
+  }
+
+  if (tglIsNearBottom) scrollToBottom();
+  markMessagesAsRead();
 }
 
 // === CLOSE CHAT ===
 function closeChat() {
   if (!tglOverlay) return;
+
+  // Стоп polling
+  if (tglPollingInterval) {
+    clearInterval(tglPollingInterval);
+    tglPollingInterval = null;
+  }
+
+  // Стоп typing timer
+  if (tglTypingTimer) {
+    clearTimeout(tglTypingTimer);
+    tglTypingTimer = null;
+  }
+  tglIsTyping = false;
+
+  setTypingStatus(false);
 
   tglOverlay.style.opacity = '0';
   setTimeout(() => {
@@ -796,8 +1029,17 @@ function closeChat() {
 
     tglMsgChannel?.unsubscribe();
     tglReactionChannel?.unsubscribe();
+    tglPresenceChannel?.unsubscribe();
+
     tglMsgChannel = null;
     tglReactionChannel = null;
+    tglPresenceChannel = null;
+
+    if (tglTypingTimer) {
+      clearTimeout(tglTypingTimer);
+      tglTypingTimer = null;
+    }
+    tglIsTyping = false;
   }, 200);
 }
 

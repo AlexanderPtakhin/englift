@@ -550,9 +550,8 @@ export async function getFriends(userId) {
   // 1. Получаем все связи со статусом accepted
   const { data: friendships, error } = await supabase
     .from('friendships')
-    .select('user_id, friend_id')
-    .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
-    .eq('status', 'accepted');
+    .select('user_id, friend_id, status')
+    .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
 
   if (error) {
     console.error('Error getting friends:', error);
@@ -561,8 +560,13 @@ export async function getFriends(userId) {
 
   if (!friendships.length) return [];
 
+  // Фильтруем только accepted
+  const acceptedFriendships = friendships.filter(f => f.status === 'accepted');
+
+  if (!acceptedFriendships.length) return [];
+
   // 2. Извлекаем ID друзей
-  const friendIds = friendships.map(f =>
+  const friendIds = acceptedFriendships.map(f =>
     f.user_id === userId ? f.friend_id : f.user_id,
   );
 

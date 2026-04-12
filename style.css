@@ -1817,20 +1817,6 @@ body.exam-mode .setup-row:nth-of-type(8) {
   position: relative;
 }
 
-.mobile-nav-btn .badge {
-  position: absolute;
-
-  top: 0px;
-
-  right: 15px;
-}
-
-.mobile-nav-btn:not(.active) .badge {
-  background: var(--border);
-
-  color: var(--text);
-}
-
 .mobile-nav-btn.active .material-symbols-outlined,
 .mobile-nav-btn.active span:not(.material-symbols-outlined):not(.badge) {
   color: var(--primary-text, var(--primary));
@@ -2038,82 +2024,92 @@ nav {
   align-items: center;
 }
 
-/* ===== BADGE НА КНОПКАХ НАВИГАЦИИ (дубликат + практика) ===== */
+/* ===== UNIVERSAL BADGE STYLE ===== */
 
-/* Десктоп */
-
-.nav-btn .badge,
-#due-count {
-  position: absolute;
-
-  top: -7px;
-
-  right: 8px;
-
-  min-width: 19px;
-
-  width: auto;
-
-  height: 19px;
-
-  background: var(--danger);
-
+.badge {
+  background: var(--primary);
   color: #fff;
-
-  font-size: 0.68rem;
-
-  font-weight: 700;
-
   border-radius: 10px;
-
-  display: flex;
-
-  align-items: center;
-
   justify-content: center;
-
+  align-items: center;
+  width: auto;
+  min-width: 19px;
+  height: 19px;
   padding: 0 4px;
-
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  position: absolute;
+  top: -7px;
+  right: 8px;
+  box-shadow: -2px 3px 3px rgba(0, 0, 0, 0.25);
 }
 
-/* Мобильный навбар — точно как у идиом */
+/* Navigation badges specific positioning */
+.nav-btn .badge,
+#due-count {
+  top: -7px;
+  right: 8px;
+}
 
 .mobile-nav-btn .badge,
 #mobile-due-count {
-  position: absolute;
+  top: 0.35rem;
+  right: 22%;
+}
 
-  top: 0.35rem; /* чуть ниже, чтобы не залезало на иконку */
-
-  right: 22%; /* как у #mobile-idioms-count */
-
-  min-width: 18px;
-
-  width: auto;
-
-  height: 18px;
-
-  background: var(--danger);
-
+/* Chip badges */
+.chip-badge {
+  background: var(--primary);
   color: #fff;
-
   font-size: 0.65rem;
-
   font-weight: 700;
-
-  border-radius: 9px;
-
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
   display: flex;
-
   align-items: center;
-
   justify-content: center;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  box-shadow: -2px 3px 3px rgba(0, 0, 0, 0.25);
+}
 
-  padding: 0 3px;
+/* Due pill */
+.due-pill {
+  background: var(--primary);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: -2px 3px 3px rgba(0, 0, 0, 0.25);
+}
 
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-
-  z-index: 15;
+/* Friend chat badge */
+.friend-chat-badge {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  box-shadow: -2px 3px 3px rgba(0, 0, 0, 0.25);
 }
 
 /* Когда due = 0 — полностью прячем (ни кружка, ни пустоты) */
@@ -2156,28 +2152,10 @@ nav {
   color: var(--primary-text, var(--primary));
 }
 
-.nav-btn:not(.active) .badge {
-  background: var(--border);
-
-  color: var(--text);
-}
-
 .nav-btn .material-symbols-outlined {
   font-size: 18px;
 
   color: inherit;
-}
-
-/* Specific centering for due-count badge */
-
-#due-count {
-  display: flex;
-
-  align-items: center !important;
-
-  justify-content: center !important;
-
-  text-align: center !important;
 }
 
 .xp-container {
@@ -8159,37 +8137,6 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
   }
 }
 
-/* Красивые бейджики на чипах практики */
-
-#practice-words-due,
-#practice-idioms-due {
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  background: var(--danger);
-
-  color: white;
-
-  font-size: 0.65rem;
-
-  font-weight: 700;
-
-  min-width: 18px;
-
-  height: 18px;
-
-  border-radius: 9px;
-
-  padding: 0 5px;
-
-  margin-left: 6px;
-
-  vertical-align: middle;
-}
-
 @media (min-width: 801px) and (max-width: 1000px) {
   #tab-words .words-toolbar,
   #tab-idioms .words-toolbar {
@@ -9000,22 +8947,6 @@ html.dark .no-speech {
   color: var(--muted);
 
   margin-top: 4px;
-}
-
-.due-pill {
-  background: var(--danger);
-
-  color: white;
-
-  padding: 1px 6px;
-
-  border-radius: 10px;
-
-  font-size: 0.72rem;
-
-  font-weight: 700;
-
-  margin-left: 4px;
 }
 
 .stat-card.srs-hl {
@@ -10123,28 +10054,6 @@ html.dark .due-soon {
 /* DUE BADGE */
 
 .nav-due-badge {
-  display: inline-block;
-
-  background: var(--danger);
-
-  color: #fff;
-
-  border-radius: 10px;
-
-  font-size: 0.65rem;
-
-  font-weight: 800;
-
-  padding: 0.05rem 0.38rem;
-
-  margin-left: 0.3rem;
-
-  min-width: 1.2em;
-
-  text-align: center;
-
-  vertical-align: middle;
-
   animation: pulseBadge 1.8s infinite;
 }
 
@@ -11252,38 +11161,6 @@ input:checked + .theme-slider:before {
   font-size: 24px;
 }
 
-.mobile-nav-btn .badge {
-  position: absolute;
-
-  top: 0.4rem;
-
-  right: 38%;
-
-  font-size: 0.65rem;
-
-  background: var(--primary);
-
-  color: white;
-
-  width: 20px;
-
-  height: 20px;
-
-  border-radius: 50%;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 0;
-
-  min-width: 20px;
-
-  text-align: center;
-}
-
 /* Показываем навбар только на мобильных */
 
 @media (max-width: 1000px) {
@@ -12219,24 +12096,6 @@ html.dark header {
 
 .mobile-nav-btn.active {
   color: var(--primary);
-}
-
-.mobile-nav-btn .badge {
-  background: var(--primary);
-
-  color: #fff;
-
-  min-width: 18px;
-
-  height: 18px;
-
-  font-size: 0.7rem;
-
-  top: 0.5rem;
-
-  right: 22%;
-
-  text-align: center;
 }
 
 @keyframes fadeIn {
@@ -14062,36 +13921,6 @@ html.dark .chip.on {
   line-height: 1.1;
 }
 
-.chip--mode .chip-badge {
-  position: absolute;
-  top: 0.35rem;
-  right: 0.45rem;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--danger);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 800;
-  line-height: 1;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
-  z-index: 2;
-}
-
-.chip--mode:not(.on) .chip-badge {
-  background: var(--border);
-  color: var(--text);
-}
-
-.chip--mode.on .chip-badge {
-  background: var(--danger);
-  color: #fff;
-}
-
 @media (max-width: 480px) {
   .chip-group--modes {
     gap: 0.5rem;
@@ -14850,31 +14679,8 @@ button.floating-add-btn:hover .material-symbols-outlined,
 }
 
 .floating-chat-btn .badge {
-  position: absolute;
-
   top: -5px;
-
   right: -5px;
-
-  background: var(--danger);
-
-  color: white;
-
-  font-size: 0.7rem;
-
-  min-width: 18px;
-
-  height: 18px;
-
-  border-radius: 9px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 0 4px;
 }
 
 /* Стили для карточек идиом */
@@ -15404,31 +15210,8 @@ button.floating-add-btn:hover .material-symbols-outlined,
 }
 
 .friends-tab .badge {
-  position: absolute;
-
   top: -5px;
-
   right: -5px;
-
-  min-width: 18px;
-
-  height: 18px;
-
-  background: var(--danger);
-
-  color: white;
-
-  font-size: 0.65rem;
-
-  border-radius: 50%;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  line-height: 1;
 }
 
 .friends-list,
@@ -16270,33 +16053,7 @@ button.floating-add-btn:hover .material-symbols-outlined,
 
 .friends-count-badge,
 .friends-req-count {
-  background: var(--primary);
-
-  color: white;
-
-  font-size: 0.65rem;
-
-  font-weight: 700;
-
-  min-width: 18px;
-
-  height: 18px;
-
-  border-radius: 9px;
-
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 0 4px;
-
   margin-left: 2px;
-}
-
-.friends-req-count {
-  background: var(--danger);
 }
 
 /* ПАНЕЛИ */
@@ -20941,28 +20698,6 @@ body.bs-open .bs-trigger-arrow {
 
 .lb-row .badge {
   position: static;
-
-  display: inline-flex;
-
-  min-width: 20px;
-
-  height: 20px;
-
-  background: var(--danger);
-
-  color: white;
-
-  font-size: 0.7rem;
-
-  border-radius: 10px;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 0 5px;
-
-  margin-left: 8px;
 }
 
 /* Кнопки действий челленджей */
@@ -21519,32 +21254,6 @@ body.bs-open .bs-trigger-arrow {
   color: var(--muted);
 
   white-space: nowrap;
-}
-
-#chat-friends-list .badge {
-  background: var(--primary);
-
-  color: white;
-
-  font-size: 0.7rem;
-
-  font-weight: 700;
-
-  min-width: 20px;
-
-  height: 20px;
-
-  border-radius: 10px;
-
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 0 6px;
-
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Контейнер сообщений */
@@ -22132,6 +21841,8 @@ body.bs-open .bs-trigger-arrow {
   justify-content: center;
 
   transition: all 0.2s ease;
+
+  position: relative;
 }
 
 .friend-action-btn:hover {
@@ -22244,6 +21955,8 @@ body.bs-open .bs-trigger-arrow {
   justify-content: center;
 
   transition: all 0.2s ease;
+
+  position: relative;
 }
 
 .friend-action-btn:hover {

@@ -485,11 +485,22 @@ html
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: transform 0.2s;
 }
 .tgl-btn-send:hover {
-  background: var(--primary-dark, var(--primary));
+  background: var(--primary) !important;
   transform: scale(1.05);
+}
+.tgl-btn-send:active {
+  background: var(--primary) !important;
+  color: white;
+  transform: scale(0.95);
+}
+.tgl-btn-send .material-symbols-outlined {
+  color: white !important;
+}
+.tgl-btn-send:active .material-symbols-outlined {
+  color: white !important;
 }
 
 /* ========== ПИКЕРЫ ========== */
@@ -721,4 +732,47 @@ html
   30% {
     transform: translateY(-4px);
   }
+}
+
+/* ========== TYPING STATUS ========== */
+.tgl-header-status {
+  display: block;
+  min-height: 1rem;
+  font-size: 0.78rem;
+  color: var(--muted, #8b8b95);
+  opacity: 0.95;
+  margin-top: 2px;
+}
+
+.tgl-header-status--typing {
+  color: var(--color-primary, #4f98a3);
+}
+
+/* ========== READ RECEIPTS ========== */
+.tgl-msg-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+.tgl-msg-time {
+  line-height: 1;
+}
+
+.tgl-read-status {
+  font-size: 16px;
+  line-height: 1;
+  color: white;
+}
+
+.tgl-read--sent {
+  color: white;
+}
+
+.tgl-read--read {
+  color: white;
 }
