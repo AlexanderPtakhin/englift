@@ -756,6 +756,8 @@ window.unreadMessagesCount = 0;
 // Streak and XP
 let streak = { count: 0, lastDate: null };
 let xpData = { xp: 0, level: 1, badges: [] };
+let pendingXpLogs = []; // Очередь для XP логов в офлайн режиме
+let pendingChallengeUpdates = { practice_time: 0 }; // Батчинг обновлений челленджей
 // 🔥 ФИКС 1: Привязываем window.xpData и window.streak к локальным переменным
 // Теперь все функции работают с ОДНИМИ И ТЕМИ ЖЕ объектами!
 window.xpData = xpData;
@@ -1840,53 +1842,37 @@ async function syncPendingWords() {
     !window.currentUserId
   )
     return;
-  const wordsToSync = Array.from(pendingWordUpdates.values()).filter(word => {
-    if (!word || !word.en) {
-      return false;
+
+  for (const [wordId, staleItem] of pendingWordUpdates.entries()) {
+    if (staleItem._deleted) {
+      try {
+        await deleteWordFromDb(wordId);
+        pendingWordUpdates.delete(wordId);
+      } catch (e) {
+        console.error('Ошибка удаления слова:', e);
+      }
+      continue;
     }
-    return true;
-  });
-  if (wordsToSync.length === 0) {
-    pendingWordUpdates.clear();
-    return;
-  }
-  for (const item of wordsToSync) {
-    if (item._deleted) {
-      // Удаляем с сервера
-      try {
-        await deleteWordFromDb(item.id);
-        pendingWordUpdates.delete(item.id); // убираем из очереди
-      } catch (e) {
-        console.error(`Ошибка удаления слова "${item.en}":`, e);
-        // остаётся в очереди для повторной попытки
-      }
-    } else {
-      // Сохраняем или обновляем слово через saveWordToDb с upsert
-      try {
-        // Нормализуем stats (поддерживаем и camelCase, и snake_case)
-        if (item.stats) {
-          item.stats = normalizeStats(item.stats);
-        }
-        // Если слово уже существует, удаляем created_at чтобы не перезаписывать
-        const existingWord = window.words.find(w => w.id === item.id);
-        if (existingWord && existingWord.createdAt) {
-          delete item.created_at;
-        }
-        // Копируем examplesAudio в examples_audio если первое есть, а второе нет
-        if (item.examplesAudio && !item.examples_audio)
-          item.examples_audio = item.examplesAudio;
-        await saveWordToDb(item);
-        pendingWordUpdates.delete(item.id);
-      } catch (e) {
-        console.error(`Ошибка синхронизации слова "${item.en}":`, e);
-      }
+
+    // Всегда берём свежак из window.words — там актуальные stats
+    const freshWord = window.words?.find(w => w.id === wordId);
+    if (!freshWord) {
+      pendingWordUpdates.delete(wordId);
+      continue;
+    }
+
+    try {
+      await saveWordToDb(toSnakeCase(freshWord)); // Конвертируем в snake_case для БД
+      pendingWordUpdates.delete(wordId);
+    } catch (e) {
+      console.error('save failed:', freshWord.en, e);
     }
   }
 }
 function markIdiomDirty(idiomId) {
   const idiom = window.idioms?.find(i => i.id === idiomId);
   if (idiom) {
-    pendingIdiomUpdates.set(idiomId, { ...idiom });
+    pendingIdiomUpdates.set(idiomId, toSnakeCase(idiom));
     scheduleIdiomSync();
   }
 }
@@ -3976,22 +3962,68 @@ function gainXP(amount, reason = '') {
   renderBadges();
   // Записываем в лог XP (без reason)
   if (window.currentUserId) {
-    supabase
-      .from('xp_log')
-      .insert({
+    if (navigator.onLine) {
+      // Если онлайн - сразу сохраняем в Supabase
+      supabase
+        .from('xp_log')
+        .insert({
+          user_id: window.currentUserId,
+          amount: amount,
+          created_at: new Date().toISOString(),
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Failed to log XP:', error);
+        });
+    } else {
+      // Если офлайн - добавляем в очередь
+      pendingXpLogs.push({
         user_id: window.currentUserId,
         amount: amount,
         created_at: new Date().toISOString(),
-      })
-      .then(({ error }) => {
-        if (error) console.warn('Failed to log XP:', error);
-      })
-      .catch(e => console.warn('Failed to log XP:', e));
+      });
+    }
   }
 }
-function checkBadges(perfectSession) {
-  let newBadges = [];
-  // Собираем данные для проверки условий бейджей
+
+// Синхронизация XP логов при восстановлении сети
+async function flushXpQueue() {
+  if (pendingXpLogs.length === 0 || !navigator.onLine) return;
+
+  const logsToSync = [...pendingXpLogs];
+  pendingXpLogs = [];
+
+  for (const log of logsToSync) {
+    try {
+      await supabase.from('xp_log').insert(log);
+    } catch (e) {
+      console.warn('Failed to sync XP log, re-queueing:', e);
+      pendingXpLogs.unshift(log);
+      break;
+    }
+  }
+}
+
+// Сброс ожидающих обновлений челленджей в конце сессии
+async function flushChallengeUpdates() {
+  if (!navigator.onLine || !window.currentUserId) return;
+
+  const practiceTimeUpdates = pendingChallengeUpdates.practice_time;
+  if (practiceTimeUpdates > 0 && window.updateAllChallengesProgress) {
+    try {
+      await window.updateAllChallengesProgress(
+        window.currentUserId,
+        'practice_time',
+        practiceTimeUpdates,
+      );
+      pendingChallengeUpdates.practice_time = 0;
+    } catch (e) {
+      console.warn('Failed to sync challenge updates:', e);
+    }
+  }
+}
+
+function checkBadges() {
+  const newBadges = [];
   const totalWords = window.words ? window.words.length : 0;
   const totalIdioms = window.idioms ? window.idioms.length : 0;
   const totalPhrases = window.phrases ? window.phrases.length : 0;
@@ -5010,31 +5042,129 @@ function updateSyncIndicator(status, message = '') {
 // Принудительная синхронизация
 // Объединение слов с обнаружением конфликтов
 window.mergeWords = function (localWords, remoteWords) {
-  // Создаём карту серверных слов
-  const remoteMap = new Map(remoteWords.map(w => [w.id, w]));
-  // Создаём карту локальных слов для быстрого доступа
-  const localMap = new Map(localWords.map(w => [w.id, w]));
-  // Результат – все серверные слова
-  const merged = [...remoteWords];
-  // Объединяем данные: для каждого серверного слова добавляем недостающие поля из локального
-  for (const remoteWord of merged) {
-    const localWord = localMap.get(remoteWord.id);
-    if (localWord) {
-      // Добавляем поле grammar, если его нет на сервере но есть в локальных данных
-      if (!remoteWord.grammar && localWord.grammar) {
-        remoteWord.grammar = localWord.grammar;
+  const merged = new Map();
+
+  // Сначала все серверные слова
+  for (const w of remoteWords) {
+    merged.set(w.id, w);
+  }
+
+  // Локальные перетирают серверные ТОЛЬКО если новее
+  for (const w of localWords) {
+    const remote = merged.get(w.id);
+    if (!remote) {
+      // Слово только локальное (добавлено оффлайн) — берём его
+      merged.set(w.id, w);
+    } else {
+      // Оба есть — берём более новое по updated_at
+      const localTime = new Date(w.updated_at || w.created_at || 0).getTime();
+      const remoteTime = new Date(
+        remote.updated_at || remote.created_at || 0,
+      ).getTime();
+
+      if (localTime >= remoteTime) {
+        merged.set(w.id, w);
+      } else {
+        // Сервер новее по updated_at, но stats могут быть богаче локально
+        // Берём максимум по каждому полю:
+        merged.set(w.id, {
+          ...remote,
+          stats: mergeStats(w.stats, remote.stats),
+        });
       }
-      // Можно добавить и другие поля при необходимости
     }
   }
-  // Добавляем локальные слова, которых нет на сервере и которые не в очереди на удаление
-  for (const localWord of localWords) {
-    if (!remoteMap.has(localWord.id) && !pendingWordUpdates.has(localWord.id)) {
-      merged.push(localWord);
-    }
-  }
-  return merged;
+
+  return Array.from(merged.values());
 };
+
+// Мёрж статистики - lastPracticed как истина в последней инстанции
+function mergeStats(local, remote) {
+  if (!local) return remote;
+  if (!remote) return local;
+
+  const localTime = new Date(local.lastPracticed || 0).getTime();
+  const remoteTime = new Date(remote.lastPracticed || 0).getTime();
+
+  // Объединяем массивы выполненных упражнений из обоих источников
+  const localTypes =
+    local.correct_exercise_types ?? local.correctExerciseTypes ?? [];
+  const remoteTypes =
+    remote.correct_exercise_types ?? remote.correctExerciseTypes ?? [];
+  const mergedTypes = [...new Set([...localTypes, ...remoteTypes])];
+
+  console.log('[MERGE STATS] Local:', {
+    shown: local.shown,
+    correct: local.correct,
+    streak: local.streak,
+    lastPracticed: local.lastPracticed,
+    types: localTypes,
+  });
+  console.log('[MERGE STATS] Remote:', {
+    shown: remote.shown,
+    correct: remote.correct,
+    streak: remote.streak,
+    lastPracticed: remote.lastPracticed,
+    types: remoteTypes,
+  });
+  console.log('[MERGE STATS] Merged types:', mergedTypes);
+
+  // Если практиковали локально позже — берём всю локальную статистику
+  if (localTime > remoteTime) {
+    console.log('[MERGE STATS] Using local stats (newer)');
+    return { ...local, correct_exercise_types: mergedTypes };
+  }
+
+  // Иначе берём серверную, но суммируем shown/correct и объединяем exercise types
+  // (на случай если оба варианта содержат уникальные сессии)
+  console.log('[MERGE STATS] Using remote stats with merged fields');
+  return {
+    ...remote,
+    shown: Math.max(local.shown ?? 0, remote.shown ?? 0),
+    correct: Math.max(local.correct ?? 0, remote.correct ?? 0),
+    correct_exercise_types: mergedTypes,
+    streak: localTime > remoteTime ? local.streak : remote.streak,
+  };
+}
+
+// Объединение идиом с обнаружением конфликтов
+window.mergeIdioms = function (localIdioms, remoteIdioms) {
+  const merged = new Map();
+
+  // Сначала все серверные идиомы
+  for (const i of remoteIdioms) {
+    merged.set(i.id, i);
+  }
+
+  // Локальные перетирают серверные ТОЛЬКО если новее
+  for (const i of localIdioms) {
+    const remote = merged.get(i.id);
+    if (!remote) {
+      // Идиома только локальная (добавлена оффлайн) — берём её
+      merged.set(i.id, i);
+    } else {
+      // Оба есть — берём более новую по updated_at
+      const localTime = new Date(i.updated_at || i.created_at || 0).getTime();
+      const remoteTime = new Date(
+        remote.updated_at || remote.created_at || 0,
+      ).getTime();
+
+      if (localTime >= remoteTime) {
+        merged.set(i.id, i);
+      } else {
+        // Сервер новее по updated_at, но stats могут быть богаче локально
+        // Берём максимум по каждому полю:
+        merged.set(i.id, {
+          ...remote,
+          stats: mergeStats(i.stats, remote.stats),
+        });
+      }
+    }
+  }
+
+  return Array.from(merged.values());
+};
+
 // Показ уведомления о конфликтах
 function showConflictNotification(conflicts) {
   const message = `Обнаружено ${conflicts.length} конфликт(ов) при синхронизации. Использована версия из облака.`;
@@ -5045,18 +5175,102 @@ function showConflictNotification(conflicts) {
 // Отслеживание состояния сети
 async function syncAfterReconnect() {
   if (!navigator.onLine || !window.currentUserId) return;
+
+  console.log('[SYNC RECONNECT] Starting sync after reconnect');
+  console.log('[SYNC RECONNECT] Local words:', window.words?.length);
+  console.log('[SYNC RECONNECT] Local idioms:', window.idioms?.length);
+  console.log(
+    '[SYNC RECONNECT] Pending word updates:',
+    pendingWordUpdates.size,
+  );
+  console.log(
+    '[SYNC RECONNECT] Pending idiom updates:',
+    pendingIdiomUpdates.size,
+  );
+
+  // Снимок локального состояния до синка - защита от потери данных
+  const localSnapshot = [...(window.words || [])];
+  const idiomSnapshot = [...(window.idioms || [])];
+
   try {
-    await window.authExports.loadWordsOnce(remoteWords => {
-      const localWords = window.words || [];
+    // ШАГ 1: СНАЧАЛА заливаем всё что накопилось оффлайн
+    if (pendingWordUpdates.size > 0) {
+      console.log('[SYNC RECONNECT] Flushing pending word updates...');
+      await syncPendingWords();
+    }
+    if (pendingIdiomUpdates.size > 0) {
+      console.log('[SYNC RECONNECT] Flushing pending idiom updates...');
+      await syncPendingIdioms();
+    }
+    if (pendingPhraseUpdates.size > 0) {
+      console.log('[SYNC RECONNECT] Flushing pending phrase updates...');
+      await syncPendingPhrases();
+    }
+
+    // ⏳ Даём серверу время обработать запросы (1500ms)
+    console.log('[SYNC RECONNECT] Waiting 1500ms for server to process...');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // ШАГ 2: ТОЛЬКО ПОТОМ грузим с сервера
+    console.log('[SYNC RECONNECT] Loading words from server...');
+    await window.authExports.loadWordsOnce(async remoteWords => {
+      console.log('[SYNC RECONNECT] Remote words loaded:', remoteWords?.length);
+      console.log(
+        '[SYNC RECONNECT] Local snapshot words:',
+        localSnapshot?.length,
+      );
+
+      // ШАГ 3: Мёрж с учётом таймстампов - локальные приоритетнее если новее
       const merged = window.mergeWords
-        ? window.mergeWords(localWords, remoteWords)
+        ? window.mergeWords(localSnapshot, remoteWords)
         : remoteWords;
-      // Удалено: сохраняем в IndexedDB через кеш
+
+      // ✅ Страховка — локальные слова которых нет на сервере никогда не теряем
+      const remoteIds = new Set((remoteWords || []).map(r => r.id));
+      const mergedIds = new Set((merged || []).map(w => w.id));
+      const orphans = localSnapshot.filter(
+        w => !remoteIds.has(w.id) && !mergedIds.has(w.id),
+      );
+
+      if (orphans.length > 0) {
+        console.warn(
+          '[SYNC RECONNECT] Rescued local-only words:',
+          orphans.map(w => w.en),
+        );
+        merged.push(...orphans);
+      }
+
+      console.log('[SYNC RECONNECT] Merged words:', merged?.length);
       window.words = merged;
       refreshUI();
     });
+
+    // Синхронизируем идиомы
+    console.log('[SYNC RECONNECT] Loading idioms from server...');
+    await window.authExports.loadIdiomsOnce(async remoteIdioms => {
+      console.log(
+        '[SYNC RECONNECT] Remote idioms loaded:',
+        remoteIdioms?.length,
+      );
+      console.log(
+        '[SYNC RECONNECT] Local snapshot idioms:',
+        idiomSnapshot?.length,
+      );
+
+      const mergedIdioms = window.mergeIdioms
+        ? window.mergeIdioms(idiomSnapshot, remoteIdioms)
+        : remoteIdioms;
+      console.log('[SYNC RECONNECT] Merged idioms:', mergedIdioms?.length);
+      window.idioms = mergedIdioms;
+      renderIdioms();
+    });
+
+    console.log('[SYNC RECONNECT] Sync completed successfully');
   } catch (e) {
-    console.warn('Ошибка автосинхронизации:', e);
+    // Если синк упал — восстанавливаем снимок
+    window.words = localSnapshot;
+    window.idioms = idiomSnapshot;
+    console.warn('[SYNC RECONNECT] Sync failed, restored local state:', e);
   }
 }
 function setupNetworkMonitoring() {
@@ -5072,10 +5286,7 @@ function setupNetworkMonitoring() {
       }
     } else {
       // updateSyncIndicator('offline', 'Офлайн');
-      toast(
-        '📵 Соединение потеряно. Изменения сохранятся локально.',
-        'warning',
-      );
+      toast('Нет интернета. Данные сохранены локально', 'warning', 'wifi_off');
     }
   };
   window.addEventListener('online', updateNetworkStatus);
@@ -8447,6 +8658,9 @@ function startSession(cfg) {
   }
 }
 function showResults() {
+  // Сбрасываем ожидающие обновления челленджов в конце сессии
+  flushChallengeUpdates();
+
   document.body.classList.remove('exercise-active'); // ← добавлено
   if (window.matchTimerCancel) {
     window.matchTimerCancel();
@@ -10136,12 +10350,9 @@ function recordAnswer(correct, exerciseType) {
   } else {
     updStats(currentItem.id, correct, exerciseType);
   }
-  if (window.currentUserId && window.updateAllChallengesProgress) {
-    window.updateAllChallengesProgress(
-      window.currentUserId,
-      'practice_time',
-      1,
-    );
+  // Батчим обновления челленджей вместо прямых вызовов
+  if (window.currentUserId) {
+    pendingChallengeUpdates.practice_time++;
   }
   // В режиме экзамена подсчитываем отвеченные вопросы
   if (practiceMode === 'exam') {
@@ -10169,13 +10380,9 @@ function recordAnswer(correct, exerciseType) {
     window.dailyProgress.review = (window.dailyProgress.review || 0) + 1;
     // Mark profile as dirty to ensure progress is saved
     markProfileDirty('dailyprogress', window.dailyProgress);
-    // Обновляем прогресс челленджей
-    if (window.currentUserId && window.updateAllChallengesProgress) {
-      window.updateAllChallengesProgress(
-        window.currentUserId,
-        'practice_time',
-        1,
-      );
+    // Батчим обновления челленджей вместо прямых вызовов
+    if (window.currentUserId) {
+      pendingChallengeUpdates.practice_time++;
     }
     // Update UI to show progress immediately
     refreshUI();
@@ -12825,13 +13032,12 @@ setTimeout(() => {
 // Проверяем соединение с Supabase
 window.addEventListener('online', () => {
   console.log('[ONLINE] Соединение восстановлено');
-  toast('🟢 Соединение восстановлено', 'success');
-  if (window.authExports?.auth) {
-    // Пытаемся переподключиться к Supabase
-    window.authExports.auth.onAuthStateChanged(user => {
-      if (user) {
+  toast('Соединение восстановлено', 'success', 'wifi');
+  if (window.authExports?.supabase) {
+    // Supabase v2 API: onAuthStateChange (без d)
+    window.authExports.supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
         console.log('[ONLINE] Пользователь авторизован');
-        toast('🟢 Соединение восстановлено', 'success');
       }
     });
   }
@@ -12839,10 +13045,11 @@ window.addEventListener('online', () => {
   if (window.currentUserId && pendingProfileUpdates.size > 0) {
     setTimeout(() => syncProfileNow(), 1000);
   }
+  // Синхронизируем XP логи из очереди
+  flushXpQueue();
 });
 window.addEventListener('offline', () => {
   console.log('[OFFLINE] Оффлайн режим');
-  toast('📴 Оффлайн режим', 'info');
 });
 // ====================== PWA INSTALL В МЕНЮ ПРОФИЛЯ ======================
 let deferredPrompt = null;
@@ -15787,13 +15994,12 @@ function updateOfflineIndicator() {
 }
 // Глобальные обработчики online/offline
 window.addEventListener('online', () => {
-  toast('🟢 Соединение восстановлено', 'success');
   updateOfflineIndicator();
   syncPendingMessages();
   syncFromSupabase(); // синхронизация слов и идиом
 });
 window.addEventListener('offline', () => {
-  toast('📴 Офлайн режим', 'info');
+  toast('Офлайн режим', 'info', 'wifi_off');
   updateOfflineIndicator();
 });
 // ============================================================

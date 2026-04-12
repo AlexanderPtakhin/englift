@@ -325,6 +325,12 @@ function playAudio(filename, cefr, onEnd) {
     return;
   }
 
+  // Не воспроизводим аудио в офлайн режиме
+  if (!navigator.onLine) {
+    if (onEnd) onEnd();
+    return;
+  }
+
   const voice = window.user_settings?.voice || 'female';
   const folder = voice === 'male' ? 'man' : 'women';
   const path = cefr ? `${cefr}/${folder}/${filename}` : `${folder}/${filename}`;
@@ -349,6 +355,12 @@ function playIdiomAudio(filename, onEnd) {
     return;
   }
 
+  // Не воспроизводим аудио в офлайн режиме
+  if (!navigator.onLine) {
+    if (onEnd) onEnd();
+    return;
+  }
+
   const voice = window.user_settings?.voice || 'female';
   const folder = voice === 'male' ? 'man' : 'women';
   const path = `idioms/${folder}/${filename}`;
@@ -367,6 +379,9 @@ function playIdiomAudio(filename, onEnd) {
 // === ЗВУКИ ===
 
 function playSound(type) {
+  // Не воспроизводим звуки в офлайн режиме
+  if (!navigator.onLine) return;
+
   try {
     const ctx = getAudioContext();
 

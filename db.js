@@ -55,23 +55,35 @@ export async function saveWordToDb(word) {
     throw new Error('Word object or word.en is required');
   }
 
-  const { updatedAt, createdAt, examplesAudio, examples_audio, ...wordRest } =
-    word;
-
-  // Берём типы упражнений из stats (учитывая оба формата: camelCase и snake_case)
+  // Нормализуем correctExerciseTypes - ищем во всех возможных местах
   const correctExerciseTypes =
     word.stats?.correctExerciseTypes ||
     word.stats?.correct_exercise_types ||
+    word.correct_exercise_types ||
+    word.correctExerciseTypes ||
     [];
 
-  // Очищаем stats от полей, которые вынесены в отдельные колонки
-  const cleanStats = word.stats
-    ? {
-        ...word.stats,
-        correctExerciseTypes: undefined,
-        correct_exercise_types: undefined,
-      }
-    : undefined;
+  // Очищаем stats от correctExerciseTypes - храним только на верхнем уровне
+  const {
+    correctExerciseTypes: _,
+    correct_exercise_types: __,
+    ...cleanStats
+  } = word.stats ?? {};
+
+  const {
+    updatedAt,
+    createdAt,
+    examplesAudio,
+    examples_audio,
+    correctExerciseTypes: _cet,
+    correct_exercise_types: _cet2,
+    ...wordRest
+  } = word;
+
+  console.log(
+    '[DB SAVE] correctExerciseTypes extracted:',
+    correctExerciseTypes,
+  );
 
   // Проверяем существует ли слово (по id)
   const { data: existingWord } = await supabase
@@ -193,17 +205,31 @@ export async function saveIdiomToDb(idiom) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Нормализуем correctExerciseTypes - ищем во всех возможных местах
+  const correctExerciseTypes =
+    idiom.stats?.correctExerciseTypes ||
+    idiom.stats?.correct_exercise_types ||
+    idiom.correct_exercise_types ||
+    idiom.correctExerciseTypes ||
+    [];
+
+  // Очищаем stats от correctExerciseTypes - храним только на верхнем уровне
+  const {
+    correctExerciseTypes: _,
+    correct_exercise_types: __,
+    ...cleanStats
+  } = idiom.stats ?? {};
+
   // Вытаскиваем все camelCase поля которых нет в DB
   const {
     updatedAt,
     createdAt,
     examplesAudio,
-    exampleTranslation, // ← camelCase из script.js
+    exampleTranslation,
+    correctExerciseTypes: _cet,
+    correct_exercise_types: _cet2,
     ...idiomRest
   } = idiom;
-
-  // Переносим correctExerciseTypes из stats в отдельную колонку
-  const correctExerciseTypes = idiom.stats?.correctExerciseTypes || [];
 
   const idiomData = {
     ...idiomRest,
@@ -213,12 +239,7 @@ export async function saveIdiomToDb(idiom) {
     examples_audio: examplesAudio || [],
     example_translation: exampleTranslation ?? null, // ← маппинг camelCase → snake_case
     correct_exercise_types: correctExerciseTypes,
-    stats: idiom.stats
-      ? {
-          ...idiom.stats,
-          correctExerciseTypes: undefined,
-        }
-      : undefined,
+    stats: cleanStats,
   };
 
   // Убираем корневые camelCase поля

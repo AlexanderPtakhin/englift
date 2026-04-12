@@ -161,7 +161,22 @@ export async function declineChallengeInvite(inviteId, userId) {
 }
 
 // ========== Челленджи ==========
+
+// Кэш для челленджей
+let challengesCache = null;
+let challengesCacheTime = 0;
+const CHALLENGES_CACHE_TTL = 60_000; // 60 секунд
+
 export async function getAllActiveChallenges(userId) {
+  // Не делаем запросы в офлайн режиме
+  if (!navigator.onLine) return [];
+
+  // Проверяем кэш
+  const now = Date.now();
+  if (challengesCache && now - challengesCacheTime < CHALLENGES_CACHE_TTL) {
+    return challengesCache;
+  }
+
   const today = new Date().toISOString().split('T')[0];
   const { data, error } = await supabase
     .from('challenges')
@@ -175,18 +190,26 @@ export async function getAllActiveChallenges(userId) {
     .gte('end_date', today);
   if (error) throw error;
 
-  // Добавляем информацию о прогрессе
-  return data.map(ch => ({
+  // Сохраняем в кэш
+  const result = data.map(ch => ({
     ...ch,
     isParticipant: true, // Теперь всегда true т.к. фильтруем по участию
     userProgress:
       ch.participants.find(p => p.user_id === userId)?.progress || 0,
     participantsCount: ch.participants.length,
   }));
+
+  challengesCache = result;
+  challengesCacheTime = now;
+
+  return result;
 }
 
 // Обновить прогресс пользователя во всех его активных челленджах
 export async function updateAllChallengesProgress(userId, type, increment = 1) {
+  // Не обновляем челленджи в офлайн режиме
+  if (!navigator.onLine) return;
+
   // Получаем все активные челленджи, в которых участвует пользователь
   const today = new Date().toISOString().split('T')[0];
   const { data: challenges } = await supabase

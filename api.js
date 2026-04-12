@@ -12,11 +12,8 @@ let cachedWordBankByLevel = null;
 // Загрузка манифеста версий
 async function loadDataManifest() {
   if (dataManifest) return dataManifest;
-
   try {
-    // Пробуем разные пути для манифеста
     let manifest = null;
-
     try {
       manifest = await fetch('data-manifest.json').then(r => r.json());
       console.log('[API] Манифест загружен из data-manifest.json');
@@ -25,59 +22,61 @@ async function loadDataManifest() {
         manifest = await fetch('./data-manifest.json').then(r => r.json());
         console.log('[API] Манифест загружен из ./data-manifest.json');
       } catch {
-        // Если файл не найден, просто используем значения по умолчанию без ошибки
         console.log(
           '[API] Манифест не найден, используем значения по умолчанию',
         );
         manifest = {
-          A1: { version: '1.0' },
-          A2: { version: '1.0' },
-          B1: { version: '1.0' },
-          B2: { version: '1.0' },
-          C1: { version: '1.0' },
-          C2: { version: '1.0' },
+          A1: { version: '2.0' },
+          A2: { version: '2.0' },
+          B1: { version: '2.0' },
+          B2: { version: '2.0' },
+          C1: { version: '2.0' },
+          C2: { version: '2.0' },
         };
       }
     }
-
     dataManifest = manifest;
     return dataManifest;
   } catch (error) {
     console.error('Ошибка загрузки манифеста:', error);
     return {
-      A1: { version: '1.0' },
-      A2: { version: '1.0' },
-      B1: { version: '1.0' },
-      B2: { version: '1.0' },
-      C1: { version: '1.0' },
-      C2: { version: '1.0' },
+      A1: { version: '2.0' },
+      A2: { version: '2.0' },
+      B1: { version: '2.0' },
+      B2: { version: '2.0' },
+      C1: { version: '2.0' },
+      C2: { version: '2.0' },
     };
   }
 }
 
-// Проверка версии уровня
+// Проверка версии уровня по localStorage
 async function checkLevelVersion(level) {
   const manifest = await loadDataManifest();
-  if (!manifest) return true; // Если нет манифеста, считаем актуальным
-
+  if (!manifest) return true;
   const storedVersion = localStorage.getItem(`dict_${level}_version`);
   const currentVersion = manifest[level]?.version;
-
-  if (storedVersion !== currentVersion) {
-    return false; // Нужно обновить
-  }
-
-  return true; // Актуальная версия
+  return storedVersion === currentVersion;
 }
 
-// Очистка уровня при обновлении
+// Получить список уровней которых нет или они устарели
+async function getMissingLevels() {
+  const manifest = await loadDataManifest();
+  return ALL_LEVELS.filter(lvl => {
+    if (levelsLoaded.has(lvl)) return false;
+    const stored = localStorage.getItem(`dict_${lvl}_version`);
+    const current = manifest?.[lvl]?.version;
+    return !stored || stored !== current;
+  });
+}
+
+// Очистка конкретного уровня в IndexedDB
 async function clearLevel(level) {
   const db = await window.WordBankDB.openDB();
   const tx = db.transaction('words', 'readwrite');
   const store = tx.objectStore('words');
   const index = store.index('cefr');
   const range = IDBKeyRange.only(level);
-
   return new Promise((resolve, reject) => {
     const request = index.openCursor(range);
     request.onsuccess = event => {
@@ -93,70 +92,57 @@ async function clearLevel(level) {
   });
 }
 
-// Обновленная функция загрузки уровня с версионированием
+// Загрузка одного уровня
 async function loadLevel(level) {
   console.log(`[API] Loading level ${level}...`);
 
-  // Check version before loading
+  // Проверяем версию конкретного уровня по localStorage
   const isCurrentVersion = await checkLevelVersion(level);
-  const isLoaded = await window.WordBankDB.isBankLoaded();
 
-  if (isLoaded && isCurrentVersion) {
+  if (isCurrentVersion && levelsLoaded.has(level)) {
     console.log(`[API] Level ${level} already loaded and current, skipping`);
-    levelsLoaded.add(level);
     return;
   }
 
-  // If version outdated, clear old data
-  if (isLoaded && !isCurrentVersion) {
-    console.log(`[API] Level ${level} version outdated, clearing old data...`);
+  // Версия устарела — чистим только этот уровень
+  if (!isCurrentVersion) {
+    console.log(`[API] Level ${level} version outdated, clearing...`);
     await clearLevel(level);
   }
 
   try {
     console.log(`[API] Fetching ${level}/dict-${level}.json...`);
     const response = await fetch(`${level}/dict-${level}.json`);
-    if (!response.ok) {
-      console.error(`[API] HTTP error loading ${level}:`, response.status);
-      throw new Error(`HTTP ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const words = await response.json();
-    console.log(`[API] Level ${level} loaded:`, words.length, 'words');
+    console.log(`[API] Level ${level} loaded: ${words.length} words`);
 
-    // Add unique ID and CEFR tag
     const wordsWithIdAndCefr = words.map((word, index) => ({
       ...word,
-      id: `${word.en}_${level}_${index}`, // Unique ID
-      cefr: level, // Add CEFR tag
+      id: `${word.en}_${level}_${index}`,
+      cefr: level,
     }));
 
-    console.log(
-      `[API] Saving ${wordsWithIdAndCefr.length} words to IndexedDB...`,
-    );
-    // Save to IndexedDB
     await window.WordBankDB.saveWordsBatch(wordsWithIdAndCefr);
     console.log(`[API] Level ${level} saved to IndexedDB`);
 
-    // Save version to localStorage
     const manifest = await loadDataManifest();
-    if (manifest && manifest[level]?.version) {
+    if (manifest?.[level]?.version) {
       localStorage.setItem(`dict_${level}_version`, manifest[level].version);
-      console.log(
-        `[API] Level ${level} version ${manifest[level].version} saved to localStorage`,
-      );
     }
 
     levelsLoaded.add(level);
-    console.log(`[API] Level ${level} loading completed`);
+    console.log(`[API] Level ${level} loading completed ✅`);
   } catch (error) {
     console.error(`[API] Error loading level ${level}:`, error);
     throw error;
   }
 }
 
-// Оптимизированная фоновая загрузка - параллельная
+// Фоновая загрузка — всегда проверяет что реально не хватает
 async function backgroundLoad() {
-  const remaining = ALL_LEVELS.filter(lvl => !levelsLoaded.has(lvl));
+  // ✅ Используем localStorage а не только in-memory levelsLoaded
+  const remaining = await getMissingLevels();
 
   if (remaining.length === 0) {
     console.log(
@@ -165,43 +151,38 @@ async function backgroundLoad() {
     return;
   }
 
-  console.log('[API] Начало фоновой загрузки для уровней:', remaining);
+  console.log('[API] Фоновая загрузка уровней:', remaining);
 
   try {
     // Загружаем все файлы параллельно
-    console.log('[API] Загрузка всех оставшихся уровней параллельно...');
     const levelPromises = remaining.map(async level => {
-      const response = await fetch(`${level}/dict-${level}.json`);
-      if (!response.ok) {
-        console.warn(
-          `[API] Уровень ${level} недоступен (${response.status}), пропускаем`,
+      try {
+        const response = await fetch(`${level}/dict-${level}.json`);
+        if (!response.ok) {
+          console.warn(
+            `[API] Уровень ${level} недоступен (${response.status}), пропускаем`,
+          );
+          return null;
+        }
+        const words = await response.json();
+        console.log(
+          `[API] Фоновая загрузка: ${level} загружен, ${words.length} слов`,
         );
+        return { level, words };
+      } catch (e) {
+        console.warn(`[API] Ошибка загрузки ${level}:`, e.message);
         return null;
       }
-      const words = await response.json();
-      console.log(
-        `[API] Фоновая загрузка: Уровень ${level} загружен, ${words.length} слов`,
-      );
-      return { level, words };
     });
 
     const levelData = (await Promise.all(levelPromises)).filter(Boolean);
-    console.log(
-      `[API] Фоновая загрузка: ${levelData.length} уровней загружены успешно`,
-    );
+    console.log(`[API] Фоновая загрузка: ${levelData.length} уровней скачано`);
 
-    // Сохраняем последовательно (чтобы не перегружать IndexedDB)
+    // Сохраняем последовательно чтобы не перегружать IndexedDB
     for (const { level, words } of levelData) {
-      console.log(`[API] Фоновая загрузка: Обработка уровня ${level}...`);
-
-      // Check version before saving
       const isCurrentVersion = await checkLevelVersion(level);
-      const isLoaded = await window.WordBankDB.isBankLoaded();
-
-      if (isLoaded && !isCurrentVersion) {
-        console.log(
-          `[API] Фоновая загрузка: Уровень ${level} устарел, очищаем...`,
-        );
+      if (!isCurrentVersion) {
+        console.log(`[API] Фоновая загрузка: ${level} устарел, очищаем...`);
         await clearLevel(level);
       }
 
@@ -211,28 +192,28 @@ async function backgroundLoad() {
         cefr: level,
       }));
 
-      console.log(
-        `[API] Фоновая загрузка: Сохранение ${wordsWithIdAndCefr.length} слов для уровня ${level}...`,
-      );
       await window.WordBankDB.saveWordsBatch(wordsWithIdAndCefr);
 
-      // Save version
       const manifest = await loadDataManifest();
-      if (manifest && manifest[level]?.version) {
+      if (manifest?.[level]?.version) {
         localStorage.setItem(`dict_${level}_version`, manifest[level].version);
       }
 
       levelsLoaded.add(level);
-      console.log(`[API] Фоновая загрузка: Уровень ${level} завершен`);
+      cachedWordBank = null; // Сбрасываем кеш чтобы новые слова были доступны
+      cachedWordBankByLevel = null;
+      console.log(`[API] Фоновая загрузка: ${level} ✅`);
     }
 
-    console.log('[API] Фоновая загрузка завершена для всех уровней');
+    console.log('[API] Фоновая загрузка завершена 🎉');
   } catch (error) {
     console.error('Ошибка фоновой загрузки:', error);
+    // Сбрасываем промис чтобы можно было попробовать снова
+    backgroundLoadingPromise = null;
   }
 }
 
-// Обновленная функция loadWordBank с версионированием
+// Главная функция загрузки словаря
 async function loadWordBank() {
   if (!window.WordBankDB) {
     console.error('[API] ❌ WordBankDB не доступен!');
@@ -240,7 +221,7 @@ async function loadWordBank() {
   }
   console.log('[API] Загрузка словаря...');
 
-  // Если загрузка уже была начата, просто ждём текущий promise
+  // Если загрузка уже идёт — ждём её
   if (loadingPromise) {
     console.log(
       '[API] Dictionary already loading, waiting for existing promise...',
@@ -248,7 +229,6 @@ async function loadWordBank() {
     return loadingPromise;
   }
 
-  // Если загрузка уже завершена (или хотя бы начата) – не запускаем повторно
   if (dictionaryLoadStarted) {
     console.log('[API] Dictionary load already started, skipping duplicate');
     return;
@@ -257,51 +237,67 @@ async function loadWordBank() {
   dictionaryLoadStarted = true;
   loadingPromise = (async () => {
     try {
-      console.log('[API] Loading version manifest...');
       await loadDataManifest();
 
-      console.log('[API] Checking if dictionary is already loaded...');
-      const loaded = await window.WordBankDB.isBankLoaded();
+      const isAnythingLoaded = await window.WordBankDB.isBankLoaded();
 
-      if (loaded) {
-        console.log('[API] Dictionary already fully loaded');
-
-        // Show current status
-        try {
-          const status = await window.WordAPI.checkVersions();
-          console.log('[API] Current version status:', status);
-
-          // Show loaded levels
-          console.log(
-            '[API] Currently loaded levels:',
-            Array.from(levelsLoaded),
-          );
-
-          // Show debug info
-          const debugInfo = await window.WordAPI.debugWordBank();
-          if (debugInfo) {
-            console.log('[API] Dictionary debug info:', debugInfo);
+      if (isAnythingLoaded) {
+        // ✅ Восстанавливаем levelsLoaded из localStorage (после перезагрузки страницы он пустой)
+        const manifest = dataManifest;
+        ALL_LEVELS.forEach(lvl => {
+          const stored = localStorage.getItem(`dict_${lvl}_version`);
+          if (stored && stored === manifest?.[lvl]?.version) {
+            levelsLoaded.add(lvl);
           }
-        } catch (e) {
-          console.log('[API] Error getting debug info:', e.message);
+        });
+
+        const missing = await getMissingLevels();
+
+        if (missing.length === 0) {
+          console.log('[API] Dictionary already fully loaded ✅');
+        } else {
+          // ✅ Ключевой фикс: есть хоть что-то → показываем сразу
+          // но фоновую загрузку ОБЯЗАТЕЛЬНО запускаем
+          console.log(
+            '[API] Dictionary partially loaded, missing levels:',
+            missing,
+          );
+          console.log(
+            '[API] Starting background load to complete dictionary...',
+          );
+          if (!backgroundLoadingPromise) {
+            backgroundLoadingPromise = backgroundLoad().catch(e => {
+              console.warn('[API] Background load failed:', e);
+              backgroundLoadingPromise = null; // сбрасываем чтобы можно было retry
+            });
+          }
         }
+
+        try {
+          const debugInfo = await window.WordAPI.debugWordBank();
+          if (debugInfo) console.log('[API] Dictionary debug info:', debugInfo);
+        } catch (e) {}
 
         return;
       }
 
+      // IndexedDB пустая — грузим A1 синхронно, остальное фоном
       console.log('[API] Dictionary not loaded, starting with level A1...');
-      // Очищаем кеш перед загрузкой новых данных
       cachedWordBank = null;
       cachedWordBankByLevel = null;
       await loadLevel('A1');
 
       console.log('[API] Starting background load for remaining levels...');
       if (!backgroundLoadingPromise) {
-        backgroundLoadingPromise = backgroundLoad().catch(console.warn);
+        backgroundLoadingPromise = backgroundLoad().catch(e => {
+          console.warn('[API] Background load failed:', e);
+          backgroundLoadingPromise = null;
+        });
       }
     } catch (error) {
       console.error('[API] Error loading dictionary:', error);
-      dictionaryLoadStarted = false; // сбросить при ошибке
+      dictionaryLoadStarted = false;
+      loadingPromise = null;
       throw error;
     }
   })();
@@ -309,7 +305,7 @@ async function loadWordBank() {
   return loadingPromise;
 }
 
-// Кеширование банка слов в памяти для мгновенного доступа
+// Кеш банка слов в памяти
 async function getCachedWordBank() {
   if (cachedWordBank) return cachedWordBank;
 
@@ -324,7 +320,6 @@ async function getCachedWordBank() {
 
   cachedWordBank = allWords;
   cachedWordBankByLevel = {};
-
   for (const w of allWords) {
     const level = w.cefr;
     if (!cachedWordBankByLevel[level]) cachedWordBankByLevel[level] = [];
@@ -337,30 +332,20 @@ async function getCachedWordBank() {
 
 // Принудительное обновление всех уровней
 async function forceUpdateAllLevels() {
-  // Очищаем кеш
   cachedWordBank = null;
   cachedWordBankByLevel = null;
-
-  // Очищаем все версии
-  ALL_LEVELS.forEach(level => {
-    localStorage.removeItem(`dict_${level}_version`);
-  });
-
-  // Очищаем IndexedDB
+  ALL_LEVELS.forEach(level => localStorage.removeItem(`dict_${level}_version`));
   const db = await window.WordBankDB.openDB();
   const tx = db.transaction('words', 'readwrite');
-  const store = tx.objectStore('words');
-  await store.clear();
-
-  // Сбрасываем флаги загрузки
+  await tx.objectStore('words').clear();
   levelsLoaded.clear();
   loadingPromise = null;
-
-  // Загружаем заново
+  dictionaryLoadStarted = false;
+  backgroundLoadingPromise = null;
   await loadWordBank();
 }
 
-// Экспортируем API глобально
+// Экспорт API
 window.WordAPI = {
   loadWordBank,
   searchWords: async (prefix, limit = 15) => {
@@ -382,14 +367,12 @@ window.WordAPI = {
     const bank = await getCachedWordBank();
     let pool = level === 'all' ? bank : cachedWordBankByLevel[level] || [];
     if (!pool.length) return null;
-    // Исключаем уже добавленные пользователем слова
     const userWordsSet = new Set(
       (window.words || []).map(w => w.en.toLowerCase()),
     );
     const available = pool.filter(w => !userWordsSet.has(w.en.toLowerCase()));
     if (available.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * available.length);
-    return available[randomIndex];
+    return available[Math.floor(Math.random() * available.length)];
   },
   debugWordBank: async () => {
     if (!window.WordBankDB) {
@@ -422,7 +405,7 @@ window.WordAPI = {
     }
   },
   levelsLoaded,
-  forceUpdateAllLevels, // Новая функция для принудительного обновления
+  forceUpdateAllLevels,
   checkVersions: async () => {
     const manifest = await loadDataManifest();
     const status = {};
@@ -440,7 +423,7 @@ window.WordAPI = {
 };
 
 // =============================================
-// ИДИОМЫ - IndexedDB кеширование (аналог WordAPI)
+// ИДИОМЫ
 // =============================================
 
 let idiomLoadingPromise = null;
@@ -489,27 +472,22 @@ async function loadIdiomBank() {
       await loadIdiomDataManifest();
       const isCurrentVersion = await checkIdiomVersion();
       const loaded = await window.IdiomBankDB.isBankLoaded();
-
       if (loaded && isCurrentVersion) {
         console.log('[API] Идиомы уже загружены и актуальны');
         return;
       }
-
       if (loaded && !isCurrentVersion) {
         console.log('[API] Идиомы устарели, очищаем...');
         await window.IdiomBankDB.clearAll();
       }
-
       console.log('[API] Загрузка идиом из JSON...');
       const response = await fetch('/idioms/idioms.json');
       if (!response.ok) throw new Error('Failed to load idioms.json');
       const idioms = await response.json();
-
       const idiomsWithId = idioms.map((idiom, idx) => ({
         ...idiom,
         id: `idiom_${idx}_${idiom.idiom.replace(/\s/g, '_')}`,
       }));
-
       const saved = await window.IdiomBankDB.saveIdiomsBatch(idiomsWithId);
       localStorage.setItem('idiom_bank_version', idiomDataManifest.version);
       console.log(`[API] Загружено ${saved} идиом в IndexedDB`);
@@ -528,21 +506,14 @@ window.IdiomAPI = {
     await loadIdiomBank();
     const allIdioms = await window.IdiomBankDB.getAllIdioms();
     if (!allIdioms.length) return null;
-
-    // Идиомы пока не имеют поля level, поэтому игнорируем фильтрацию по уровню
-    let pool = allIdioms;
-
-    // Исключаем уже добавленные пользователем идиомы
     const userIdiomsSet = new Set(
       (window.idioms || []).map(i => i.idiom.toLowerCase()),
     );
-    const available = pool.filter(
+    const available = allIdioms.filter(
       i => !userIdiomsSet.has(i.idiom.toLowerCase()),
     );
-
     if (available.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * available.length);
-    return available[randomIndex];
+    return available[Math.floor(Math.random() * available.length)];
   },
   searchIdioms: async (query, limit = 15) => {
     await loadIdiomBank();

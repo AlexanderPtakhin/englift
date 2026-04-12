@@ -15097,26 +15097,6 @@ button.floating-add-btn:hover .material-symbols-outlined,
   transform: scale(1.2);
 }
 
-/* �������� ��������� ����������� */
-
-.word-card .progress-indicators {
-  animation: fadeInScale 0.3s ease-out;
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-
-    transform: scale(0.8);
-  }
-
-  to {
-    opacity: 1;
-
-    transform: scale(1);
-  }
-}
-
 /* ������������ ��� ��������� */
 
 /* ������������� ��������� ��� �������� ��� ��������� ���� ����� */
