@@ -598,6 +598,8 @@
     state.step = 0;
 
     removeDemoWord();
+    window.updateDueBadge?.();
+    window.renderStats?.();
 
     // Снимаем флаг активности
     window._tourActive = false;

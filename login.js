@@ -25,6 +25,7 @@ const logoutFromUnverifiedBtn = document.getElementById(
 const gateUsername = document.getElementById('gate-username');
 const gateUsernameGroup = document.getElementById('gate-username-group');
 const gateUsernameHint = document.getElementById('gate-username-hint');
+const gatePasswordHint = document.getElementById('gate-password-hint');
 
 // Табы
 const authTabs = document.querySelectorAll('.auth-tab');
@@ -34,6 +35,9 @@ let isRegisterMode = false;
 let emailCheckDebounceTimer = null;
 let isEmailTaken = false;
 let lastCheckedEmail = '';
+let usernameCheckDebounceTimer = null;
+let isUsernameTaken = false;
+let lastCheckedUsername = '';
 
 // --- Вспомогательные функции ---
 
@@ -41,6 +45,7 @@ function toggleRegisterFields(show) {
   if (show) {
     gateConfirmGroup.style.display = 'block';
     gateUsernameGroup.style.display = 'block';
+    gatePasswordHint.style.display = 'block';
   } else {
     gateConfirmGroup.style.display = 'none';
     gateConfirm.value = '';
@@ -48,6 +53,9 @@ function toggleRegisterFields(show) {
     gateUsername.value = '';
     gateUsernameHint.style.color = 'var(--muted)';
     gateUsernameHint.textContent = '3–20 символов: буквы, цифры, _ и -';
+    gatePasswordHint.style.display = 'none';
+    isUsernameTaken = false;
+    lastCheckedUsername = '';
   }
 }
 
@@ -102,6 +110,27 @@ async function checkEmailAvailability(email) {
   }
 }
 
+// Проверка username на занятость
+async function checkUsernameAvailability(username) {
+  if (!username) return false;
+  const spinner = document.getElementById('username-check-spinner');
+  if (spinner) spinner.style.display = 'block';
+  console.log('[AUTH] Проверка username:', username);
+  try {
+    const { data, error } = await supabase.functions.invoke('check-username', {
+      body: { username },
+    });
+    console.log('[AUTH] Результат Edge Function:', data, error);
+    if (error) throw error;
+    return data.exists;
+  } catch (err) {
+    console.warn('Ошибка проверки username:', err);
+    return false;
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+  }
+}
+
 function updateEmailAvailabilityStatus(taken) {
   if (!isRegisterMode) return;
   isEmailTaken = taken;
@@ -119,6 +148,22 @@ function updateEmailAvailabilityStatus(taken) {
   }
 }
 
+function updateUsernameAvailabilityStatus(taken) {
+  if (!isRegisterMode) return;
+  isUsernameTaken = taken;
+  const errorEl = document.getElementById('gate-error');
+  if (taken) {
+    errorEl.textContent = 'Этот никнейм уже занят. Используйте другой.';
+  } else if (errorEl.textContent.includes('уже занят')) {
+    errorEl.textContent = '';
+  }
+  const submitBtn = document.getElementById('gate-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = taken || isEmailTaken;
+    submitBtn.style.opacity = taken || isEmailTaken ? '0.5' : '1';
+  }
+}
+
 // Обработка входа/регистрации
 async function handleAuth(email, password, confirm, isRegister, username) {
   if (!email || !password) return;
@@ -129,7 +174,12 @@ async function handleAuth(email, password, confirm, isRegister, username) {
 
   if (isRegister) {
     if (!username) {
-      gateError.textContent = 'Введи имя пользователя';
+      gateError.textContent = 'Введите имя пользователя';
+      gateUsername.focus();
+      return;
+    }
+    if (isUsernameTaken) {
+      gateError.textContent = 'Этот никнейм уже занят. Используйте другой.';
       gateUsername.focus();
       return;
     }
@@ -163,13 +213,22 @@ async function handleAuth(email, password, confirm, isRegister, username) {
         return;
       }
 
-      // Сохраняем username для последующего использования в профиле
+      // Сохраняем username для последующего использовании в профиле
+      console.log('[AUTH] Сохраняем username в localStorage:', username);
       localStorage.setItem('englift_pending_username', username);
 
       // Сохраняем invite из URL
       captureInviteFromUrl();
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username,
+          },
+        },
+      });
       if (error) throw error;
       if (data.user) {
         showEmailNotVerified(data.user.email);
@@ -189,13 +248,17 @@ async function handleAuth(email, password, confirm, isRegister, username) {
     const msgs = {
       email_already_exists: 'Этот email уже занят',
       invalid_email: 'Неверный формат email',
-      weak_password: 'Пароль слишком короткий (мин. 6 символов)',
+      weak_password: 'Пароль слишком короткий (мин. 8 символов)',
       invalid_credentials: 'Неверный email или пароль',
       'Invalid login credentials': 'Неверный email или пароль',
       'Invalid email credentials': 'Неверный email или пароль',
       'User already registered': 'Пользователь уже зарегистрирован',
       'Password should be at least 6 characters':
-        'Пароль должен быть минимум 6 символов',
+        'Пароль должен быть минимум 8 символов',
+      'Password should be at least 8 characters':
+        'Пароль должен быть минимум 8 символов',
+      'Password should contain at least one character of each':
+        'Пароль должен содержать хотя бы один символ каждого типа: строчные, заглавные, цифры и символы',
       'Unable to validate email address: invalid format':
         'Неверный формат email',
       'Email not confirmed': 'Email не подтверждён',
@@ -221,7 +284,11 @@ async function handleAuth(email, password, confirm, isRegister, username) {
         .replace(/User not found/g, 'Пользователь не найден')
         .replace(/email_already_exists/g, 'Этот email уже занят')
         .replace(/invalid_email/g, 'Неверный формат email')
-        .replace(/weak_password/g, 'Пароль слишком короткий (мин. 6 символов)');
+        .replace(/weak_password/g, 'Пароль слишком короткий (мин. 8 символов)')
+        .replace(
+          /Password should contain at least one character of each.*$/g,
+          'Пароль должен содержать хотя бы один символ каждого типа: строчные, заглавные, цифры и символы',
+        );
     }
     gateError.textContent = errorMessage || err.message;
     localStorage.removeItem('englift_pending_username');
@@ -317,6 +384,26 @@ gateEmail.addEventListener('input', () => {
   emailCheckDebounceTimer = setTimeout(async () => {
     const taken = await checkEmailAvailability(email);
     updateEmailAvailabilityStatus(taken);
+  }, 500);
+});
+
+// Проверка username при вводе
+gateUsername.addEventListener('input', () => {
+  if (!isRegisterMode) return;
+  const username = gateUsername.value.trim();
+
+  if (usernameCheckDebounceTimer) clearTimeout(usernameCheckDebounceTimer);
+  if (!username) {
+    updateUsernameAvailabilityStatus(false);
+    lastCheckedUsername = '';
+    return;
+  }
+  if (username === lastCheckedUsername) return;
+  lastCheckedUsername = username;
+
+  usernameCheckDebounceTimer = setTimeout(async () => {
+    const taken = await checkUsernameAvailability(username);
+    updateUsernameAvailabilityStatus(taken);
   }, 500);
 });
 

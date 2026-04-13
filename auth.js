@@ -135,12 +135,25 @@ async function loadUserProfile(user) {
       }
     } else {
       // КЕЙС 3: Серверный профиль найден — просто применяем
+      console.log('[AUTH] savedUsername:', savedUsername);
+      console.log('[AUTH] serverProfile.username:', serverProfile.username);
       if (savedUsername && savedUsername !== serverProfile.username) {
+        console.log(
+          '[AUTH] Обновляем username с',
+          serverProfile.username,
+          'на',
+          savedUsername,
+        );
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ username: savedUsername })
           .eq('id', user.id);
-        if (!updateError) serverProfile.username = savedUsername;
+        if (!updateError) {
+          serverProfile.username = savedUsername;
+          console.log('[AUTH] ✅ Username обновлен успешно');
+        } else {
+          console.log('[AUTH] ❌ Ошибка обновления username:', updateError);
+        }
         localStorage.removeItem('englift_pending_username');
       }
       window.applyProfileData(serverProfile);

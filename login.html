@@ -82,7 +82,7 @@
               class="form-control"
               type="email"
               id="gate-email"
-              placeholder="your@email.com"
+              placeholder="Email"
               autocomplete="email"
             />
             <div
@@ -109,10 +109,23 @@
               class="form-control"
               type="text"
               id="gate-username"
-              placeholder="например: cooluser42"
+              placeholder="например: cooluser"
               autocomplete="username"
               maxlength="20"
             />
+            <div
+              id="username-check-spinner"
+              class="loading-spinner"
+              style="
+                display: none;
+                width: 16px;
+                height: 16px;
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+              "
+            ></div>
           </div>
           <small
             id="gate-username-hint"
@@ -135,7 +148,7 @@
                 class="form-control"
                 type="password"
                 id="gate-password"
-                placeholder="Минимум 6 символов"
+                placeholder="Пароль"
                 autocomplete="current-password"
               />
               <button
@@ -147,6 +160,16 @@
               </button>
             </div>
           </div>
+          <small
+            id="gate-password-hint"
+            style="
+              color: var(--muted);
+              font-size: 0.78rem;
+              margin-top: 4px;
+              display: none;
+            "
+            >Минимум 8 символов: A-Z, a-z, 0-9, !@#$%</small
+          >
         </div>
 
         <div class="form-group" id="gate-confirm-group" style="display: none">

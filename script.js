@@ -331,6 +331,13 @@ async function cleanupOrphanedPhrases() {
   const orphanedIds = orphaned.map(p => p.id);
   // 1. Из памяти
   window.phrases = window.phrases.filter(p => !orphanedIds.includes(p.id));
+  // Update UI after phrases modification
+  if (typeof updateDueBadge === 'function') {
+    updateDueBadge();
+  }
+  if (typeof renderStats === 'function') {
+    renderStats();
+  }
   // 2. Из IndexedDB
   try {
     await window.UserDataCache.deletePhrases(orphanedIds);
@@ -425,6 +432,10 @@ async function syncFromSupabase() {
       await window.UserDataCache.clearAllWords();
       if (merged.length) await window.UserDataCache.saveWords(merged);
       needRefresh = true;
+      // Build phrases from words after they are loaded from Supabase
+      if (merged.length > 0) {
+        buildPhrasesFromWords();
+      }
     }
     if (dataHasChanged(remoteIdioms, window.idioms)) {
       const normalized = (remoteIdioms || []).map(normalizeIdiom);
@@ -481,6 +492,13 @@ async function syncFromSupabase() {
         });
         // Convert back to array
         window.phrases = Array.from(localPhraseMap.values());
+        // Update UI after phrases are synced from Supabase
+        if (typeof updateDueBadge === 'function') {
+          updateDueBadge();
+        }
+        if (typeof renderStats === 'function') {
+          renderStats();
+        }
         await window.UserDataCache.clearAllPhrases();
         if (window.phrases.length)
           await window.UserDataCache.savePhrases(window.phrases);
@@ -1560,6 +1578,13 @@ function syncCollocationsToPhrases(wordId, newCollocations, word) {
       window.deletedPhraseIds.add(p.id);
     }
   });
+  // Update UI after phrases deletion
+  if (typeof updateDueBadge === 'function') {
+    updateDueBadge();
+  }
+  if (typeof renderStats === 'function') {
+    renderStats();
+  }
   // Добавляем или обновляем фразы для новых коллокаций
   newCollocations.forEach(coll => {
     const key = `${coll.en}|${coll.ru}`;
@@ -1636,6 +1661,12 @@ function syncCollocationsToPhrases(wordId, newCollocations, word) {
 }
 // Строит window.phrases из коллокаций всех слов при начальной загрузке
 function buildPhrasesFromWords() {
+  // Debug logging at start
+  console.log('[buildPhrasesFromWords] Starting phrase build');
+  console.log('[buildPhrasesFromWords] WORDS:', window.words.length);
+  console.log('[buildPhrasesFromWords] IDIOMS:', window.idioms.length);
+  console.log('[buildPhrasesFromWords] PHRASES:', window.phrases?.length);
+
   const newPhrases = [];
   window.words.forEach(word => {
     const collocations = word.grammar?.collocations || word.collocations || [];
@@ -1698,6 +1729,25 @@ function buildPhrasesFromWords() {
       window.dirtyPhraseIds.add(phrase.id);
     });
   }
+
+  // Debug logging
+  console.log('[buildPhrasesFromWords] Built phrases:', newPhrases.length);
+  console.log('[buildPhrasesFromWords] Total phrases:', window.phrases.length);
+
+  // Update UI after phrases are built
+  if (typeof updateDueBadge === 'function') {
+    updateDueBadge();
+  }
+  if (typeof renderStats === 'function') {
+    renderStats();
+  }
+  // Refresh UI if practice tab is active
+  if (document.querySelector('.tab-pane.active')?.id === 'tab-practice') {
+    if (typeof refreshUI === 'function') {
+      refreshUI();
+    }
+  }
+
   return newPhrases.length;
 }
 // Делаем функции доступными глобально
@@ -1713,6 +1763,43 @@ window.checkAnswerWithNormalization = checkAnswerWithNormalization;
 // ПРЕДГЕНЕРИРОВАННОЕ АУДИО ИЗ ПАПКИ /audio/
 // =============================================
 // Функции playAudio и playIdiomAudio перенесены в js/utils.js
+// Глобальный массив для отслеживания всех активных аудио
+window.activeAudioElements = [];
+// Универсальная функция для остановки всех волн аудио
+function stopAllAudioWaves() {
+  // Останавливаем TTS
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  // Останавливаем все отслеживаемые аудио элементы
+  window.activeAudioElements.forEach(audio => {
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (e) {
+      // Игнорируем ошибки
+    }
+  });
+  window.activeAudioElements = [];
+
+  document.querySelectorAll('.audio-wave').forEach(wave => {
+    if (wave._originalBtn) {
+      // Pattern 1: волна заменила кнопку через replaceChild
+      if (wave.parentNode) {
+        try {
+          wave.parentNode.replaceChild(wave._originalBtn, wave);
+          wave._originalBtn.style.display = '';
+        } catch (e) {
+          wave.remove();
+        }
+      }
+    } else {
+      // Pattern 2: волна внутри кнопки (.coll-audio-btn, .example-audio-btn)
+      const icon = wave.parentNode?.querySelector('.material-symbols-outlined');
+      wave.remove();
+      if (icon) icon.style.display = '';
+    }
+  });
+}
 // Глобальные функции для всего сайта
 window.speakWord = function (wordObj, onEnd) {
   let audioFile = null;
@@ -3499,6 +3586,7 @@ async function delWord(wordId) {
   visibleLimit = 30;
   recalculateCefrLevels();
   refreshUI();
+  updateDueBadge();
   markProfileDirty('total_words', window.words.length);
   markProfileDirty(
     'learned_words',
@@ -3600,6 +3688,13 @@ async function addPhrase(data) {
   });
   window.phrases.push(newPhrase);
   markPhraseDirtyForCache(newPhrase.id);
+  // Update UI after phrase is added
+  if (typeof updateDueBadge === 'function') {
+    updateDueBadge();
+  }
+  if (typeof renderStats === 'function') {
+    renderStats();
+  }
   if (navigator.onLine && window.currentUserId) {
     try {
       const { cefr: _c, ...newPhraseForDb } = toSnakeCase(newPhrase);
@@ -3731,10 +3826,10 @@ async function addIdiom(
     definition: definition.trim(),
     ex: ex && typeof ex === 'string' ? ex.trim() : '',
     example: ex && typeof ex === 'string' ? ex.trim() : '', // Добавляем поле example
-    example_translation:
+    exampleTranslation:
       exampleTranslation && typeof exampleTranslation === 'string'
         ? exampleTranslation.trim()
-        : '', // Сохраняем перевод примера
+        : '', // Сохраняем перевод примера (camelCase для правильной конвертации)
     examples: examples,
     phonetic: phonetic && typeof phonetic === 'string' ? phonetic.trim() : '',
     tags: tags,
@@ -3996,7 +4091,7 @@ async function flushChallengeUpdates() {
     }
   }
 }
-function checkBadges() {
+function checkBadges(perfectSession = false) {
   const newBadges = [];
   const totalWords = window.words ? window.words.length : 0;
   const totalIdioms = window.idioms ? window.idioms.length : 0;
@@ -4025,14 +4120,7 @@ function checkBadges() {
   };
   BADGES_DEF.forEach(def => {
     if (xpData.badges.includes(def.id)) return;
-    let earned;
-    if (def.id === 'accuracy_perfection') {
-      // Для бейджа точности используем perfectSession напрямую
-      earned = !!perfectSession;
-    } else {
-      // Для остальных бейджей вызываем condition с данными
-      earned = def.condition(badgeData);
-    }
+    const earned = def.condition(badgeData);
     if (earned) {
       xpData.badges.push(def.id);
       newBadges.push(def);
@@ -4057,7 +4145,7 @@ function checkBadges() {
 // Автоматическая проверка бейджей при изменении данных
 function autoCheckBadges() {
   const previousBadges = [...xpData.badges];
-  checkBadges();
+  checkBadges(false);
   // Если появились новые бейджи, показываем уведомление
   const newBadges = xpData.badges.filter(id => !previousBadges.includes(id));
   if (newBadges.length > 0) {
@@ -4554,26 +4642,39 @@ function renderStats() {
       phrasesDue > 0
         ? `<span class="stat-due-chip"><span class="material-symbols-outlined">schedule</span>${phrasesDue}</span>`
         : '';
-    const isSmallScreen = window.innerWidth < 800;
+    const isSmallScreen = window.innerWidth < 900;
+    const isTinyScreen = window.innerWidth < 620;
     const learnedIcon = 'psychology';
-    const wordsLearnedText = isSmallScreen
-      ? `${wordsLearned}`
-      : `${wordsLearned} выучено`;
-    const wordsTotalText = isSmallScreen
-      ? `${wordsTotal}`
-      : `${wordsTotal} всего`;
-    const idiomsLearnedText = isSmallScreen
-      ? `${idiomsLearned}`
-      : `${idiomsLearned} выучено`;
-    const idiomsTotalText = isSmallScreen
-      ? `${idiomsTotal}`
-      : `${idiomsTotal} всего`;
-    const phrasesLearnedText = isSmallScreen
-      ? `${phrasesLearned}`
-      : `${phrasesLearned} выучено`;
-    const phrasesTotalText = isSmallScreen
-      ? `${phrasesTotal}`
-      : `${phrasesTotal} всего`;
+    const wordsLearnedText = isTinyScreen
+      ? `${wordsLearned} выучено`
+      : isSmallScreen
+        ? `${wordsLearned}`
+        : `${wordsLearned} выучено`;
+    const wordsTotalText = isTinyScreen
+      ? `${wordsTotal} всего`
+      : isSmallScreen
+        ? `${wordsTotal}`
+        : `${wordsTotal} всего`;
+    const idiomsLearnedText = isTinyScreen
+      ? `${idiomsLearned} выучено`
+      : isSmallScreen
+        ? `${idiomsLearned}`
+        : `${idiomsLearned} выучено`;
+    const idiomsTotalText = isTinyScreen
+      ? `${idiomsTotal} всего`
+      : isSmallScreen
+        ? `${idiomsTotal}`
+        : `${idiomsTotal} всего`;
+    const phrasesLearnedText = isTinyScreen
+      ? `${phrasesLearned} выучено`
+      : isSmallScreen
+        ? `${phrasesLearned}`
+        : `${phrasesLearned} выучено`;
+    const phrasesTotalText = isTinyScreen
+      ? `${phrasesTotal} всего`
+      : isSmallScreen
+        ? `${phrasesTotal}`
+        : `${phrasesTotal} всего`;
     pc.innerHTML = `
       <div class="spc-card">
         <div class="spc-header">
@@ -5906,6 +6007,7 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
     if (!word) {
       return;
     }
+    stopAllAudioWaves();
     // Get collocations from card dataset instead of word.grammar
     const collocations = JSON.parse(card.dataset.collocations || '[]');
     const coll = collocations[collIndex];
@@ -5930,12 +6032,21 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
         const voice = window.user_settings?.voice === 'male' ? 'man' : 'women';
         const audioPath = `${cefr}/${voice}/${coll.audio}`;
         const audio = new Audio(audioPath);
+        window.activeAudioElements.push(audio);
         audio.addEventListener('error', e => {
+          const idx = window.activeAudioElements.indexOf(audio);
+          if (idx > -1) window.activeAudioElements.splice(idx, 1);
           speakText(coll.en);
           restoreButton();
         });
-        audio.addEventListener('ended', restoreButton);
+        audio.addEventListener('ended', () => {
+          const idx = window.activeAudioElements.indexOf(audio);
+          if (idx > -1) window.activeAudioElements.splice(idx, 1);
+          restoreButton();
+        });
         audio.play().catch(error => {
+          const idx = window.activeAudioElements.indexOf(audio);
+          if (idx > -1) window.activeAudioElements.splice(idx, 1);
           speakText(coll.en);
           restoreButton();
         });
@@ -5963,16 +6074,8 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
     const wordId = btn.dataset.word;
     const word = window.words.find(w => w.id === wordId);
     if (!word) return;
-    // Удаляем предыдущую волну, если она была
-    const existingWave = btn.parentNode.querySelector('.audio-wave');
-    if (existingWave) {
-      // Возвращаем кнопку, если была волна
-      const originalBtn = existingWave._originalBtn;
-      if (originalBtn && originalBtn.parentNode) {
-        originalBtn.style.display = '';
-      }
-      existingWave.remove();
-    }
+
+    stopAllAudioWaves();
     // Создаём волну и заменяем ей кнопку
     const wave = document.createElement('div');
     wave.className = 'audio-wave';
@@ -5999,6 +6102,8 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
     const wordId = card.dataset.id;
     const word = window.words.find(w => w.id === wordId);
     const exampleIndex = parseInt(btn.dataset.exampleIndex) || 0;
+
+    stopAllAudioWaves();
     // Show wave animation
     const existingWave = btn.querySelector('.audio-wave');
     const icon = btn.querySelector('.material-symbols-outlined');
@@ -6049,8 +6154,15 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
               const audio = new Audio(
                 `${audioFolder}/${audioArr[exampleIndex]}`,
               );
-              audio.addEventListener('ended', restoreButton);
+              window.activeAudioElements.push(audio);
+              audio.addEventListener('ended', () => {
+                const idx = window.activeAudioElements.indexOf(audio);
+                if (idx > -1) window.activeAudioElements.splice(idx, 1);
+                restoreButton();
+              });
               audio.play().catch(err => {
+                const idx = window.activeAudioElements.indexOf(audio);
+                if (idx > -1) window.activeAudioElements.splice(idx, 1);
                 speakText(fallbackText);
                 restoreButton();
               });
@@ -6060,8 +6172,15 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
               const audio = new Audio(
                 `${audioFolder}/${audioArr[exampleIndex]}`,
               );
-              audio.addEventListener('ended', restoreButton);
+              window.activeAudioElements.push(audio);
+              audio.addEventListener('ended', () => {
+                const idx = window.activeAudioElements.indexOf(audio);
+                if (idx > -1) window.activeAudioElements.splice(idx, 1);
+                restoreButton();
+              });
               audio.play().catch(err => {
+                const idx = window.activeAudioElements.indexOf(audio);
+                if (idx > -1) window.activeAudioElements.splice(idx, 1);
                 speakText(fallbackText);
                 restoreButton();
               });
@@ -6071,8 +6190,15 @@ document.getElementById('words-grid')?.addEventListener('click', e => {
         const cefr = word.cefr || 'A1';
         const audioFolder = `${cefr}/${voicePreference === 'male' ? 'man' : 'women'}`;
         const audio = new Audio(`${audioFolder}/${audioArr[exampleIndex]}`);
-        audio.addEventListener('ended', restoreButton);
+        window.activeAudioElements.push(audio);
+        audio.addEventListener('ended', () => {
+          const idx = window.activeAudioElements.indexOf(audio);
+          if (idx > -1) window.activeAudioElements.splice(idx, 1);
+          restoreButton();
+        });
         audio.play().catch(err => {
+          const idx = window.activeAudioElements.indexOf(audio);
+          if (idx > -1) window.activeAudioElements.splice(idx, 1);
           speakText(fallbackText);
           restoreButton();
         });
@@ -6445,16 +6571,8 @@ document.getElementById('idioms-grid')?.addEventListener('click', async e => {
     const idiomId = btn.dataset.idiom;
     const idiom = window.idioms.find(i => i.id === idiomId);
     if (!idiom) return;
-    // Удаляем предыдущую волну, если она была
-    const existingWave = btn.parentNode.querySelector('.audio-wave');
-    if (existingWave) {
-      // Возвращаем кнопку, если была волна
-      const originalBtn = existingWave._originalBtn;
-      if (originalBtn && originalBtn.parentNode) {
-        originalBtn.style.display = '';
-      }
-      existingWave.remove();
-    }
+
+    stopAllAudioWaves();
     // Создаём волну и заменяем ей кнопку
     const wave = document.createElement('div');
     wave.className = 'audio-wave';
@@ -6491,6 +6609,8 @@ document.getElementById('idioms-grid')?.addEventListener('click', async e => {
     const idiom = window.idioms.find(i => i.id === idiomId);
     const exampleIndex = btn.dataset.exampleIndex || 0;
     if (!idiom) return;
+
+    stopAllAudioWaves();
     const examplesAudio =
       idiom.examples_audio || idiom.examplesAudio || idiom.examplesaudio;
     // Если пусто — смотрим в банке через IndexedDB
@@ -6503,15 +6623,46 @@ document.getElementById('idioms-grid')?.addEventListener('click', async e => {
     }
     // Текст для озвучки (пример или сама идиома)
     const fallbackText = idiom.example || idiom.ex || idiom.idiom;
+
+    // Создаём волну
+    const wave = document.createElement('div');
+    wave.className = 'audio-wave';
+    wave.innerHTML =
+      '<span></span><span></span><span></span><span></span><span></span>';
+    const icon = btn.querySelector('.material-symbols-outlined');
+    icon.style.display = 'none';
+    btn.appendChild(wave);
+
+    const restoreButton = () => {
+      const wave = btn.querySelector('.audio-wave');
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (wave) {
+        wave.remove();
+      }
+      if (icon) {
+        icon.style.display = '';
+      }
+    };
+
     if (audioArr?.length > exampleIndex) {
       // Определяем папку в зависимости от настроек голоса
       const voicePreference = window.user_settings?.voice || 'female';
       const audioFolder = `idioms/${voicePreference === 'male' ? 'man' : 'women'}`;
       const audio = new Audio(`${audioFolder}/${audioArr[exampleIndex]}`);
+      window.activeAudioElements.push(audio);
+      audio.addEventListener('ended', () => {
+        const idx = window.activeAudioElements.indexOf(audio);
+        if (idx > -1) window.activeAudioElements.splice(idx, 1);
+        restoreButton();
+      });
       audio.play().catch(err => {
+        const idx = window.activeAudioElements.indexOf(audio);
+        if (idx > -1) window.activeAudioElements.splice(idx, 1);
+        restoreButton();
         speakText(fallbackText);
       });
     } else {
+      restoreButton();
       speakText(fallbackText);
     }
     return;
@@ -7124,8 +7275,13 @@ const showIdiomSuggestions = debounce(async query => {
     idiom: item.idiom,
     meaning: item.meaning,
     definition: item.definition,
-    example: item.example,
-    example_translation: item.example_translation,
+    example: item.example || item.examples?.[0]?.text || '',
+    exampleTranslation:
+      item.exampleTranslation ||
+      item.exampletranslation ||
+      item.example_translation ||
+      item.examples?.[0]?.translation ||
+      '',
     tags: item.tags || [],
     phonetic: item.phonetic || null,
     audio: item.audio,
@@ -7577,8 +7733,8 @@ document.addEventListener('click', e => {
       toast('Заполните все поля', 'warning');
       return;
     }
-    if (newPassword.length < 6) {
-      toast('Пароль должен быть не менее 6 символов', 'warning');
+    if (newPassword.length < 8) {
+      toast('Пароль должен быть не менее 8 символов', 'warning');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -8143,11 +8299,6 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
           <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
           <div class="exercise-name">Скажи</div>
           <div class="exercise-desc">Тренируй произношение</div>
-        </div>
-        <div class="exercise-card" data-ex="speech-sentence">
-          <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
-          <div class="exercise-name">Фраза</div>
-          <div class="exercise-desc">Прослушай и повтори предложение</div>
         </div>
         <div class="exercise-card" data-ex="match">
           <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
@@ -10503,15 +10654,8 @@ async function renderRandomBankWord() {
       e.stopPropagation(); // предотвращаем всплытие, если карточка тоже кликабельна
       const btn = e.currentTarget;
       const word = currentBankWord; // слово, которое сейчас показывается
-      // Удаляем предыдущую волну, если она была
-      const existingWave = btn.parentNode.querySelector('.audio-wave');
-      if (existingWave) {
-        const originalBtn = existingWave._originalBtn;
-        if (originalBtn && originalBtn.parentNode) {
-          originalBtn.style.display = '';
-        }
-        existingWave.remove();
-      }
+
+      stopAllAudioWaves();
       // Создаём волну
       const wave = document.createElement('div');
       wave.className = 'audio-wave';
@@ -10727,15 +10871,8 @@ async function renderRandomBankIdiom() {
     e.stopPropagation();
     const btn = e.currentTarget;
     const word = currentBankIdiom;
-    // Удаляем предыдущую волну, если она была
-    const existingWave = btn.parentNode.querySelector('.audio-wave');
-    if (existingWave) {
-      const originalBtn = existingWave._originalBtn;
-      if (originalBtn && originalBtn.parentNode) {
-        originalBtn.style.display = '';
-      }
-      existingWave.remove();
-    }
+
+    stopAllAudioWaves();
     // Создаём волну
     const wave = document.createElement('div');
     wave.className = 'audio-wave';
@@ -12532,8 +12669,17 @@ function makeIdiomCard(i) {
   card.dataset.idiom = i.idiom;
   card.dataset.meaning = i.meaning;
   card.dataset.definition = i.definition || '';
-  card.dataset.example = i.example || i.ex || '';
-  card.dataset.exampleTranslation = i.example_translation || '';
+  card.dataset.example =
+    i.example ||
+    i.ex ||
+    (Array.isArray(i.examples) && i.examples[0]?.text) ||
+    '';
+  card.dataset.exampleTranslation =
+    i.exampleTranslation || // из Supabase (toCamelCase)
+    i.exampletranslation || // локально созданные (старые)
+    i.example_translation || // из JSON файла
+    (Array.isArray(i.examples) && i.examples[0]?.translation) ||
+    '';
   card.dataset.tags = JSON.stringify(i.tags || []);
   card.dataset.examplesAudio = JSON.stringify(i.examplesAudio || []);
   // Базовая разметка (свёрнутое состояние)
@@ -12618,8 +12764,20 @@ function updateIdiomExpandedContent(card) {
   if (card.querySelector('.word-card-extra')) return;
   // Достаём данные из data-атрибутов
   const definition = card.dataset.definition;
-  const example = card.dataset.example;
-  const exampleTranslation = card.dataset.exampleTranslation;
+  let example = card.dataset.example;
+  let exampleTranslation = card.dataset.exampleTranslation;
+  // Фолбэк на examples массив если строковые поля пустые
+  if (!example) {
+    try {
+      const idiomId = card.dataset.id;
+      const idiom = window.idioms.find(i => i.id === idiomId);
+      if (idiom?.examples?.length) {
+        example = idiom.examples[0].text || '';
+        exampleTranslation =
+          exampleTranslation || idiom.examples[0].translation || '';
+      }
+    } catch (e) {}
+  }
   let examplesAudio = [];
   let tags = [];
   try {
@@ -12636,12 +12794,16 @@ function updateIdiomExpandedContent(card) {
   }
   if (example) {
     html += `
-      <div class="idiom-example">
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-          <p style="margin:0; flex:1;">${esc(example)}</p>
-          <button class="example-audio-btn" data-example-index="0" title="Прослушать пример"><span class="material-symbols-outlined">volume_up</span></button>
+      <div class="example-item">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;">
+            <div class="example-text">${esc(example)}</div>
+            ${exampleTranslation ? `<div class="example-translation">${esc(exampleTranslation)}</div>` : ''}
+          </div>
+          <button class="example-audio-btn" data-example-index="0" title="Listen" aria-label="${esc(example)}">
+            <span class="material-symbols-outlined" style="font-size:16px;">volume_up</span>
+          </button>
         </div>
-        ${exampleTranslation ? `<p class="example-translation">${esc(exampleTranslation)}</p>` : ''}
       </div>
     `;
   }
@@ -12886,7 +13048,19 @@ window.onProfileFullyLoaded = async function () {
     renderStats();
     renderXP();
     renderBadges();
-    updateDueBadge();
+    // Debug logging before first updateDueBadge
+    console.log('[onProfileFullyLoaded] Before updateDueBadge:');
+    console.log('[onProfileFullyLoaded] WORDS:', window.words.length);
+    console.log('[onProfileFullyLoaded] IDIOMS:', window.idioms.length);
+    console.log('[onProfileFullyLoaded] PHRASES:', window.phrases?.length);
+    console.log(
+      '[onProfileFullyLoaded] PHRASES DUE:',
+      (window.phrases || []).filter(
+        p => new Date(p.stats?.nextReview || 0) <= new Date(),
+      ).length,
+    );
+    // Don't call updateDueBadge() here yet - wait for syncFromSupabase() to load data first
+    // updateDueBadge();
     // 5. Переключаемся на вкладку слов после полной загрузки
     switchTab('words');
     // 5.1. Инициализируем чат
