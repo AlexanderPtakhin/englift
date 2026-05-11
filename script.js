@@ -365,6 +365,22 @@ async function loadFromCache() {
     window.words = words.length ? words.map(normalizeWord) : [];
     window.idioms = idioms.length ? idioms.map(normalizeIdiom) : [];
     window.phrases = phrases.length ? phrases.map(normalizePhrase) : [];
+
+    // ОТЛАДКА: Проверяем количество фраз в базе
+    console.log('🔍 [DEBUG] Фраз в базе данных (raw):', phrases.length);
+    console.log(
+      '🔍 [DEBUG] Фраз после normalizePhrase:',
+      window.phrases.length,
+    );
+    console.log(
+      '🔍 [DEBUG] Список фраз:',
+      window.phrases.map(p => ({
+        id: p.id,
+        phrase: p.phrase,
+        sourceWordId: p.sourceWordId,
+      })),
+    );
+
     await cleanupOrphanedPhrases();
   } catch (e) {
     console.error('Ошибка загрузки кеша', e);
@@ -398,6 +414,21 @@ async function syncFromSupabase() {
       .eq('user_id', window.currentUserId)
       .order('updated_at', { ascending: false });
     if (phrasesError) throw phrasesError;
+
+    console.log(
+      '🔍 [SYNC] Загружено фраз из Supabase:',
+      remotePhrases?.length || 0,
+    );
+    if (remotePhrases && remotePhrases.length > 0) {
+      console.log(
+        '🔍 [SYNC] Фразы из Supabase:',
+        remotePhrases.map(p => ({
+          id: p.id,
+          phrase: p.phrase,
+          source_word_id: p.source_word_id,
+        })),
+      );
+    }
     let needRefresh = false;
     if (dataHasChanged(remoteWords, window.words)) {
       const localMap = new Map(window.words.map(w => [w.id, w]));
@@ -1733,6 +1764,14 @@ function buildPhrasesFromWords() {
   // Debug logging
   console.log('[buildPhrasesFromWords] Built phrases:', newPhrases.length);
   console.log('[buildPhrasesFromWords] Total phrases:', window.phrases.length);
+
+  // ОТЛАДКА: Показываем новые созданные фразы
+  if (newPhrases.length > 0) {
+    console.log('🔍 [DEBUG] НОВЫЕ фразы созданы из слов:');
+    newPhrases.forEach(p => {
+      console.log(`  - "${p.phrase}" (sourceWordId: ${p.sourceWordId})`);
+    });
+  }
 
   // Update UI after phrases are built
   if (typeof updateDueBadge === 'function') {
@@ -4496,7 +4535,7 @@ function updateDueBadge() {
   const phrasesDue = (window.phrases || []).filter(
     p => new Date(p.stats?.nextReview || 0) <= now,
   ).length;
-  const totalDue = wordsDue + idiomsDue + phrasesDue;
+  const totalDue = wordsDue;
   // Бейдж над "Практикой" в навигации — просто точка
   const desktopBadge = document.getElementById('due-count');
   const mobileBadge = document.getElementById('mobile-due-count');
@@ -7911,11 +7950,16 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
         }
         // 4. Удаляем фразы с сервера
         if (window.currentUserId) {
+          console.log('🔍 [CLEAR] Удаляем фразы из Supabase...');
           const { error, count } = await supabase
             .from('user_phrases')
             .delete({ count: 'exact' })
             .eq('user_id', window.currentUserId);
-          if (error) console.error('❌ Ошибка удаления фраз с сервера:', error);
+          if (error) {
+            console.error('❌ Ошибка удаления фраз с сервера:', error);
+          } else {
+            console.log('✅ [CLEAR] Удалено фраз из Supabase:', count);
+          }
         }
         // 5. Очищаем IndexedDB
         await clearUserData();
