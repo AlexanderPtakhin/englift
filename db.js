@@ -275,157 +275,138 @@ export async function deleteIdiomFromDb(idiomId) {
   if (error) throw error;
 }
 
-// ─── PHRASES ─────────────────────────────────────────────
-
-export async function loadPhrasesOnce(callback) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    callback([]);
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from('user_phrases')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    console.error('Error loading phrases:', error);
-    callback([]);
-  } else {
-    // Восстанавливаем correctExerciseTypes из отдельной колонки в stats
-    const normalizedData = data.map(phrase => ({
-      ...phrase,
-      examplesAudio: phrase.examples_audio || [],
-      exampleTranslation: phrase.example_translation || null,
-      stats: phrase.stats
-        ? {
-            ...phrase.stats,
-            correctExerciseTypes: phrase.correct_exercise_types || [],
-          }
-        : undefined,
-    }));
-    callback(normalizedData);
-  }
-}
-
-export async function savePhraseToDb(phrase) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  if (!phrase || !phrase.phrase || !phrase.translation) {
-    throw new Error('Phrase object is invalid');
-  }
-
-  const {
-    updatedAt,
-    createdAt,
-    examplesAudio,
-    exampleTranslation,
-    ...phraseRest
-  } = phrase;
-
-  const correctExerciseTypes = phrase.stats?.correctExerciseTypes || [];
-
-  const cleanStats = phrase.stats
-    ? { ...phrase.stats, correctExerciseTypes: undefined }
-    : undefined;
-
-  const phraseData = {
-    ...phraseRest,
-    user_id: user.id,
-    updated_at: new Date().toISOString(),
-    created_at: createdAt ?? new Date().toISOString(),
-    examples_audio: examplesAudio ?? null,
-    example_translation: exampleTranslation ?? null,
-    correct_exercise_types: correctExerciseTypes,
-    stats: cleanStats,
-  };
-
-  // Преобразуем sourceWordId → source_word_id
-  if (phrase.sourceWordId && phraseData.source_word_id === undefined) {
-    phraseData.source_word_id = phrase.sourceWordId;
-  }
-  delete phraseData.sourceWordId;
-  delete phraseData.correctExerciseTypes;
-  delete phraseData.exampleTranslation;
-  delete phraseData.userId;
-
-  if (phraseData.source_word_id === undefined) phraseData.source_word_id = null;
-
-  console.log('🔍 [SAVE_PHRASE] Starting save for phrase:', phraseData.phrase);
-  console.log('🔍 [SAVE_PHRASE] source_word_id:', phraseData.source_word_id);
-  console.log(
-    '🔍 [SAVE_PHRASE] stats.nextReview:',
-    phraseData.stats?.nextReview,
-  );
-
-  // 1. Ищем существующую фразу по составному ключу
-  const { data: existing, error: selectError } = await supabase
-    .from('user_phrases')
-    .select('id, stats')
-    .eq('user_id', user.id)
-    .eq('source_word_id', phraseData.source_word_id)
-    .eq('phrase', phraseData.phrase)
-    .maybeSingle();
-
-  if (selectError) throw selectError;
-
-  console.log('🔍 [SAVE_PHRASE] Existing record found:', !!existing);
-  if (existing) {
-    console.log('🔍 [SAVE_PHRASE] Existing id:', existing.id);
-    console.log(
-      '🔍 [SAVE_PHRASE] Existing stats.nextReview:',
-      existing.stats?.nextReview,
-    );
-  }
-
-  let error;
-  if (existing) {
-    // 2. Обновляем существующую запись (сохраняем старый id)
-    console.log(
-      '🔍 [SAVE_PHRASE] Updating existing record with id:',
-      existing.id,
-    );
-    const { error: updateError } = await supabase
-      .from('user_phrases')
-      .update(phraseData)
-      .eq('id', existing.id);
-    error = updateError;
-  } else {
-    // 3. Вставляем новую фразу
-    console.log('🔍 [SAVE_PHRASE] Inserting new phrase');
-    const { error: insertError } = await supabase
-      .from('user_phrases')
-      .insert(phraseData);
-    error = insertError;
-  }
-
-  if (error) {
-    console.error('savePhraseToDb error:', error, phraseData);
-    throw error;
-  }
-}
-
-export async function deletePhraseFromDb(phraseId) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { error } = await supabase
-    .from('user_phrases')
-    .delete()
-    .eq('id', phraseId)
-    .eq('user_id', user.id);
-
-  if (error) throw error;
-}
+// REMOVED: phrases functionality
+// // ─── PHRASES ─────────────────────────────────────────────
+// export async function loadPhrasesOnce(callback) {
+//   const {
+//     data: { user },
+//   } = await supabase.auth.getUser();
+//   if (!user) {
+//     callback([]);
+//     return;
+//   }
+//   const { data, error } = await supabase
+//     .from('user_phrases')
+//     .select('*')
+//     .eq('user_id', user.id)
+//     .order('updated_at', { ascending: false });
+//   if (error) {
+//     console.error('Error loading phrases:', error);
+//     callback([]);
+//   } else {
+//     // Восстанавливаем correctExerciseTypes из отдельной колонки в stats
+//     const normalizedData = data.map(phrase => ({
+//       ...phrase,
+//       examplesAudio: phrase.examples_audio || [],
+//       exampleTranslation: phrase.example_translation || null,
+//       stats: phrase.stats
+//         ? {
+//             ...phrase.stats,
+//             correctExerciseTypes: phrase.correct_exercise_types || [],
+//           }
+//         : undefined,
+//     }));
+//     callback(normalizedData);
+//   }
+// }
+// export async function savePhraseToDb(phrase) {
+//   const {
+//     data: { user },
+//   } = await supabase.auth.getUser();
+//   if (!user) throw new Error('Not authenticated');
+//   if (!phrase || !phrase.phrase || !phrase.translation) {
+//     throw new Error('Phrase object is invalid');
+//   }
+//   const {
+//     updatedAt,
+//     createdAt,
+//     examplesAudio,
+//     exampleTranslation,
+//     ...phraseRest
+//   } = phrase;
+//   const correctExerciseTypes = phrase.stats?.correctExerciseTypes || [];
+//   const cleanStats = phrase.stats
+//     ? { ...phrase.stats, correctExerciseTypes: undefined }
+//     : undefined;
+//   const phraseData = {
+//     ...phraseRest,
+//     user_id: user.id,
+//     updated_at: new Date().toISOString(),
+//     created_at: createdAt ?? new Date().toISOString(),
+//     examples_audio: examplesAudio ?? null,
+//     example_translation: exampleTranslation ?? null,
+//     correct_exercise_types: correctExerciseTypes,
+//     stats: cleanStats,
+//   };
+//   // Преобразуем sourceWordId → source_word_id
+//   if (phrase.sourceWordId && phraseData.source_word_id === undefined) {
+//     phraseData.source_word_id = phrase.sourceWordId;
+//   }
+//   delete phraseData.sourceWordId;
+//   delete phraseData.correctExerciseTypes;
+//   delete phraseData.exampleTranslation;
+//   delete phraseData.userId;
+//   if (phraseData.source_word_id === undefined) phraseData.source_word_id = null;
+//   console.log('🔍 [SAVE_PHRASE] Starting save for phrase:', phraseData.phrase);
+//   console.log('🔍 [SAVE_PHRASE] source_word_id:', phraseData.source_word_id);
+//   console.log(
+//     '🔍 [SAVE_PHRASE] stats.nextReview:',
+//     phraseData.stats?.nextReview,
+//   );
+//   // 1. Ищем существующую фразу по составному ключу
+//   const { data: existing, error: selectError } = await supabase
+//     .from('user_phrases')
+//     .select('id, stats')
+//     .eq('user_id', user.id)
+//     .eq('source_word_id', phraseData.source_word_id)
+//     .eq('phrase', phraseData.phrase)
+//     .maybeSingle();
+//   if (selectError) throw selectError;
+//   console.log('🔍 [SAVE_PHRASE] Existing record found:', !!existing);
+//   if (existing) {
+//     console.log('🔍 [SAVE_PHRASE] Existing id:', existing.id);
+//     console.log(
+//       '🔍 [SAVE_PHRASE] Existing stats.nextReview:',
+//       existing.stats?.nextReview,
+//     );
+//   }
+//   let error;
+//   if (existing) {
+//     // 2. Обновляем существующую запись (сохраняем старый id)
+//     console.log(
+//       '🔍 [SAVE_PHRASE] Updating existing record with id:',
+//       existing.id,
+//     );
+//     const { error: updateError } = await supabase
+//       .from('user_phrases')
+//       .update(phraseData)
+//       .eq('id', existing.id);
+//     error = updateError;
+//   } else {
+//     // 3. Вставляем новую фразу
+//     console.log('🔍 [SAVE_PHRASE] Inserting new phrase');
+//     const { error: insertError } = await supabase
+//       .from('user_phrases')
+//       .insert(phraseData);
+//     error = insertError;
+//   }
+//   if (error) {
+//     console.error('savePhraseToDb error:', error, phraseData);
+//     throw error;
+//   }
+// }
+// export async function deletePhraseFromDb(phraseId) {
+//   const {
+//     data: { user },
+//   } = await supabase.auth.getUser();
+//   if (!user) throw new Error('Not authenticated');
+//   const { error } = await supabase
+//     .from('user_phrases')
+//     .delete()
+//     .eq('id', phraseId)
+//     .eq('user_id', user.id);
+//   if (error) throw error;
+// }
 
 // ─── FRIENDSHIPS ───────────────────────────────────────────
 
@@ -713,6 +694,8 @@ export async function removeReaction(messageId, userId, emoji) {
     throw error;
   }
 }
+
+
 
 /**
  * Получает реакции для списка ID сообщений.

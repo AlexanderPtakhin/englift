@@ -261,23 +261,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     if (typeof window.subscribeToReactions === 'function') {
       window.subscribeToReactions();
     }
-
-    if (profileLoaded && !wordsLoaded) {
-      wordsLoaded = true;
-      window.authExports?.loadWordsOnce(remoteWords => {
-        const localWords = window.words || [];
-        const merged = window.mergeWords
-          ? window.mergeWords(localWords, remoteWords)
-          : remoteWords;
-        window.words = merged.map(word =>
-          typeof word === 'object'
-            ? window.normalizeWord?.(word) || word
-            : word,
-        );
-        localStorage.setItem('englift_words', JSON.stringify(window.words));
-        if (window.refreshUI) window.refreshUI();
-      });
-    }
   } else if (user && !user.email_confirmed_at) {
     // Неподтверждённый email — редирект на страницу входа, где будет показан соответствующий блок
     if (window.location.pathname !== '/login.html') {

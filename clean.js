@@ -20,3 +20,4 @@ console.log(
 
 // Запустить скрипт 
 // node clean.js script.js
+// node clean.js index.html

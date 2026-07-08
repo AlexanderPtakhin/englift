@@ -1,6 +1,24 @@
 import { supabase } from './supabase.js';
 import { saveUserData } from './db.js'; // для сохранения профиля при регистрации
 
+// Список разрешённых доменов
+const allowedDomains = [
+  '.ru', '.рф',           // национальные домены
+  'yandex.', 'ya.ru',     // Яндекс
+  'mail.ru', 'bk.ru', 'inbox.ru', 'list.ru',  // Mail.ru Group
+  'rambler.ru', 'lenta.ru', 'ro.ru', 'etel.ru', // Rambler и др.
+  'internet.ru', 'com.ru', 'net.ru', 'org.ru', // бесплатные зоны
+  'km.ru', 'ng.ru', 'iz.ru', 'rg.ru', 'gazeta.ru', // СМИ
+  'peterhost.ru', 'spaceweb.ru', 'nic.ru', // хостинги
+  'moskva.ru', 'spb.ru', 'nov.ru', 'sochi.ru' // региональные
+];
+
+// Функция проверки российского email
+function isRussianEmail(email) {
+  const lower = email.toLowerCase();
+  return allowedDomains.some(domain => lower.includes(domain));
+}
+
 // DOM элементы
 const authGate = document.getElementById('auth-gate');
 const gateEmail = document.getElementById('gate-email');
@@ -173,6 +191,12 @@ async function handleAuth(email, password, confirm, isRegister, username) {
   }
 
   if (isRegister) {
+    // Фильтр email-домена
+    if (!isRussianEmail(email)) {
+      gateError.textContent = 'Регистрация только с российским email (@yandex.ru, @mail.ru и т.д.)';
+      return;
+    }
+
     if (!username) {
       gateError.textContent = 'Введите имя пользователя';
       gateUsername.focus();

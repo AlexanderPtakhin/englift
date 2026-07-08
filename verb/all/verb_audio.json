@@ -1,0 +1,972 @@
+[
+  {
+    "en": "abide – abode – abode",
+    "ru": "пребывать, терпеть",
+    "audio": "39544d11d285c8211ca38add394b61fe.mp3"
+  },
+  {
+    "en": "alight – alit – alit",
+    "ru": "сходить, зажигаться",
+    "audio": "571408a5fb1e0778858c14a7a2330709.mp3"
+  },
+  {
+    "en": "arise – arose – arisen",
+    "ru": "возникать, подниматься",
+    "audio": "469d58656cc13549b09766832c01b174.mp3"
+  },
+  {
+    "en": "awake – awoke – awoken",
+    "ru": "просыпаться, будить",
+    "audio": "87a18ad4f17cbd4c2181d9afb68c1253.mp3"
+  },
+  {
+    "en": "be – was/were – been",
+    "ru": "быть, являться",
+    "audio": "7aff688c29867f5939f03a8f78e2d2ad.mp3"
+  },
+  {
+    "en": "bear – bore – borne/born",
+    "ru": "нести, рождать",
+    "audio": "f5b84c3fd92f8d98f783c65faac5cda7.mp3"
+  },
+  {
+    "en": "beat – beat – beaten",
+    "ru": "бить, колотить",
+    "audio": "b8e7ccbde65a529f53a7040c8bd9beb0.mp3"
+  },
+  {
+    "en": "become – became – become",
+    "ru": "становиться",
+    "audio": "b527f4b4cab2a443b2a060b0bad561a6.mp3"
+  },
+  {
+    "en": "befall – befell – befallen",
+    "ru": "случаться, приключаться",
+    "audio": "0cca6dfd8000514a1bbf1ff1b38702e7.mp3"
+  },
+  {
+    "en": "beget – begot – begotten",
+    "ru": "порождать, быть отцом",
+    "audio": "f43f2d5bace1f8bb8e5665405197f589.mp3"
+  },
+  {
+    "en": "begin – began – begun",
+    "ru": "начинать",
+    "audio": "49bfebee3525c8fc1a404558b1361184.mp3"
+  },
+  {
+    "en": "behold – beheld – beheld",
+    "ru": "созерцать, увидеть",
+    "audio": "69b977c4a0503a37de521e4fff230c71.mp3"
+  },
+  {
+    "en": "bend – bent – bent",
+    "ru": "гнуть, сгибать",
+    "audio": "bb6aeb956271b782f71e2d9c181305a5.mp3"
+  },
+  {
+    "en": "bereave – bereft – bereft",
+    "ru": "лишать, отнимать",
+    "audio": "64d030376441b72c3654bb709edfd846.mp3"
+  },
+  {
+    "en": "beseech – besought – besought",
+    "ru": "умолять, упрашивать",
+    "audio": "449e9f6b0df3c9828198146b069b52f8.mp3"
+  },
+  {
+    "en": "beset – beset – beset",
+    "ru": "окружать, осаждать",
+    "audio": "476b6d34bb0b86cd066e84fd2f168199.mp3"
+  },
+  {
+    "en": "bet – bet – bet",
+    "ru": "держать пари, ставить",
+    "audio": "c208c3257c71cd3b0e89f273e1fe17b9.mp3"
+  },
+  {
+    "en": "bid – bid – bid",
+    "ru": "предлагать цену, велеть",
+    "audio": "f896ffe98902691faa7ee1edd52207b2.mp3"
+  },
+  {
+    "en": "bind – bound – bound",
+    "ru": "связывать, переплетать",
+    "audio": "a01df7c199bd817e075a362bd01ce722.mp3"
+  },
+  {
+    "en": "bite – bit – bitten",
+    "ru": "кусать, жалить",
+    "audio": "d61cb0587a80fafa1193d098dc22aa3c.mp3"
+  },
+  {
+    "en": "bleed – bled – bled",
+    "ru": "кровоточить, проливать кровь",
+    "audio": "ae2f96dba7ec993618351bacace7a410.mp3"
+  },
+  {
+    "en": "blow – blew – blown",
+    "ru": "дуть, выдыхать",
+    "audio": "a8d50ddbfd1b0ed712f422c6b849eb18.mp3"
+  },
+  {
+    "en": "break – broke – broken",
+    "ru": "ломать, разбивать",
+    "audio": "1b29e83b3734bc0f3ae539eee05b91f4.mp3"
+  },
+  {
+    "en": "breed – bred – bred",
+    "ru": "разводить, порождать",
+    "audio": "edce12fedb197c8f87bf41a7f22f0089.mp3"
+  },
+  {
+    "en": "bring – brought – brought",
+    "ru": "приносить, приводить",
+    "audio": "ebad04ebee490663e2474e35e2681300.mp3"
+  },
+  {
+    "en": "broadcast – broadcast – broadcast",
+    "ru": "передавать, вещать",
+    "audio": "5254b0a6a6bd6c52b76926ee4082f0e4.mp3"
+  },
+  {
+    "en": "build – built – built",
+    "ru": "строить, сооружать",
+    "audio": "fbecc46e8802b48d19e5495320a0ac0c.mp3"
+  },
+  {
+    "en": "burn – burnt/burned – burnt/burned",
+    "ru": "гореть, сжигать",
+    "audio": "6378287c69710d2e8ceee9c8660c31c3.mp3"
+  },
+  {
+    "en": "burst – burst – burst",
+    "ru": "взрываться, лопаться",
+    "audio": "8c648230c0c881067d96442736e46063.mp3"
+  },
+  {
+    "en": "buy – bought – bought",
+    "ru": "покупать, приобретать",
+    "audio": "c08d6ac0e71a4ad7838a0480220028af.mp3"
+  },
+  {
+    "en": "can – could – could",
+    "ru": "мочь, уметь",
+    "audio": "d5aaf48fff2d075b43adc4d839dddc1b.mp3"
+  },
+  {
+    "en": "cast – cast – cast",
+    "ru": "бросать, лить (металл)",
+    "audio": "a4f18551e9a8523dd8b8932b2294775c.mp3"
+  },
+  {
+    "en": "catch – caught – caught",
+    "ru": "ловить, схватывать",
+    "audio": "8242b504b0c7b16190d96893be6ef187.mp3"
+  },
+  {
+    "en": "choose – chose – chosen",
+    "ru": "выбирать, избирать",
+    "audio": "ebde54e221bc460b342e5533ba27a59a.mp3"
+  },
+  {
+    "en": "cling – clung – clung",
+    "ru": "цепляться, прилипать",
+    "audio": "1352a57eea6c123bc89035331e88bdd9.mp3"
+  },
+  {
+    "en": "clothe – clad/clothed – clad/clothed",
+    "ru": "одевать, покрывать",
+    "audio": "80cc19597b56a3415eff567b247e7780.mp3"
+  },
+  {
+    "en": "come – came – come",
+    "ru": "приходить, наступать",
+    "audio": "6fd63a7227846765d7a02e5a46281b40.mp3"
+  },
+  {
+    "en": "cost – cost – cost",
+    "ru": "стоить, оцениваться",
+    "audio": "e48590f89553fa890c4526356a942e67.mp3"
+  },
+  {
+    "en": "creep – crept – crept",
+    "ru": "ползать, красться",
+    "audio": "851e07ae509c54ccbce51af024996325.mp3"
+  },
+  {
+    "en": "cut – cut – cut",
+    "ru": "резать, разрезать",
+    "audio": "d8c6bd9b3e13615f63bb088da36c94ce.mp3"
+  },
+  {
+    "en": "dare – dared/durst – dared",
+    "ru": "сметь, осмеливаться",
+    "audio": "b5df219f9e6598644ee57f887b31f606.mp3"
+  },
+  {
+    "en": "deal – dealt – dealt",
+    "ru": "иметь дело, торговать",
+    "audio": "680c13610640571709c0992cc5ed3c59.mp3"
+  },
+  {
+    "en": "dig – dug – dug",
+    "ru": "копать, рыть",
+    "audio": "84d2b023ca6f2128d294b8a2bdd280b2.mp3"
+  },
+  {
+    "en": "do – did – done",
+    "ru": "делать, выполнять",
+    "audio": "01d123388194b6415907b3ad0872874c.mp3"
+  },
+  {
+    "en": "draw – drew – drawn",
+    "ru": "рисовать, тащить",
+    "audio": "d2165616fc141229d4808ff87e41bc69.mp3"
+  },
+  {
+    "en": "dream – dreamt/dreamed – dreamt/dreamed",
+    "ru": "мечтать, видеть сны",
+    "audio": "a87cbebdb81028d50334067466f8741f.mp3"
+  },
+  {
+    "en": "drink – drank – drunk",
+    "ru": "пить, выпивать",
+    "audio": "fa156c15aec820aa1373d4752a62ff1c.mp3"
+  },
+  {
+    "en": "drive – drove – driven",
+    "ru": "водить (машину), гнать",
+    "audio": "40a777b5118a22a2569ce084d05482bb.mp3"
+  },
+  {
+    "en": "dwell – dwelt – dwelt",
+    "ru": "обитать, проживать",
+    "audio": "732e385af2377cb56c0f5426457cb118.mp3"
+  },
+  {
+    "en": "eat – ate – eaten",
+    "ru": "есть, кушать, поглощать",
+    "audio": "99bd68b001ff6e7ee65e836d8f542410.mp3"
+  },
+  {
+    "en": "fall – fell – fallen",
+    "ru": "падать, упасть",
+    "audio": "0a70c53699e07d80435703de54f51b53.mp3"
+  },
+  {
+    "en": "feed – fed – fed",
+    "ru": "кормить, питать",
+    "audio": "d3f0ddf6604836a9b7ac3bd1a7b0f2f2.mp3"
+  },
+  {
+    "en": "feel – felt – felt",
+    "ru": "чувствовать, ощущать",
+    "audio": "bf10a472295eb8d252ce81ca85188e70.mp3"
+  },
+  {
+    "en": "fight – fought – fought",
+    "ru": "драться, сражаться",
+    "audio": "d480a1e50f70f942bbf39f9bab9527ad.mp3"
+  },
+  {
+    "en": "find – found – found",
+    "ru": "находить, обнаруживать",
+    "audio": "2f4808c3d9a03b0e753a2c3fe87076eb.mp3"
+  },
+  {
+    "en": "flee – fled – fled",
+    "ru": "бежать, спасаться бегством",
+    "audio": "6d94c4bb91114deca96d367e57bd6907.mp3"
+  },
+  {
+    "en": "fling – flung – flung",
+    "ru": "бросать, швырять",
+    "audio": "6f9787b92a11ad62f95bdf794430602d.mp3"
+  },
+  {
+    "en": "fly – flew – flown",
+    "ru": "летать, лететь",
+    "audio": "bc81642acb77b493225d22b48a13adff.mp3"
+  },
+  {
+    "en": "forbid – forbade – forbidden",
+    "ru": "запрещать, возбранять",
+    "audio": "361c40030d24790b59ff31c2038a4edf.mp3"
+  },
+  {
+    "en": "forecast – forecast – forecast",
+    "ru": "прогнозировать, предсказывать",
+    "audio": "6f66eff39dce8826783e77e2aaedd633.mp3"
+  },
+  {
+    "en": "foresee – foresaw – foreseen",
+    "ru": "предвидеть, предугадывать",
+    "audio": "f8633991232eb3038fa5a7fa4079f288.mp3"
+  },
+  {
+    "en": "foretell – foretold – foretold",
+    "ru": "предсказывать, пророчествовать",
+    "audio": "ccfbec48fc4b2aa1ac1b7d2505f391d1.mp3"
+  },
+  {
+    "en": "forget – forgot – forgotten",
+    "ru": "забывать, запамятовать",
+    "audio": "0378784504c4cad0df96f504c86eedf8.mp3"
+  },
+  {
+    "en": "forgive – forgave – forgiven",
+    "ru": "прощать, извинять",
+    "audio": "089ee863333acbb133f7dc4db45255f3.mp3"
+  },
+  {
+    "en": "forsake – forsook – forsaken",
+    "ru": "покидать, оставлять",
+    "audio": "b1f771c5425ab4abcb1872339dfb51a6.mp3"
+  },
+  {
+    "en": "freeze – froze – frozen",
+    "ru": "замерзать, замораживать",
+    "audio": "6ca14bc05ad9c89a93d69e2118ab7098.mp3"
+  },
+  {
+    "en": "get – got – got/gotten",
+    "ru": "получать, становиться",
+    "audio": "2522dfa1c57a48d0ea37f1029fcb2690.mp3"
+  },
+  {
+    "en": "give – gave – given",
+    "ru": "давать, отдавать",
+    "audio": "11887aac8a731f8c10dbc445b018dc2c.mp3"
+  },
+  {
+    "en": "go – went – gone",
+    "ru": "идти, ехать",
+    "audio": "c86bf66e706eb41c1d90233896f5e623.mp3"
+  },
+  {
+    "en": "grind – ground – ground",
+    "ru": "молоть, точить, скрежетать",
+    "audio": "1ad79f034612ad1864de80b81b43f26a.mp3"
+  },
+  {
+    "en": "grow – grew – grown",
+    "ru": "расти, выращивать",
+    "audio": "c02f0273e547c74c053d3f20dd301cfe.mp3"
+  },
+  {
+    "en": "hang – hung – hung",
+    "ru": "вешать, висеть",
+    "audio": "f57ad2a06889c34b3f23de358e5ce8b5.mp3"
+  },
+  {
+    "en": "have – had – had",
+    "ru": "иметь, обладать",
+    "audio": "14bd2211d800850b5264bf13bd9f1b8b.mp3"
+  },
+  {
+    "en": "hear – heard – heard",
+    "ru": "слышать, слушать",
+    "audio": "73ab7bb493518670aae7ddcf14fbc9a9.mp3"
+  },
+  {
+    "en": "hide – hid – hidden",
+    "ru": "прятать, скрывать",
+    "audio": "a667c394b31382b88e732d768d6e54ec.mp3"
+  },
+  {
+    "en": "hit – hit – hit",
+    "ru": "ударять, попадать",
+    "audio": "9fe9cd2a93dd220335f2f1a1379cddc9.mp3"
+  },
+  {
+    "en": "hold – held – held",
+    "ru": "держать, удерживать",
+    "audio": "829677b816b34fc29efa7329476ebc9f.mp3"
+  },
+  {
+    "en": "hurt – hurt – hurt",
+    "ru": "ранить, причинять боль",
+    "audio": "1448f6ffc039c7389d6e9509e8482ac8.mp3"
+  },
+  {
+    "en": "keep – kept – kept",
+    "ru": "держать, хранить, соблюдать",
+    "audio": "e00ecf987809e123713ec9f4e2af1c0e.mp3"
+  },
+  {
+    "en": "kneel – knelt – knelt",
+    "ru": "становиться на колени",
+    "audio": "970b6b471d2fb034ddb2fe396012c4a7.mp3"
+  },
+  {
+    "en": "know – knew – known",
+    "ru": "знать, быть знакомым",
+    "audio": "60e1c539a30b19c1b8f7dd9fc45d8f82.mp3"
+  },
+  {
+    "en": "lay – laid – laid",
+    "ru": "класть, положить",
+    "audio": "2ae5508137a44e91b72380c68a894742.mp3"
+  },
+  {
+    "en": "lead – led – led",
+    "ru": "вести, руководить",
+    "audio": "2909250b6d4f7598a4a367778b222181.mp3"
+  },
+  {
+    "en": "lean – leant/leaned – leant/leaned",
+    "ru": "наклоняться, прислоняться",
+    "audio": "59825650fce6b8277cc30c2f66c9a17a.mp3"
+  },
+  {
+    "en": "leap – leapt/leaped – leapt/leaped",
+    "ru": "прыгать, скакать",
+    "audio": "b955ef9ecb0637264e78bfcf802f04a4.mp3"
+  },
+  {
+    "en": "learn – learnt/learned – learnt/learned",
+    "ru": "учить, узнавать",
+    "audio": "3d13bc3dcb72184a528edbe79add7bdd.mp3"
+  },
+  {
+    "en": "leave – left – left",
+    "ru": "покидать, оставлять",
+    "audio": "fc73c54ddd853e95382085c6bbeba7a4.mp3"
+  },
+  {
+    "en": "lend – lent – lent",
+    "ru": "одалживать (давать взаймы)",
+    "audio": "0c0487943ec4168ed7ee78e513650536.mp3"
+  },
+  {
+    "en": "let – let – let",
+    "ru": "позволять, допускать",
+    "audio": "0d7468b450d2d5bb50e00db3093c17cc.mp3"
+  },
+  {
+    "en": "lie – lay – lain",
+    "ru": "лежать, находиться",
+    "audio": "e5362c0349f017ea694829a4f19902b8.mp3"
+  },
+  {
+    "en": "light – lit – lit",
+    "ru": "зажигать, освещать",
+    "audio": "606811fd8e00e58c70e9c2ee997c1d3a.mp3"
+  },
+  {
+    "en": "lose – lost – lost",
+    "ru": "терять, утрачивать",
+    "audio": "c26fbbe0889b59790e69768f2f24c067.mp3"
+  },
+  {
+    "en": "make – made – made",
+    "ru": "делать, создавать, изготавливать",
+    "audio": "8833bfbd52e871f7e555b70d8509150a.mp3"
+  },
+  {
+    "en": "may – might – might",
+    "ru": "мочь, иметь возможность",
+    "audio": "e4364d3e65080bee40247ed8c6bca8cf.mp3"
+  },
+  {
+    "en": "mean – meant – meant",
+    "ru": "значить, подразумевать",
+    "audio": "05edfc21c88444f88b468841939b2beb.mp3"
+  },
+  {
+    "en": "meet – met – met",
+    "ru": "встречать, знакомиться",
+    "audio": "b21c37562412454413e1ff54a7733a41.mp3"
+  },
+  {
+    "en": "melt – melted – melted/molten",
+    "ru": "таять, плавить",
+    "audio": "8e711739318aa553c4f791870711aead.mp3"
+  },
+  {
+    "en": "mislead – misled – misled",
+    "ru": "вводить в заблуждение",
+    "audio": "81c526e796c4ba5b9d4bab8d5ab28512.mp3"
+  },
+  {
+    "en": "mistake – mistook – mistaken",
+    "ru": "ошибаться, путать",
+    "audio": "b68b8f0f22f3afae43040e9be6e87cf4.mp3"
+  },
+  {
+    "en": "misunderstand – misunderstood – misunderstood",
+    "ru": "неправильно понимать",
+    "audio": "23347ceb8e86a0709a189b9a7bce064a.mp3"
+  },
+  {
+    "en": "mow – mowed – mown/mowed",
+    "ru": "косить, стричь (газон)",
+    "audio": "8315d3f4f02ade3e301fc6edd85ce5a2.mp3"
+  },
+  {
+    "en": "overcome – overcame – overcome",
+    "ru": "преодолевать, побеждать",
+    "audio": "ab3628d875c96c9b410b4646a88a2e5a.mp3"
+  },
+  {
+    "en": "overdo – overdid – overdone",
+    "ru": "переусердствовать, пережарить",
+    "audio": "ac5bed9480ad879e305ed3a6cfea67cd.mp3"
+  },
+  {
+    "en": "overhear – overheard – overheard",
+    "ru": "подслушивать, случайно услышать",
+    "audio": "c7aa37c6f4f68c1cb8677df37bc64db8.mp3"
+  },
+  {
+    "en": "oversleep – overslept – overslept",
+    "ru": "проспать, заспаться",
+    "audio": "66033e143978d87dcb2be4101ec55b4b.mp3"
+  },
+  {
+    "en": "overtake – overtook – overtaken",
+    "ru": "догонять, обгонять",
+    "audio": "c05384aaa4b009b142c92218bce9f039.mp3"
+  },
+  {
+    "en": "pay – paid – paid",
+    "ru": "платить, расплачиваться",
+    "audio": "e34cce6d07623cfc525b72d90407108f.mp3"
+  },
+  {
+    "en": "prove – proved – proved/proven",
+    "ru": "доказывать, подтверждать",
+    "audio": "7f5245012929891adc36b38356c54b6b.mp3"
+  },
+  {
+    "en": "put – put – put",
+    "ru": "класть, ставить, помещать",
+    "audio": "574e3fc7bba0c447d898e3b314402adf.mp3"
+  },
+  {
+    "en": "quit – quit – quit",
+    "ru": "бросать, прекращать, увольняться",
+    "audio": "3813ab2000228c746a83c2fac576fa0c.mp3"
+  },
+  {
+    "en": "read – read – read",
+    "ru": "читать, прочитать",
+    "audio": "5548a9ca4c98a49cd5328f0dc5929427.mp3"
+  },
+  {
+    "en": "rid – rid – rid",
+    "ru": "избавлять, освобождать",
+    "audio": "13f4c37229728fb1bb9dd8411707e3cc.mp3"
+  },
+  {
+    "en": "ride – rode – ridden",
+    "ru": "ехать (верхом/на транспорте)",
+    "audio": "e6bdfda12309ae9e2c1a734e42cededc.mp3"
+  },
+  {
+    "en": "ring – rang – rung",
+    "ru": "звонить, звенеть",
+    "audio": "00de2cbcf6d783dbc334cf2f7d594633.mp3"
+  },
+  {
+    "en": "rise – rose – risen",
+    "ru": "подниматься, вставать",
+    "audio": "4767cc41ee8ee98f931f91c6d092d8e1.mp3"
+  },
+  {
+    "en": "run – ran – run",
+    "ru": "бежать, управлять (программой)",
+    "audio": "fa50f85ff6ab7048bd54c8482564a7d4.mp3"
+  },
+  {
+    "en": "saw – sawed – sawn/sawed",
+    "ru": "пилить, распиливать",
+    "audio": "8388d75ebc1298306fffa8f5d2dab241.mp3"
+  },
+  {
+    "en": "say – said – said",
+    "ru": "сказать, говорить",
+    "audio": "d5ea46b347d938babd380deaf7143474.mp3"
+  },
+  {
+    "en": "see – saw – seen",
+    "ru": "видеть, понимать",
+    "audio": "5d24a02d32c8383a54b88f2d87b476a3.mp3"
+  },
+  {
+    "en": "seek – sought – sought",
+    "ru": "искать, разыскивать",
+    "audio": "3936c7068998e145a0e3ab4572cd3a72.mp3"
+  },
+  {
+    "en": "sell – sold – sold",
+    "ru": "продавать, торговать",
+    "audio": "7b472554e43efcd4c05026ed0c31543f.mp3"
+  },
+  {
+    "en": "send – sent – sent",
+    "ru": "посылать, отправлять",
+    "audio": "c30ffe7d29867bc689e4b0514bfec397.mp3"
+  },
+  {
+    "en": "set – set – set",
+    "ru": "устанавливать, назначать",
+    "audio": "fd76e6a686624fa7e9f5e4e644fc62b6.mp3"
+  },
+  {
+    "en": "sew – sewed – sewn/sewed",
+    "ru": "шить, зашивать",
+    "audio": "3b12021575155146836e53b91f4cea6b.mp3"
+  },
+  {
+    "en": "shake – shook – shaken",
+    "ru": "трясти, встряхивать",
+    "audio": "8b3b61b0ee72f53d6ed1793e69ea7e2c.mp3"
+  },
+  {
+    "en": "shall – should – should",
+    "ru": "должен (вспомогательный)",
+    "audio": "10ce88fe7710f9cac94d584f261b5a92.mp3"
+  },
+  {
+    "en": "shed – shed – shed",
+    "ru": "проливать (слёзы), сбрасывать (листву)",
+    "audio": "80c9110efe605ab49d6e83df50d9cf55.mp3"
+  },
+  {
+    "en": "shine – shone – shone",
+    "ru": "светить, сиять",
+    "audio": "252c73bcd3989336d8a52c8f828b3045.mp3"
+  },
+  {
+    "en": "shoot – shot – shot",
+    "ru": "стрелять, снимать (кино)",
+    "audio": "b11dc281c6eb07895f7d0b4b04eaa646.mp3"
+  },
+  {
+    "en": "show – showed – shown/showed",
+    "ru": "показывать, демонстрировать",
+    "audio": "40ece7111117b880aa895ed90b301880.mp3"
+  },
+  {
+    "en": "shrink – shrank – shrunk",
+    "ru": "сжиматься, давать усадку",
+    "audio": "413fd1467a8b87a926026f56b73a5a4e.mp3"
+  },
+  {
+    "en": "shut – shut – shut",
+    "ru": "закрывать, захлопывать",
+    "audio": "ad39f00a1dea1a4bc0f0a42286642e9e.mp3"
+  },
+  {
+    "en": "sing – sang – sung",
+    "ru": "петь, исполнять",
+    "audio": "9e111fd3882f38e71132fbcd8bde18e5.mp3"
+  },
+  {
+    "en": "sink – sank – sunk",
+    "ru": "тонуть, погружаться",
+    "audio": "fc1e80d6be7d7c92db30d9cc6e998f04.mp3"
+  },
+  {
+    "en": "sit – sat – sat",
+    "ru": "сидеть, садиться",
+    "audio": "a46392955ca943115ec88f8b97453071.mp3"
+  },
+  {
+    "en": "slay – slew – slain",
+    "ru": "убивать, умерщвлять",
+    "audio": "57962f1d1efe5aa76af6f814d77df058.mp3"
+  },
+  {
+    "en": "sleep – slept – slept",
+    "ru": "спать, засыпать",
+    "audio": "0b28861a5bc53dd994f4e2ed47e6ee32.mp3"
+  },
+  {
+    "en": "slide – slid – slid",
+    "ru": "скользить, катиться",
+    "audio": "926dd281c9b5eb4dac6139626dc3105e.mp3"
+  },
+  {
+    "en": "sling – slung – slung",
+    "ru": "бросать, швырять (пращой)",
+    "audio": "0c5165aa21d455e5890b80cec2a0b6ac.mp3"
+  },
+  {
+    "en": "slink – slunk – slunk",
+    "ru": "красться, пробираться",
+    "audio": "e2c951f54256405e1e2d7788f87ef8da.mp3"
+  },
+  {
+    "en": "speak – spoke – spoken",
+    "ru": "говорить, разговаривать",
+    "audio": "837a47d7ac4ae5c683e8d1a41b9e82a4.mp3"
+  },
+  {
+    "en": "speed – sped – sped",
+    "ru": "спешить, разгоняться",
+    "audio": "4969e99efdb3e548a944e1875f09ca1d.mp3"
+  },
+  {
+    "en": "spell – spelt/spelled – spelt/spelled",
+    "ru": "произносить по буквам",
+    "audio": "ada3f624c10698aff0876d027e7fece1.mp3"
+  },
+  {
+    "en": "spend – spent – spent",
+    "ru": "тратить, проводить (время)",
+    "audio": "901dad3962e7a74c25dd9e0847657f99.mp3"
+  },
+  {
+    "en": "spill – spilt/spilled – spilt/spilled",
+    "ru": "проливать, разливать",
+    "audio": "c93df344be2a1dd6f22e37a7b1d9750c.mp3"
+  },
+  {
+    "en": "spin – spun – spun",
+    "ru": "крутить, прясть",
+    "audio": "49af9ce5bbfb4e999d3855ae8eb50faf.mp3"
+  },
+  {
+    "en": "spit – spat – spat",
+    "ru": "плевать, выплевывать",
+    "audio": "c12cece11a5bdb0e47ef925d66e9fd99.mp3"
+  },
+  {
+    "en": "split – split – split",
+    "ru": "расщеплять, разделять",
+    "audio": "d61a579a733bcbe225cb06e2c04f3a87.mp3"
+  },
+  {
+    "en": "spoil – spoilt/spoiled – spoilt/spoiled",
+    "ru": "портить, баловать",
+    "audio": "6577a930ddc48584bdb563fe3fdfb1aa.mp3"
+  },
+  {
+    "en": "spread – spread – spread",
+    "ru": "распространять, размазывать",
+    "audio": "356dfea2d1554057a98b7f90304c5828.mp3"
+  },
+  {
+    "en": "spring – sprang – sprung",
+    "ru": "прыгать, возникать",
+    "audio": "898f70fccb0496f7c4f563d161b097af.mp3"
+  },
+  {
+    "en": "stand – stood – stood",
+    "ru": "стоять, выдерживать",
+    "audio": "05ba5226b65546d78568d0ed1632818b.mp3"
+  },
+  {
+    "en": "steal – stole – stolen",
+    "ru": "воровать, красть",
+    "audio": "6044290ddc25b5bc15f184c490440b57.mp3"
+  },
+  {
+    "en": "stick – stuck – stuck",
+    "ru": "клеить, втыкать, застревать",
+    "audio": "60a14f15882987a04746c8382f0e5cb2.mp3"
+  },
+  {
+    "en": "sting – stung – stung",
+    "ru": "жалить, ужалить",
+    "audio": "bec278cfa1618ac0db59bde960e557d9.mp3"
+  },
+  {
+    "en": "stink – stank – stunk",
+    "ru": "вонять, плохо пахнуть",
+    "audio": "b660aa44918830b1b8eafbac10cac81d.mp3"
+  },
+  {
+    "en": "strew – strewed – strewn/strewed",
+    "ru": "разбрасывать, усыпать",
+    "audio": "6396b9ac5861b4cbc83ea41eb5e87c30.mp3"
+  },
+  {
+    "en": "stride – strode – stridden",
+    "ru": "шагать, перешагивать",
+    "audio": "6f15b15927ba619b88a4e7a56b7b7ac5.mp3"
+  },
+  {
+    "en": "strike – struck – struck",
+    "ru": "ударять, бастовать",
+    "audio": "6218df0af734d4a3506615b500068f90.mp3"
+  },
+  {
+    "en": "string – strung – strung",
+    "ru": "нанизывать, натягивать (струны)",
+    "audio": "59603c40bf00e0c86873ec0fbe17b142.mp3"
+  },
+  {
+    "en": "strive – strove – striven",
+    "ru": "стремиться, стараться",
+    "audio": "e1d3cc73005bfe03b9218dd6d1aba5b6.mp3"
+  },
+  {
+    "en": "swear – swore – sworn",
+    "ru": "клясться, ругаться",
+    "audio": "1638ce25faec815081547a3c16eca922.mp3"
+  },
+  {
+    "en": "sweat – sweat/sweated – sweat/sweated",
+    "ru": "потеть, париться",
+    "audio": "ee00eecc6d3ada4ac3bac7d008fe0e7a.mp3"
+  },
+  {
+    "en": "sweep – swept – swept",
+    "ru": "подметать, мести",
+    "audio": "8d5f0046922c12d48d4338fb71d383b1.mp3"
+  },
+  {
+    "en": "swell – swelled – swollen/swelled",
+    "ru": "пухнуть, разбухать",
+    "audio": "2d0be44b21ed0687e2c0efe7be938cbe.mp3"
+  },
+  {
+    "en": "swim – swam – swum",
+    "ru": "плавать, плыть",
+    "audio": "16ec4599fa0248e33ecfcdfd4bce29df.mp3"
+  },
+  {
+    "en": "swing – swung – swung",
+    "ru": "качаться, размахивать",
+    "audio": "be5feb4a53519718c5aede2387bcf0a2.mp3"
+  },
+  {
+    "en": "take – took – taken",
+    "ru": "брать, взять, принимать",
+    "audio": "7b901d5631dc3eb64ac45225824b7588.mp3"
+  },
+  {
+    "en": "teach – taught – taught",
+    "ru": "учить (кого-то), обучать",
+    "audio": "e5c1c98634070b14c47c567d0c008be3.mp3"
+  },
+  {
+    "en": "tear – tore – torn",
+    "ru": "рвать, разрывать",
+    "audio": "fb6d41f31c2f47c8021dede254d18bf6.mp3"
+  },
+  {
+    "en": "tell – told – told",
+    "ru": "рассказывать, говорить",
+    "audio": "78744a6ebfda929b21f1e1a3bf7adac6.mp3"
+  },
+  {
+    "en": "think – thought – thought",
+    "ru": "думать, мыслить",
+    "audio": "4e8ccda9dbdc253eec6abc0101357a40.mp3"
+  },
+  {
+    "en": "thrive – throve/thrived – thriven/thrived",
+    "ru": "процветать, разрастаться",
+    "audio": "36b3e8dd1c329fa9ce1c2825349b0c7a.mp3"
+  },
+  {
+    "en": "throw – threw – thrown",
+    "ru": "бросать, кидать",
+    "audio": "45ebba70c1ba9c3684844de7453dcf9d.mp3"
+  },
+  {
+    "en": "thrust – thrust – thrust",
+    "ru": "вонзать, толкать",
+    "audio": "ee9fcc2887c16b1644002511f77037f0.mp3"
+  },
+  {
+    "en": "tread – trod – trodden",
+    "ru": "ступать, наступать, топтать",
+    "audio": "7869ec66451de932fb02ba3ca0c67bdf.mp3"
+  },
+  {
+    "en": "understand – understood – understood",
+    "ru": "понимать, осознавать",
+    "audio": "13f3a56496e69e66fd2fedd65a6e1aec.mp3"
+  },
+  {
+    "en": "undertake – undertook – undertaken",
+    "ru": "предпринимать, обязываться",
+    "audio": "c58172d6508c9db8c16f9194894911b2.mp3"
+  },
+  {
+    "en": "undo – undid – undone",
+    "ru": "отменять, расстегивать",
+    "audio": "5cefd98c218e48bc2f1850d7e8ec53f8.mp3"
+  },
+  {
+    "en": "upset – upset – upset",
+    "ru": "расстраивать, огорчать",
+    "audio": "9db65d593d68531fc264a07ab78fc320.mp3"
+  },
+  {
+    "en": "wake – woke – woken",
+    "ru": "просыпаться, будить",
+    "audio": "55967042cd74ab001b3ebf699e08ae9d.mp3"
+  },
+  {
+    "en": "wear – wore – worn",
+    "ru": "носить (одежду), изнашивать",
+    "audio": "ab4169019cd9e6f534c4dc48279fa30f.mp3"
+  },
+  {
+    "en": "weave – wove – woven",
+    "ru": "ткать, плести",
+    "audio": "d0ef3a1b2fde002f7d4f28a91db1f9c3.mp3"
+  },
+  {
+    "en": "wed – wed – wed",
+    "ru": "жениться, выходить замуж",
+    "audio": "57876372d8034887226a9fa9f10b1f77.mp3"
+  },
+  {
+    "en": "weep – wept – wept",
+    "ru": "плакать, рыдать",
+    "audio": "99a9763333ac3a6c9701da306675891d.mp3"
+  },
+  {
+    "en": "wet – wet – wet",
+    "ru": "мочить, увлажнять",
+    "audio": "9efc74d47f9044cd78a394a5c790fd6e.mp3"
+  },
+  {
+    "en": "will – would – would",
+    "ru": "вспомогательный глагол будущего времени",
+    "audio": "9502362b7c8e3d89259087fbd45cbf2e.mp3"
+  },
+  {
+    "en": "win – won – won",
+    "ru": "побеждать, выигрывать",
+    "audio": "1017db0c5e573a18ed166d4b3a9348b9.mp3"
+  },
+  {
+    "en": "wind – wound – wound",
+    "ru": "заводить (часы), виться",
+    "audio": "cbe65079554b5b3e9cf8bb41ea732dd7.mp3"
+  },
+  {
+    "en": "withdraw – withdrew – withdrawn",
+    "ru": "отзывать, снимать (деньги)",
+    "audio": "74e272d94e51c391c3b606ae913147f2.mp3"
+  },
+  {
+    "en": "withhold – withheld – withheld",
+    "ru": "удерживать, воздерживаться",
+    "audio": "077ae4b43896180bab7618a0639550fb.mp3"
+  },
+  {
+    "en": "withstand – withstood – withstood",
+    "ru": "выдерживать, сопротивляться",
+    "audio": "e7d6fca1768619f6d46ed8ef82cabea4.mp3"
+  },
+  {
+    "en": "wring – wrung – wrung",
+    "ru": "выжимать, скручивать",
+    "audio": "59d28af0c79b3d4fb71034ecf6715e55.mp3"
+  },
+  {
+    "en": "write – wrote – written",
+    "ru": "писать, записывать",
+    "audio": "75b21b238621306270a85a0746f9c54b.mp3"
+  }
+]

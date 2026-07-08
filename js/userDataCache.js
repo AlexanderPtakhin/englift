@@ -5,7 +5,8 @@
   const DB_VERSION = 2;
   const WORD_STORE = 'words';
   const IDIOM_STORE = 'idioms';
-  const PHRASE_STORE = 'phrases';
+  // REMOVED: phrases functionality
+  // const PHRASE_STORE = 'phrases';
 
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -31,12 +32,13 @@
           });
           idiomStore.createIndex('updatedAt', 'updatedAt');
         }
-        if (!db.objectStoreNames.contains(PHRASE_STORE)) {
-          const phraseStore = db.createObjectStore(PHRASE_STORE, {
-            keyPath: 'id',
-          });
-          phraseStore.createIndex('updatedAt', 'updatedAt');
-        }
+        // REMOVED: phrases functionality
+        // if (!db.objectStoreNames.contains(PHRASE_STORE)) {
+        //   const phraseStore = db.createObjectStore(PHRASE_STORE, {
+        //     keyPath: 'id',
+        //   });
+        //   phraseStore.createIndex('updatedAt', 'updatedAt');
+        // }
       };
     });
   }
@@ -140,67 +142,69 @@
     });
   }
 
-  // Сохранить массив фраз
-  async function savePhrases(phrasesArray) {
-    if (!phrasesArray.length) return;
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(PHRASE_STORE, 'readwrite');
-      const store = tx.objectStore(PHRASE_STORE);
-      for (const phrase of phrasesArray) store.put(phrase);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
+  // REMOVED: phrases functionality
+  // // Сохранить массив фраз
+  // async function savePhrases(phrasesArray) {
+  //   if (!phrasesArray.length) return;
+  //   const db = await openDB();
+  //   return new Promise((resolve, reject) => {
+  //     const tx = db.transaction(PHRASE_STORE, 'readwrite');
+  //     const store = tx.objectStore(PHRASE_STORE);
+  //     for (const phrase of phrasesArray) store.put(phrase);
+  //     tx.oncomplete = () => resolve();
+  //     tx.onerror = () => reject(tx.error);
+  //   });
+  // }
 
-  // Пакетное удаление фраз
-  async function deletePhrases(phraseIds) {
-    if (!phraseIds.length) return;
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(PHRASE_STORE, 'readwrite');
-      const store = tx.objectStore(PHRASE_STORE);
-      for (const id of phraseIds) store.delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
+  // // Пакетное удаление фраз
+  // async function deletePhrases(phraseIds) {
+  //   if (!phraseIds.length) return;
+  //   const db = await openDB();
+  //   return new Promise((resolve, reject) => {
+  //     const tx = db.transaction(PHRASE_STORE, 'readwrite');
+  //     const store = tx.objectStore(PHRASE_STORE);
+  //     for (const id of phraseIds) store.delete(id);
+  //     tx.oncomplete = () => resolve();
+  //     tx.onerror = () => reject(tx.error);
+  //   });
+  // }
 
-  // Загрузить все фразы
-  async function getAllPhrases() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(PHRASE_STORE, 'readonly');
-      const store = tx.objectStore(PHRASE_STORE);
-      const request = store.getAll();
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result || []);
-    });
-  }
+  // // Загрузить все фразы
+  // async function getAllPhrases() {
+  //   const db = await openDB();
+  //   return new Promise((resolve, reject) => {
+  //     const tx = db.transaction(PHRASE_STORE, 'readonly');
+  //     const store = tx.objectStore(PHRASE_STORE);
+  //     const request = store.getAll();
+  //     request.onerror = () => reject(request.error);
+  //     request.onsuccess = () => resolve(request.result || []);
+  //   });
+  // }
 
-  async function clearAllPhrases() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(PHRASE_STORE, 'readwrite');
-      const store = tx.objectStore(PHRASE_STORE);
-      store.clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
+  // async function clearAllPhrases() {
+  //   const db = await openDB();
+  //   return new Promise((resolve, reject) => {
+  //     const tx = db.transaction(PHRASE_STORE, 'readwrite');
+  //     const store = tx.objectStore(PHRASE_STORE);
+  //     store.clear();
+  //     tx.oncomplete = () => resolve();
+  //     tx.onerror = () => reject(tx.error);
+  //   });
+  // }
 
   window.UserDataCache = {
     saveWords,
     saveIdioms,
-    savePhrases,
+    // REMOVED: phrases functionality
+    // savePhrases,
     deleteWords,
     deleteIdioms,
-    deletePhrases,
+    // deletePhrases,
     getAllWords,
     getAllIdioms,
-    getAllPhrases,
+    // getAllPhrases,
     clearAllWords,
     clearAllIdioms,
-    clearAllPhrases,
+    // clearAllPhrases,
   };
 })();
