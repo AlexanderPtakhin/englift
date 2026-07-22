@@ -516,252 +516,332 @@ html:not(.dark) {
     background-color 0.3s ease,
     color 0.3s ease;
 }
-/* Тема по умолчанию: Терракота (без класса) */
+/* Тема по умолчанию: Warm Orange (Apple-style) */
 :root {
-  --primary: #e07a5f;
-  --primary-text: #a8442a;
-  --primary-light: #f4a261;
-  --primary-dark: #bc6c25;
-  --primary-rgb: 224, 122, 95;
-  --bg: #fef7ed;
+  --primary: #f47b36;
+  --primary-text: #d95d17;
+  --primary-light: #ffad5c;
+  --primary-dark: #d95b17;
+  --primary-rgb: 244, 123, 54;
+  --bg: #fff9f4;
   --card: #ffffff;
   --card-rgb: 255, 255, 255;
-  --text: #3b2e24;
-  --muted: #8b7a6a;
-  --border: #edd9c0;
+  --text: #2f2f35;
+  --muted: #8a8f98;
+  --border: #ffe2cb;
   --success: #22c55e;
   --danger: #ef4444;
   --danger-rgb: 239, 68, 68;
   --warning: #f59e0b;
   --radius: 16px;
-  --shadow: 0 4px 20px rgba(224, 122, 95, 0.1);
-  --shadow-hover: 0 8px 30px rgba(224, 122, 95, 0.18);
+  --shadow: 0 6px 24px rgba(244, 123, 54, 0.12);
+  --shadow-hover: 0 10px 36px rgba(244, 123, 54, 0.20);
+
+  /* Градиенты для кнопок */
+  --btn-gradient: linear-gradient(135deg, #f47b36, #ff9a47);
+  --btn-gradient-hover: linear-gradient(135deg, #ef6d2d, #ff8c38);
+  --accent-gradient: linear-gradient(135deg, #d94d2d 0%, #f47b36 45%, #ffb45b 100%);
 }
-/* Тёмная терракота */
+/* Тёмная тема: Graphite with Orange */
 html.dark {
-  --primary: #f4a261;
+  --primary: #ff9a4d;
   --primary-text: var(--primary);
-  --primary-light: #e9c46a;
-  --primary-rgb: 244, 162, 97;
-  --bg: #2a2622;
-  --card: #3a332c;
-  --card-rgb: 58, 51, 44;
-  --text: #f0e9df;
-  --muted: #9e8d7c;
-  --border: #554b42;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --primary-light: #ffb86f;
+  --primary-rgb: 255, 154, 77;
+  --bg: #17181d;
+  --card: #23252b;
+  --card-rgb: 35, 37, 43;
+  --text: #f5f6f8;
+  --muted: #a3a7b1;
+  --border: #353943;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-hover: 0 10px 36px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты для кнопок в тёмной теме */
+  --btn-gradient: linear-gradient(135deg, #ff9a4d, #ffb86f);
+  --btn-gradient-hover: linear-gradient(135deg, #ff8c38, #ffa858);
+  --accent-gradient: linear-gradient(135deg, #d94d2d 0%, #ff9a4d 45%, #ffb45b 100%);
 }
 /* Тема Океан (светлая) */
 .theme-ocean {
-  --primary: #2b6c94;
-  --primary-text: #1d5a80;
-  --primary-light: #4a8bb7;
-  --primary-dark: #1a4d6b;
-  --primary-rgb: 43, 108, 148;
-  --bg: #f0f8ff;
-  --card: #ffffff;
-  --text: #1e2f3d;
-  --muted: #5f7a92;
-  --border: #c8d8e0;
-  --shadow: 0 4px 20px rgba(43, 108, 148, 0.1);
-  --shadow-hover: 0 8px 30px rgba(43, 108, 148, 0.18);
+  --primary: #3A7CA5;
+  --primary-text: #215E85;
+  --primary-light: #69A6CD;
+  --primary-dark: #295F81;
+  --primary-rgb: 58, 124, 165;
+  --bg: #FAFCFE;
+  --card: #FFFFFF;
+  --text: #27323D;
+  --muted: #788897;
+  --border: #DDE8F1;
+  --shadow: 0 4px 20px rgba(58, 124, 165, 0.10);
+  --shadow-hover: 0 8px 30px rgba(58, 124, 165, 0.18);
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #3A7CA5, #69A6CD);
+  --btn-gradient-hover: linear-gradient(135deg, #295F81, #3A7CA5);
+  --accent-gradient: linear-gradient(135deg, #215E85 0%, #3A7CA5 45%, #69A6CD 100%);
 }
 /* Тёмный океан */
 .dark.theme-ocean {
-  --primary: #6fa8d9;
+  --primary: #7FB7DD;
   --primary-text: var(--primary);
-  --primary-light: #8fc5f0;
-  --primary-rgb: 111, 168, 217;
-  --bg: #1a2b38;
-  --card: #253544;
-  --text: #e3edf5;
-  --muted: #8aa9c2;
-  --border: #3f5565;
+  --primary-light: #A6D2EF;
+  --primary-rgb: 127, 183, 221;
+  --bg: #171C22;
+  --card: #222A33;
+  --text: #EDF3F8;
+  --muted: #9FB2C2;
+  --border: #364351;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #7FB7DD, #A6D2EF);
+  --btn-gradient-hover: linear-gradient(135deg, #6FA8D9, #7FB7DD);
+  --accent-gradient: linear-gradient(135deg, #215E85 0%, #7FB7DD 45%, #A6D2EF 100%);
 }
 /* Тема Лес (светлая) */
 .theme-forest {
-  --primary: #2f6b3c;
-  --primary-text: #1e4d2b;
-  --primary-light: #4c8c5c;
-  --primary-dark: #1f4b2a;
-  --primary-rgb: 47, 107, 60;
-  --bg: #f0f7f0;
-  --card: #ffffff;
-  --text: #1e2f1e;
-  --muted: #5a7a5a;
-  --border: #c0dbc0;
-  --shadow: 0 4px 20px rgba(47, 107, 60, 0.1);
-  --shadow-hover: 0 8px 30px rgba(47, 107, 60, 0.18);
+  --primary: #4C8A67;
+  --primary-text: #2F6246;
+  --primary-light: #72AF8A;
+  --primary-dark: #356B4D;
+  --primary-rgb: 76, 138, 103;
+  --bg: #FAFCFA;
+  --card: #FFFFFF;
+  --text: #2D3530;
+  --muted: #7A8C81;
+  --border: #DDE8E0;
+  --shadow: 0 4px 20px rgba(76, 138, 103, 0.10);
+  --shadow-hover: 0 8px 30px rgba(76, 138, 103, 0.18);
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #4C8A67, #72AF8A);
+  --btn-gradient-hover: linear-gradient(135deg, #356B4D, #4C8A67);
+  --accent-gradient: linear-gradient(135deg, #2F6246 0%, #4C8A67 45%, #72AF8A 100%);
 }
 /* Тёмный лес */
 .dark.theme-forest {
-  --primary: #6fb17f;
+  --primary: #84C69B;
   --primary-text: var(--primary);
-  --primary-light: #8fcf9f;
-  --primary-rgb: 111, 177, 127;
-  --bg: #1e2b1e;
-  --card: #2a3a2a;
-  --text: #e0f0e0;
-  --muted: #a0c4a0;
-  --border: #3e553e;
+  --primary-light: #A6D9B8;
+  --primary-rgb: 132, 198, 155;
+  --bg: #181E1B;
+  --card: #242D28;
+  --text: #EEF5F0;
+  --muted: #A4B6AA;
+  --border: #38453F;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #84C69B, #A6D9B8);
+  --btn-gradient-hover: linear-gradient(135deg, #72AF8A, #84C69B);
+  --accent-gradient: linear-gradient(135deg, #2F6246 0%, #84C69B 45%, #A6D9B8 100%);
 }
 /* Тема Лаванда (светлая) */
 .theme-purple {
-  --primary: #9b87b8;
-  --primary-text: #5a4275;
-  --primary-light: #b8a7d1;
-  --primary-dark: #7d6b9a;
-  --primary-rgb: 155, 135, 184;
-  --bg: #fbf8ff;
-  --card: #ffffff;
-  --text: #2d2a3a;
-  --muted: #7a6f8a;
-  --border: #e2d9f0;
-  --shadow: 0 4px 20px rgba(155, 135, 184, 0.1);
-  --shadow-hover: 0 8px 30px rgba(155, 135, 184, 0.18);
+  --primary: #9C88D9;
+  --primary-text: #6548A8;
+  --primary-light: #B8A5EA;
+  --primary-dark: #7B65BE;
+  --primary-rgb: 156, 136, 217;
+  --bg: #FCFBFE;
+  --card: #FFFFFF;
+  --text: #303040;
+  --muted: #87839A;
+  --border: #E9E2F8;
+  --shadow: 0 4px 20px rgba(156, 136, 217, 0.10);
+  --shadow-hover: 0 8px 30px rgba(156, 136, 217, 0.18);
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #9C88D9, #B8A5EA);
+  --btn-gradient-hover: linear-gradient(135deg, #7B65BE, #9C88D9);
+  --accent-gradient: linear-gradient(135deg, #6548A8 0%, #9C88D9 45%, #B8A5EA 100%);
 }
 /* Тёмная лаванда */
 .dark.theme-purple {
-  --primary: #b8a7d1;
+  --primary: #C2B3EE;
   --primary-text: var(--primary);
-  --primary-light: #d1c2e5;
-  --primary-rgb: 184, 167, 209;
-  --bg: #2e283b;
-  --card: #3f3850;
-  --text: #efe5ff;
-  --muted: #a697b8;
-  --border: #554a66;
+  --primary-light: #D8CCF6;
+  --primary-rgb: 194, 179, 238;
+  --bg: #1C1A23;
+  --card: #2A2633;
+  --text: #F3EFFD;
+  --muted: #B5ACC8;
+  --border: #433D50;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #C2B3EE, #D8CCF6);
+  --btn-gradient-hover: linear-gradient(135deg, #B8A5EA, #C2B3EE);
+  --accent-gradient: linear-gradient(135deg, #6548A8 0%, #C2B3EE 45%, #D8CCF6 100%);
 }
 /* Тема Закат (светлая) */
 .theme-sunset {
-  --primary: #ff6b6b;
-  --primary-text: #c0392b;
-  --primary-light: #ff8787;
-  --primary-dark: #e55555;
-  --primary-rgb: 255, 107, 107;
-  --bg: #fff5f5;
-  --card: #ffffff;
-  --text: #2d2d2d;
-  --muted: #8b7355;
-  --border: #ffd4d4;
-  --shadow: 0 4px 20px rgba(255, 107, 107, 0.1);
-  --shadow-hover: 0 8px 30px rgba(255, 107, 107, 0.18);
+  --primary: #F47A5B;
+  --primary-text: #D65A39;
+  --primary-light: #FFA083;
+  --primary-dark: #D75F43;
+  --primary-rgb: 244, 122, 91;
+  --bg: #FFF9F7;
+  --card: #FFFFFF;
+  --text: #34302F;
+  --muted: #8D8480;
+  --border: #FFE3DA;
+  --shadow: 0 4px 20px rgba(244, 122, 91, 0.10);
+  --shadow-hover: 0 8px 30px rgba(244, 122, 91, 0.18);
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #F47A5B, #FFA083);
+  --btn-gradient-hover: linear-gradient(135deg, #D75F43, #F47A5B);
+  --accent-gradient: linear-gradient(135deg, #D65A39 0%, #F47A5B 45%, #FFA083 100%);
 }
 /* Тёмный закат */
 .dark.theme-sunset {
-  --primary: #ff8787;
+  --primary: #FF9A80;
   --primary-text: var(--primary);
-  --primary-light: #ffa8a8;
-  --primary-rgb: 255, 135, 135;
-  --bg: #2d1f1f;
-  --card: #3f2e2e;
-  --text: #ffe8e8;
-  --muted: #ddb0b0;
-  --border: #5c4040;
+  --primary-light: #FFB7A2;
+  --primary-rgb: 255, 154, 128;
+  --bg: #1E1A19;
+  --card: #2D2625;
+  --text: #FFF3EF;
+  --muted: #C5AEA6;
+  --border: #443937;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #FF9A80, #FFB7A2);
+  --btn-gradient-hover: linear-gradient(135deg, #FFA083, #FF9A80);
+  --accent-gradient: linear-gradient(135deg, #D65A39 0%, #FF9A80 45%, #FFB7A2 100%);
 }
 /* Тема Небесная (светлая) */
 .theme-sky {
-  --primary: #7fc1e0;
-  --primary-text: #1a5f82;
-  --primary-light: #a8d8f0;
-  --primary-dark: #5a9ec0;
-  --primary-rgb: 127, 193, 224;
-  --bg: #f2faff;
-  --card: #ffffff;
-  --text: #1e3b4f;
-  --muted: #5f8aa8;
-  --border: #c5e0f0;
-  --shadow: 0 4px 20px rgba(127, 193, 224, 0.1);
-  --shadow-hover: 0 8px 30px rgba(127, 193, 224, 0.18);
+  --primary: #63B5D9;
+  --primary-text: #2D7EA2;
+  --primary-light: #8ED0EC;
+  --primary-dark: #3A93BA;
+  --primary-rgb: 99, 181, 217;
+  --bg: #FBFDFF;
+  --card: #FFFFFF;
+  --text: #2C3842;
+  --muted: #8394A2;
+  --border: #DCECF6;
+  --shadow: 0 4px 20px rgba(99, 181, 217, 0.10);
+  --shadow-hover: 0 8px 30px rgba(99, 181, 217, 0.18);
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #63B5D9, #8ED0EC);
+  --btn-gradient-hover: linear-gradient(135deg, #3A93BA, #63B5D9);
+  --accent-gradient: linear-gradient(135deg, #2D7EA2 0%, #63B5D9 45%, #8ED0EC 100%);
 }
 /* Тёмная небесная */
 .dark.theme-sky {
-  --primary: #a8d8f0;
+  --primary: #99D8F2;
   --primary-text: var(--primary);
-  --primary-light: #c2e6ff;
-  --primary-rgb: 168, 216, 240;
-  --bg: #1d2c38;
-  --card: #2e4352;
-  --text: #e2f0fa;
-  --muted: #8fb0c9;
-  --border: #3f5a6b;
+  --primary-light: #B8E8FA;
+  --primary-rgb: 153, 216, 242;
+  --bg: #181D22;
+  --card: #242C34;
+  --text: #EEF8FD;
+  --muted: #A6BFCE;
+  --border: #374550;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #99D8F2, #B8E8FA);
+  --btn-gradient-hover: linear-gradient(135deg, #8ED0EC, #99D8F2);
+  --accent-gradient: linear-gradient(135deg, #2D7EA2 0%, #99D8F2 45%, #B8E8FA 100%);
 }
 /* Тема Песок (светлая) */
 .theme-sand {
-  --primary: #c4a484;
-  --primary-text: #6b4c2a;
-  --primary-light: #e0c9b1;
-  --primary-dark: #a58364;
-  --primary-rgb: 196, 164, 132;
-  --bg: #fffaf2;
-  --card: #ffffff;
-  --text: #3a2e24;
-  --muted: #9b8b7a;
-  --border: #eadbc8;
-  --shadow: 0 4px 20px rgba(196, 164, 132, 0.1);
-  --shadow-hover: 0 8px 30px rgba(196, 164, 132, 0.18);
+  --primary: #C8A77A;
+  --primary-text: #8C6438;
+  --primary-light: #DFC3A1;
+  --primary-dark: #A98457;
+  --primary-rgb: 200, 167, 122;
+  --bg: #FFFCF8;
+  --card: #FFFFFF;
+  --text: #3A3530;
+  --muted: #958A80;
+  --border: #EFE4D7;
+  --shadow: 0 4px 20px rgba(200, 167, 122, 0.10);
+  --shadow-hover: 0 8px 30px rgba(200, 167, 122, 0.18);
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #C8A77A, #DFC3A1);
+  --btn-gradient-hover: linear-gradient(135deg, #A98457, #C8A77A);
+  --accent-gradient: linear-gradient(135deg, #8C6438 0%, #C8A77A 45%, #DFC3A1 100%);
 }
 /* Тёмный песок */
 .dark.theme-sand {
-  --primary: #e0c9b1;
+  --primary: #E6CDA9;
   --primary-text: var(--primary);
-  --primary-light: #f0e0cf;
-  --primary-rgb: 224, 201, 177;
-  --bg: #2e2823;
-  --card: #423b34;
-  --text: #f0e7dc;
-  --muted: #b8a999;
-  --border: #5e554b;
+  --primary-light: #F2DDC2;
+  --primary-rgb: 230, 205, 169;
+  --bg: #1F1B18;
+  --card: #2E2925;
+  --text: #F8F2EA;
+  --muted: #BDAF9F;
+  --border: #473F38;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #E6CDA9, #F2DDC2);
+  --btn-gradient-hover: linear-gradient(135deg, #DFC3A1, #E6CDA9);
+  --accent-gradient: linear-gradient(135deg, #8C6438 0%, #E6CDA9 45%, #F2DDC2 100%);
 }
 /* Тема Графит (светлая) */
 .theme-graphite {
-  --primary: #6b7280;
-  --primary-text: #4b5563;
-  --primary-light: #9ca3af;
-  --primary-dark: #4b5563;
-  --primary-rgb: 107, 114, 128;
-  --bg: #f9fafb;
-  --card: #ffffff;
-  --text: #1f2937;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
+  --primary: #697586;
+  --primary-text: #495364;
+  --primary-light: #97A4B3;
+  --primary-dark: #4D5869;
+  --primary-rgb: 105, 117, 134;
+  --bg: #FAFBFC;
+  --card: #FFFFFF;
+  --text: #222831;
+  --muted: #7C8795;
+  --border: #E5EAF0;
+  --shadow: 0 4px 20px rgba(105, 117, 134, 0.10);
+  --shadow-hover: 0 8px 30px rgba(105, 117, 134, 0.18);
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #697586, #97A4B3);
+  --btn-gradient-hover: linear-gradient(135deg, #4D5869, #697586);
+  --accent-gradient: linear-gradient(135deg, #495364 0%, #697586 45%, #97A4B3 100%);
 }
 /* Тёмный графит */
 .dark.theme-graphite {
-  --primary: #9ca3af;
+  --primary: #AAB5C3;
   --primary-text: var(--primary);
-  --primary-light: #d1d5db;
-  --primary-rgb: 156, 163, 175;
-  --bg: #1f2937;
-  --card: #374151;
-  --text: #f9fafb;
-  --muted: #9ca3af;
-  --border: #4b5563;
+  --primary-light: #C8D0DA;
+  --primary-rgb: 170, 181, 195;
+  --bg: #171A1F;
+  --card: #232830;
+  --text: #F4F7FA;
+  --muted: #A4AFBB;
+  --border: #373F4A;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
   --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+  --btn-gradient: linear-gradient(135deg, #AAB5C3, #C8D0DA);
+  --btn-gradient-hover: linear-gradient(135deg, #97A4B3, #AAB5C3);
+  --accent-gradient: linear-gradient(135deg, #495364 0%, #AAB5C3 45%, #C8D0DA 100%);
 }
 /* ═══════════════════════════════════════════════════════════════
    STAT TRIADS — тематические цвета для трёх полос статистики
@@ -773,6 +853,9 @@ html.dark {
   --idioms-color: #6b8f6e;
   --idioms-color-light: #8aaf8d;
   --idioms-rgb: 107, 143, 110;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #7b6eb8; */
   /* --phrases-color-light: #9d91d4; */
@@ -782,6 +865,9 @@ html.dark {
   --idioms-color: #8ab48d;
   --idioms-color-light: #a8ceac;
   --idioms-rgb: 138, 180, 141;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #a099d4; */
   /* --phrases-color-light: #bcb6e8; */
@@ -792,6 +878,9 @@ html.dark {
   --idioms-color: #3d8a7a;
   --idioms-color-light: #5aab9a;
   --idioms-rgb: 61, 138, 122;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #9b7a3d; */
   /* --phrases-color-light: #c4a05a; */
@@ -801,6 +890,9 @@ html.dark {
   --idioms-color: #5aab9a;
   --idioms-color-light: #7acaba;
   --idioms-rgb: 90, 171, 154;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #d4aa5a; */
   /* --phrases-color-light: #ecc87a; */
@@ -811,6 +903,9 @@ html.dark {
   --idioms-color: #7a5c3a;
   --idioms-color-light: #9e7c58;
   --idioms-rgb: 122, 92, 58;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #4a6b8a; */
   /* --phrases-color-light: #6a8daa; */
@@ -820,6 +915,9 @@ html.dark {
   --idioms-color: #b89070;
   --idioms-color-light: #d4aa8a;
   --idioms-rgb: 184, 144, 112;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #7aabcc; */
   /* --phrases-color-light: #9ac6e0; */
@@ -830,6 +928,9 @@ html.dark {
   --idioms-color: #6a8a7a;
   --idioms-color-light: #8aaa9a;
   --idioms-rgb: 106, 138, 122;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #b87a5a; */
   /* --phrases-color-light: #d49878; */
@@ -839,6 +940,9 @@ html.dark {
   --idioms-color: #8ab09e;
   --idioms-color-light: #a8ceba;
   --idioms-rgb: 138, 176, 158;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #d49870; */
   /* --phrases-color-light: #ecba90; */
@@ -849,6 +953,9 @@ html.dark {
   --idioms-color: #5a7a9e;
   --idioms-color-light: #7a9aba;
   --idioms-rgb: 90, 122, 158;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #b89030; */
   /* --phrases-color-light: #d4ac50; */
@@ -858,6 +965,9 @@ html.dark {
   --idioms-color: #8aaece;
   --idioms-color-light: #aacce0;
   --idioms-rgb: 138, 174, 206;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #e0b84a; */
   /* --phrases-color-light: #f0d070; */
@@ -868,6 +978,9 @@ html.dark {
   --idioms-color: #5a9e5a;
   --idioms-color-light: #78be78;
   --idioms-rgb: 90, 158, 90;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #c49a60; */
   /* --phrases-color-light: #e0ba80; */
@@ -877,6 +990,9 @@ html.dark {
   --idioms-color: #7aca7a;
   --idioms-color-light: #9ae09a;
   --idioms-rgb: 122, 202, 122;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #e0ba80; */
   /* --phrases-color-light: #f0d4a0; */
@@ -887,6 +1003,9 @@ html.dark {
   --idioms-color: #4a7a8a;
   --idioms-color-light: #6a9aaa;
   --idioms-rgb: 74, 122, 138;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #9a6a40; */
   /* --phrases-color-light: #ba8a60; */
@@ -896,6 +1015,9 @@ html.dark {
   --idioms-color: #7aaabb;
   --idioms-color-light: #9accd4;
   --idioms-rgb: 122, 170, 187;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #cc9060; */
   /* --phrases-color-light: #e8b080; */
@@ -906,6 +1028,9 @@ html.dark {
   --idioms-color: #3d8888;
   --idioms-color-light: #5aacac;
   --idioms-rgb: 61, 136, 136;
+  --streak-color: #fb923c;
+  --streak-color-light: #ff6b35;
+  --streak-rgb: 251, 146, 60;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #9a6b6b; */
   /* --phrases-color-light: #bc8e8e; */
@@ -915,6 +1040,9 @@ html.dark {
   --idioms-color: #6aacac;
   --idioms-color-light: #8acece;
   --idioms-rgb: 106, 172, 172;
+  --streak-color: #ffa94d;
+  --streak-color-light: #ff8c42;
+  --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #bc8e8e; */
   /* --phrases-color-light: #d4aaaa; */
@@ -971,6 +1099,44 @@ header nav {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+.streak-header-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(var(--streak-rgb), 0.12);
+  padding: 0.3rem 0.7rem 0.3rem 0.5rem;
+  border-radius: 30px;
+  border: 1.5px solid rgba(var(--streak-rgb), 0.2);
+  color: var(--streak-color);
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+.streak-fire-icon {
+  font-size: 1.2rem;
+  color: var(--streak-color);
+  animation: fire-glow 2s infinite alternate;
+}
+.streak-card .streak-fire-icon {
+  font-size: 1.8rem !important;
+}
+@keyframes fire-glow {
+  0% { filter: drop-shadow(0 0 2px rgba(var(--streak-rgb), 0.2)); }
+  100% { filter: drop-shadow(0 0 8px rgba(var(--streak-rgb), 0.6)); }
+}
+.streak-header-count {
+  min-width: 20px;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+.streak-header-count.bump {
+  animation: bump 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes bump {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); color: #ff6b35; }
+  100% { transform: scale(1); }
 }
 .theme-toggle-header {
   all: unset;
@@ -1212,14 +1378,6 @@ body.practice-idioms .setup-row:nth-of-type(7) {
 /* Скрываем строку с режимом на время */
 body.exam-mode .setup-row:nth-of-type(8) {
   display: none;
-}
-/* Аватар пользователя – фиксированные размеры */
-.user-avatar {
-  min-width: 36px;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .mobile-nav-btn {
   min-width: 70px;
@@ -1649,12 +1807,9 @@ input[type='submit']:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
   cursor: pointer;
   color: var(--muted);
   transition: all 0.2s ease;
-  border-radius: 0; /* убираем скругление */
   background: transparent;
   border: none;
   box-shadow: none;
@@ -1670,11 +1825,15 @@ input[type='submit']:active {
     'opsz' 24;
   transition: all 0.2s ease;
 }
-/* При наведении: цвет primary и легкое увеличение */
-.install-btn:hover,
-.user-avatar:hover {
+/* При наведении: цвет primary */
+.install-btn:hover {
   color: var(--primary);
-  transform: scale(1.1);
+}
+.user-avatar:hover {
+  color: var(--primary) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 .install-btn:hover .material-symbols-outlined,
 .user-avatar:hover .material-symbols-outlined {
@@ -1685,11 +1844,6 @@ input[type='submit']:active {
     'GRAD' 0,
     'opsz' 24;
 }
-/* Аватар — без всяких фонов, просто иконка */
-.user-avatar {
-  background: transparent !important;
-  border: none !important;
-}
 /* Убираем возможные остатки старых стилей */
 .install-btn.visible,
 .install-btn.installed {
@@ -1698,9 +1852,14 @@ input[type='submit']:active {
   box-shadow: none;
 }
 /* Для тёмной темы — то же самое, только цвет primary другой */
-html.dark .install-btn:hover,
-html.dark .user-avatar:hover {
+html.dark .install-btn:hover {
   color: var(--primary);
+}
+html.dark .user-avatar:hover {
+  color: var(--primary) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 /* Прячем старую кнопку установки из хедера */
 .install-btn {
@@ -1732,11 +1891,7 @@ input[type='submit']:active {
   filter: none !important;
 }
 .btn-primary {
-  background: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-light) 100%
-  );
+  background: var(--btn-gradient, linear-gradient(135deg, var(--primary), var(--primary-light)));
   border: none;
   color: white;
   font-weight: 800;
@@ -1746,11 +1901,7 @@ input[type='submit']:active {
   /* box-shadow: 0 2px 8px rgba(var(--primary-rgb, 59, 130, 246), 0.3); */
 }
 .btn-primary:hover {
-  background: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-light) 100%
-  );
+  background: var(--btn-gradient-hover, linear-gradient(135deg, var(--primary-dark), var(--primary)));
   color: #fff;
   transform: translateY(-2px);
 }
@@ -2298,22 +2449,6 @@ textarea {
     transform: translateX(0);
   }
 }
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  font-weight: bold;
-  overflow: hidden;
-  position: relative;
-  border: 2px solid var(--border);
-  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); */
-}
 .avatar-wrapper {
   width: 100%;
   height: 100%;
@@ -2333,10 +2468,6 @@ textarea {
   color: white;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
   pointer-events: none;
-}
-.user-avatar:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 .btn-xs {
   width: 24px;
@@ -5131,13 +5262,14 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
 #toast-box {
   position: fixed;
   bottom: 1.5rem;
-  right: 1.5rem;
+  left: 1.5rem;
   z-index: 10003;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 0.75rem;
   pointer-events: none;
+  right: auto !important; /* переопределяем inline style из utils.js */
 }
 .toast {
   background: var(--card);
@@ -5174,7 +5306,19 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
   }
   .toast {
     max-width: 100%; /* на мобиле во всю ширину */
-    text-align: center;
+    text-align: left;
+  }
+  /* Компактный тост сверху для мобильных */
+  #toast-box-top {
+    top: 1rem;
+    left: 1rem;
+    right: auto;
+    width: fit-content;
+    max-width: calc(100% - 2rem);
+  }
+  #toast-box-top .toast {
+    max-width: none;
+    padding: 0.5rem 0.8rem;
   }
 }
 @media (min-width: 801px) and (max-width: 1000px) {
@@ -6845,25 +6989,6 @@ html.dark .due-soon {
 .user-menu {
   position: relative;
 }
-.user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg);
-  border: 2px solid var(--border);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  font-weight: 600;
-  transition: all 0.2s;
-  color: var(--text);
-}
-.user-avatar:hover {
-  border-color: var(--primary);
-  transform: scale(1.05);
-}
 .user-dropdown {
   position: absolute;
   top: 100%;
@@ -7499,7 +7624,7 @@ header {
   background: var(--card);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-  padding: 0.75rem 2rem;
+  padding: 0.75rem 1rem 0.75rem 2rem;
   transition: background 0.3s ease;
 }
 /* В тёмной теме делаем фон чуть темнее */
@@ -7558,30 +7683,22 @@ html.dark header {
 }
 /* ===== АВАТАР ПОЛЬЗОВАТЕЛЯ ===== */
 .user-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: var(--bg);
-  border: 2px solid var(--border);
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--text);
-  overflow: hidden;
-}
-.user-avatar:hover {
-  border-color: var(--primary);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 /* Иконка внутри аватара */
 .user-avatar .material-symbols-outlined {
-  font-size: 1.5rem;
-  color: var(--muted);
-}
-.user-avatar:hover .material-symbols-outlined {
+  font-size: 32px;
   color: var(--primary);
 }
 /* ===== МОБИЛЬНОЕ МЕНЮ (лёгкий рефрешинг) ===== */
@@ -7740,13 +7857,313 @@ html.dark header {
 }
 /* Streak — оранжевый */
 .stat-card:nth-child(3) .stat-icon {
-  background: rgba(251, 146, 60, 0.12) !important;
-  color: #fb923c !important;
+  background: rgba(var(--streak-rgb), 0.12) !important;
+  color: var(--streak-color) !important;
 }
 .stat-card:nth-child(3) .stat-icon .material-symbols-outlined {
-  color: #fb923c !important;
+  color: var(--streak-color) !important;
 }
-/* К повтору — красный */
+/* Новая карточка стрика */
+.streak-card {
+  grid-column: 1 / -1 !important; /* растягиваем на всю ширину */
+  background: var(--progress-card-bg);
+  border: var(--progress-card-border);
+  border-radius: 16px;
+  padding: 1.2rem 1rem;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.streak-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--progress-card-hover-shadow);
+  border-color: var(--streak-color);
+}
+.streak-card .stat-icon {
+  background: rgba(var(--streak-rgb), 0.12);
+  color: var(--streak-color);
+}
+.streak-card .stat-icon .material-symbols-outlined {
+  color: var(--streak-color);
+}
+.streak-card .stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+.streak-progress-wrap {
+  margin-top: 0.6rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+.streak-progress-bar {
+  height: 8px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+  width: 100%;
+}
+.streak-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 99px;
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+.streak-progress-text {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+  font-weight: 700;
+}
+.streak-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.streak-message-dot {
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex: 0 0 6px;
+  box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.35);
+}
+.streak-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+.streak-free-pass {
+  font-size: 0.8rem;
+  color: var(--primary);
+  margin-top: 0.2rem;
+}
+.streak-best {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--warning);
+  margin-top: 0.2rem;
+}
+/* Цифра стрика – активна / неактивна */
+#st-streak,
+.streak-header-count,
+.streak-fire-icon {
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+#st-streak.streak-active,
+.streak-header-count.streak-active {
+  color: var(--streak-color);
+  opacity: 1;
+}
+
+#st-streak.streak-inactive,
+.streak-header-count.streak-inactive {
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.streak-fire-icon.streak-active {
+  color: var(--streak-color);
+  opacity: 1;
+  animation: fire-glow 2s infinite alternate;
+}
+
+.streak-fire-icon.streak-inactive {
+  color: var(--muted);
+  opacity: 0.4;
+  animation: none;
+}
+
+@keyframes fire-glow {
+  from {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 2px var(--streak-color));
+  }
+  to {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px var(--streak-color));
+  }
+}
+
+.custom-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 600;
+  white-space: normal;
+  word-break: break-word;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.22),
+    0 2px 10px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.custom-tooltip.is-visible {
+  opacity: 1;
+}
+
+.custom-tooltip::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+
+.custom-tooltip[data-placement='bottom-left']::after {
+  top: -6px;
+  right: 14px;
+}
+
+.custom-tooltip[data-placement='top-left']::after {
+  bottom: -6px;
+  right: 14px;
+  transform: rotate(225deg);
+}
+
+#streak-freeze-icon,
+#streak-card-freeze {
+  cursor: help;
+}
+
+#streak-freeze-icon.used,
+#streak-card-freeze.used {
+  opacity: 0.72;
+}
+
+#streak-card-freeze {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#streak-card-freeze .freeze-text {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+/* Иконка заморозки стрика */
+.streak-freeze-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #7fc1e0;
+  margin-left: 4px;
+  opacity: 1;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.streak-freeze-icon:hover {
+  transform: scale(1.15);
+  color: #9dd4f0;
+  filter: drop-shadow(0 0 4px #7fc1e0);
+}
+
+.streak-freeze-icon.used {
+  opacity: 0.2;
+  color: var(--muted);
+  cursor: default;
+}
+
+.streak-freeze-icon.used:hover {
+  transform: none;
+  filter: none;
+}
+
+.streak-freeze-icon .material-symbols-outlined {
+  font-size: 14px;
+}
+/* Иконка заморозки в карточке стрика */
+.streak-card-freeze {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(127, 193, 224, 0.1);
+  border-radius: 99px;
+  border: 1px solid rgba(127, 193, 224, 0.2);
+  color: #7fc1e0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  gap: 4px;
+  transition: all 0.3s ease;
+  position: absolute;
+  top: 1.2rem;
+  right: 1rem;
+}
+.streak-card-freeze .material-symbols-outlined {
+  font-size: 16px;
+}
+.streak-card-freeze.used {
+  opacity: 0.3;
+  background: rgba(127, 193, 224, 0.05);
+  border-color: rgba(127, 193, 224, 0.1);
+}
+/* Прогресс по сегодняшним критериям */
+.streak-daily-progress {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(var(--primary-rgb), 0.05);
+  border-radius: 8px;
+  width: fit-content;
+  max-width: 100%;
+}
+.streak-daily-time {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.streak-daily-time .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--primary);
+}
+/* На мобильных - только иконка без текста */
+@media (max-width: 768px) {
+  .streak-card-freeze {
+    padding: 0.4rem;
+    gap: 0;
+  }
+  .streak-card-freeze .freeze-text {
+    display: none;
+  }
+}
 .stat-card.due .stat-icon,
 .stat-icon.due {
   background: rgba(239, 68, 68, 0.1) !important;
@@ -8085,9 +8502,6 @@ html.dark .cefr-level:hover {
   gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
-.st-progress-cards .spc-card:last-child {
-  grid-column: 1 / -1;
-}
 .spc-card {
   background: var(--progress-card-bg);
   border: var(--progress-card-border);
@@ -8336,9 +8750,6 @@ html.dark .cefr-level:hover {
   .st-progress-cards,
   .idiom-difficulty-row {
     grid-template-columns: 1fr;
-  }
-  .st-progress-cards .spc-card:last-child {
-    grid-column: 1;
   }
   .spc-card {
     padding: 1rem;
@@ -10103,11 +10514,11 @@ button.floating-add-btn:hover .material-symbols-outlined,
   gap: 2px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #fb923c;
+  color: var(--streak-color);
 }
 .lb-streak .material-symbols-outlined {
   font-size: 0.9rem;
-  color: #fb923c;
+  color: var(--streak-color);
 }
 /* ПИЛЮЛИ */
 .friends-pills {
@@ -10196,7 +10607,7 @@ button.floating-add-btn:hover .material-symbols-outlined,
   color: var(--primary);
 }
 .friend-stat-chip.streak-chip .material-symbols-outlined {
-  color: #fb923c;
+  color: var(--streak-color);
 }
 .friend-actions-new {
   display: flex;
@@ -10597,7 +11008,6 @@ body.bs-open .bs-trigger-arrow {
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
 }
 .bs-opt-check {
   font-size: 20px;
@@ -10636,6 +11046,15 @@ body.bs-open .bs-trigger-arrow {
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
+  margin-left: auto;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+#bs-due-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 0.5rem;
 }
 /* --- Segmented control (Autopron + Direction) --- */
 .bs-seg {
@@ -12798,6 +13217,7 @@ body.bs-open .bs-trigger-arrow {
   color: var(--text);
   line-height: 1.2;
   word-break: break-word;
+  white-space: pre-line;
   opacity: 0;
   animation: fb-fade-up 0.3s ease forwards 0.22s;
 }
@@ -12832,6 +13252,7 @@ body.bs-open .bs-trigger-arrow {
   color: var(--success);
   font-size: 1rem;
   font-weight: 800;
+  white-space: pre-line;
 }
 .fb-confidence {
   font-size: 0.85rem;

@@ -1,302 +1,1542 @@
 [
   {
-    "en": "put – put – put",
-    "ru": "класть, ставить",
-    "audio": "574e3fc7bba0c447d898e3b314402adf.mp3"
+    "en": [
+      "be",
+      "was/were",
+      "been"
+    ],
+    "ru": "быть, являться",
+    "phonetic": [
+      "biː",
+      "wɒz/wɜː",
+      "biːn"
+    ],
+    "audio": "a1a1c9cc2fbdf78043bfeceb393491d7.mp3"
   },
   {
-    "en": "cut – cut – cut",
-    "ru": "резать, разрезать",
-    "audio": "d8c6bd9b3e13615f63bb088da36c94ce.mp3"
-  },
-  {
-    "en": "hit – hit – hit",
-    "ru": "ударять, попадать",
-    "audio": "9fe9cd2a93dd220335f2f1a1379cddc9.mp3"
-  },
-  {
-    "en": "let – let – let",
-    "ru": "позволять, допускать",
-    "audio": "0d7468b450d2d5bb50e00db3093c17cc.mp3"
-  },
-  {
-    "en": "set – set – set",
-    "ru": "устанавливать, назначать",
-    "audio": "fd76e6a686624fa7e9f5e4e644fc62b6.mp3"
-  },
-  {
-    "en": "cost – cost – cost",
-    "ru": "стоить, оцениваться",
-    "audio": "e48590f89553fa890c4526356a942e67.mp3"
-  },
-  {
-    "en": "bring – brought – brought",
-    "ru": "приносить, приводить",
-    "audio": "ebad04ebee490663e2474e35e2681300.mp3"
-  },
-  {
-    "en": "buy – bought – bought",
-    "ru": "покупать, приобретать",
-    "audio": "c08d6ac0e71a4ad7838a0480220028af.mp3"
-  },
-  {
-    "en": "think – thought – thought",
-    "ru": "думать, мыслить",
-    "audio": "4e8ccda9dbdc253eec6abc0101357a40.mp3"
-  },
-  {
-    "en": "fight – fought – fought",
-    "ru": "драться, сражаться",
-    "audio": "d480a1e50f70f942bbf39f9bab9527ad.mp3"
-  },
-  {
-    "en": "catch – caught – caught",
-    "ru": "ловить, схватывать",
-    "audio": "8242b504b0c7b16190d96893be6ef187.mp3"
-  },
-  {
-    "en": "teach – taught – taught",
-    "ru": "учить (кого-то), обучать",
-    "audio": "e5c1c98634070b14c47c567d0c008be3.mp3"
-  },
-  {
-    "en": "feel – felt – felt",
-    "ru": "чувствовать, ощущать",
-    "audio": "bf10a472295eb8d252ce81ca85188e70.mp3"
-  },
-  {
-    "en": "keep – kept – kept",
-    "ru": "держать, хранить",
-    "audio": "e00ecf987809e123713ec9f4e2af1c0e.mp3"
-  },
-  {
-    "en": "sleep – slept – slept",
-    "ru": "спать, засыпать",
-    "audio": "0b28861a5bc53dd994f4e2ed47e6ee32.mp3"
-  },
-  {
-    "en": "leave – left – left",
-    "ru": "покидать, оставлять",
-    "audio": "fc73c54ddd853e95382085c6bbeba7a4.mp3"
-  },
-  {
-    "en": "meet – met – met",
-    "ru": "встречать, знакомиться",
-    "audio": "b21c37562412454413e1ff54a7733a41.mp3"
-  },
-  {
-    "en": "mean – meant – meant",
-    "ru": "значить, подразумевать",
-    "audio": "05edfc21c88444f88b468841939b2beb.mp3"
-  },
-  {
-    "en": "send – sent – sent",
-    "ru": "посылать, отправлять",
-    "audio": "c30ffe7d29867bc689e4b0514bfec397.mp3"
-  },
-  {
-    "en": "spend – spent – spent",
-    "ru": "тратить, проводить (время)",
-    "audio": "901dad3962e7a74c25dd9e0847657f99.mp3"
-  },
-  {
-    "en": "build – built – built",
-    "ru": "строить, сооружать",
-    "audio": "fbecc46e8802b48d19e5495320a0ac0c.mp3"
-  },
-  {
-    "en": "lose – lost – lost",
-    "ru": "терять, утрачивать",
-    "audio": "c26fbbe0889b59790e69768f2f24c067.mp3"
-  },
-  {
-    "en": "get – got – got/gotten",
-    "ru": "получать, становиться",
-    "audio": "2522dfa1c57a48d0ea37f1029fcb2690.mp3"
-  },
-  {
-    "en": "sit – sat – sat",
-    "ru": "сидеть, садиться",
-    "audio": "a46392955ca943115ec88f8b97453071.mp3"
-  },
-  {
-    "en": "stand – stood – stood",
-    "ru": "стоять, выдерживать",
-    "audio": "05ba5226b65546d78568d0ed1632818b.mp3"
-  },
-  {
-    "en": "understand – understood – understood",
-    "ru": "понимать, осознавать",
-    "audio": "13f3a56496e69e66fd2fedd65a6e1aec.mp3"
-  },
-  {
-    "en": "win – won – won",
-    "ru": "побеждать, выигрывать",
-    "audio": "1017db0c5e573a18ed166d4b3a9348b9.mp3"
-  },
-  {
-    "en": "shine – shone – shone",
-    "ru": "светить, сиять",
-    "audio": "252c73bcd3989336d8a52c8f828b3045.mp3"
-  },
-  {
-    "en": "sing – sang – sung",
-    "ru": "петь, исполнять",
-    "audio": "9e111fd3882f38e71132fbcd8bde18e5.mp3"
-  },
-  {
-    "en": "ring – rang – rung",
-    "ru": "звонить, звенеть",
-    "audio": "00de2cbcf6d783dbc334cf2f7d594633.mp3"
-  },
-  {
-    "en": "drink – drank – drunk",
-    "ru": "пить, выпивать",
-    "audio": "fa156c15aec820aa1373d4752a62ff1c.mp3"
-  },
-  {
-    "en": "swim – swam – swum",
-    "ru": "плавать, плыть",
-    "audio": "16ec4599fa0248e33ecfcdfd4bce29df.mp3"
-  },
-  {
-    "en": "begin – began – begun",
-    "ru": "начинать",
-    "audio": "49bfebee3525c8fc1a404558b1361184.mp3"
-  },
-  {
-    "en": "speak – spoke – spoken",
-    "ru": "говорить, разговаривать",
-    "audio": "837a47d7ac4ae5c683e8d1a41b9e82a4.mp3"
-  },
-  {
-    "en": "break – broke – broken",
-    "ru": "ломать, разбивать",
-    "audio": "1b29e83b3734bc0f3ae539eee05b91f4.mp3"
-  },
-  {
-    "en": "choose – chose – chosen",
-    "ru": "выбирать, избирать",
-    "audio": "ebde54e221bc460b342e5533ba27a59a.mp3"
-  },
-  {
-    "en": "forget – forgot – forgotten",
-    "ru": "забывать, запамятовать",
-    "audio": "0378784504c4cad0df96f504c86eedf8.mp3"
-  },
-  {
-    "en": "hide – hid – hidden",
-    "ru": "прятать, скрывать",
-    "audio": "a667c394b31382b88e732d768d6e54ec.mp3"
-  },
-  {
-    "en": "write – wrote – written",
-    "ru": "писать, записывать",
-    "audio": "75b21b238621306270a85a0746f9c54b.mp3"
-  },
-  {
-    "en": "drive – drove – driven",
-    "ru": "водить (машину), гнать",
-    "audio": "40a777b5118a22a2569ce084d05482bb.mp3"
-  },
-  {
-    "en": "ride – rode – ridden",
-    "ru": "ехать (верхом/на транспорте), кататься",
-    "audio": "e6bdfda12309ae9e2c1a734e42cededc.mp3"
-  },
-  {
-    "en": "fly – flew – flown",
-    "ru": "летать, лететь",
-    "audio": "bc81642acb77b493225d22b48a13adff.mp3"
-  },
-  {
-    "en": "grow – grew – grown",
-    "ru": "расти, выращивать",
-    "audio": "c02f0273e547c74c053d3f20dd301cfe.mp3"
-  },
-  {
-    "en": "know – knew – known",
-    "ru": "знать, быть знакомым",
-    "audio": "60e1c539a30b19c1b8f7dd9fc45d8f82.mp3"
-  },
-  {
-    "en": "throw – threw – thrown",
-    "ru": "бросать, кидать",
-    "audio": "45ebba70c1ba9c3684844de7453dcf9d.mp3"
-  },
-  {
-    "en": "blow – blew – blown",
-    "ru": "дуть, выдыхать",
-    "audio": "a8d50ddbfd1b0ed712f422c6b849eb18.mp3"
-  },
-  {
-    "en": "see – saw – seen",
-    "ru": "видеть, понимать",
-    "audio": "5d24a02d32c8383a54b88f2d87b476a3.mp3"
-  },
-  {
-    "en": "go – went – gone",
+    "en": [
+      "go",
+      "went",
+      "gone"
+    ],
     "ru": "идти, ехать",
+    "phonetic": [
+      "ɡəʊ",
+      "went",
+      "ɡɒn"
+    ],
     "audio": "c86bf66e706eb41c1d90233896f5e623.mp3"
   },
   {
-    "en": "do – did – done",
-    "ru": "делать, выполнять",
+    "en": [
+      "understand",
+      "understood",
+      "understood"
+    ],
+    "ru": "понимать",
+    "phonetic": [
+      "ˌʌndəˈstænd",
+      "ˌʌndəˈstʊd",
+      "ˌʌndəˈstʊd"
+    ],
+    "audio": "13f3a56496e69e66fd2fedd65a6e1aec.mp3"
+  },
+  {
+    "en": [
+      "do",
+      "did",
+      "done"
+    ],
+    "ru": "делать (выполнять)",
+    "phonetic": [
+      "duː",
+      "dɪd",
+      "dʌn"
+    ],
     "audio": "01d123388194b6415907b3ad0872874c.mp3"
   },
   {
-    "en": "take – took – taken",
-    "ru": "брать, принимать",
-    "audio": "7b901d5631dc3eb64ac45225824b7588.mp3"
-  },
-  {
-    "en": "shake – shook – shaken",
-    "ru": "трясти, встряхивать",
-    "audio": "8b3b61b0ee72f53d6ed1793e69ea7e2c.mp3"
-  },
-  {
-    "en": "give – gave – given",
-    "ru": "давать, отдавать",
-    "audio": "11887aac8a731f8c10dbc445b018dc2c.mp3"
-  },
-  {
-    "en": "fall – fell – fallen",
-    "ru": "падать, упасть",
-    "audio": "0a70c53699e07d80435703de54f51b53.mp3"
-  },
-  {
-    "en": "eat – ate – eaten",
-    "ru": "есть, кушать",
-    "audio": "99bd68b001ff6e7ee65e836d8f542410.mp3"
-  },
-  {
-    "en": "read – read – read",
-    "ru": "читать, прочитать",
-    "audio": "5548a9ca4c98a49cd5328f0dc5929427.mp3"
-  },
-  {
-    "en": "have – had – had",
-    "ru": "иметь, обладать",
-    "audio": "14bd2211d800850b5264bf13bd9f1b8b.mp3"
-  },
-  {
-    "en": "say – said – said",
-    "ru": "сказать, говорить",
-    "audio": "d5ea46b347d938babd380deaf7143474.mp3"
-  },
-  {
-    "en": "make – made – made",
+    "en": [
+      "make",
+      "made",
+      "made"
+    ],
     "ru": "делать, создавать",
+    "phonetic": [
+      "meɪk",
+      "meɪd",
+      "meɪd"
+    ],
     "audio": "8833bfbd52e871f7e555b70d8509150a.mp3"
   },
   {
-    "en": "pay – paid – paid",
-    "ru": "платить, расплачиваться",
+    "en": [
+      "have",
+      "had",
+      "had"
+    ],
+    "ru": "иметь",
+    "phonetic": [
+      "hæv",
+      "hæd",
+      "hæd"
+    ],
+    "audio": "14bd2211d800850b5264bf13bd9f1b8b.mp3"
+  },
+  {
+    "en": [
+      "come",
+      "came",
+      "come"
+    ],
+    "ru": "приходить",
+    "phonetic": [
+      "kʌm",
+      "keɪm",
+      "kʌm"
+    ],
+    "audio": "6fd63a7227846765d7a02e5a46281b40.mp3"
+  },
+  {
+    "en": [
+      "see",
+      "saw",
+      "seen"
+    ],
+    "ru": "видеть",
+    "phonetic": [
+      "siː",
+      "sɔː",
+      "siːn"
+    ],
+    "audio": "5d24a02d32c8383a54b88f2d87b476a3.mp3"
+  },
+  {
+    "en": [
+      "get",
+      "got",
+      "got"
+    ],
+    "ru": "получать",
+    "phonetic": [
+      "ɡet",
+      "ɡɒt",
+      "ɡɒt"
+    ],
+    "audio": "ae4af3bfac4ecdb0960f7885cd005ebd.mp3"
+  },
+  {
+    "en": [
+      "buy",
+      "bought",
+      "bought"
+    ],
+    "ru": "покупать",
+    "phonetic": [
+      "baɪ",
+      "bɔːt",
+      "bɔːt"
+    ],
+    "audio": "c08d6ac0e71a4ad7838a0480220028af.mp3"
+  },
+  {
+    "en": [
+      "sell",
+      "sold",
+      "sold"
+    ],
+    "ru": "продавать",
+    "phonetic": [
+      "sel",
+      "səʊld",
+      "səʊld"
+    ],
+    "audio": "7b472554e43efcd4c05026ed0c31543f.mp3"
+  },
+  {
+    "en": [
+      "give",
+      "gave",
+      "given"
+    ],
+    "ru": "давать",
+    "phonetic": [
+      "ɡɪv",
+      "ɡeɪv",
+      "ˈɡɪvən"
+    ],
+    "audio": "11887aac8a731f8c10dbc445b018dc2c.mp3"
+  },
+  {
+    "en": [
+      "put",
+      "put",
+      "put"
+    ],
+    "ru": "класть",
+    "phonetic": [
+      "pʊt",
+      "pʊt",
+      "pʊt"
+    ],
+    "audio": "574e3fc7bba0c447d898e3b314402adf.mp3"
+  },
+  {
+    "en": [
+      "eat",
+      "ate",
+      "eaten"
+    ],
+    "ru": "есть, кушать",
+    "phonetic": [
+      "iːt",
+      "eɪt",
+      "ˈiːtən"
+    ],
+    "audio": "99bd68b001ff6e7ee65e836d8f542410.mp3"
+  },
+  {
+    "en": [
+      "drink",
+      "drank",
+      "drunk"
+    ],
+    "ru": "пить",
+    "phonetic": [
+      "drɪŋk",
+      "dræŋk",
+      "drʌŋk"
+    ],
+    "audio": "fa156c15aec820aa1373d4752a62ff1c.mp3"
+  },
+  {
+    "en": [
+      "feel",
+      "felt",
+      "felt"
+    ],
+    "ru": "чувствовать",
+    "phonetic": [
+      "fiːl",
+      "felt",
+      "felt"
+    ],
+    "audio": "bf10a472295eb8d252ce81ca85188e70.mp3"
+  },
+  {
+    "en": [
+      "speak",
+      "spoke",
+      "spoken"
+    ],
+    "ru": "говорить",
+    "phonetic": [
+      "spiːk",
+      "spəʊk",
+      "ˈspəʊkən"
+    ],
+    "audio": "837a47d7ac4ae5c683e8d1a41b9e82a4.mp3"
+  },
+  {
+    "en": [
+      "break",
+      "broke",
+      "broken"
+    ],
+    "ru": "ломать",
+    "phonetic": [
+      "breɪk",
+      "brəʊk",
+      "ˈbrəʊkən"
+    ],
+    "audio": "1b29e83b3734bc0f3ae539eee05b91f4.mp3"
+  },
+  {
+    "en": [
+      "know",
+      "knew",
+      "known"
+    ],
+    "ru": "знать",
+    "phonetic": [
+      "nəʊ",
+      "njuː",
+      "nəʊn"
+    ],
+    "audio": "60e1c539a30b19c1b8f7dd9fc45d8f82.mp3"
+  },
+  {
+    "en": [
+      "read",
+      "read",
+      "read"
+    ],
+    "ru": "читать",
+    "phonetic": [
+      "riːd",
+      "red",
+      "red"
+    ],
+    "audio": "5548a9ca4c98a49cd5328f0dc5929427.mp3"
+  },
+  {
+    "en": [
+      "write",
+      "wrote",
+      "written"
+    ],
+    "ru": "писать",
+    "phonetic": [
+      "raɪt",
+      "rəʊt",
+      "ˈrɪtən"
+    ],
+    "audio": "75b21b238621306270a85a0746f9c54b.mp3"
+  },
+  {
+    "en": [
+      "pay",
+      "paid",
+      "paid"
+    ],
+    "ru": "платить",
+    "phonetic": [
+      "peɪ",
+      "peɪd",
+      "peɪd"
+    ],
     "audio": "e34cce6d07623cfc525b72d90407108f.mp3"
   },
   {
-    "en": "lay – laid – laid",
-    "ru": "класть, положить",
+    "en": [
+      "find",
+      "found",
+      "found"
+    ],
+    "ru": "находить",
+    "phonetic": [
+      "faɪnd",
+      "faʊnd",
+      "faʊnd"
+    ],
+    "audio": "2f4808c3d9a03b0e753a2c3fe87076eb.mp3"
+  },
+  {
+    "en": [
+      "bring",
+      "brought",
+      "brought"
+    ],
+    "ru": "приносить",
+    "phonetic": [
+      "brɪŋ",
+      "brɔːt",
+      "brɔːt"
+    ],
+    "audio": "ebad04ebee490663e2474e35e2681300.mp3"
+  },
+  {
+    "en": [
+      "fly",
+      "flew",
+      "flown"
+    ],
+    "ru": "летать",
+    "phonetic": [
+      "flaɪ",
+      "fluː",
+      "fləʊn"
+    ],
+    "audio": "bc81642acb77b493225d22b48a13adff.mp3"
+  },
+  {
+    "en": [
+      "begin",
+      "began",
+      "begun"
+    ],
+    "ru": "начинать",
+    "phonetic": [
+      "bɪˈɡɪn",
+      "bɪˈɡæn",
+      "bɪˈɡʌn"
+    ],
+    "audio": "49bfebee3525c8fc1a404558b1361184.mp3"
+  },
+  {
+    "en": [
+      "forget",
+      "forgot",
+      "forgotten"
+    ],
+    "ru": "забывать",
+    "phonetic": [
+      "fəˈɡet",
+      "fəˈɡɒt",
+      "fəˈɡɒtən"
+    ],
+    "audio": "0378784504c4cad0df96f504c86eedf8.mp3"
+  },
+  {
+    "en": [
+      "send",
+      "sent",
+      "sent"
+    ],
+    "ru": "посылать",
+    "phonetic": [
+      "send",
+      "sent",
+      "sent"
+    ],
+    "audio": "c30ffe7d29867bc689e4b0514bfec397.mp3"
+  },
+  {
+    "en": [
+      "ring",
+      "rang",
+      "rung"
+    ],
+    "ru": "звонить, звенеть",
+    "phonetic": [
+      "rɪŋ",
+      "ræŋ",
+      "rʌŋ"
+    ],
+    "audio": "00de2cbcf6d783dbc334cf2f7d594633.mp3"
+  },
+  {
+    "en": [
+      "run",
+      "ran",
+      "run"
+    ],
+    "ru": "бежать",
+    "phonetic": [
+      "rʌn",
+      "ræn",
+      "rʌn"
+    ],
+    "audio": "fa50f85ff6ab7048bd54c8482564a7d4.mp3"
+  },
+  {
+    "en": [
+      "hear",
+      "heard",
+      "heard"
+    ],
+    "ru": "слышать",
+    "phonetic": [
+      "hɪə",
+      "hɜːd",
+      "hɜːd"
+    ],
+    "audio": "73ab7bb493518670aae7ddcf14fbc9a9.mp3"
+  },
+  {
+    "en": [
+      "meet",
+      "met",
+      "met"
+    ],
+    "ru": "встречать",
+    "phonetic": [
+      "miːt",
+      "met",
+      "met"
+    ],
+    "audio": "b21c37562412454413e1ff54a7733a41.mp3"
+  },
+  {
+    "en": [
+      "tell",
+      "told",
+      "told"
+    ],
+    "ru": "сказать",
+    "phonetic": [
+      "tel",
+      "təʊld",
+      "təʊld"
+    ],
+    "audio": "78744a6ebfda929b21f1e1a3bf7adac6.mp3"
+  },
+  {
+    "en": [
+      "teach",
+      "taught",
+      "taught"
+    ],
+    "ru": "учить (кого-то)",
+    "phonetic": [
+      "tiːtʃ",
+      "tɔːt",
+      "tɔːt"
+    ],
+    "audio": "e5c1c98634070b14c47c567d0c008be3.mp3"
+  },
+  {
+    "en": [
+      "become",
+      "became",
+      "become"
+    ],
+    "ru": "становиться",
+    "phonetic": [
+      "bɪˈkʌm",
+      "bɪˈkeɪm",
+      "bɪˈkʌm"
+    ],
+    "audio": "b527f4b4cab2a443b2a060b0bad561a6.mp3"
+  },
+  {
+    "en": [
+      "choose",
+      "chose",
+      "chosen"
+    ],
+    "ru": "выбирать",
+    "phonetic": [
+      "tʃuːz",
+      "tʃəʊz",
+      "ˈtʃəʊzən"
+    ],
+    "audio": "ebde54e221bc460b342e5533ba27a59a.mp3"
+  },
+  {
+    "en": [
+      "stand",
+      "stood",
+      "stood"
+    ],
+    "ru": "стоять",
+    "phonetic": [
+      "stænd",
+      "stʊd",
+      "stʊd"
+    ],
+    "audio": "05ba5226b65546d78568d0ed1632818b.mp3"
+  },
+  {
+    "en": [
+      "cost",
+      "cost",
+      "cost"
+    ],
+    "ru": "стоить",
+    "phonetic": [
+      "kɒst",
+      "kɒst",
+      "kɒst"
+    ],
+    "audio": "e48590f89553fa890c4526356a942e67.mp3"
+  },
+  {
+    "en": [
+      "take",
+      "took",
+      "taken"
+    ],
+    "ru": "брать",
+    "phonetic": [
+      "teɪk",
+      "tʊk",
+      "ˈteɪkən"
+    ],
+    "audio": "7b901d5631dc3eb64ac45225824b7588.mp3"
+  },
+  {
+    "en": [
+      "fall",
+      "fell",
+      "fallen"
+    ],
+    "ru": "падать",
+    "phonetic": [
+      "fɔːl",
+      "fel",
+      "ˈfɔːlən"
+    ],
+    "audio": "0a70c53699e07d80435703de54f51b53.mp3"
+  },
+  {
+    "en": [
+      "lose",
+      "lost",
+      "lost"
+    ],
+    "ru": "терять",
+    "phonetic": [
+      "luːz",
+      "lɒst",
+      "lɒst"
+    ],
+    "audio": "c26fbbe0889b59790e69768f2f24c067.mp3"
+  },
+  {
+    "en": [
+      "cut",
+      "cut",
+      "cut"
+    ],
+    "ru": "резать",
+    "phonetic": [
+      "kʌt",
+      "kʌt",
+      "kʌt"
+    ],
+    "audio": "d8c6bd9b3e13615f63bb088da36c94ce.mp3"
+  },
+  {
+    "en": [
+      "hit",
+      "hit",
+      "hit"
+    ],
+    "ru": "ударить",
+    "phonetic": [
+      "hɪt",
+      "hɪt",
+      "hɪt"
+    ],
+    "audio": "9fe9cd2a93dd220335f2f1a1379cddc9.mp3"
+  },
+  {
+    "en": [
+      "say",
+      "said",
+      "said"
+    ],
+    "ru": "сказать",
+    "phonetic": [
+      "seɪ",
+      "sed",
+      "sed"
+    ],
+    "audio": "d5ea46b347d938babd380deaf7143474.mp3"
+  },
+  {
+    "en": [
+      "sing",
+      "sang",
+      "sung"
+    ],
+    "ru": "петь",
+    "phonetic": [
+      "sɪŋ",
+      "sæŋ",
+      "sʌŋ"
+    ],
+    "audio": "9e111fd3882f38e71132fbcd8bde18e5.mp3"
+  },
+  {
+    "en": [
+      "grow",
+      "grew",
+      "grown"
+    ],
+    "ru": "расти",
+    "phonetic": [
+      "ɡrəʊ",
+      "ɡruː",
+      "ɡrəʊn"
+    ],
+    "audio": "c02f0273e547c74c053d3f20dd301cfe.mp3"
+  },
+  {
+    "en": [
+      "shut",
+      "shut",
+      "shut"
+    ],
+    "ru": "закрывать",
+    "phonetic": [
+      "ʃʌt",
+      "ʃʌt",
+      "ʃʌt"
+    ],
+    "audio": "ad39f00a1dea1a4bc0f0a42286642e9e.mp3"
+  },
+  {
+    "en": [
+      "spend",
+      "spent",
+      "spent"
+    ],
+    "ru": "тратить",
+    "phonetic": [
+      "spend",
+      "spent",
+      "spent"
+    ],
+    "audio": "901dad3962e7a74c25dd9e0847657f99.mp3"
+  },
+  {
+    "en": [
+      "wear",
+      "wore",
+      "worn"
+    ],
+    "ru": "носить (одежду)",
+    "phonetic": [
+      "weə",
+      "wɔː",
+      "wɔːn"
+    ],
+    "audio": "ab4169019cd9e6f534c4dc48279fa30f.mp3"
+  },
+  {
+    "en": [
+      "catch",
+      "caught",
+      "caught"
+    ],
+    "ru": "ловить",
+    "phonetic": [
+      "kætʃ",
+      "kɔːt",
+      "kɔːt"
+    ],
+    "audio": "8242b504b0c7b16190d96893be6ef187.mp3"
+  },
+  {
+    "en": [
+      "drive",
+      "drove",
+      "driven"
+    ],
+    "ru": "водить машину",
+    "phonetic": [
+      "draɪv",
+      "drəʊv",
+      "ˈdrɪvən"
+    ],
+    "audio": "40a777b5118a22a2569ce084d05482bb.mp3"
+  },
+  {
+    "en": [
+      "fight",
+      "fought",
+      "fought"
+    ],
+    "ru": "драться",
+    "phonetic": [
+      "faɪt",
+      "fɔːt",
+      "fɔːt"
+    ],
+    "audio": "d480a1e50f70f942bbf39f9bab9527ad.mp3"
+  },
+  {
+    "en": [
+      "throw",
+      "threw",
+      "thrown"
+    ],
+    "ru": "бросать",
+    "phonetic": [
+      "θrəʊ",
+      "θruː",
+      "θrəʊn"
+    ],
+    "audio": "45ebba70c1ba9c3684844de7453dcf9d.mp3"
+  },
+  {
+    "en": [
+      "draw",
+      "drew",
+      "drawn"
+    ],
+    "ru": "рисовать, тащить",
+    "phonetic": [
+      "drɔː",
+      "druː",
+      "drɔːn"
+    ],
+    "audio": "d2165616fc141229d4808ff87e41bc69.mp3"
+  },
+  {
+    "en": [
+      "forgive",
+      "forgave",
+      "forgiven"
+    ],
+    "ru": "прощать",
+    "phonetic": [
+      "fəˈɡɪv",
+      "fəˈɡeɪv",
+      "fəˈɡɪvən"
+    ],
+    "audio": "089ee863333acbb133f7dc4db45255f3.mp3"
+  },
+  {
+    "en": [
+      "blow",
+      "blew",
+      "blown"
+    ],
+    "ru": "дуть",
+    "phonetic": [
+      "bləʊ",
+      "bluː",
+      "bləʊn"
+    ],
+    "audio": "a8d50ddbfd1b0ed712f422c6b849eb18.mp3"
+  },
+  {
+    "en": [
+      "feed",
+      "fed",
+      "fed"
+    ],
+    "ru": "кормить",
+    "phonetic": [
+      "fiːd",
+      "fed",
+      "fed"
+    ],
+    "audio": "d3f0ddf6604836a9b7ac3bd1a7b0f2f2.mp3"
+  },
+  {
+    "en": [
+      "sleep",
+      "slept",
+      "slept"
+    ],
+    "ru": "спать",
+    "phonetic": [
+      "sliːp",
+      "slept",
+      "slept"
+    ],
+    "audio": "0b28861a5bc53dd994f4e2ed47e6ee32.mp3"
+  },
+  {
+    "en": [
+      "hide",
+      "hid",
+      "hidden"
+    ],
+    "ru": "прятать",
+    "phonetic": [
+      "haɪd",
+      "hɪd",
+      "ˈhɪdən"
+    ],
+    "audio": "a667c394b31382b88e732d768d6e54ec.mp3"
+  },
+  {
+    "en": [
+      "steal",
+      "stole",
+      "stolen"
+    ],
+    "ru": "воровать",
+    "phonetic": [
+      "stiːl",
+      "stəʊl",
+      "ˈstəʊlən"
+    ],
+    "audio": "6044290ddc25b5bc15f184c490440b57.mp3"
+  },
+  {
+    "en": [
+      "show",
+      "showed",
+      "shown"
+    ],
+    "ru": "показывать",
+    "phonetic": [
+      "ʃəʊ",
+      "ʃəʊd",
+      "ʃəʊn"
+    ],
+    "audio": "ce21bdefe7b18abdeff732d78ccaa5bd.mp3"
+  },
+  {
+    "en": [
+      "win",
+      "won",
+      "won"
+    ],
+    "ru": "выигрывать",
+    "phonetic": [
+      "wɪn",
+      "wʌn",
+      "wʌn"
+    ],
+    "audio": "1017db0c5e573a18ed166d4b3a9348b9.mp3"
+  },
+  {
+    "en": [
+      "leave",
+      "left",
+      "left"
+    ],
+    "ru": "покидать",
+    "phonetic": [
+      "liːv",
+      "left",
+      "left"
+    ],
+    "audio": "fc73c54ddd853e95382085c6bbeba7a4.mp3"
+  },
+  {
+    "en": [
+      "lend",
+      "lent",
+      "lent"
+    ],
+    "ru": "одалживать",
+    "phonetic": [
+      "lend",
+      "lent",
+      "lent"
+    ],
+    "audio": "0c0487943ec4168ed7ee78e513650536.mp3"
+  },
+  {
+    "en": [
+      "learn",
+      "learnt",
+      "learnt"
+    ],
+    "ru": "учить, изучать",
+    "phonetic": [
+      "lɜːn",
+      "lɜːnt",
+      "lɜːnt"
+    ],
+    "audio": "6ef822173f59e0a58acd85032d81d690.mp3"
+  },
+  {
+    "en": [
+      "dream",
+      "dreamt",
+      "dreamt"
+    ],
+    "ru": "мечтать",
+    "phonetic": [
+      "driːm",
+      "dremt",
+      "dremt"
+    ],
+    "audio": "4ef3bc21a76847d4e4afad08d2406f47.mp3"
+  },
+  {
+    "en": [
+      "deal",
+      "dealt",
+      "dealt"
+    ],
+    "ru": "иметь дело",
+    "phonetic": [
+      "diːl",
+      "delt",
+      "delt"
+    ],
+    "audio": "680c13610640571709c0992cc5ed3c59.mp3"
+  },
+  {
+    "en": [
+      "dig",
+      "dug",
+      "dug"
+    ],
+    "ru": "копать",
+    "phonetic": [
+      "dɪɡ",
+      "dʌɡ",
+      "dʌɡ"
+    ],
+    "audio": "84d2b023ca6f2128d294b8a2bdd280b2.mp3"
+  },
+  {
+    "en": [
+      "let",
+      "let",
+      "let"
+    ],
+    "ru": "позволять",
+    "phonetic": [
+      "let",
+      "let",
+      "let"
+    ],
+    "audio": "0d7468b450d2d5bb50e00db3093c17cc.mp3"
+  },
+  {
+    "en": [
+      "lie",
+      "lay",
+      "lain"
+    ],
+    "ru": "лежать",
+    "phonetic": [
+      "laɪ",
+      "leɪ",
+      "leɪn"
+    ],
+    "audio": "e5362c0349f017ea694829a4f19902b8.mp3"
+  },
+  {
+    "en": [
+      "lay",
+      "laid",
+      "laid"
+    ],
+    "ru": "класть (положить)",
+    "phonetic": [
+      "leɪ",
+      "leɪd",
+      "leɪd"
+    ],
     "audio": "2ae5508137a44e91b72380c68a894742.mp3"
+  },
+  {
+    "en": [
+      "wake",
+      "woke",
+      "woken"
+    ],
+    "ru": "просыпаться, будить",
+    "phonetic": [
+      "weɪk",
+      "wəʊk",
+      "ˈwəʊkən"
+    ],
+    "audio": "55967042cd74ab001b3ebf699e08ae9d.mp3"
+  },
+  {
+    "en": [
+      "beat",
+      "beat",
+      "beaten"
+    ],
+    "ru": "бить",
+    "phonetic": [
+      "biːt",
+      "biːt",
+      "ˈbiːtən"
+    ],
+    "audio": "b8e7ccbde65a529f53a7040c8bd9beb0.mp3"
+  },
+  {
+    "en": [
+      "hang",
+      "hung",
+      "hung"
+    ],
+    "ru": "вешать, висеть",
+    "phonetic": [
+      "hæŋ",
+      "hʌŋ",
+      "hʌŋ"
+    ],
+    "audio": "f57ad2a06889c34b3f23de358e5ce8b5.mp3"
+  },
+  {
+    "en": [
+      "burn",
+      "burnt",
+      "burnt"
+    ],
+    "ru": "гореть, жечь",
+    "phonetic": [
+      "bɜːn",
+      "bɜːnt",
+      "bɜːnt"
+    ],
+    "audio": "17c4c4b99c5d89c8c2007683fd184daa.mp3"
+  },
+  {
+    "en": [
+      "keep",
+      "kept",
+      "kept"
+    ],
+    "ru": "держать, хранить",
+    "phonetic": [
+      "kiːp",
+      "kept",
+      "kept"
+    ],
+    "audio": "e00ecf987809e123713ec9f4e2af1c0e.mp3"
+  },
+  {
+    "en": [
+      "hold",
+      "held",
+      "held"
+    ],
+    "ru": "держать",
+    "phonetic": [
+      "həʊld",
+      "held",
+      "held"
+    ],
+    "audio": "829677b816b34fc29efa7329476ebc9f.mp3"
+  },
+  {
+    "en": [
+      "shake",
+      "shook",
+      "shaken"
+    ],
+    "ru": "трясти",
+    "phonetic": [
+      "ʃeɪk",
+      "ʃʊk",
+      "ˈʃeɪkən"
+    ],
+    "audio": "8b3b61b0ee72f53d6ed1793e69ea7e2c.mp3"
+  },
+  {
+    "en": [
+      "shoot",
+      "shot",
+      "shot"
+    ],
+    "ru": "стрелять",
+    "phonetic": [
+      "ʃuːt",
+      "ʃɒt",
+      "ʃɒt"
+    ],
+    "audio": "b11dc281c6eb07895f7d0b4b04eaa646.mp3"
+  },
+  {
+    "en": [
+      "lead",
+      "led",
+      "led"
+    ],
+    "ru": "вести, руководить",
+    "phonetic": [
+      "liːd",
+      "led",
+      "led"
+    ],
+    "audio": "2909250b6d4f7598a4a367778b222181.mp3"
+  },
+  {
+    "en": [
+      "sink",
+      "sank",
+      "sunk"
+    ],
+    "ru": "тонуть",
+    "phonetic": [
+      "sɪŋk",
+      "sæŋk",
+      "sʌŋk"
+    ],
+    "audio": "fc1e80d6be7d7c92db30d9cc6e998f04.mp3"
+  },
+  {
+    "en": [
+      "bite",
+      "bit",
+      "bitten"
+    ],
+    "ru": "кусать",
+    "phonetic": [
+      "baɪt",
+      "bɪt",
+      "ˈbɪtən"
+    ],
+    "audio": "d61cb0587a80fafa1193d098dc22aa3c.mp3"
+  },
+  {
+    "en": [
+      "set",
+      "set",
+      "set"
+    ],
+    "ru": "устанавливать, ставить",
+    "phonetic": [
+      "set",
+      "set",
+      "set"
+    ],
+    "audio": "fd76e6a686624fa7e9f5e4e644fc62b6.mp3"
+  },
+  {
+    "en": [
+      "bend",
+      "bent",
+      "bent"
+    ],
+    "ru": "гнуть, сгибать",
+    "phonetic": [
+      "bend",
+      "bent",
+      "bent"
+    ],
+    "audio": "bb6aeb956271b782f71e2d9c181305a5.mp3"
+  },
+  {
+    "en": [
+      "lean",
+      "leant",
+      "leant"
+    ],
+    "ru": "наклоняться",
+    "phonetic": [
+      "liːn",
+      "lent",
+      "lent"
+    ],
+    "audio": "8c21ffd1500ccbdf848c9ec785a5084a.mp3"
+  },
+  {
+    "en": [
+      "withdraw",
+      "withdrew",
+      "withdrawn"
+    ],
+    "ru": "снимать (деньги), отзывать",
+    "phonetic": [
+      "wɪðˈdrɔː",
+      "wɪðˈdruː",
+      "wɪðˈdrɔːn"
+    ],
+    "audio": "74e272d94e51c391c3b606ae913147f2.mp3"
+  },
+  {
+    "en": [
+      "mean",
+      "meant",
+      "meant"
+    ],
+    "ru": "значить, подразумевать",
+    "phonetic": [
+      "miːn",
+      "ment",
+      "ment"
+    ],
+    "audio": "05edfc21c88444f88b468841939b2beb.mp3"
+  },
+  {
+    "en": [
+      "shine",
+      "shone",
+      "shone"
+    ],
+    "ru": "светить, сиять",
+    "phonetic": [
+      "ʃaɪn",
+      "ʃɒn",
+      "ʃɒn"
+    ],
+    "audio": "252c73bcd3989336d8a52c8f828b3045.mp3"
+  },
+  {
+    "en": [
+      "spoil",
+      "spoilt",
+      "spoilt"
+    ],
+    "ru": "портить",
+    "phonetic": [
+      "spɔɪl",
+      "spɔɪlt",
+      "spɔɪlt"
+    ],
+    "audio": "7f1accfa56f8dccf9383adfb0ff106ab.mp3"
+  },
+  {
+    "en": [
+      "spell",
+      "spelt",
+      "spelt"
+    ],
+    "ru": "произносить по буквам",
+    "phonetic": [
+      "spel",
+      "spelt",
+      "spelt"
+    ],
+    "audio": "3f5d584e61fca75e7839ab9ef82bf0da.mp3"
+  },
+  {
+    "en": [
+      "seek",
+      "sought",
+      "sought"
+    ],
+    "ru": "искать",
+    "phonetic": [
+      "siːk",
+      "sɔːt",
+      "sɔːt"
+    ],
+    "audio": "3936c7068998e145a0e3ab4572cd3a72.mp3"
+  },
+  {
+    "en": [
+      "tear",
+      "tore",
+      "torn"
+    ],
+    "ru": "рвать",
+    "phonetic": [
+      "teə",
+      "tɔː",
+      "tɔːn"
+    ],
+    "audio": "fb6d41f31c2f47c8021dede254d18bf6.mp3"
+  },
+  {
+    "en": [
+      "undertake",
+      "undertook",
+      "undertaken"
+    ],
+    "ru": "предпринимать",
+    "phonetic": [
+      "ˌʌndəˈteɪk",
+      "ˌʌndəˈtʊk",
+      "ˌʌndəˈteɪkən"
+    ],
+    "audio": "c58172d6508c9db8c16f9194894911b2.mp3"
+  },
+  {
+    "en": [
+      "undergo",
+      "underwent",
+      "undergone"
+    ],
+    "ru": "претерпевать",
+    "phonetic": [
+      "ˌʌndəˈɡəʊ",
+      "ˌʌndəˈwent",
+      "ˌʌndəˈɡɒn"
+    ],
+    "audio": "1cc19cc24d1241cd4aa6f1f37b9ac571.mp3"
+  },
+  {
+    "en": [
+      "smell",
+      "smelt",
+      "smelt"
+    ],
+    "ru": "пахнуть, нюхать",
+    "phonetic": [
+      "smel",
+      "smelt",
+      "smelt"
+    ],
+    "audio": "35f7bd8c1925691a35bfc21a86aa4f74.mp3"
+  },
+  {
+    "en": [
+      "sweep",
+      "swept",
+      "swept"
+    ],
+    "ru": "подметать",
+    "phonetic": [
+      "swiːp",
+      "swept",
+      "swept"
+    ],
+    "audio": "8d5f0046922c12d48d4338fb71d383b1.mp3"
+  },
+  {
+    "en": [
+      "burst",
+      "burst",
+      "burst"
+    ],
+    "ru": "лопаться, взрываться",
+    "phonetic": [
+      "bɜːst",
+      "bɜːst",
+      "bɜːst"
+    ],
+    "audio": "8c648230c0c881067d96442736e46063.mp3"
+  },
+  {
+    "en": [
+      "spread",
+      "spread",
+      "spread"
+    ],
+    "ru": "распространять",
+    "phonetic": [
+      "spred",
+      "spred",
+      "spred"
+    ],
+    "audio": "356dfea2d1554057a98b7f90304c5828.mp3"
+  },
+  {
+    "en": [
+      "split",
+      "split",
+      "split"
+    ],
+    "ru": "разделять, расщеплять",
+    "phonetic": [
+      "splɪt",
+      "splɪt",
+      "splɪt"
+    ],
+    "audio": "d61a579a733bcbe225cb06e2c04f3a87.mp3"
+  },
+  {
+    "en": [
+      "rise",
+      "rose",
+      "risen"
+    ],
+    "ru": "подниматься, вставать",
+    "phonetic": [
+      "raɪz",
+      "rəʊz",
+      "ˈrɪzən"
+    ],
+    "audio": "4767cc41ee8ee98f931f91c6d092d8e1.mp3"
+  },
+  {
+    "en": [
+      "think",
+      "thought",
+      "thought"
+    ],
+    "ru": "думать",
+    "phonetic": [
+      "θɪŋk",
+      "θɔːt",
+      "θɔːt"
+    ],
+    "audio": "4e8ccda9dbdc253eec6abc0101357a40.mp3"
+  },
+  {
+    "en": [
+      "sit",
+      "sat",
+      "sat"
+    ],
+    "ru": "сидеть",
+    "phonetic": [
+      "sɪt",
+      "sæt",
+      "sæt"
+    ],
+    "audio": "a46392955ca943115ec88f8b97453071.mp3"
+  },
+  {
+    "en": [
+      "swim",
+      "swam",
+      "swum"
+    ],
+    "ru": "плавать",
+    "phonetic": [
+      "swɪm",
+      "swæm",
+      "swʌm"
+    ],
+    "audio": "16ec4599fa0248e33ecfcdfd4bce29df.mp3"
+  },
+  {
+    "en": [
+      "build",
+      "built",
+      "built"
+    ],
+    "ru": "строить",
+    "phonetic": [
+      "bɪld",
+      "bɪlt",
+      "bɪlt"
+    ],
+    "audio": "fbecc46e8802b48d19e5495320a0ac0c.mp3"
+  },
+  {
+    "en": [
+      "freeze",
+      "froze",
+      "frozen"
+    ],
+    "ru": "замерзать, замораживать",
+    "phonetic": [
+      "friːz",
+      "frəʊz",
+      "ˈfrəʊzn"
+    ],
+    "audio": "6ca14bc05ad9c89a93d69e2118ab7098.mp3"
+  },
+  {
+    "en": [
+      "ride",
+      "rode",
+      "ridden"
+    ],
+    "ru": "ехать (верхом, на велосипеде, мотоцикле)",
+    "phonetic": [
+      "raɪd",
+      "rəʊd",
+      "ˈrɪdn"
+    ],
+    "audio": "e6bdfda12309ae9e2c1a734e42cededc.mp3"
+  },
+  {
+    "en": [
+      "can",
+      "could",
+      "could"
+    ],
+    "ru": "мочь, уметь",
+    "phonetic": [
+      "kæn",
+      "kʊd",
+      "kʊd"
+    ],
+    "audio": "d5aaf48fff2d075b43adc4d839dddc1b.mp3"
+  },
+  {
+    "en": [
+      "will",
+      "would",
+      "would"
+    ],
+    "ru": "вспомогательный глагол будущего времени",
+    "phonetic": [
+      "wɪl",
+      "wʊd",
+      "wʊd"
+    ],
+    "audio": "9502362b7c8e3d89259087fbd45cbf2e.mp3"
+  },
+  {
+    "en": [
+      "may",
+      "might",
+      "might"
+    ],
+    "ru": "мочь, иметь возможность",
+    "phonetic": [
+      "meɪ",
+      "maɪt",
+      "maɪt"
+    ],
+    "audio": "e4364d3e65080bee40247ed8c6bca8cf.mp3"
+  },
+  {
+    "en": [
+      "shall",
+      "should",
+      "should"
+    ],
+    "ru": "должен (вспомогательный)",
+    "phonetic": [
+      "ʃæl",
+      "ʃʊd",
+      "ʃʊd"
+    ],
+    "audio": "10ce88fe7710f9cac94d584f261b5a92.mp3"
   }
 ]

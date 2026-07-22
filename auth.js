@@ -243,7 +243,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     document.body.classList.add('authenticated');
     dropdownEmail.textContent = user.email;
     userAvatar.innerHTML =
-      '<span class="material-symbols-outlined">person</span>';
+      '<span class="material-symbols-outlined" style="font-size: 32px !important;">more_vert</span>';
 
     window.renderBadges?.();
 

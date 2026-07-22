@@ -18,7 +18,7 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     'dark',
   );
 
-  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию (терракота))
+  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию (янтарь))
   if (baseTheme !== 'lavender') {
     html.classList.add(`theme-${baseTheme}`);
   }
@@ -58,7 +58,13 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     '#dropdown-theme-toggle .material-symbols-outlined',
   );
   if (themeIcon) {
-    themeIcon.textContent = dark ? 'moon' : 'dark_mode';
+    themeIcon.textContent = dark ? 'light_mode' : 'dark_mode';
+  }
+
+  // Обновляем текст в дропдауне
+  const themeText = document.getElementById('theme-toggle-text');
+  if (themeText) {
+    themeText.textContent = dark ? 'Дневной режим' : 'Ночной режим';
   }
 
   // Помечаем профиль грязный для синхронизации с сервером

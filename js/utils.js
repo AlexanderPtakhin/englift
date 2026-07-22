@@ -181,7 +181,7 @@ function setButtonLoading(button, loading = true) {
   }
 }
 
-function toast(msg, type = '', icon = '', duration = 4000) {
+function toast(msg, type = '', icon = '', duration = 4000, position = 'bottom') {
   // Временная диагностика для поиска источника
   if (typeof msg !== 'string') {
     console.error('Toast получил не строку:', msg, new Error().stack);
@@ -218,15 +218,42 @@ function toast(msg, type = '', icon = '', duration = 4000) {
     el.textContent = message;
   }
 
-  const toastBox = document.getElementById('toast-box');
-  if (!toastBox) {
-    console.warn('toast-box не найден');
-    return;
-  }
+  // Выбираем контейнер в зависимости от позиции
+  const toastBoxId = position === 'top' ? 'toast-box-top' : 'toast-box';
+  let toastBox = document.getElementById(toastBoxId);
 
-  if (!toastBox.hasAttribute('role')) {
+  // Создаём контейнер если его нет
+  if (!toastBox) {
+    toastBox = document.createElement('div');
+    toastBox.id = toastBoxId;
     toastBox.setAttribute('role', 'status');
     toastBox.setAttribute('aria-live', 'polite');
+
+    if (position === 'top') {
+      toastBox.style.cssText = `
+        position: fixed;
+        top: 1.5rem;
+        left: 1.5rem;
+        right: 1.5rem;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      `;
+    } else {
+      toastBox.style.cssText = `
+        position: fixed;
+        bottom: 1.5rem;
+        left: 1.5rem;
+        right: 1.5rem;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      `;
+    }
+
+    document.body.appendChild(toastBox);
   }
 
   toastBox.appendChild(el);
