@@ -241,7 +241,12 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
   if (user && user.email_confirmed_at) {
     document.body.classList.add('authenticated');
-    dropdownEmail.textContent = user.email;
+    const emailSpan = dropdownEmail.querySelector('span:last-child');
+    if (emailSpan) {
+      emailSpan.textContent = user.email;
+    } else {
+      dropdownEmail.textContent = user.email;
+    }
     userAvatar.innerHTML =
       '<span class="material-symbols-outlined" style="font-size: 32px !important;">more_vert</span>';
 
@@ -282,7 +287,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     }
   } else {
     // Нет пользователя — редирект
-    if (window.location.pathname !== '/login.html') {
+    if (window.location.pathname !== '/login.html' && window.location.pathname !== '/reset-password.html') {
       window.location.href = '/login.html';
     }
   }
@@ -404,7 +409,7 @@ async function acceptInviteFriendship(inviterId, inviteId) {
       document.body.classList.add('authenticated');
     }
   } else {
-    if (window.location.pathname !== '/login.html') {
+    if (window.location.pathname !== '/login.html' && window.location.pathname !== '/reset-password.html') {
       window.location.href = '/login.html';
     }
   }

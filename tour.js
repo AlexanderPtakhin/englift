@@ -14,7 +14,7 @@
       target: null,
       title:
         '<span class="material-symbols-outlined">waving_hand</span> Добро пожаловать в EngLift!',
-      text: 'Быстрый тур по приложению — меньше минуты, и ты будешь знать всё.',
+      text: 'Быстрый тур по приложению — пара минут, и ты будешь знать всё самое важное.',
       position: 'center',
     },
     {
@@ -33,7 +33,7 @@
       target: () => document.querySelector('#wotd-wrap'),
       title:
         '<span class="material-symbols-outlined">auto_awesome</span> Банк слов',
-      text: 'Каждый раз при открытии — новое слово из огромной базы. Уровень слов можно настроить в меню пользователя (A1–C2). Сразу добавляй к себе в словарь одной кнопкой!',
+      text: 'Каждый раз при открытии — новое слово из огромной базы. Уровень слов можно настроить в меню (A1–C2). Сразу добавляй к себе одной кнопкой!',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="words"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
@@ -88,16 +88,6 @@
       },
     },
     {
-      target: () => document.querySelector('.filter-pills'),
-      title:
-        '<span class="material-symbols-outlined">filter_alt</span> Фильтры и сортировка',
-      text: 'Сортируй слова по дате, алфавиту, сложности. Фильтруй по статусу (учу/знаю) или по тегу.',
-      onBefore: () => {
-        document.querySelector('.nav-btn[data-tab="words"]')?.click();
-        document.querySelector('.mobile-nav-btn[data-tab="words"]')?.click();
-      },
-    },
-    {
       target: () =>
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="idioms"]')
@@ -111,23 +101,13 @@
       },
     },
     {
-      target: () => document.querySelector('#idiom-bank-wrap'),
-      title: '<span class="material-symbols-outlined">casino</span> Банк идиом',
-      text: 'То же самое для идиом — случайная подборка из большой базы. Листай, добавляй что понравилось.',
-      delay: 500,
-      onBefore: () => {
-        document.querySelector('.nav-btn[data-tab="idioms"]')?.click();
-        document.querySelector('.mobile-nav-btn[data-tab="idioms"]')?.click();
-      },
-    },
-    {
       target: () =>
         isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="practice"]')
           : document.querySelector('.nav-btn[data-tab="practice"]'),
       title:
         '<span class="material-symbols-outlined">rocket_launch</span> Практика',
-      text: '9 типов упражнений: флэш-карты, тесты, диктовка, распознавание речи, конструктор предложений и другие. Умный SM-2 алгоритм сам решает что показать.',
+      text: '9 типов упражнений: флэш-карты, тесты, диктовка, распознавание речи и другие. Режимы: слова, глаголы, идиомы. Умный алгоритм сам решает что показать.',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="practice"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="practice"]')?.click();
@@ -140,7 +120,7 @@
           : document.querySelector('.nav-btn[data-tab="stats"]'),
       title:
         '<span class="material-symbols-outlined">monitoring</span> Прогресс',
-      text: 'XP, уровень, стрик, недельный график, CEFR и бейджи. Ежедневные цели и лимит повторений помогут не забросить.',
+      text: 'XP, уровень, серия занятий, недельный график, CEFR и бейджи. День засчитывается после 5 минут занятий. Ежедневные цели и выходной помогут не забросить.',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="stats"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="stats"]')?.click();
@@ -150,7 +130,18 @@
       target: () => document.querySelector('.daily-goals-section'),
       title:
         '<span class="material-symbols-outlined">track_changes</span> Ежедневные цели',
-      text: 'Выполняй ежедневные цели (добавить слова, поучиться, получить точность 95%) и получай XP награды. Это помогает поддерживать регулярность!',
+      text: 'Выполняй ежедневные цели и получай XP награды. Это помогает поддерживать регулярность!',
+      delay: 300,
+      onBefore: () => {
+        document.querySelector('.nav-btn[data-tab="stats"]')?.click();
+        document.querySelector('.mobile-nav-btn[data-tab="stats"]')?.click();
+      },
+    },
+    {
+      target: () => document.querySelector('#streak-card-freeze'),
+      title:
+        '<span class="material-symbols-outlined">beach_access</span> Выходной',
+      text: 'Если пропустишь один день в неделю, серия не сгорит — выходной сработает автоматически.',
       delay: 300,
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="stats"]')?.click();
@@ -163,7 +154,7 @@
           ? document.querySelector('.mobile-nav-btn[data-tab="friends"]')
           : document.querySelector('.nav-btn[data-tab="friends"]'),
       title: '<span class="material-symbols-outlined">group</span> Друзья',
-      text: 'Добавляй друзей, общайся в чате, создавай совместные челленджи, следи за прогрессом в ленте активности, соревнуйся в лидерборде по XP за неделю/месяц/всё время. Получай бейджи за достижения и смотри что нового у друзей!',
+      text: 'Добавляй друзей, общайся в чате, создавай совместные челленджи, следи за прогрессом в ленте активности, соревнуйся в лидерборде.',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="friends"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="friends"]')?.click();
@@ -173,11 +164,11 @@
       target: () => document.querySelector('#user-avatar'),
       title:
         '<span class="material-symbols-outlined">settings</span> Настройки',
-      text: 'Нажми на аватарку — здесь можно сменить голос озвучки, выбрать тему оформления, настроить лимит повторений и даже выбрать уровень слов в рекомендациях (A1–C2).',
+      text: 'Нажми на аватарку — здесь можно сменить голос озвучки, выбрать тему оформления, настроить лимит повторений и уровень слов в рекомендациях.',
       onBefore() {
         const dropdown = document.getElementById('user-dropdown');
         if (dropdown) dropdown.style.display = 'none';
-        STEPS[14].target = document.querySelector('#user-avatar');
+        STEPS[13].target = document.querySelector('#user-avatar');
       },
     },
     {
@@ -462,9 +453,7 @@
 
     const r = target.getBoundingClientRect();
 
-    if (isMobile()) {
-      target.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-    }
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
     const PAD_FULL = 10;
     const VW = window.visualViewport?.width ?? window.innerWidth;

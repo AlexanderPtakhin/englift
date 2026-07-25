@@ -2,11 +2,15 @@
 (function () {
   let db = null;
   const DB_NAME = 'EngLiftCache';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3; // Увеличена версия для миграции на userId-ключи
   const WORD_STORE = 'words';
   const IDIOM_STORE = 'idioms';
   // REMOVED: phrases functionality
   // const PHRASE_STORE = 'phrases';
+
+  function getUserId() {
+    return window.currentUserId || 'unknown';
+  }
 
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -22,23 +26,28 @@
       };
       request.onupgradeneeded = event => {
         const db = event.target.result;
+        // Миграция на составные ключи с userId для изоляции данных
+        if (event.oldVersion < 3) {
+          // Удаляем старые stores без userId-изоляции
+          if (db.objectStoreNames.contains(WORD_STORE)) {
+            db.deleteObjectStore(WORD_STORE);
+          }
+          if (db.objectStoreNames.contains(IDIOM_STORE)) {
+            db.deleteObjectStore(IDIOM_STORE);
+          }
+        }
         if (!db.objectStoreNames.contains(WORD_STORE)) {
           const wordStore = db.createObjectStore(WORD_STORE, { keyPath: 'id' });
+          wordStore.createIndex('userId', 'userId');
           wordStore.createIndex('updatedAt', 'updatedAt');
         }
         if (!db.objectStoreNames.contains(IDIOM_STORE)) {
           const idiomStore = db.createObjectStore(IDIOM_STORE, {
             keyPath: 'id',
           });
+          idiomStore.createIndex('userId', 'userId');
           idiomStore.createIndex('updatedAt', 'updatedAt');
         }
-        // REMOVED: phrases functionality
-        // if (!db.objectStoreNames.contains(PHRASE_STORE)) {
-        //   const phraseStore = db.createObjectStore(PHRASE_STORE, {
-        //     keyPath: 'id',
-        //   });
-        //   phraseStore.createIndex('updatedAt', 'updatedAt');
-        // }
       };
     });
   }
@@ -46,11 +55,15 @@
   // Сохранить массив слов одной транзакцией
   async function saveWords(wordsArray) {
     if (!wordsArray.length) return;
+    const userId = getUserId();
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(WORD_STORE, 'readwrite');
       const store = tx.objectStore(WORD_STORE);
-      for (const word of wordsArray) store.put(word);
+      for (const word of wordsArray) {
+        // Добавляем userId к каждому слову для изоляции
+        store.put({ ...word, userId });
+      }
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -59,11 +72,15 @@
   // Сохранить массив идиом
   async function saveIdioms(idiomsArray) {
     if (!idiomsArray.length) return;
+    const userId = getUserId();
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(IDIOM_STORE, 'readwrite');
       const store = tx.objectStore(IDIOM_STORE);
-      for (const idiom of idiomsArray) store.put(idiom);
+      for (const idiom of idiomsArray) {
+        // Добавляем userId к каждой идиоме для изоляции
+        store.put({ ...idiom, userId });
+      }
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -95,50 +112,74 @@
     });
   }
 
-  // Загрузить все слова
+  // Загрузить все слова для текущего пользователя
   async function getAllWords() {
+    const userId = getUserId();
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(WORD_STORE, 'readonly');
       const store = tx.objectStore(WORD_STORE);
-      const request = store.getAll();
+      const index = store.index('userId');
+      const request = index.getAll(userId);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result || []);
     });
   }
 
-  // Загрузить все идиомы
+  // Загрузить все идиомы для текущего пользователя
   async function getAllIdioms() {
+    const userId = getUserId();
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(IDIOM_STORE, 'readonly');
       const store = tx.objectStore(IDIOM_STORE);
-      const request = store.getAll();
+      const index = store.index('userId');
+      const request = index.getAll(userId);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result || []);
     });
   }
 
-  // Очистить всё (при логауте)
+  // Очистить всё для текущего пользователя (при логауте)
   async function clearAllWords() {
+    const userId = getUserId();
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(WORD_STORE, 'readwrite');
       const store = tx.objectStore(WORD_STORE);
-      store.clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      const index = store.index('userId');
+      const request = index.openCursor(userId);
+      request.onerror = () => reject(tx.error);
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
     });
   }
 
   async function clearAllIdioms() {
+    const userId = getUserId();
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(IDIOM_STORE, 'readwrite');
       const store = tx.objectStore(IDIOM_STORE);
-      store.clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      const index = store.index('userId');
+      const request = index.openCursor(userId);
+      request.onerror = () => reject(tx.error);
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
     });
   }
 

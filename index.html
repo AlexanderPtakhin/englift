@@ -116,14 +116,13 @@
 
     <!-- Theme-color - будет обновляться динамически через JS -->
 
-    <meta name="theme-color" content="#FF6E40" />
+    <meta name="theme-color" content="#fff9f4" />
 
     <!-- JavaScript для динамической смены theme-color -->
 
     <script>
 
       (function () {
-
         const metaTheme = document.querySelector('meta[name="theme-color"]');
 
         function updateThemeColor() {
@@ -166,19 +165,19 @@
 
               lavender: '#23252b',
 
-              sunset: '#3f2e2e',
+              sunset: '#2D2625',
 
-              forest: '#2a3a2a',
+              forest: '#242D28',
 
-              ocean: '#253544',
+              ocean: '#222A33',
 
-              purple: '#3f3850',
+              purple: '#2A2633',
 
-              sky: '#2e4352',
+              sky: '#242C34',
 
-              sand: '#423b34',
+              sand: '#2E2925',
 
-              graphite: '#374151',
+              graphite: '#232830',
 
             };
 
@@ -294,7 +293,7 @@
 
     </style>
 
-    <meta name="sw-file" content="/sw.1784738104328-4d95adaa.js">
+    <meta name="sw-file" content="/sw.1784991365241-4d95adaa.js">
 
 </head>
 
@@ -394,14 +393,10 @@
 
       <div class="header-right">
 
-        <!-- Индикатор стрика -->
+        <!-- Индикатор серии -->
         <div class="streak-header-indicator" id="streak-header-indicator">
           <span class="material-symbols-outlined streak-fire-icon">local_fire_department</span>
           <span class="streak-header-count" id="streak-header-count">0</span>
-          <!-- Иконка заморозки -->
-          <span class="streak-freeze-icon" id="streak-freeze-icon" style="display: none;">
-            <span class="material-symbols-outlined">ac_unit</span>
-          </span>
         </div>
 
         <!-- Личный кабинет (будет виден только после авторизации) -->
@@ -424,7 +419,17 @@
 
           <div class="user-dropdown" id="user-dropdown" style="display: none">
 
-            <div class="user-email" id="dropdown-email">Загрузка...</div>
+            <div class="user-email" id="dropdown-email">
+              <span class="material-symbols-outlined">person</span>
+              <span>Загрузка...</span>
+            </div>
+
+            <div class="dropdown-item" id="dropdown-theme-toggle">
+              <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
+              <span id="theme-toggle-text">Ночной режим</span>
+            </div>
+
+            <div class="dropdown-divider"></div>
 
             <div class="dropdown-item" id="dropdown-speech-settings">
 
@@ -456,13 +461,6 @@
 
               <span>Приложение</span>
 
-            </div>
-
-            <div class="dropdown-divider"></div>
-
-            <div class="dropdown-item" id="dropdown-theme-toggle">
-              <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
-              <span id="theme-toggle-text">Ночной режим</span>
             </div>
 
             <div class="dropdown-divider"></div>
@@ -1437,9 +1435,9 @@
 
             <div class="stat-label" id="st-streak-label">дней подряд</div>
 
-            <!-- Иконка заморозки в карточке -->
+            <!-- Иконка выходного в карточке -->
             <div class="streak-card-freeze" id="streak-card-freeze" style="display: none;">
-              <span class="material-symbols-outlined">ac_unit</span>
+              <span class="material-symbols-outlined">beach_access</span>
             </div>
 
             <!-- Прогресс по сегодняшним критериям -->
@@ -1491,7 +1489,7 @@
 
               <div class="stat-number" id="st-best">0</div>
 
-              <div class="stat-label">Рекорд стрика</div>
+              <div class="stat-label">Рекорд серии</div>
 
             </div>
 
@@ -2341,7 +2339,7 @@
 
                 <span class="template-name">7 дней</span>
 
-                <span class="template-desc">Стрик</span>
+                <span class="template-desc">Серия</span>
 
               </button>
 
@@ -3091,17 +3089,17 @@
 
     </div>
 
-    <!-- Модальное окно уведомления о заморозке стрика -->
+    <!-- Модальное окно уведомления о выходном -->
     <div class="modal-backdrop" id="freeze-notification-modal">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>❄️ Заморозка стрика</h3>
+          <h3>❄️ Выходной</h3>
           <button class="modal-close" id="freeze-notification-modal-close">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
         <div class="modal-body">
-          <p>Заморозка стрика использована на этой неделе. Ваш стрик сохранён!</p>
+          <p>Выходной использован на этой неделе. Ваша серия сохранена!</p>
         </div>
       </div>
     </div>
@@ -3268,7 +3266,7 @@
 
                   class="btn-pill btn-pill--secondary"
 
-                  id="change-password-btn"
+                  id="change-password-btn-settings"
 
                   style="width: 100%"
 

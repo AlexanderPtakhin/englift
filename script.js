@@ -348,10 +348,6 @@ import {
 
   deleteIdiomFromDb, // ← добавить
 
-  savePhraseToDb,
-
-  deletePhraseFromDb,
-
   searchUsers,
 
   sendFriendRequest,
@@ -608,12 +604,10 @@ function updateWeeklyReviewHistory() {
 
   // Сохраняем в localStorage как резервную копию (опционально)
 
+  const key = `englift_weekly_review_${window.currentUserId}`;
   localStorage.setItem(
-
-    'englift_weekly_review',
-
+    key,
     JSON.stringify(weeklyReviewHistory),
-
   );
 
   // Синхронизируем с сервером (если пользователь авторизован)
@@ -648,12 +642,10 @@ function updateWeeklyReviewDetail(type) {
 
   weeklyReviewDetail = weeklyReviewDetail.slice(-7);
 
+  const key = `englift_weekly_review_detail_${window.currentUserId}`;
   localStorage.setItem(
-
-    'englift_weekly_review_detail',
-
+    key,
     JSON.stringify(weeklyReviewDetail),
-
   );
 
   if (window.currentUserId && window.markProfileDirty) {
@@ -1038,9 +1030,10 @@ async function migrateFromLocalStorage() {
 
   if (migrationFlag === 'true') return;
 
-  const localWords = localStorage.getItem('englift_words');
-
-  const localIdioms = localStorage.getItem('englift_idioms');
+  const wordsKey = `englift_words_${window.currentUserId}`;
+  const idiomsKey = `englift_idioms_${window.currentUserId}`;
+  const localWords = localStorage.getItem(wordsKey);
+  const localIdioms = localStorage.getItem(idiomsKey);
 
   if (localWords) {
 
@@ -1056,7 +1049,7 @@ async function migrateFromLocalStorage() {
 
     } catch (e) {}
 
-    localStorage.removeItem('englift_words');
+    localStorage.removeItem(wordsKey);
 
   }
 
@@ -1074,7 +1067,7 @@ async function migrateFromLocalStorage() {
 
     } catch (e) {}
 
-    localStorage.removeItem('englift_idioms');
+    localStorage.removeItem(idiomsKey);
 
   }
 
@@ -1208,29 +1201,21 @@ window.applyProfileData = function (data) {
 
   }
 
-  // Бейджи – объединяем, сохраняем уникальные
+  // Бейджи – берём с сервера как источник истины (без merge для предотвращения утечки данных)
 
   if (data.badges && Array.isArray(data.badges)) {
 
-    const merged = [...new Set([...window.xpData.badges, ...data.badges])];
+    if (JSON.stringify(window.xpData.badges) !== JSON.stringify(data.badges)) {
 
-    if (merged.length !== window.xpData.badges.length) {
+      window.xpData.badges = data.badges;
 
-      window.updateXpData({ badges: merged });
-
-      // Только если у нас были бейджи которых нет у сервера — тогда пишем
-
-      if (merged.length > data.badges.length) {
-
-        markProfileDirty('badges', window.xpData.badges);
-
-      }
+      markProfileDirty('badges', window.xpData.badges);
 
     }
 
   }
 
-  // Стрик
+  // Серия занятий
 
   if (data.streak !== undefined && data.laststreakdate !== undefined) {
 
@@ -1247,13 +1232,13 @@ window.applyProfileData = function (data) {
       markProfileDirty('laststreakdate', window.streak.lastDate);
 
     } else {
-      // Если стрик равен, всё равно восстанавливаем lastDate из сервера
+      // Если серия равна, всё равно восстанавливаем lastDate из сервера
       window.streak.lastDate = data.laststreakdate;
     }
 
   }
 
-  // Новые поля стрика
+  // Новые поля серии
   if (data.best_streak !== undefined) {
     window.streak.bestStreak = data.best_streak;
   }
@@ -1382,12 +1367,10 @@ window.applyProfileData = function (data) {
 
     weeklyReviewHistory = data.weekly_review_history;
 
+    const key = `englift_weekly_review_${window.currentUserId}`;
     localStorage.setItem(
-
-      'englift_weekly_review',
-
+      key,
       JSON.stringify(weeklyReviewHistory),
-
     );
 
   }
@@ -1396,12 +1379,10 @@ window.applyProfileData = function (data) {
 
     weeklyReviewDetail = data.weekly_review_detail;
 
+    const key = `englift_weekly_review_detail_${window.currentUserId}`;
     localStorage.setItem(
-
-      'englift_weekly_review_detail',
-
+      key,
       JSON.stringify(weeklyReviewDetail),
-
     );
 
   }
@@ -1510,7 +1491,8 @@ window.applyProfileData = function (data) {
 
   };
 
-  localStorage.setItem('englift_lastknown_progress', JSON.stringify(backup));
+  const key = `englift_lastknown_progress_${window.currentUserId}`;
+  localStorage.setItem(key, JSON.stringify(backup));
 
   window._profileApplyingInProgress = false;
 
@@ -3248,40 +3230,6 @@ window.speakIdiom = function (idiomId) {
 
 };
 
-window.speakPhrase = function (phraseObj, onEnd) {
-
-  if (!phraseObj) {
-
-    return;
-
-  }
-
-  const audioFile = typeof phraseObj === 'string' ? null : phraseObj.audio;
-
-  const text = typeof phraseObj === 'string' ? phraseObj : phraseObj.phrase;
-
-  if (audioFile) {
-
-    // Find CEFR from parent word if not saved in phrase
-
-    const cefr =
-
-      phraseObj.cefr ||
-
-      window.words?.find(w => w.id === phraseObj.sourceWordId)?.cefr ||
-
-      'A1';
-
-    playAudio(audioFile, cefr, onEnd);
-
-  } else {
-
-    speakText(text, onEnd);
-
-  }
-
-};
-
 window.playExampleAudio = function (wordObj, cefr) {
 
   if (!wordObj || !wordObj.examplesAudio || !wordObj.examplesAudio.length)
@@ -3694,13 +3642,11 @@ async function syncProfileNow() {
 
     console.error('Ошибка сохранения профиля:', err);
 
-    window.toast?.(
-
-      'Ошибка сохранения профиля. Изменения будут отправлены позже.',
-
-      'warning',
-
-    );
+    // Тост отключен - данные сохраняются локально и будут отправлены позже
+    // window.toast?.(
+    //   'Ошибка сохранения профиля. Изменения будут отправлены позже.',
+    //   'warning',
+    // );
 
     // Восстанавливаем только те ключи, которые не были обновлены за время запроса
 
@@ -4290,7 +4236,8 @@ function renderWeekChart() {
 
   // Загружаем сохранённую детализацию
 
-  const saved = localStorage.getItem('englift_weekly_review_detail');
+  const key = `englift_weekly_review_detail_${window.currentUserId}`;
+  const saved = localStorage.getItem(key);
 
   if (saved) {
 
@@ -5613,7 +5560,8 @@ async function load() {
 
     try {
 
-      const backup = localStorage.getItem('englift_lastknown_progress');
+      const key = `englift_lastknown_progress_${window.currentUserId}`;
+      const backup = localStorage.getItem(key);
 
       if (backup) {
 
@@ -5862,8 +5810,6 @@ async function clearUserData() {
     await window.UserDataCache.clearAllWords();
 
     await window.UserDataCache.clearAllIdioms();
-
-    await window.UserDataCache.clearAllPhrases();
 
   } catch (error) {
 
@@ -6315,9 +6261,9 @@ async function addWord(
 
     resetDailyGoalsIfNeeded();
 
-    // 🔥 ФИКС: НЕ увеличиваем стрик за добавление слова!
+    // 🔥 ФИКС: НЕ увеличиваем серию за добавление слова!
 
-    // Стрик только за упражнения, а не за добавление в словарь
+    // Серия только за упражнения, а не за добавление в словарь
 
     window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
 
@@ -6488,82 +6434,6 @@ async function updWord(id, data) {
   }
 
   // УБРАНО: Sync phrases from word examples - фразы создаются только из коллокаций через buildPhrasesFromWords
-
-}
-
-// ─── PHRASES CRUD ─────────────────────────────────────
-
-function mkPhrase({
-
-  phrase,
-
-  translation,
-
-  sourceWordId = null,
-
-  example = '',
-
-  exampleTranslation = '',
-
-  tags = [],
-
-  audio = null,
-
-  examplesAudio = [],
-
-}) {
-
-  return {
-
-    id: generateId(),
-
-    userId: window.currentUserId,
-
-    sourceWordId,
-
-    phrase: phrase.trim(),
-
-    translation: translation.trim(),
-
-    example: example?.trim?.() || '',
-
-    exampleTranslation: exampleTranslation?.trim?.() || '',
-
-    tags,
-
-    audio,
-
-    examplesAudio,
-
-    createdAt: new Date().toISOString(),
-
-    updatedAt: new Date().toISOString(),
-
-    stats: {
-
-      shown: 0,
-
-      correct: 0,
-
-      wrong: 0,
-
-      streak: 0,
-
-      lastPracticed: null,
-
-      learned: false,
-
-      nextReview: new Date().toISOString(),
-
-      interval: 1,
-
-      easeFactor: 2.5,
-
-      correctExerciseTypes: [],
-
-    },
-
-  };
 
 }
 
@@ -6803,9 +6673,9 @@ async function updIdiom(idiomId, data) {
 
 /**
 
- * Универсальная SRS-логика для слов, фраз, идиом.
+ * Универсальная SRS-логика для слов и идиом.
 
- * Заменяет updStats, updPhraseStats, updIdiomStats.
+ * Заменяет updStats, updIdiomStats.
 
  */
 
@@ -6982,7 +6852,7 @@ function gainXP(amount, reason = '', icon = 'bolt', position = 'bottom') {
 
   markProfileDirty('level', xpData.level);
 
-  // Записываем активность и XP для стрика
+  // Записываем активность и XP для серии
   if (amount > 0) {
     if (!window.dailyXp) window.dailyXp = 0;
     window.dailyXp += amount;
@@ -7113,13 +6983,16 @@ async function flushChallengeUpdates() {
 
 function checkBadges(perfectSession = false) {
 
+  // Гард: не проверяем бейджи до полной загрузки профиля
+  if (!window.currentUserId || !window.profileFullyLoaded) {
+    return;
+  }
+
   const newBadges = [];
 
   const totalWords = window.words ? window.words.length : 0;
 
   const totalIdioms = window.idioms ? window.idioms.length : 0;
-
-  const totalPhrases = window.phrases ? window.phrases.length : 0;
 
   const learnedWords = window.words
 
@@ -7139,13 +7012,9 @@ function checkBadges(perfectSession = false) {
 
     totalIdioms,
 
-    totalPhrases: 0,
-
     learnedWords,
 
     learnedIdioms,
-
-    learnedPhrases: 0,
 
     xp: xpData.xp,
 
@@ -7577,10 +7446,6 @@ function getProgressText(progress) {
 
     case 'idiomlearned': return `ещё ${pluralize(progress.remaining, 'идиома', 'идиомы', 'идиом')} выучить`;
 
-    case 'phrases': return pluralize(progress.remaining, 'фраза', 'фразы', 'фраз');
-
-    case 'phraselearned': return `${pluralize(progress.remaining, 'фраза', 'фразы', 'фраз')} до изученных`;
-
     case 'learningStreak': return pluralize(progress.remaining, 'слово/идиома', 'слова/идиомы', 'слов/идиом') + ' подряд';
 
     case 'perfectSessions': return pluralize(progress.remaining, 'сессия', 'сессии', 'сессий') + ' с точностью 100%';
@@ -7607,14 +7472,14 @@ function getProgressText(progress) {
 
 }
 
-// Вехи стрика (число дней → название)
+// Вехи серии (число дней → название)
 const MILESTONES = [
   { days: 1, label: 'Старт' },
   { days: 2, label: 'Разгон' },
   { days: 3, label: 'Первые шаги' },
   { days: 5, label: 'Почти неделя' },
   { days: 7, label: 'Первая неделя' },
-  { days: 10, label: 'Двузначный стрик' },
+  { days: 10, label: 'Двузначная серия' },
   { days: 14, label: 'Две недели' },
   { days: 21, label: 'Порог привычки' },
   { days: 30, label: 'Месяц в деле' },
@@ -7637,12 +7502,14 @@ const STREAK_CRITERIA = {
 // === История активности (для таймлайна) ===
 function getStreakHistory() {
   try {
-    return JSON.parse(localStorage.getItem('englift_streak_history')) || {};
+    const key = `englift_streak_history_${window.currentUserId}`;
+    return JSON.parse(localStorage.getItem(key)) || {};
   } catch { return {}; }
 }
 
 function saveStreakHistory(history) {
-  localStorage.setItem('englift_streak_history', JSON.stringify(history));
+  const key = `englift_streak_history_${window.currentUserId}`;
+  localStorage.setItem(key, JSON.stringify(history));
 }
 
 function recordDailyActivity() {
@@ -7710,10 +7577,10 @@ function getDayWordForCount(count) {
 function useFreePass() {
   streak.freePassUsedThisWeek = true;
   markProfileDirty('free_pass_used', true);
-  toast('🔥 Пропуск использован, стрик сохранён!', 'info', 'shield');
+  toast('🔥 Выходной использован, серия сохранена!', 'info', 'shield');
 }
 
-// Обработчик закрытия модалки уведомления о заморозке
+// Обработчик закрытия модалки уведомления о выходном
 document.getElementById('freeze-notification-modal-close').addEventListener('click', () => {
   document.getElementById('freeze-notification-modal').classList.remove('open');
   document.body.classList.remove('modal-open');
@@ -7749,26 +7616,32 @@ function updStreak() {
   const practiceTimeToday = getPracticeTimeToday();
   const isEligible = practiceTimeToday >= STREAK_CRITERIA.minPracticeTime;
 
+  if (!streak.lastDate) {
+    // Первая активность вообще
+    if (isEligible) {
+      streak.count = 1;
+      streak.lastDate = today;
+      markProfileDirty('streak', streak.count);
+      markProfileDirty('laststreakdate', streak.lastDate);
+    }
+    renderStreak();
+    return;
+  }
+
+  const daysSinceLastActive = Math.round(
+    (new Date(today) - new Date(streak.lastDate)) / 86400000
+  );
+
   if (isEligible) {
-    // День засчитан – проверяем разрыв
-    if (streak.lastDate === yesterday) {
+    // Сегодня есть активность
+    if (daysSinceLastActive === 1) {
       streak.count++;
-    } else if (streak.lastDate) {
-      // Вычисляем сколько дней прошло с последней активности
-      const daysSinceLastActive = Math.round(
-        (new Date(today) - new Date(streak.lastDate)) / 86400000
-      );
-      
-      if (daysSinceLastActive === 2 && canUseFreePass()) {
-        // Ровно 1 пропущенный день – используем заморозку
-        useFreePass();
-        streak.count++; // стрик продолжается
-      } else {
-        // Дырка больше 1 дня или заморозки нет – сброс
-        streak.count = 1;
-      }
+    } else if (daysSinceLastActive === 2 && canUseFreePass()) {
+      // Ровно 1 пропущенный день – используем выходной
+      useFreePass();
+      streak.count++;
     } else {
-      // Первая активность вообще
+      // Дырка больше 1 дня или выходного нет – новая серия
       streak.count = 1;
     }
     streak.lastDate = today;
@@ -7779,19 +7652,25 @@ function updStreak() {
     }
     // Сохраняем активность в историю
     recordDailyActivity();
+  } else {
+    // Сегодня нет активности
+    if (daysSinceLastActive >= 2) {
+      // Серия сгорает
+      streak.count = 0;
+      streak.lastDate = null;
+      markProfileDirty('streak', streak.count);
+      markProfileDirty('laststreakdate', streak.lastDate);
+    }
+    // Если daysSinceLastActive === 1 — ничего не делаем (ждём завтра)
   }
-  // Если активности нет – ничего не делаем, ждём реального действия
 
   // Сохраняем изменения в профиль
-  markProfileDirty('streak', streak.count);
-  markProfileDirty('laststreakdate', streak.lastDate);
   markProfileDirty('free_pass_used', streak.freePassUsedThisWeek);
   markProfileDirty('free_pass_week_start', streak.freePassWeekStart);
 
   // Перерисовываем UI
   renderStreak();
   renderStats(); // обновляем статистику
-  checkBadges(); // возможно, новые бейджи за стрик
 }
 
 // ============================================================
@@ -8042,7 +7921,7 @@ function renderStreak() {
   const best = streak.bestStreak || 0;
   const isTodayActive = lastDate === today;
 
-  // Проверяем, достигнуто ли время для стрика сегодня
+  // Проверяем, достигнуто ли время для серии сегодня
   const practiceTimeToday = getPracticeTimeToday();
   const isTimeReached = practiceTimeToday >= STREAK_CRITERIA.minPracticeTime;
 
@@ -8091,13 +7970,13 @@ function renderStreak() {
     updateActivityState(cardFireIcon);
   }
 
-  // Карточка: цифра стрика
+  // Карточка: цифра серии
   const stStreak = document.getElementById('st-streak');
   const stStreakLabel = document.getElementById('st-streak-label');
   if (stStreak) {
     stStreak.textContent = count;
     updateActivityState(stStreak);
-    stStreak.title = isTodayActive ? '🔥 Сегодня стрик активен!' : '⏳ Занимайся сегодня, чтобы сохранить стрик!';
+    stStreak.title = isTodayActive ? '🔥 Сегодня серия активна!' : '⏳ Занимайся сегодня, чтобы сохранить серию!';
   }
   if (stStreakLabel) {
     stStreakLabel.textContent = `${getDayWord(count)} подряд`;
@@ -8174,24 +8053,24 @@ function renderStreak() {
   const msgEl = document.getElementById('streak-message');
   if (msgEl) {
     const milestoneMsgs = {
-      1: (c) => `${c} ${getDayWord(c)} стрика. Ты начал(а) — главное вернуться завтра.`,
+      1: (c) => `${c} ${getDayWord(c)} серии. Ты начал(а) — главное вернуться завтра.`,
       2: (c) => `${c} ${getDayWord(c)} подряд — уже не случайность. Дожмём до трёх?`,
       3: (c) => `${c} ${getDayWord(c)} подряд — ты выбрался(лась) из болота «начал и бросил».`,
       5: (c) => `${c} ${getDayWord(c)} подряд. Ещё пара — и неделя!`,
       7: (c) => `${c} ${getDayWord(c)} подряд. Целая неделя без пропусков – уважение!`,
-      10: (c) => `${c} ${getDayWord(c)} стрика. Добро пожаловать в клуб не сдающихся!`,
+      10: (c) => `${c} ${getDayWord(c)} серии. Добро пожаловать в клуб не сдающихся!`,
       14: (c) => `${c} ${getDayWord(c)}, две недели без слива. Мозг привык к регулярности.`,
       21: (c) => `${c} ${getDayWord(c)} – классика! Привычка сформирована.`,
       30: (c) => `${c} ${getDayWord(c)} — полный месяц без пропусков. Это стиль жизни!`,
       50: (c) => `${c} ${getDayWord(c)} подряд. Ты в зоне «упоротый и продуктивный».`,
-      75: (c) => `${c} ${getDayWord(c)} — почти три месяца. Такой стрик видно из космоса.`,
+      75: (c) => `${c} ${getDayWord(c)} — почти три месяца. Такая серия видна из космоса.`,
       100: (c) => `${c} ${getDayWord(c)} подряд. Это уже суперсила!`,
       150: (c) => `${c} ${getDayWord(c)} — ты в редком клубе долгожителей.`,
       200: (c) => `${c} ${getDayWord(c)}. Большинство приложений столько не живут!`,
       250: (c) => `${c} ${getDayWord(c)} — четверть пути до тысячи. Сюжет!`,
       300: (c) => `${c} ${getDayWord(c)} — ты почти год с языком на «ты».`,
       365: (c) => `${c} ${getDayWord(c)}. Целый год без сливов. Ты — легенда!`,
-      500: (c) => `${c} ${getDayWord(c)}. Это уже не стрик, это образ жизни.`
+      500: (c) => `${c} ${getDayWord(c)}. Это уже не серия, это образ жизни.`
     };
 
     const rangeMsgs = [
@@ -8206,7 +8085,7 @@ function renderStreak() {
       {
         min: 8, max: 13,
         texts: [
-          'Стрик крепнет. Ты уже не на старте, а в движении.',
+          'Серия крепнет. Ты уже не на старте, а в движении.',
           'Пошла серия, которую жалко терять. И это отлично.',
           'Несколько уверенных дней подряд — форма набирается.'
         ]
@@ -8230,7 +8109,7 @@ function renderStreak() {
       {
         min: 31, max: 49,
         texts: [
-          'Месяц пройден. Теперь стрик начинает работать на тебя.',
+          'Месяц пройден. Теперь серия начинает работать на тебя.',
           'Отличная серия. Ты уже заметно дальше большинства.',
           'Ритм закрепился — осталось просто не выпадать.'
         ]
@@ -8238,7 +8117,7 @@ function renderStreak() {
       {
         min: 51, max: 74,
         texts: [
-          'Сильный стрик. Тут уже чувствуется характер.',
+          'Сильная серия. Тут уже чувствуется характер.',
           'Такой темп не собирается сам — ты реально держишь систему.',
           'Серия уже солидная. С каждым днём бросить всё труднее.'
         ]
@@ -8247,14 +8126,14 @@ function renderStreak() {
         min: 76, max: 99,
         texts: [
           'Почти сотка. Это уже очень серьёзный уровень дисциплины.',
-          'Большой стрик. До трёх цифр осталось совсем немного.',
+          'Большая серия. До трёх цифр осталось совсем немного.',
           'Тут уже начинается настоящая гордость за стабильность.'
         ]
       },
       {
         min: 101, max: 149,
         texts: [
-          'Трёхзначный стрик — звучит уже мощно.',
+          'Трёхзначная серия — звучит уже мощно.',
           'После сотни серия ощущается совсем по-другому.',
           'Это уже дистанция человека, который умеет не сдаваться.'
         ]
@@ -8263,7 +8142,7 @@ function renderStreak() {
         min: 151, max: 199,
         texts: [
           'Очень редкий уровень стабильности. Так держать уже умеют не все.',
-          'Стрик стал по-настоящему большим. Видно серьёзный настрой.',
+          'Серия стала по-настоящему большой. Видно серьёзный настрой.',
           'Такая серия уже вызывает уважение сама по себе.'
         ]
       },
@@ -8279,17 +8158,17 @@ function renderStreak() {
         min: 251, max: 299,
         texts: [
           'Ты уверенно идёшь к 300. Это уже уровень ветерана.',
-          'Такой стрик собирается только из очень сильной регулярности.',
+          'Такая серия собирается только из очень сильной регулярности.',
           'Почти триста дней — звучит уже как отдельное достижение.'
         ]
       },
       {
         min: 301, max: 364,
         texts: [
-          'Ты в коридоре к году. Это уже почти легендарный стрик.',
+          'Ты в коридоре к году. Это уже почти легендарная серия.',
           'До полного года рукой подать. Серия выглядит мощно.',
           'Почти год без развала ритма — это очень серьёзно.',
-          'Этот стрик уже не просто длинный. Он статусный.',
+          'Эта серия уже не просто длинная. Она статусная.',
           'Финишная прямая к году. Очень красиво идёшь.'
         ]
       },
@@ -8298,7 +8177,7 @@ function renderStreak() {
         texts: [
           'Год уже позади. Теперь ты играешь в совсем другой лиге.',
           'После года это уже не челлендж, а часть личности.',
-          'Стрик после 365 дней ощущается как отдельный ранг.',
+          'Серия после 365 дней ощущается как отдельный ранг.',
           'Ты уже перешёл(шла) в территорию настоящих легенд.',
           'Тут уже не "продолжать", а просто жить в этом ритме.'
         ]
@@ -8307,7 +8186,7 @@ function renderStreak() {
         min: 501, max: Infinity,
         texts: [
           'Больше 500 дней — это уже уровень мифа.',
-          'Такой стрик не удерживают случайно. Это система, вросшая в жизнь.',
+          'Такую серию не удерживают случайно. Это система, вросшая в жизнь.',
           'Ты за пределами обычной мотивации. Здесь уже чистая идентичность.',
           'Очень немногие дожимают до таких чисел. Это элитный уровень.'
         ]
@@ -8329,14 +8208,13 @@ function renderStreak() {
     }
   }
 
-  // --- 6. Лучший стрик ---
+  // --- 6. Лучшая серия ---
   const bestEl = document.getElementById('st-best');
   if (bestEl) {
     bestEl.textContent = best > 0 ? best : 0;
   }
 
-  // --- Иконка заморозки ---
-  const freezeIcon = document.getElementById('streak-freeze-icon');
+  // --- Иконка выходного в карточке ---
   const cardFreeze = document.getElementById('streak-card-freeze');
   const canUse = canUseFreePass();
 
@@ -8344,8 +8222,8 @@ function renderStreak() {
     if (!element) return;
 
     const tooltipText = canUse
-      ? 'Заморозка доступна: Можно пропустить 1 день на этой неделе — стрик не сгорит.'
-      : `Заморозка на этой неделе уже использована. Будет доступна через ${getDaysUntilNextFreePass()} ${getDayWordForCount(getDaysUntilNextFreePass())}.`;
+      ? 'Выходной доступен: Можно пропустить 1 день на этой неделе — серия не сгорит.'
+      : `Выходной на этой неделе уже использован. Будет доступен через ${getDaysUntilNextFreePass()} ${getDayWordForCount(getDaysUntilNextFreePass())}.`;
 
     element.style.display = 'inline-flex';
     element.classList.toggle('used', !canUse);
@@ -8356,16 +8234,13 @@ function renderStreak() {
 
     if (isCard) {
       element.innerHTML = canUse
-        ? `<span class="material-symbols-outlined">ac_unit</span><span class="freeze-text">Заморозка доступна</span>`
-        : `<span class="material-symbols-outlined">ac_unit</span><span class="freeze-text">Заморозка использована</span>`;
-    } else {
-      element.innerHTML = `<span class="material-symbols-outlined">ac_unit</span>`;
+        ? `<span class="material-symbols-outlined">beach_access</span><span class="freeze-text">Выходной доступен</span>`
+        : `<span class="material-symbols-outlined">beach_access</span><span class="freeze-text">Выходной использован</span>`;
     }
 
     bindTooltip(element);
   };
 
-  updateFreezeIcon(freezeIcon, false);
   updateFreezeIcon(cardFreeze, true);
 }
 
@@ -8492,7 +8367,7 @@ function renderStats() {
   if (document.getElementById('st-streak'))
     document.getElementById('st-streak').textContent = streak.count;
 
-  // Вызываем renderStreak для обновления карточки стрика
+  // Вызываем renderStreak для обновления карточки серии
   renderStreak();
 
   if (document.getElementById('st-week'))
@@ -9644,14 +9519,6 @@ async function syncAfterReconnect() {
       console.log('[SYNC RECONNECT] Flushing pending idiom updates...');
 
       await syncPendingIdioms();
-
-    }
-
-    if (pendingPhraseUpdates.size > 0) {
-
-      console.log('[SYNC RECONNECT] Flushing pending phrase updates...');
-
-      await syncPendingPhrases();
 
     }
 
@@ -13805,7 +13672,7 @@ document
 
 document.addEventListener('click', e => {
 
-  const changePasswordBtn = e.target.closest('#change-password-btn');
+  const changePasswordBtn = e.target.closest('#change-password-btn, #change-password-btn-settings');
 
   if (changePasswordBtn) {
 
@@ -14211,7 +14078,7 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
   showConfirmModal(
 
-    'Вы уверены, что хотите удалить ВСЕ слова, идиомы и фразы? Это действие нельзя отменить. Ваш уровень, XP, стрик и бейджи сохранятся.',
+    'Вы уверены, что хотите удалить ВСЕ слова, идиомы и фразы? Это действие нельзя отменить. Ваш уровень, XP, серия и бейджи сохранятся.',
 
     'стереть',
 
@@ -14221,13 +14088,11 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
       try {
 
-        // 1. Очищаем локальные слова, идиомы и фразы
+        // 1. Очищаем локальные слова и идиомы
 
         window.words = [];
 
         window.idioms = [];
-
-        window.phrases = [];
 
         // Удалено: очистка localStorage - делается в clearUserData
 
@@ -14267,33 +14132,7 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
         }
 
-        // 4. Удаляем фразы с сервера
-
-        if (window.currentUserId) {
-
-          console.log('🔍 [CLEAR] Удаляем фразы из Supabase...');
-
-          const { error, count } = await supabase
-
-            .from('user_phrases')
-
-            .delete({ count: 'exact' })
-
-            .eq('user_id', window.currentUserId);
-
-          if (error) {
-
-            console.error('❌ Ошибка удаления фраз с сервера:', error);
-
-          } else {
-
-            console.log('✅ [CLEAR] Удалено фраз из Supabase:', count);
-
-          }
-
-        }
-
-        // 5. Очищаем IndexedDB
+        // 4. Очищаем IndexedDB
 
         await clearUserData();
 
@@ -14302,8 +14141,6 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
         pendingWordUpdates.clear();
 
         pendingIdiomUpdates.clear();
-
-        pendingPhraseUpdates.clear();
 
         // 5. Обновляем интерфейс
 
@@ -14318,8 +14155,6 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
         markProfileDirty('total_words', 0);
 
         markProfileDirty('total_idioms', 0);
-
-        markProfileDirty('total_phrases', 0);
 
         markProfileDirty('learned_words', 0);
 
@@ -14461,22 +14296,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 
         }
 
-        // 1.6. Удаляем все фразы с сервера
-
-        if (window.currentUserId) {
-
-          const { error: phrasesError, count: phrasesCount } = await supabase
-
-            .from('user_phrases')
-
-            .delete({ count: 'exact' })
-
-            .eq('user_id', window.currentUserId);
-
-          if (phrasesError) throw phrasesError;
-
-        }
-
         // 2. Сбрасываем профиль на сервере (сохраняем настройки)
 
         if (window.currentUserId) {
@@ -14533,15 +14352,15 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 
         window.idioms = [];
 
-        window.phrases = [];
-
         weeklyReviewHistory = []; // Очищаем историю повторений
 
         weeklyReviewDetail = []; // Очищаем детализацию повторений
 
-        localStorage.removeItem('englift_weekly_review'); // Удаляем из localStorage
+        const historyKey = `englift_weekly_review_${window.currentUserId}`;
+        const detailKey = `englift_weekly_review_detail_${window.currentUserId}`;
+        localStorage.removeItem(historyKey); // Удаляем из localStorage
 
-        localStorage.removeItem('englift_weekly_review_detail'); // Удаляем детализацию из localStorage
+        localStorage.removeItem(detailKey); // Удаляем детализацию из localStorage
 
         // Удалено: очистка localStorage - делается в clearUserData
 
@@ -14550,8 +14369,6 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
         pendingWordUpdates.clear();
 
         pendingIdiomUpdates.clear();
-
-        pendingPhraseUpdates.clear();
 
         // 4. Обновляем глобальные переменные статистики
 
@@ -15285,7 +15102,7 @@ function updateExamStats() {
 
 function updateExerciseSelection() {
 
-  const mode = practiceMode; // 'normal', 'idioms', 'phrases' или 'verbs'
+  const mode = practiceMode; // 'normal', 'idioms' или 'verbs'
 
   const selectedArray =
 
@@ -15293,11 +15110,7 @@ function updateExerciseSelection() {
 
       ? selectedIdiomExercises
 
-      : mode === 'phrases'
-
-        ? selectedPhraseExercises
-
-        : mode === 'verbs'
+      : mode === 'verbs'
 
           ? selectedVerbExercises
 
@@ -15349,11 +15162,7 @@ function handleExerciseClick(e) {
 
       ? selectedIdiomExercises
 
-      : mode === 'phrases'
-
-        ? selectedPhraseExercises
-
-        : mode === 'verbs'
+      : mode === 'verbs'
 
           ? selectedVerbExercises
 
@@ -15597,11 +15406,7 @@ function startSession(cfg) {
 
       ? selectedIdiomExercises
 
-      : practiceMode === 'phrases'
-
-        ? selectedPhraseExercises
-
-        : practiceMode === 'verbs'
+      : practiceMode === 'verbs'
 
           ? selectedVerbExercises
 
@@ -15697,11 +15502,7 @@ function startSession(cfg) {
 
         ? window.idioms
 
-        : practiceMode === 'phrases'
-
-          ? window.phrases
-
-          : practiceMode === 'verbs'
+        : practiceMode === 'verbs'
 
             ? window.verbs
 
@@ -15767,11 +15568,7 @@ function startSession(cfg) {
 
           ? 'идиом'
 
-          : practiceMode === 'phrases'
-
-            ? 'фраз'
-
-            : practiceMode === 'verbs'
+          : practiceMode === 'verbs'
 
               ? 'глаголов'
 
@@ -16091,7 +15888,7 @@ function startSession(cfg) {
 
       dir: dirVal,
 
-      mode: practiceMode, // 'normal' или 'idioms' или 'phrases' или 'verbs'
+      mode: practiceMode, // 'normal' или 'idioms' или 'verbs'
 
       dataType:
 
@@ -16099,11 +15896,7 @@ function startSession(cfg) {
 
           ? 'idioms'
 
-          : practiceMode === 'phrases'
-
-            ? 'phrases'
-
-            : practiceMode === 'verbs'
+          : practiceMode === 'verbs'
 
               ? 'verbs'
 
@@ -16679,7 +16472,7 @@ function showResults() {
 
   }
 
-  // ── XP, стрик, бейджи ─────────────────────────────────────────
+  // ── XP, серия, бейджи ─────────────────────────────────────────
 
   const xpCorrect = resCorrect;
 
@@ -16727,7 +16520,7 @@ function showResults() {
 
   }
 
-  // ── XP, стрик, бейджи ─────────────────────────────────────────
+  // ── XP, серия, бейджи ─────────────────────────────────────────
 
   updStreak();
 
@@ -18259,24 +18052,6 @@ function nextExercise() {
 
       }
 
-    } else if (t === 'phrase-builder') {
-
-      runPhraseBuilderExercise(
-
-        w,
-
-        () => {
-
-          sIdx++;
-
-          nextExercise();
-
-        },
-
-        t,
-
-      );
-
     } else if (t === 'builder') {
 
       if (exBtns) exBtns.innerHTML = ''; // Clear buttons from previous exercises
@@ -18295,34 +18070,15 @@ function nextExercise() {
 
       }
 
-      // Разбиваем фразу на слова и перемешиваем буквы в каждом слове отдельно
+      // Разбиваем слово на буквы и перемешиваем
 
-      const phrase = (w.en || w.phrase || '').toLowerCase();
+      const wordText = (w.en || '').toLowerCase();
 
-      const words = phrase.split(/\s+/).filter(w => w.length > 0);
+      const letters = wordText.split('').filter(c => c !== ' ');
 
-      // Сохраняем оригинальную фразу для проверки ответа (удаляем знаки препинания, но сохраняем пробелы)
-      const cleanPhrase = words.map(word => word.replace(/[.,!?;:"'`]/g, '').trim()).join(' ');
+      const shuffled = [...letters].sort(() => Math.random() - 0.5);
 
-      // Для каждого слова удаляем знаки препинания и перемешиваем буквы
-
-      const shuffledWords = words.map(word => {
-
-        const cleanWord = word.replace(/[.,!?;:"'`]/g, '').trim();
-
-        const letters = cleanWord.split('');
-
-        return [...letters].sort(() => Math.random() - 0.5);
-
-      });
-
-      // Объединяем перемешанные буквы с пробелами между словами
-
-      const letters = shuffledWords.flat();
-
-      const shuffled = letters;
-
-      const word = cleanPhrase; // Для проверки ответа используем фразу с пробелами
+      const word = wordText;
 
       if (exContent) {
 
@@ -18368,45 +18124,19 @@ function nextExercise() {
 
       // Создаем пустые ячейки-заглушки по количеству букв
 
-      // Для multi-word выражений добавляем пробельные ячейки между словами
-
       answerContainer.innerHTML = '';
 
-      let charIndex = 0;
+      letters.forEach((letter, index) => {
 
-      words.forEach((word, wordIdx) => {
+        const placeholder = document.createElement('span');
 
-        // Добавляем ячейки для букв текущего слова
+        placeholder.className = 'builder-answer-letter placeholder';
 
-        for (let i = 0; i < word.replace(/[^a-z]/g, '').replace(/["'`]/g, '').length; i++) {
+        placeholder.textContent = '';
 
-          const placeholder = document.createElement('span');
+        placeholder.dataset.index = index;
 
-          placeholder.className = 'builder-answer-letter placeholder';
-
-          placeholder.textContent = '';
-
-          placeholder.dataset.index = charIndex++;
-
-          answerContainer.appendChild(placeholder);
-
-        }
-
-        // Добавляем пробельную ячейку между словами (если не последнее слово)
-
-        if (wordIdx < words.length - 1) {
-
-          const spacePlaceholder = document.createElement('span');
-
-          spacePlaceholder.className = 'builder-answer-letter space-placeholder';
-
-          spacePlaceholder.textContent = ' ';
-
-          spacePlaceholder.dataset.isSpace = 'true';
-
-          answerContainer.appendChild(spacePlaceholder);
-
-        }
+        answerContainer.appendChild(placeholder);
 
       });
 
@@ -19504,7 +19234,7 @@ function recordAnswer(correct, exerciseType) {
 
   }
 
-  // Записываем активность для стрика при любом ответе
+  // Записываем активность для серии при любом ответе
   recordDailyActivity();
   updStreak();
 
@@ -19558,7 +19288,7 @@ function recordAnswer(correct, exerciseType) {
 
   }
 
-  // Мгновенная проверка стрика при достижении времени внутри сессии
+  // Мгновенная проверка серии при достижении времени внутри сессии
   if (practiceStartTime) {
     const currentSessionSeconds = Math.round((Date.now() - practiceStartTime) / 1000);
     const totalPracticeTime = (window.dailyProgress.practice_time || 0) + currentSessionSeconds;
@@ -20022,25 +19752,7 @@ async function renderRandomBankWord() {
 
       // Проигрываем аудио и по окончании возвращаем кнопку
 
-      if (word.phrase) {
-
-        window.speakPhrase(word);
-
-        setTimeout(() => {
-
-          if (wave.parentNode && wave._originalBtn) {
-
-            wave.parentNode.replaceChild(wave._originalBtn, wave);
-
-            wave._originalBtn.style.display = '';
-
-          }
-
-        }, 1000);
-
-      } else {
-
-        window.speakWord(word, () => {
+      window.speakWord(word, () => {
 
           if (wave.parentNode && wave._originalBtn) {
 
@@ -20051,8 +19763,6 @@ async function renderRandomBankWord() {
           }
 
         });
-
-      }
 
     });
 
@@ -20170,7 +19880,7 @@ async function renderRandomBankWord() {
 
       resetDailyGoalsIfNeeded();
 
-      // 🔥 ФИКС: НЕ увеличиваем стрик за импорт слов!
+      // 🔥 ФИКС: НЕ увеличиваем серию за импорт слов!
 
       window.dailyProgress.add_new = (window.dailyProgress.add_new || 0) + 1;
 
@@ -20674,7 +20384,7 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
     enBtn.dataset.side = 'en';
 
-    enBtn.textContent = enW.en || enW.phrase || '';
+    enBtn.textContent = enW.en || '';
 
     const ruBtn = document.createElement('button');
 
@@ -21134,16 +20844,6 @@ function runContextExercise(item, onComplete, exerciseType) {
 
     correctAnswer = item.idiom;
 
-  } else if (isPhrase) {
-
-    // Для фраз используем example/exampleTranslation если есть, иначе саму фразу
-
-    exampleText = item.example || item.phrase || '';
-
-    exampleTranslation = item.exampleTranslation || item.translation || '';
-
-    correctAnswer = item.phrase;
-
   } else {
 
     exampleText = item.ex || '';
@@ -21207,8 +20907,6 @@ function runContextExercise(item, onComplete, exerciseType) {
     let displayText;
 
     if (isIdiom) displayText = option.idiom;
-
-    else if (isPhrase) displayText = option.phrase;
 
     else displayText = option.en;
 
@@ -21285,10 +20983,6 @@ function runContextExercise(item, onComplete, exerciseType) {
 
           else speakText(item.idiom);
 
-        } else if (isPhrase) {
-
-          window.speakPhrase(item);
-
         } else {
 
           window.speakWord(item);
@@ -21337,15 +21031,13 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
   const exCounter = document.getElementById('ex-counter');
 
-  const isPhrase = window.session.dataType === 'phrases';
-
   const isIdiom = window.session.dataType === 'idioms';
 
   if (exTypeLbl)
 
     exTypeLbl.innerHTML =
 
-      '<span class="material-symbols-outlined">record_voice_over</span> Phrase';
+      '<span class="material-symbols-outlined">record_voice_over</span> Dictation';
 
   if (exCounter)
 
@@ -21361,23 +21053,7 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
   let hasExample = false;
 
-  if (isPhrase) {
-
-    promptText = word.phrase;
-
-    if (word.example) {
-
-      promptText = word.example;
-
-      hasExample = true;
-
-    }
-
-    exampleTranslation = word.exampleTranslation || '';
-
-    audioFile = word.audio;
-
-  } else if (isIdiom) {
+  if (isIdiom) {
 
     promptText = word.idiom;
 
@@ -21437,7 +21113,7 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
         </div>
 
-        <div class="speech-hint">${!isPhrase && !isIdiom && !hasExample ? 'Прослушайте слово, затем повторите его' : ''}</div>
+        <div class="speech-hint">${!isIdiom && !hasExample ? 'Прослушайте слово, затем повторите его' : ''}</div>
 
         <div class="speech-translation" id="speech-sentence-translation" style="margin-top: 0.5rem; opacity: 0.7;">
 
@@ -21481,8 +21157,6 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
       hasExample &&
 
-      !isPhrase &&
-
       !isIdiom &&
 
       word.examplesAudio &&
@@ -21497,17 +21171,9 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
     } else {
 
-      // Otherwise, voice as a normal word or phrase
+      // Otherwise, voice as a normal word
 
-      if (isPhrase) {
-
-        window.speakPhrase(word);
-
-      } else {
-
-        window.speakWord(word);
-
-      }
+      window.speakWord(word);
 
     }
 
@@ -21523,8 +21189,6 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
         hasExample &&
 
-        !isPhrase &&
-
         !isIdiom &&
 
         word.examplesAudio &&
@@ -21539,17 +21203,9 @@ function runSpeechSentenceExercise(word, onComplete, exerciseType) {
 
       } else {
 
-        // Иначе озвучиваем как обычное слово или фразу
+        // Otherwise, voice as a normal word
 
-        if (isPhrase) {
-
-          window.speakPhrase(word);
-
-        } else {
-
-          window.speakWord(word);
-
-        }
+        window.speakWord(word);
 
       }
 
@@ -22291,6 +21947,15 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
       const currentWords = current ? current.split(' ') : [];
 
+      // Проверяем, что все уже поставленные слова правильные
+      for (let i = 0; i < currentWords.length; i++) {
+        if (currentWords[i] !== words[i]) {
+          // Если хоть одно слово неправильно, подсказка не работает
+          toast('Сначала исправьте неправильные слова', 'warning');
+          return;
+        }
+      }
+
       const nextWord = words[currentWords.length];
 
       if (!nextWord) return;
@@ -22354,408 +22019,6 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
   }
 
   // Убираем кнопку пропуска - не нужна как в собери слово
-
-}
-
-function runPhraseBuilderExercise(item, onComplete, exerciseType) {
-
-  const content = document.getElementById('ex-content');
-
-  const btns = document.getElementById('ex-btns');
-
-  const exTypeLbl = document.getElementById('ex-type-lbl');
-
-  const exCounter = document.getElementById('ex-counter');
-
-  exTypeLbl.innerHTML =
-
-    '<span class="material-symbols-outlined">construction</span> Собери фразу';
-
-  exCounter.textContent = `${sIdx + 1} / ${window.session.items.length}`;
-
-  const phrase = item.phrase.toLowerCase(); // "just finished"
-
-  const words = phrase.split(' '); // ["just", "finished"]
-
-  const shuffled = [...words].sort(() => Math.random() - 0.5);
-
-  content.innerHTML = `
-
-    <div class="builder-card">
-
-      <div class="builder-question">${esc(item.translation)}</div>
-
-      <div class="builder-answer" id="phrase-builder-answer"></div>
-
-      <div class="builder-letters-container">
-
-        <div class="builder-letters" id="phrase-builder-words"></div>
-
-      </div>
-
-    </div>
-
-    <div class="builder-controls">
-
-      <button class="btn-pill btn-pill--secondary" id="phrase-builder-hint-btn">
-
-        <span class="material-symbols-outlined">lightbulb</span> Подсказка
-
-      </button>
-
-    </div>
-
-  `;
-
-  const answerContainer = document.getElementById('phrase-builder-answer');
-
-  const wordsContainer = document.getElementById('phrase-builder-words');
-
-  // Создаём пустые ячейки для ответа
-
-  for (let i = 0; i < words.length; i++) {
-
-    const placeholder = document.createElement('span');
-
-    placeholder.className = 'builder-answer-letter placeholder';
-
-    placeholder.dataset.index = i;
-
-    answerContainer.appendChild(placeholder);
-
-  }
-
-  // Создаём кнопки для слов
-
-  shuffled.forEach((word, index) => {
-
-    const btn = document.createElement('button');
-
-    btn.className = 'builder-letter';
-
-    btn.textContent = word;
-
-    btn.dataset.word = word;
-
-    btn.dataset.index = index;
-
-    btn.addEventListener('click', () => {
-
-      if (btn.disabled) return;
-
-      const firstPlaceholder = answerContainer.querySelector(
-
-        '.builder-answer-letter.placeholder',
-
-      );
-
-      if (!firstPlaceholder) return;
-
-      firstPlaceholder.classList.remove('placeholder');
-
-      firstPlaceholder.textContent = word;
-
-      firstPlaceholder.style.cursor = 'pointer';
-
-      firstPlaceholder.title = 'Нажмите, чтобы убрать';
-
-      firstPlaceholder.dataset.word = word;
-
-      btn.disabled = true;
-
-      btn.style.visibility = 'hidden';
-
-      // Добавляем возможность убрать слово кликом на ячейку
-
-      firstPlaceholder.addEventListener('click', function removeHandler() {
-
-        if (!firstPlaceholder.classList.contains('placeholder')) {
-
-          const targetBtn = Array.from(wordsContainer.children).find(
-
-            b => b.dataset.word === word && b.disabled,
-
-          );
-
-          if (targetBtn) {
-
-            targetBtn.disabled = false;
-
-            targetBtn.style.visibility = 'visible';
-
-          }
-
-          firstPlaceholder.classList.add('placeholder');
-
-          firstPlaceholder.textContent = '';
-
-          firstPlaceholder.style.cursor = 'default';
-
-          firstPlaceholder.title = '';
-
-          delete firstPlaceholder.dataset.word;
-
-          firstPlaceholder.removeEventListener('click', removeHandler);
-
-        }
-
-        checkAnswer();
-
-      });
-
-      checkAnswer();
-
-    });
-
-    wordsContainer.appendChild(btn);
-
-  });
-
-  function checkAnswer() {
-
-    const current = Array.from(answerContainer.children)
-
-      .map(el => el.textContent)
-
-      .join(' ');
-
-    const normalizedCurrent = current.toLowerCase().trim();
-
-    const normalizedPhrase = phrase.toLowerCase().trim();
-
-    if (normalizedCurrent === normalizedPhrase) {
-
-      wordsContainer.style.display = 'none';
-
-      getFeedbackHTML(
-
-        { en: phrase, ru: item.translation },
-
-        true,
-
-        null,
-
-        () => {
-
-          hideFeedbackSheet();
-
-          recordAnswer(true, exerciseType);
-
-          onComplete();
-
-        },
-
-        null,
-
-      );
-
-      window.speakPhrase(item);
-
-      playSound('correct');
-
-    } else if (current.length >= phrase.length) {
-
-      wordsContainer.style.display = 'none';
-
-      const resetAction = () => {
-
-        // полный сброс – пересоздаём всё заново
-
-        answerContainer.innerHTML = '';
-
-        for (let i = 0; i < words.length; i++) {
-
-          const placeholder = document.createElement('span');
-
-          placeholder.className = 'builder-answer-letter placeholder';
-
-          placeholder.dataset.index = i;
-
-          answerContainer.appendChild(placeholder);
-
-        }
-
-        wordsContainer.innerHTML = '';
-
-        shuffled.forEach((word, idx) => {
-
-          const btn = document.createElement('button');
-
-          btn.className = 'builder-letter';
-
-          btn.textContent = word;
-
-          btn.dataset.word = word;
-
-          btn.dataset.index = idx;
-
-          btn.addEventListener('click', () => {
-
-            if (btn.disabled) return;
-
-            const firstPlaceholder = answerContainer.querySelector(
-
-              '.builder-answer-letter.placeholder',
-
-            );
-
-            if (!firstPlaceholder) return;
-
-            firstPlaceholder.classList.remove('placeholder');
-
-            firstPlaceholder.textContent = word;
-
-            firstPlaceholder.style.cursor = 'pointer';
-
-            firstPlaceholder.title = 'Нажмите, чтобы убрать';
-
-            firstPlaceholder.dataset.word = word;
-
-            btn.disabled = true;
-
-            btn.style.visibility = 'hidden';
-
-            firstPlaceholder.addEventListener(
-
-              'click',
-
-              function removeHandler() {
-
-                if (!firstPlaceholder.classList.contains('placeholder')) {
-
-                  const targetBtn = Array.from(wordsContainer.children).find(
-
-                    b => b.dataset.word === word && b.disabled,
-
-                  );
-
-                  if (targetBtn) {
-
-                    targetBtn.disabled = false;
-
-                    targetBtn.style.visibility = 'visible';
-
-                  }
-
-                  firstPlaceholder.classList.add('placeholder');
-
-                  firstPlaceholder.textContent = '';
-
-                  firstPlaceholder.style.cursor = 'default';
-
-                  firstPlaceholder.title = '';
-
-                  delete firstPlaceholder.dataset.word;
-
-                  firstPlaceholder.removeEventListener('click', removeHandler);
-
-                }
-
-                checkAnswer();
-
-              },
-
-            );
-
-            checkAnswer();
-
-          });
-
-          wordsContainer.appendChild(btn);
-
-        });
-
-        wordsContainer.style.display = 'flex';
-
-      };
-
-      showBuilderIncorrectFeedback(resetAction);
-
-      playSound('wrong');
-
-    }
-
-  }
-
-  // Логика подсказки
-
-  const hintBtn = document.getElementById('phrase-builder-hint-btn');
-
-  if (hintBtn) {
-
-    hintBtn.addEventListener('click', () => {
-
-      const current = Array.from(answerContainer.children)
-
-        .map(el => el.textContent)
-
-        .join(' ')
-
-        .trim();
-
-      const currentWords = current ? current.split(' ') : [];
-
-      const nextWord = words[currentWords.length];
-
-      if (!nextWord) return;
-
-      const targetBtn = Array.from(wordsContainer.children).find(
-
-        b => b.dataset.word === nextWord && !b.disabled,
-
-      );
-
-      if (targetBtn) {
-
-        const orig = {
-
-          background: targetBtn.style.background,
-
-          borderColor: targetBtn.style.borderColor,
-
-          color: targetBtn.style.color,
-
-          boxShadow: targetBtn.style.boxShadow,
-
-          transform: targetBtn.style.transform,
-
-          transition: targetBtn.style.transition,
-
-        };
-
-        targetBtn.style.transition = 'all 0.2s ease';
-
-        targetBtn.style.background = '#ffc107';
-
-        targetBtn.style.borderColor = '#ffc107';
-
-        targetBtn.style.color = '#fff';
-
-        targetBtn.style.boxShadow = '0 0 16px rgba(255,193,7,0.8)';
-
-        targetBtn.style.transform = 'scale(1.15)';
-
-        setTimeout(() => {
-
-          targetBtn.style.background = orig.background;
-
-          targetBtn.style.borderColor = orig.borderColor;
-
-          targetBtn.style.color = orig.color;
-
-          targetBtn.style.boxShadow = orig.boxShadow;
-
-          targetBtn.style.transform = orig.transform;
-
-          targetBtn.style.transition = orig.transition;
-
-        }, 2000);
-
-      }
-
-    });
-
-  }
 
 }
 
@@ -23134,6 +22397,15 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
 
       const currentWords = current ? current.split(' ') : [];
 
+      // Проверяем, что все уже поставленные слова правильные
+      for (let i = 0; i < currentWords.length; i++) {
+        if (currentWords[i] !== words[i]) {
+          // Если хоть одно слово неправильно, подсказка не работает
+          toast('Сначала исправьте неправильные слова', 'warning');
+          return;
+        }
+      }
+
       const nextWord = words[currentWords.length];
 
       if (!nextWord) return;
@@ -23290,7 +22562,7 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
     }
 
-    // Обновляем стрик при досрочном выходе, если были ответы
+    // Обновляем серию при досрочном выходе, если были ответы
 
     if (sResults.correct.length + sResults.wrong.length > 0) {
 
@@ -23474,15 +22746,40 @@ window.clearUserData = async function (isExplicitLogout = false) {
 
   }
 
+  // Полный сброс глобального состояния для предотвращения утечки между аккаунтами
   window.words = [];
 
-  window.idioms = []; // очищаем идиомы
+  window.idioms = [];
 
-  window.phrases = []; // очищаем фразы
+  window.xpData = { xp: 0, level: 1, badges: [] };
+
+  window.streak = { count: 0, lastDate: null, bestStreak: 0, freePassUsedThisWeek: false, freePassWeekStart: null };
+
+  window.dailyProgress = {
+
+    add_new: 0,
+
+    review: 0,
+
+    practice_time: 0,
+
+    completed: false,
+
+    lastReset: null,
+
+  };
+
+  window.dailyReviewCount = 0;
+
+  window.lastReviewResetDate = window.getLocalDate();
+
+  window.user_settings = {};
+
+  weeklyReviewHistory = [];
+
+  weeklyReviewDetail = [];
 
   window.pendingWordUpdates?.clear();
-
-  window.pendingPhraseUpdates?.clear();
 
   updateIdiomsCount(); // обновляем счётчик после очистки
 
@@ -23494,8 +22791,6 @@ window.clearUserData = async function (isExplicitLogout = false) {
 
     await clearAllIdioms();
 
-    await clearAllPhrases();
-
   } catch (error) {
 
     console.error('❌ Ошибка очистки IndexedDB в clearUserData:', error);
@@ -23506,13 +22801,9 @@ window.clearUserData = async function (isExplicitLogout = false) {
 
   dirtyIdiomIds.clear();
 
-  dirtyPhraseIds.clear();
-
   deletedWordIds.clear();
 
   deletedIdiomIds.clear();
-
-  deletedPhraseIds.clear();
 
   if (window.wordSyncTimer) clearTimeout(window.wordSyncTimer);
 
@@ -24682,7 +23973,8 @@ window.onProfileFullyLoaded = async function () {
 
         );
 
-        localStorage.setItem('englift_words', JSON.stringify(window.words));
+        const wordsKey = `englift_words_${window.currentUserId}`;
+        localStorage.setItem(wordsKey, JSON.stringify(window.words));
 
         // Принудительная перерисовка после обновления слов
 
@@ -24710,10 +24002,16 @@ window.onProfileFullyLoaded = async function () {
 
     }
 
-    // Отображаем текущее состояние стрика (без изменения логики)
+    // Проверяем и обновляем серию при загрузке
+    updStreak();
+
+    // Отображаем текущее состояние серии (без изменения логики)
     renderStreak();
 
-    // Проверяем, только что сгорела ли заморозка (переход от доступна к использована)
+    // Проверяем бейджи только после полной загрузки слов
+    checkBadges();
+
+    // Проверяем, только что сгорел ли выходной (переход от доступен к использован)
     const weekStart = getWeekStart();
     if (streak.freePassUsedThisWeek && streak.freePassWeekStart === weekStart && !streak.freezeNotificationShown) {
       document.getElementById('freeze-notification-modal').classList.add('open');
@@ -24808,17 +24106,17 @@ window.onProfileFullyLoaded = async function () {
 
     // Миграция локальной недельной статистики в профиль (один раз)
 
+    const weeklyReviewMigratedKey = `englift_weekly_review_migrated_${window.currentUserId}`;
     const weeklyReviewMigrated = localStorage.getItem(
-
-      'englift_weekly_review_migrated',
-
+      weeklyReviewMigratedKey,
     );
 
     if (!weeklyReviewMigrated && window.currentUserId) {
 
-      const localHistory = localStorage.getItem('englift_weekly_review');
-
-      const localDetail = localStorage.getItem('englift_weekly_review_detail');
+      const historyKey = `englift_weekly_review_${window.currentUserId}`;
+      const detailKey = `englift_weekly_review_detail_${window.currentUserId}`;
+      const localHistory = localStorage.getItem(historyKey);
+      const localDetail = localStorage.getItem(detailKey);
 
       if (localHistory) {
 
@@ -24844,7 +24142,7 @@ window.onProfileFullyLoaded = async function () {
 
       }
 
-      localStorage.setItem('englift_weekly_review_migrated', 'true');
+      localStorage.setItem(weeklyReviewMigratedKey, 'true');
 
     }
 
@@ -24880,10 +24178,9 @@ setTimeout(() => {
 
   if (!window.user_settings.baseTheme) {
 
+    const key = `englift_user_settings_${window.currentUserId}`;
     const saved = JSON.parse(
-
-      localStorage.getItem('englift_user_settings') || '{}',
-
+      localStorage.getItem(key) || '{}',
     );
 
     const baseTheme = saved.baseTheme || 'lavender';
@@ -25211,14 +24508,6 @@ setInterval(() => {
     if (window.pendingWordUpdates?.size > 0 && navigator.onLine) {
 
       window.syncPendingWords?.();
-
-    }
-
-    // Синхронизируем фразы, если есть изменения
-
-    if (window.pendingPhraseUpdates?.size > 0 && navigator.onLine) {
-
-      window.syncPendingPhrases?.();
 
     }
 
@@ -25720,7 +25009,7 @@ async function loadFriendActivity() {
 
         icon: 'local_fire_department',
 
-        text: `<b>${p.username}</b> поддерживает стрик уже <b>${p.streak} дней</b>`,
+        text: `<b>${p.username}</b> поддерживает серию уже <b>${p.streak} дней</b>`,
 
       });
 
@@ -28742,11 +28031,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Определяем, это фраза (несколько слов) или одно слово
 
-    const isPhrase = cleanedCorrect.includes(' ');
+    const isMultiWord = cleanedCorrect.includes(' ');
 
     // Для фраз используем пословное сравнение
 
-    if (isPhrase) {
+    if (isMultiWord) {
 
       const wordsSpoken = s.split(/\s+/);
 
@@ -29130,7 +28419,7 @@ async function renderChallenges() {
 
           words: 'Слова',
 
-          streak: 'Стрик',
+          streak: 'Серия',
 
           practice_time: 'Время',
 
@@ -29456,7 +28745,7 @@ async function openInviteChallengeModal(challengeId) {
 
         words: 'Слова',
 
-        streak: 'Стрик',
+        streak: 'Серия',
 
         practice_time: 'Время',
 
@@ -31154,10 +30443,9 @@ document.querySelectorAll('[data-fpill]').forEach(pill => {
 
 // Хранилище для отложенных сообщений
 
+const pendingMessagesKey = `englift_pending_messages_${window.currentUserId}`;
 let pendingMessages = JSON.parse(
-
-  localStorage.getItem('englift_pending_messages') || '[]',
-
+  localStorage.getItem(pendingMessagesKey) || '[]',
 );
 
 // Функция для сохранения сообщения в офлайн
@@ -31181,11 +30469,8 @@ function savePendingMessage(message) {
   });
 
   localStorage.setItem(
-
-    'englift_pending_messages',
-
+    pendingMessagesKey,
     JSON.stringify(pendingMessages),
-
   );
 
 }
@@ -31201,11 +30486,8 @@ async function syncPendingMessages() {
   pendingMessages = [];
 
   localStorage.setItem(
-
-    'englift_pending_messages',
-
+    pendingMessagesKey,
     JSON.stringify(pendingMessages),
-
   );
 
   for (const msg of toSync) {
@@ -31221,9 +30503,7 @@ async function syncPendingMessages() {
       pendingMessages.push(msg);
 
       localStorage.setItem(
-
-        'englift_pending_messages',
-
+        pendingMessagesKey,
         JSON.stringify(pendingMessages),
 
       );
@@ -31926,7 +31206,7 @@ function updateChallengePreview() {
 
     words: `${target} слов за ${days} дней`,
 
-    streak: `Стрик ${target} дней`,
+    streak: `Серия ${target} дней`,
 
     practice_time: `${target} минут практики`,
 
@@ -31950,7 +31230,7 @@ function updateChallengePreview() {
 
     streak:
 
-      '<span class="material-symbols-outlined" style="font-size: 0.8rem;">local_fire_department</span> Стрик',
+      '<span class="material-symbols-outlined" style="font-size: 0.8rem;">local_fire_department</span> Серия',
 
     practice_time:
 
@@ -32052,7 +31332,7 @@ submitChallengeBtn?.addEventListener('click', async () => {
 
     words: `${target} слов за ${days} дней`,
 
-    streak: `Стрик ${target} дней`,
+    streak: `Серия ${target} дней`,
 
     practice_time: `${target} минут практики за ${days} дней`,
 

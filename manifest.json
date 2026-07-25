@@ -4,8 +4,8 @@
   "description": "Изучай английский легко и красиво вместе с EngLift.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F7ECDD",
-  "theme_color": "#EFB15A",
+  "background_color": "#fff9f4",
+  "theme_color": "#fff9f4",
   "orientation": "portrait",
   "scope": "/",
   "icons": [

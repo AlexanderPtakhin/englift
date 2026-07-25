@@ -1,5 +1,12 @@
 import { supabase } from './supabase.js';
 import { saveUserData } from './db.js'; // для сохранения профиля при регистрации
+import { createClient } from '@supabase/supabase-js';
+
+// Прямой клиент Supabase для сброса пароля (чтобы ссылка генерировалась с правильным доменом)
+const directSupabase = createClient(
+  'https://mlkrswxakzpbbzwtvzeh.supabase.co',
+  'sb_publishable_sX7-Yj4LLnQweRdf3txECA_7GUrRsNu'
+);
 
 // Список разрешённых доменов
 const allowedDomains = [
@@ -20,7 +27,6 @@ function isRussianEmail(email) {
 }
 
 // DOM элементы
-const authGate = document.getElementById('auth-gate');
 const gateEmail = document.getElementById('gate-email');
 const gatePassword = document.getElementById('gate-password');
 const gateConfirm = document.getElementById('gate-confirm-password');
@@ -38,6 +44,7 @@ const resendEmailBtn = document.getElementById('resend-email-btn');
 const logoutFromUnverifiedBtn = document.getElementById(
   'logout-from-unverified',
 );
+const resendEmailRegisterBtn = document.getElementById('resend-email-register-btn');
 
 // Поле username
 const gateUsername = document.getElementById('gate-username');
@@ -64,6 +71,11 @@ function toggleRegisterFields(show) {
     gateConfirmGroup.style.display = 'block';
     gateUsernameGroup.style.display = 'block';
     gatePasswordHint.style.display = 'block';
+    // Меняем autocomplete для регистрации
+    gatePassword.setAttribute('autocomplete', 'new-password');
+    // Скрываем индикатор силы пароля при переключении
+    const strengthContainer = document.getElementById('password-strength');
+    if (strengthContainer) strengthContainer.style.display = 'none';
   } else {
     gateConfirmGroup.style.display = 'none';
     gateConfirm.value = '';
@@ -74,6 +86,11 @@ function toggleRegisterFields(show) {
     gatePasswordHint.style.display = 'none';
     isUsernameTaken = false;
     lastCheckedUsername = '';
+    // Меняем autocomplete для входа
+    gatePassword.setAttribute('autocomplete', 'current-password');
+    // Скрываем индикатор силы пароля
+    const strengthContainer = document.getElementById('password-strength');
+    if (strengthContainer) strengthContainer.style.display = 'none';
   }
 }
 
@@ -100,18 +117,22 @@ function showEmailNotVerified(email) {
   if (emailNotVerifiedBlock && unverifiedEmailSpan) {
     unverifiedEmailSpan.textContent = email;
     emailNotVerifiedBlock.style.display = 'flex';
+    // Добавляем класс .ready для анимации
+    setTimeout(() => {
+      emailNotVerifiedBlock.classList.add('ready');
+    }, 10);
   }
-  if (authGate) authGate.style.display = 'none';
+  document.getElementById('auth-gate-container').style.display = 'none';
 }
 
 function hideEmailNotVerified() {
   if (emailNotVerifiedBlock) emailNotVerifiedBlock.style.display = 'none';
-  if (authGate) authGate.style.display = 'block';
+  document.getElementById('auth-gate-container').style.display = 'block';
 }
 
-// Проверка email на занятость
+// Проверка email на занятость (возвращает объект с exists и confirmed)
 async function checkEmailAvailability(email) {
-  if (!email) return false;
+  if (!email) return { exists: false, confirmed: false };
   const spinner = document.getElementById('email-check-spinner');
   if (spinner) spinner.style.display = 'block';
   try {
@@ -119,18 +140,91 @@ async function checkEmailAvailability(email) {
       body: { email },
     });
     if (error) throw error;
-    return data.exists;
+    return { exists: data.exists, confirmed: data.confirmed || false };
   } catch (err) {
     console.warn('Ошибка проверки email:', err);
-    return false;
+    return { exists: false, confirmed: false };
   } finally {
     if (spinner) spinner.style.display = 'none';
   }
 }
 
-// Проверка username на занятость
+// Отправка повторного письма подтверждения
+async function resendConfirmationEmail(email) {
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+    });
+    if (error) throw error;
+    toast('Письмо отправлено на ' + email, 'success', 'mail');
+  } catch (err) {
+    toast('Ошибка отправки: ' + err.message, 'danger', 'error');
+  }
+}
+
+// Проверка силы пароля
+function checkPasswordStrength(password) {
+  let strength = 0;
+  let requirements = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%]/.test(password)
+  };
+  
+  // Считаем выполненные требования
+  const metRequirements = Object.values(requirements).filter(Boolean).length;
+  
+  // Определяем уровень на основе выполненных требований
+  if (metRequirements === 0) return 0;
+  if (metRequirements === 1) return 1;
+  if (metRequirements === 2) return 1;
+  if (metRequirements === 3) return 2;
+  if (metRequirements === 4) return 3;
+  if (metRequirements === 5) return 4;
+  
+  return Math.min(strength, 4);
+}
+
+// Обновление индикатора силы пароля
+function updatePasswordStrengthIndicator(password) {
+  const strengthContainer = document.getElementById('password-strength');
+  const strengthBar = document.getElementById('password-strength-bar');
+  const strengthText = document.getElementById('password-strength-text');
+  
+  if (!isRegisterMode || !password) {
+    if (strengthContainer) strengthContainer.style.display = 'none';
+    return;
+  }
+  
+  if (strengthContainer) strengthContainer.style.display = 'block';
+  
+  const strength = checkPasswordStrength(password);
+  const levels = [
+    { text: 'Очень слабый', color: 'var(--danger)', width: '25%' },
+    { text: 'Слабый', color: 'var(--warning)', width: '50%' },
+    { text: 'Средний', color: '#f59e0b', width: '75%' },
+    { text: 'Сильный', color: 'var(--success)', width: '100%' }
+  ];
+  
+  const level = levels[Math.min(strength, 3)];
+  
+  if (strengthBar) {
+    strengthBar.style.width = level.width;
+    strengthBar.style.background = level.color;
+  }
+  
+  if (strengthText) {
+    strengthText.textContent = level.text;
+    strengthText.style.color = level.color;
+  }
+}
+
+// Проверка username на занятость (возвращает объект с exists и confirmed)
 async function checkUsernameAvailability(username) {
-  if (!username) return false;
+  if (!username) return { exists: false, confirmed: false };
   const spinner = document.getElementById('username-check-spinner');
   if (spinner) spinner.style.display = 'block';
   console.log('[AUTH] Проверка username:', username);
@@ -140,45 +234,71 @@ async function checkUsernameAvailability(username) {
     });
     console.log('[AUTH] Результат Edge Function:', data, error);
     if (error) throw error;
-    return data.exists;
+    return { exists: data.exists, confirmed: data.confirmed || false };
   } catch (err) {
     console.warn('Ошибка проверки username:', err);
-    return false;
+    return { exists: false, confirmed: false };
   } finally {
     if (spinner) spinner.style.display = 'none';
   }
 }
 
-function updateEmailAvailabilityStatus(taken) {
+function updateEmailAvailabilityStatus(result) {
   if (!isRegisterMode) return;
-  isEmailTaken = taken;
+  const { exists, confirmed } = result;
+  isEmailTaken = exists && confirmed; // Блокируем только если email подтверждён
   const errorEl = document.getElementById('gate-error');
-  if (taken) {
-    errorEl.textContent =
-      'Этот email уже зарегистрирован. Войдите или используйте другой.';
-  } else if (errorEl.textContent.includes('уже зарегистрирован')) {
-    errorEl.textContent = '';
+  const resendBtn = document.getElementById('resend-email-register-btn');
+  
+  if (exists && !confirmed) {
+    // Email занят но не подтверждён - показываем кнопку повторной отправки
+    errorEl.textContent = 'Этот email уже зарегистрирован но не подтверждён.';
+    errorEl.style.color = 'var(--warning)';
+    if (resendBtn) resendBtn.style.display = 'block';
+  } else if (exists && confirmed) {
+    // Email подтверждён - блокируем регистрацию
+    errorEl.textContent = 'Этот email уже зарегистрирован. Войдите или используйте другой.';
+    errorEl.style.color = 'var(--danger)';
+    if (resendBtn) resendBtn.style.display = 'none';
+  } else {
+    // Email свободен
+    if (errorEl.textContent.includes('уже зарегистрирован')) {
+      errorEl.textContent = '';
+    }
+    if (resendBtn) resendBtn.style.display = 'none';
   }
+  
   const submitBtn = document.getElementById('gate-submit-btn');
   if (submitBtn) {
-    submitBtn.disabled = taken;
-    submitBtn.style.opacity = taken ? '0.5' : '1';
+    submitBtn.disabled = exists && confirmed; // Блокируем только если подтверждён
+    submitBtn.style.opacity = exists && confirmed ? '0.5' : '1';
   }
 }
 
-function updateUsernameAvailabilityStatus(taken) {
+function updateUsernameAvailabilityStatus(result) {
   if (!isRegisterMode) return;
-  isUsernameTaken = taken;
+  const { exists, confirmed } = result;
+  isUsernameTaken = exists && confirmed; // Блокируем только если email пользователя подтверждён
   const errorEl = document.getElementById('gate-error');
-  if (taken) {
+  
+  if (exists && !confirmed) {
+    // Username занят но email не подтверждён - не блокируем, но показываем предупреждение
+    if (!errorEl.textContent.includes('уже зарегистрирован')) {
+      errorEl.textContent = 'Этот никнейм уже зарегистрирован но не подтверждён. Можно использовать.';
+      errorEl.style.color = 'var(--warning)';
+    }
+  } else if (exists && confirmed) {
+    // Username подтверждён - блокируем регистрацию
     errorEl.textContent = 'Этот никнейм уже занят. Используйте другой.';
-  } else if (errorEl.textContent.includes('уже занят')) {
+    errorEl.style.color = 'var(--danger)';
+  } else if (errorEl.textContent.includes('уже занят') && !errorEl.textContent.includes('уже зарегистрирован')) {
     errorEl.textContent = '';
   }
+  
   const submitBtn = document.getElementById('gate-submit-btn');
   if (submitBtn) {
-    submitBtn.disabled = taken || isEmailTaken;
-    submitBtn.style.opacity = taken || isEmailTaken ? '0.5' : '1';
+    submitBtn.disabled = (exists && confirmed) || isEmailTaken;
+    submitBtn.style.opacity = (exists && confirmed) || isEmailTaken ? '0.5' : '1';
   }
 }
 
@@ -318,7 +438,12 @@ async function handleAuth(email, password, confirm, isRegister, username) {
     localStorage.removeItem('englift_pending_username');
   } finally {
     gateSubmit.disabled = false;
-    gateSubmit.textContent = isRegister ? 'Создать аккаунт' : 'Войти';
+    
+    if (isRegister) {
+      gateSubmit.innerHTML = '<span class="material-symbols-outlined" style="margin-right: 8px">person_add</span>Создать аккаунт';
+    } else {
+      gateSubmit.innerHTML = '<span class="material-symbols-outlined" style="margin-right: 8px">login</span>Войти';
+    }
   }
 }
 
@@ -358,7 +483,13 @@ authTabs.forEach(tab => {
     const mode = tab.dataset.mode;
     isRegisterMode = mode === 'register';
     updateAuthTabs(mode);
-    gateSubmit.textContent = isRegisterMode ? 'Создать аккаунт' : 'Войти';
+    
+    if (isRegisterMode) {
+      gateSubmit.innerHTML = '<span class="material-symbols-outlined" style="margin-right: 8px">person_add</span>Создать аккаунт';
+    } else {
+      gateSubmit.innerHTML = '<span class="material-symbols-outlined" style="margin-right: 8px">login</span>Войти';
+    }
+    
     toggleRegisterFields(isRegisterMode);
     gateError.textContent = '';
     clearGateForm();
@@ -372,6 +503,9 @@ authTabs.forEach(tab => {
     }
     const spinner = document.getElementById('email-check-spinner');
     if (spinner) spinner.style.display = 'none';
+    
+    // Скрываем кнопку повторной отправки при переключении вкладок
+    if (resendEmailRegisterBtn) resendEmailRegisterBtn.style.display = 'none';
   });
 });
 
@@ -398,7 +532,7 @@ gateEmail.addEventListener('input', () => {
 
   if (emailCheckDebounceTimer) clearTimeout(emailCheckDebounceTimer);
   if (!email) {
-    updateEmailAvailabilityStatus(false);
+    updateEmailAvailabilityStatus({ exists: false, confirmed: false });
     lastCheckedEmail = '';
     return;
   }
@@ -406,9 +540,14 @@ gateEmail.addEventListener('input', () => {
   lastCheckedEmail = email;
 
   emailCheckDebounceTimer = setTimeout(async () => {
-    const taken = await checkEmailAvailability(email);
-    updateEmailAvailabilityStatus(taken);
+    const result = await checkEmailAvailability(email);
+    updateEmailAvailabilityStatus(result);
   }, 500);
+});
+
+// Обновление индикатора силы пароля при вводе
+gatePassword.addEventListener('input', () => {
+  updatePasswordStrengthIndicator(gatePassword.value);
 });
 
 // Проверка username при вводе
@@ -418,7 +557,7 @@ gateUsername.addEventListener('input', () => {
 
   if (usernameCheckDebounceTimer) clearTimeout(usernameCheckDebounceTimer);
   if (!username) {
-    updateUsernameAvailabilityStatus(false);
+    updateUsernameAvailabilityStatus({ exists: false, confirmed: false });
     lastCheckedUsername = '';
     return;
   }
@@ -426,8 +565,8 @@ gateUsername.addEventListener('input', () => {
   lastCheckedUsername = username;
 
   usernameCheckDebounceTimer = setTimeout(async () => {
-    const taken = await checkUsernameAvailability(username);
-    updateUsernameAvailabilityStatus(taken);
+    const result = await checkUsernameAvailability(username);
+    updateUsernameAvailabilityStatus(result);
   }, 500);
 });
 
@@ -441,6 +580,25 @@ gateSubmit.addEventListener('click', () => {
     gateUsername.value.trim(),
   );
 });
+
+// Обработка Enter в полях ввода
+function handleEnterKey(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    handleAuth(
+      gateEmail.value.trim(),
+      gatePassword.value.trim(),
+      gateConfirm.value.trim(),
+      isRegisterMode,
+      gateUsername.value.trim(),
+    );
+  }
+}
+
+gateEmail.addEventListener('keydown', handleEnterKey);
+gatePassword.addEventListener('keydown', handleEnterKey);
+gateConfirm.addEventListener('keydown', handleEnterKey);
+gateUsername.addEventListener('keydown', handleEnterKey);
 
 // Восстановление пароля
 forgotPasswordBtn.addEventListener('click', () => {
@@ -456,7 +614,10 @@ sendResetBtn.addEventListener('click', async () => {
   }
   sendResetBtn.disabled = true;
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    // Используем прямой клиент Supabase для сброса пароля, чтобы ссылка генерировалась с правильным доменом
+    const { error } = await directSupabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://englift.ru/reset-password.html'
+    });
     if (error) throw error;
     toast(
       'Если такой email зарегистрирован, мы отправили ссылку для сброса пароля.',
@@ -467,6 +628,14 @@ sendResetBtn.addEventListener('click', async () => {
     toast(err.message, 'danger');
   } finally {
     sendResetBtn.disabled = false;
+  }
+});
+
+// Enter в модалке сброса пароля
+resetEmail.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    sendResetBtn.click();
   }
 });
 
@@ -498,6 +667,20 @@ logoutFromUnverifiedBtn.addEventListener('click', () => {
   supabase.auth.signOut();
 });
 
+// Повторная отправка подтверждения с формы регистрации
+resendEmailRegisterBtn.addEventListener('click', async () => {
+  const email = gateEmail.value.trim();
+  if (!email) {
+    toast('Введите email', 'warning', 'error');
+    return;
+  }
+  resendEmailRegisterBtn.disabled = true;
+  resendEmailRegisterBtn.textContent = 'Отправка...';
+  await resendConfirmationEmail(email);
+  resendEmailRegisterBtn.disabled = false;
+  resendEmailRegisterBtn.innerHTML = '<span class="material-symbols-outlined" style="margin-right: 8px">refresh</span>Отправить письмо повторно';
+});
+
 // Следим за состоянием аутентификации
 supabase.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user;
@@ -523,6 +706,12 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     window.location.href = '/';
   } else if (session?.user && !session.user.email_confirmed_at) {
     showEmailNotVerified(session.user.email);
+  } else {
+    // Нет сессии - показываем форму входа с анимацией
+    const container = document.getElementById('auth-gate-container');
+    if (container) {
+      container.classList.add('ready');
+    }
   }
 })();
 
