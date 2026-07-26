@@ -4016,7 +4016,7 @@ function canStartSession(requestedCount) {
 
     toast(
 
-      `⏰ Осталось только ${pluralize(remaining, 'упражнение', 'упражнения', 'упражнений')} на сегодня. Будет показано ${remaining} из ${requestedCount} слов.`,
+      `Осталось только ${pluralize(remaining, 'упражнение', 'упражнения', 'упражнений')} на сегодня. Будет показано ${remaining} из ${requestedCount} слов.`,
 
       'info',
 
@@ -4816,7 +4816,81 @@ function checkSpeechSimilarity(spoken, correct) {
 
   const similarity = 1 - distance / maxLength;
 
-  const confidencePercentage = Math.round(similarity * 100); // ← убрали * 0.80
+  const confidencePercentage = Math.round(similarity * 100);
+
+  // ── ФОНЕТИЧЕСКИ ПОХОЖИЕ ЗАМЕНЫ ────────────────────────────────
+  // ASR чаще всего путает: 1) гласные (a/e/i/o/u), 2) парные по звонкости
+  // согласные: t/d, p/b, k/g, s/z, f/v. Это шум распознавания, не ошибка
+  // произношения. Случайную замену на несвязанный звук (напр. "cat"→"bat")
+  // мы НЕ прощаем — это, скорее всего, другое слово.
+
+  const CONFUSABLE_PAIRS = [
+    ['t', 'd'], ['p', 'b'], ['k', 'g'], ['s', 'z'], ['f', 'v'],
+    ['m', 'n'], ['l', 'r'], ['ch', 'sh'], ['th', 's'], ['th', 'f'],
+  ];
+
+  const isVowel = ch => 'aeiou'.includes(ch);
+
+  const isConfusablePair = (a, b) => {
+    if (isVowel(a) && isVowel(b)) return true;
+    return CONFUSABLE_PAIRS.some(
+      ([x, y]) => (x === a && y === b) || (x === b && y === a),
+    );
+  };
+
+  const findSingleCharDiff = (a, b) => {
+    if (a.length !== b.length) return null;
+    let diffIndex = -1;
+    let diffCount = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        diffCount++;
+        diffIndex = i;
+        if (diffCount > 1) return null;
+      }
+    }
+    return diffCount === 1 ? diffIndex : null;
+  };
+
+  if (distance === 1 && cleanCorrect.length <= 8) {
+
+    const diffIdx = findSingleCharDiff(cleanSpoken, cleanCorrect);
+
+    if (diffIdx !== null) {
+
+      const confusable = isConfusablePair(cleanSpoken[diffIdx], cleanCorrect[diffIdx]);
+
+      if (confusable) {
+        return { isCorrect: true, confidence: Math.max(confidencePercentage, 78) };
+      }
+
+      // Замена на непохожий звук на коротком слове — явно отклоняем
+      if (cleanCorrect.length <= 5) {
+        return { isCorrect: false, confidence: confidencePercentage };
+      }
+
+    } else if (cleanCorrect.length <= 5) {
+
+      // Вставка/удаление одной буквы на коротком слове (напр. "hlp" → "help")
+      return { isCorrect: true, confidence: Math.max(confidencePercentage, 76) };
+
+    }
+
+  }
+
+  // ── СОГЛАСНЫЙ СКЕЛЕТ ──────────────────────────────────────────
+  // Если убрать все гласные и оставшиеся согласные совпали — почти
+  // наверняка то же слово, просто гласная услышана неверно.
+
+  const consonantSkeleton = s => s.replace(/[aeiou]/g, '');
+
+  if (
+    cleanCorrect.length <= 8 &&
+    consonantSkeleton(cleanSpoken) === consonantSkeleton(cleanCorrect) &&
+    consonantSkeleton(cleanCorrect).length >= 1
+  ) {
+    return { isCorrect: true, confidence: Math.max(confidencePercentage, 82) };
+  }
 
   // Адаптивный порог: короткие слова сложнее оценивать
 
@@ -4834,7 +4908,7 @@ function checkSpeechSimilarity(spoken, correct) {
 
           ? 0.8
 
-          : 0.72; // ← длинные предложения — чуть мягче
+          : 0.72;
 
   return {
 
@@ -8970,9 +9044,43 @@ function switchTab(name, skipScroll = false) {
 
   }
 
-  // Закрываем карточку результатов при уходе с вкладки практика
+  // Если уходим с вкладки практика во время активной сессии - завершаем сессию
 
-  if (currentActiveTab === 'practice' && name !== 'practice') {
+  if (currentActiveTab === 'practice' && name !== 'practice' && window.isSessionActive) {
+
+    resetPracticeToStart();
+
+    window.isSessionActive = false;
+
+    document.body.classList.remove('exercise-active');
+
+  }
+
+  // Если возвращаемся на вкладку практика во время активной сессии - показываем экран упражнения
+
+  if (name === 'practice' && window.isSessionActive) {
+
+    const exerciseScreen = document.getElementById('practice-ex');
+
+    const startScreen = document.getElementById('practice-setup');
+
+    if (exerciseScreen) {
+
+      exerciseScreen.style.display = 'block';
+
+    }
+
+    if (startScreen) {
+
+      startScreen.style.display = 'none';
+
+    }
+
+    // Не сбрасываем состояние, продолжаем сессию
+
+  } else if (currentActiveTab === 'practice' && name !== 'practice') {
+
+    // Закрываем карточку результатов при уходе с вкладки практика (если сессия не активна)
 
     resetPracticeToStart();
 
@@ -15586,14 +15694,6 @@ function startSession(cfg) {
 
     }
 
-    const totalCount =
-
-      countVal === 'all'
-
-        ? pool.length
-
-        : Math.min(parseInt(countVal), pool.length);
-
     // ── CUSTOM POOL (напр. повтор ошибок) ────────────────────────
 
     if (cfg && cfg.customPool && cfg.customPool.length > 0) {
@@ -15602,11 +15702,19 @@ function startSession(cfg) {
 
     }
 
+    const totalCount =
+
+      countVal === 'all'
+
+        ? pool.length
+
+        : Math.min(parseInt(countVal), pool.length);
+
     // ─────────────────────────────────────────────────────────────
 
     // === НОВЫЙ БЛОК: ПРОВЕРКА ЛИМИТА ===
 
-    if (!canStartSession(pool.length)) {
+    if (!canStartSession(totalCount)) {
 
       // Лимит исчерпан – выходим, не запуская сессию
 
