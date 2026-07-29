@@ -293,7 +293,7 @@
 
     </style>
 
-    <meta name="sw-file" content="/sw.1784991365241-4d95adaa.js">
+    <meta name="sw-file" content="/sw.1785302740605-4d95adaa.js">
 
 </head>
 
@@ -929,6 +929,42 @@
 
                 </div>
 
+                <div class="exercise-card" data-ex="builder">
+
+                  <div class="exercise-icon">
+
+                    <span class="material-symbols-outlined">construction</span>
+
+                  </div>
+
+                  <div class="exercise-name">Собери</div>
+
+                  <div class="exercise-desc">
+
+                    Составь слово из букв
+
+                  </div>
+
+                </div>
+
+                <div class="exercise-card" data-ex="match">
+
+                  <div class="exercise-icon">
+
+                    <span class="material-symbols-outlined">extension</span>
+
+                  </div>
+
+                  <div class="exercise-name">Пары</div>
+
+                  <div class="exercise-desc">
+
+                    Соедини слово и перевод
+
+                  </div>
+
+                </div>
+
                 <div class="exercise-card" data-ex="type">
 
                   <div class="exercise-icon">
@@ -965,6 +1001,8 @@
 
                 </div>
 
+                <!-- COMMENTED: Speech exercise - may add later -->
+                <!--
                 <div class="exercise-card" data-ex="speech">
 
                   <div class="exercise-icon">
@@ -981,48 +1019,15 @@
 
                   <div class="exercise-desc">
 
-                    Тренируй произношение
+                    Тренируй произношение. пока прост HTML заккоментируй. может потом добавим.
 
                   </div>
 
                 </div>
+                -->
 
-                <div class="exercise-card" data-ex="match">
-
-                  <div class="exercise-icon">
-
-                    <span class="material-symbols-outlined">extension</span>
-
-                  </div>
-
-                  <div class="exercise-name">Пары</div>
-
-                  <div class="exercise-desc">
-
-                    Соедини слово и перевод
-
-                  </div>
-
-                </div>
-
-                <div class="exercise-card" data-ex="builder">
-
-                  <div class="exercise-icon">
-
-                    <span class="material-symbols-outlined">construction</span>
-
-                  </div>
-
-                  <div class="exercise-name">Собери</div>
-
-                  <div class="exercise-desc">
-
-                    Составь слово из букв
-
-                  </div>
-
-                </div>
-
+                <!-- COMMENTED: Sentence builder exercise - may remove later -->
+                <!--
                 <div class="exercise-card" data-ex="sentence-builder">
 
                   <div class="exercise-icon">
@@ -1040,6 +1045,7 @@
                   </div>
 
                 </div>
+                -->
 
               </div>
 
@@ -1538,17 +1544,15 @@
         </div>
 
         <div class="week-chart-container" id="week-chart-container">
-
           <div class="daily-cap-header">
-
-            <span class="material-symbols-outlined">leaderboard </span>
-
+            <span class="material-symbols-outlined">insights</span>
             <h3>Активность</h3>
-
           </div>
-
-          <!-- График активности будет сгенерирован JavaScript -->
-
+          <div class="activity-tabs">
+            <button class="activity-tab active" data-view="week">Неделя</button>
+            <button class="activity-tab" data-view="month">Месяц</button>
+          </div>
+          <!-- Дальше JS будет вставлять недельный/месячный вид -->
         </div>
 
         <!-- Daily Review Cap -->
@@ -3093,7 +3097,7 @@
     <div class="modal-backdrop" id="freeze-notification-modal">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>❄️ Выходной</h3>
+          <h3><span class="material-symbols-outlined">beach_access</span> Выходной</h3>
           <button class="modal-close" id="freeze-notification-modal-close">
             <span class="material-symbols-outlined">close</span>
           </button>

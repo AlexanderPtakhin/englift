@@ -49,6 +49,11 @@ html.dark.theme-forest .rocket-icon {
   color: #22c55e;
 }
 
+/* Freeze notification modal icon */
+#freeze-notification-modal .material-symbols-outlined.beach_access {
+  color: var(--primary);
+}
+
 html.dark.theme-sunset .rocket-icon {
   color: #f97316;
 }
@@ -3942,106 +3947,259 @@ html.dark .badge-learned {
 .week-chart-container {
   background: var(--card);
   border-radius: var(--radius);
-  padding: 1.5rem;
+  padding: 1.25rem;
   margin-bottom: 2rem;
   box-shadow: var(--shadow);
 }
-.week-stats {
+
+.daily-cap-header {
   display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 1rem;
 }
-.week-stat-item {
-  text-align: center;
-  min-width: 55px;
-  background: var(--card);
-  padding: 0.5rem;
+.daily-cap-header .material-symbols-outlined {
+  color: var(--primary);
+  font-size: 1.3rem;
+}
+.daily-cap-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.15), rgba(var(--primary-rgb), 0.08));
+  color: var(--streak-color);
+  padding: 6px 12px;
   border-radius: 12px;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.streak-badge .material-symbols-outlined {
+  font-size: 1.1rem;
+  color: var(--streak-color);
+}
+
+.activity-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 1rem;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 3px;
+}
+.activity-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+.activity-tab:hover {
+  color: var(--text);
+}
+.activity-tab.active {
+  background: var(--card);
+  color: var(--primary-text, var(--primary));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  font-weight: 700;
+}
+
+.week-trend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+  color: var(--primary-text, var(--primary));
+  font-size: 0.85rem;
+  margin-left: auto;
+  cursor: help;
+}
+.week-trend .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.week-stats {
+  position: relative;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-height: 100px;
+  padding: 1rem 1rem;
+  background: var(--bg);
+  border-radius: 12px;
+}
+.goal-line {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  border-top: 1px dashed var(--border);
+  opacity: 0.6;
+}
+
+.week-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 .week-stat-item:hover {
+  background: rgba(var(--primary-rgb), 0.08);
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
-.week-count {
-  font-size: 1.4rem;
-  font-weight: 800;
+.week-stat-item.today {
+  background: rgba(var(--primary-rgb), 0.12);
+}
+
+.week-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 60px;
+}
+.week-bar {
+  width: 10px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.week-bar.words-bar {
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
+}
+.week-bar.idioms-bar {
+  background: linear-gradient(180deg, var(--idioms-color) 0%, var(--idioms-color-light) 100%);
+}
+.week-bar.empty {
+  background: var(--border);
+  height: 3px !important;
+  box-shadow: none;
+}
+
+.week-day {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.week-stat-item.today .week-day {
   color: var(--primary-text, var(--primary));
 }
-/* Для маленьких экранов - делаем элементы компактнее */
-@media (max-width: 600px) {
-  .week-stats {
-    gap: 0.3rem;
-  }
-  .week-stat-item {
-    min-width: 48px;
-  }
-  .week-day {
-    font-size: 0.7rem;
-  }
-  .week-date {
-    font-size: 0.6rem;
-  }
-  .week-count {
-    font-size: 1.1rem;
-    padding: 0.15rem 0.3rem;
-  }
-}
-@media (max-width: 400px) {
-  .week-stats {
-    gap: 0.2rem;
-  }
-  .week-stat-item {
-    min-width: 40px;
-  }
-  .week-day {
-    font-size: 0.65rem;
-  }
-  .week-date {
-    font-size: 0.55rem;
-  }
-  .week-count {
-    font-size: 1rem;
-    padding: 0.1rem 0.2rem;
-  }
-}
-.week-day {
+
+.day-detail {
   font-size: 0.8rem;
   color: var(--muted);
-  text-transform: uppercase;
-  font-weight: 700;
-}
-.week-date {
-  font-size: 0.7rem;
-  color: var(--muted);
-  opacity: 0.7;
-  margin-bottom: 0.2rem;
-}
-.week-count {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--primary-text, var(--primary));
-  background: var(--bg);
-  padding: 0.2rem 0.4rem;
-  border-radius: 8px;
-}
-.week-total {
   text-align: center;
-  padding: 0.75rem;
+  margin: 1rem 0 0;
+  min-height: 1.2em;
+  font-weight: 500;
+}
+
+.week-total {
+  display: flex;
+  gap: 10px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.week-total-item {
+  flex: 1;
   background: var(--bg);
   border-radius: 12px;
-  font-size: 0.95rem;
+  padding: 0.75rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.week-total-item:hover {
+  transform: translateY(-1px);
+}
+.week-total-item .value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+.week-total-item .label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.month-heatmap {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 0.75rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.heatmap-cell:hover {
+  transform: scale(1.2);
+  z-index: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.heatmap-cell.level-1 { background: rgba(var(--primary-rgb), 0.4); }
+.heatmap-cell.level-2 { background: rgba(var(--primary-rgb), 0.7); }
+.heatmap-cell.level-3 { background: rgba(var(--primary-rgb), 0.85); }
+.heatmap-cell.level-4 { background: var(--primary); box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3); }
+
+.heatmap-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
-.week-total span {
-  font-weight: 700;
-  color: var(--primary-text, var(--primary));
-  font-size: 1.2rem;
+.legend-cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
 }
+.legend-cell.level-0 { background: var(--border); }
+.legend-cell.level-1 { background: rgba(var(--primary-rgb), 0.4); }
+.legend-cell.level-2 { background: rgba(var(--primary-rgb), 0.7); }
+.legend-cell.level-3 { background: rgba(var(--primary-rgb), 0.85); }
+.legend-cell.level-4 { background: var(--primary); }
 /* Лимит повторений */
 .daily-cap-section {
   background: var(--card);
@@ -8298,158 +8456,6 @@ html.dark header {
 .daily-cap-header .material-symbols-outlined {
   font-size: 1.2rem !important;
   color: var(--primary) !important;
-}
-/* ─── WEEK CHART ─── */
-.week-chart-container {
-  border-radius: 18px !important;
-  padding: 1.5rem !important;
-  margin-bottom: 1.5rem !important;
-}
-.week-count {
-  font-size: 1.2rem !important;
-  font-weight: 800 !important;
-  background: rgba(37, 99, 235, 0.1) !important;
-  border-radius: 10px !important;
-  padding: 0.25rem 0.5rem !important;
-  color: var(--primary) !important;
-}
-.week-day {
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
-}
-.week-total {
-  border-radius: 12px !important;
-  font-weight: 600 !important;
-  background: var(--bg) !important;
-  border: 1px solid var(--border) !important;
-  padding: 0.75rem !important;
-}
-/* Новая стилизация для столбчатой диаграммы */
-.week-chart {
-  margin-top: 1rem;
-}
-.week-stats {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.week-stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 40px;
-  background: var(--card);
-  border-radius: 12px;
-  padding: 0.5rem 0.25rem;
-  transition: transform 0.2s;
-}
-.week-stat-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-.week-day {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.week-date {
-  font-size: 0.6rem;
-  color: var(--muted);
-  opacity: 0.7;
-  margin-bottom: 0.25rem;
-}
-.week-bars {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 2px;
-  height: 40px;
-  margin: 0.25rem 0;
-}
-.week-bar {
-  width: 8px;
-  border-radius: 4px 4px 0 0;
-  transition: height 0.3s ease;
-}
-.week-bar.words-bar {
-  background: linear-gradient(to top, var(--primary), var(--primary-light));
-}
-.week-bar.idioms-bar {
-  background: linear-gradient(
-    to top,
-    var(--idioms-color),
-    var(--idioms-color-light)
-  );
-}
-/* REMOVED: phrases functionality */
-/* .week-bar.phrases-bar {
-  background: linear-gradient(
-    to top,
-    var(--phrases-color),
-    var(--phrases-color-light)
-  );
-  opacity: 0.85;
-} */
-.week-bar.review-bar {
-  background: linear-gradient(to top, var(--accent), var(--accent-light));
-}
-.week-bar.review-bar.empty {
-  background: var(--muted);
-  opacity: 0.3;
-}
-.week-bar.review-bar.active {
-  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.3);
-}
-.week-stat-item.today {
-  background: rgba(var(--accent-rgb), 0.1);
-  border-radius: 8px;
-}
-.week-count {
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--text);
-  margin-top: 0.1rem;
-}
-.week-total {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-  margin-top: 1rem;
-  padding: 0.5rem;
-  background: var(--bg);
-  border-radius: 12px;
-  font-size: 0.9rem;
-}
-.week-total span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: var(--text);
-}
-.week-total .material-symbols-outlined {
-  font-size: 1.1rem;
-  color: var(--muted);
-}
-/* Адаптивность для новой диаграммы */
-@media (max-width: 600px) {
-  .week-stats {
-    gap: 0.3rem;
-  }
-  .week-stat-item {
-    min-width: 35px;
-    padding: 0.3rem 0.1rem;
-  }
-  .week-bar {
-    width: 6px;
-  }
-  .week-total {
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
 }
 /* Стили для транскрипции */
 .word-phonetic {

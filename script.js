@@ -638,9 +638,9 @@ function updateWeeklyReviewDetail(type) {
 
   day[type]++;
 
-  // Оставляем только последние 7 дней
+  // Оставляем только последние 35 дней (для тепловой карты)
 
-  weeklyReviewDetail = weeklyReviewDetail.slice(-7);
+  weeklyReviewDetail = weeklyReviewDetail.slice(-35);
 
   const key = `englift_weekly_review_detail_${window.currentUserId}`;
   localStorage.setItem(
@@ -1227,9 +1227,11 @@ window.applyProfileData = function (data) {
 
     } else if (window.streak.count > data.streak) {
 
-      markProfileDirty('streak', window.streak.count);
-
-      markProfileDirty('laststreakdate', window.streak.lastDate);
+      // Только если локальное значение > 0, отправляем на сервер
+      if (window.streak.count > 0) {
+        markProfileDirty('streak', window.streak.count);
+        markProfileDirty('laststreakdate', window.streak.lastDate);
+      }
 
     } else {
       // Если серия равна, всё равно восстанавливаем lastDate из сервера
@@ -1253,12 +1255,15 @@ window.applyProfileData = function (data) {
   if (data.free_pass_week_start !== undefined) {
     window.streak.freePassWeekStart = data.free_pass_week_start;
   }
+  if (data.freeze_notification_shown !== undefined) {
+    window.streak.freezeNotificationShown = data.freeze_notification_shown;
+  }
 
   // DailyProgress – по каждому полю берём максимум
 
-  if (data.dailyprogress) {
+  const today = window.getLocalDate();
 
-    const today = window.getLocalDate();
+  if (data.dailyprogress) {
 
     // Проверяем, что данные с сервера за сегодняшний день, иначе игнорируем practice_time
     const isServerDataToday = data.dailyprogress.lastReset === today;
@@ -1295,8 +1300,21 @@ window.applyProfileData = function (data) {
   }
 
   // Проверяем и сбрасываем ежедневные цели если наступил новый день
+  // НО сначала сохраняем practice_time если он был накоплен за сегодня до сброса
+  if (window.dailyProgress.lastReset !== today && window.dailyProgress.practice_time > 0) {
+    // Если practice_time был накоплен за "сегодня" (по локальному времени), но lastReset старый,
+    // значит дата изменилась (например, часовой пояс). Сохраняем practice_time во временное поле
+    window.dailyProgress._preservedPracticeTime = window.dailyProgress.practice_time;
+  }
 
   resetDailyGoalsIfNeeded();
+
+  // Восстанавливаем practice_time если он был сохранён
+  if (window.dailyProgress._preservedPracticeTime) {
+    window.dailyProgress.practice_time = window.dailyProgress._preservedPracticeTime;
+    delete window.dailyProgress._preservedPracticeTime;
+    markProfileDirty('dailyprogress', window.dailyProgress);
+  }
 
   // dailyReviewCount
 
@@ -1845,7 +1863,7 @@ function showTooltip(text, targetElement, options = {}) {
 
   const tooltip = document.createElement('div');
   tooltip.className = 'custom-tooltip';
-  tooltip.textContent = displayText;
+  tooltip.innerHTML = displayText.replace(/\n/g, '<br>');
   tooltip.style.position = 'fixed';
   tooltip.style.pointerEvents = 'none';
 
@@ -4068,6 +4086,8 @@ function refreshUI() {
 
     renderWeekChart();
 
+    renderMonthHeatmap();
+
     renderXP();
 
     renderBadges();
@@ -4228,155 +4248,224 @@ async function getCurrentUser() {
 
 // ============================================================
 
+function getWeekTotal(offsetDays) {
+  let total = 0;
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i - offsetDays);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const stats = weeklyReviewDetail.find(day => day.date === dateStr);
+    if (stats) total += (stats.words ?? 0) + (stats.idioms ?? 0);
+  }
+  return total;
+}
+
 function renderWeekChart() {
-
   const container = document.querySelector('.week-chart-container');
-
   if (!container) return;
-
-  // Загружаем сохранённую детализацию
 
   const key = `englift_weekly_review_detail_${window.currentUserId}`;
   const saved = localStorage.getItem(key);
-
   if (saved) {
-
-    weeklyReviewDetail = JSON.parse(saved);
-
-    // Исправляем повреждённые данные
-
-    weeklyReviewDetail = weeklyReviewDetail.map(day => ({
-
+    weeklyReviewDetail = JSON.parse(saved).map(day => ({
       date: day.date,
-
       words: day.words ?? 0,
-
       idioms: day.idioms ?? 0,
-
     }));
-
   }
-
-  // Подготавливаем массив последних 7 дней (включая сегодня с нулями)
 
   const days = [];
-
   for (let i = 6; i >= 0; i--) {
-
     const d = new Date();
-
     d.setDate(d.getDate() - i);
-
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
     const dayName = d.toLocaleDateString('ru-RU', { weekday: 'short' });
-
-    const dateShow = d.toLocaleDateString('ru-RU', {
-
-      day: 'numeric',
-
-      month: 'numeric',
-
-    });
-
-    const stats = weeklyReviewDetail.find(day => day.date === dateStr) || {
-
-      words: 0,
-
-      idioms: 0,
-
-    };
-
+    const dateShow = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'numeric' });
+    const stats = weeklyReviewDetail.find(day => day.date === dateStr) || { words: 0, idioms: 0 };
     days.push({
-
-      dayName,
-
-      dateShow,
-
+      dayName, dateShow,
       words: stats.words ?? 0,
-
       idioms: stats.idioms ?? 0,
-
       total: (stats.words ?? 0) + (stats.idioms ?? 0),
-
+      isToday: i === 0,
     });
-
   }
 
-  // Находим максимальное значение среди всех столбцов (для масштабирования)
+  const maxValue = Math.max(...days.flatMap(d => [d.words, d.idioms]), 1);
+  const goal = window.user_settings?.dailyGoal || 10;
+  const goalLinePercent = Math.min(100, (goal / maxValue) * 100);
 
-  const maxValue = Math.max(
+  const thisWeekTotal = getWeekTotal(0);
+  const lastWeekTotal = getWeekTotal(7);
+  const trend = lastWeekTotal > 0
+    ? Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100)
+    : null;
 
-    ...days.flatMap(d => [d.words ?? 0, d.idioms ?? 0]),
+  const totalWords = days.reduce((s, d) => s + d.words, 0);
+  const totalIdioms = days.reduce((s, d) => s + d.idioms, 0);
 
-    1,
-
-  );
-
-  // Генерируем HTML с тремя цветными барами
-
-  const html = `
-
-    <div data-week-chart>
-
-      <div class="week-chart">
-
-        <div class="week-stats">
-
-          ${days
-
-            .map(
-
-              d => `
-
-            <div class="week-stat-item">
-
-              <div class="week-day">${d.dayName}</div>
-
-              <div class="week-date">${d.dateShow}</div>
-
-              <div class="week-bars">
-
-                <div class="week-bar words-bar" style="height: ${(d.words / maxValue) * 40}px"></div>
-
-                <div class="week-bar idioms-bar" style="height: ${(d.idioms / maxValue) * 40}px"></div>
-
-              </div>
-
-              <div class="week-count">${d.total}</div>
-
-            </div>
-
-          `,
-
-            )
-
-            .join('')}
-
-        </div>
-
-        <div class="week-total">
-
-          <span><span class="material-symbols-outlined">menu_book</span> Слова: ${days.reduce((s, d) => s + d.words, 0)}</span>
-
-          <span><span class="material-symbols-outlined">theater_comedy</span> Идиомы: ${days.reduce((s, d) => s + d.idioms, 0)}</span>
-
-        </div>
-
-      </div>
-
+  const trendHtml = trend === null
+    ? `<span class="week-trend">Нет данных</span>`
+    : `
+    <div class="week-trend" data-tooltip="Сравнение с прошлой неделей: ${thisWeekTotal} слов на этой неделе против ${lastWeekTotal} на прошлой" tabindex="0" aria-label="Сравнение с прошлой неделей: ${thisWeekTotal} слов на этой неделе против ${lastWeekTotal} на прошлой">
+      <span class="material-symbols-outlined">${trend >= 0 ? 'trending_up' : 'trending_down'}</span>
+      ${trend >= 0 ? '+' : ''}${trend}%
     </div>
-
   `;
 
-  // Обновляем контейнер (удаляем старый график)
+  // Вставляем тренд в заголовок
+  const header = container.querySelector('.daily-cap-header');
+  const existingTrend = header.querySelector('.week-trend');
+  if (existingTrend) existingTrend.remove();
+  header.insertAdjacentHTML('beforeend', trendHtml);
 
-  const oldChart = container.querySelector('[data-week-chart]');
+  // Привязываем тултип к новому элементу
+  const newTrend = header.querySelector('.week-trend');
+  if (newTrend && typeof bindTooltip === 'function') {
+    bindTooltip(newTrend);
+  }
 
-  if (oldChart) oldChart.remove();
+  const html = `
+    <div class="week-stats">
+      <div class="goal-line" style="bottom: ${goalLinePercent}%"></div>
+      ${days.map((d, idx) => `
+        <div class="week-stat-item${d.isToday ? ' today' : ''}" data-idx="${idx}" data-words="${d.words}" data-idioms="${d.idioms}">
+          <div class="week-bars">
+            <div class="week-bar words-bar${d.words === 0 ? ' empty' : ''}" data-h="${(d.words / maxValue) * 60}" style="height: 0px"></div>
+            <div class="week-bar idioms-bar${d.idioms === 0 ? ' empty' : ''}" data-h="${(d.idioms / maxValue) * 60}" style="height: 0px"></div>
+          </div>
+          <div class="week-day">${d.dayName}</div>
+        </div>
+      `).join('')}
+    </div>
+    <p class="day-detail">Нажми на день, чтобы увидеть разбивку</p>
+    <div class="week-total">
+      <div class="week-total-item">
+        <div class="value">${totalWords}</div>
+        <div class="label"><span class="material-symbols-outlined" style="font-size:14px">menu_book</span>слова</div>
+      </div>
+      <div class="week-total-item">
+        <div class="value">${totalIdioms}</div>
+        <div class="label"><span class="material-symbols-outlined" style="font-size:14px">theater_comedy</span>идиомы</div>
+      </div>
+    </div>
+  `;
 
-  container.insertAdjacentHTML('beforeend', html);
+  let weekView = container.querySelector('#activity-week-view');
+  if (!weekView) {
+    weekView = document.createElement('div');
+    weekView.id = 'activity-week-view';
+    container.appendChild(weekView);
+  }
+  weekView.innerHTML = html;
 
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      weekView.querySelectorAll('.week-bar[data-h]').forEach(bar => {
+        bar.style.height = bar.dataset.h + 'px';
+      });
+    });
+  });
+
+  weekView.querySelectorAll('.week-stat-item').forEach((item, idx) => {
+    item.addEventListener('click', () => {
+      const detail = weekView.querySelector('.day-detail');
+      const dayInfo = days[idx];
+      detail.textContent = `${dayInfo.dayName}, ${dayInfo.dateShow}: слова — ${dayInfo.words}, идиомы — ${dayInfo.idioms}`;
+    });
+  });
+
+  updateStreakBadge();
+  setupActivityTabs(container);
+}
+
+function updateStreakBadge() {
+  const badge = document.getElementById('activity-streak-count');
+  if (badge && window.streak) {
+    badge.textContent = window.streak.count || 0;
+  }
+}
+
+function setupActivityTabs(container) {
+  const tabs = container.querySelectorAll('.activity-tab');
+  tabs.forEach(tab => {
+    const clone = tab.cloneNode(true);
+    tab.parentNode.replaceChild(clone, tab);
+  });
+  container.querySelectorAll('.activity-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      container.querySelectorAll('.activity-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const view = tab.dataset.view;
+      const weekView = container.querySelector('#activity-week-view');
+      let monthView = container.querySelector('#activity-month-view');
+      if (view === 'week') {
+        if (weekView) weekView.style.display = 'block';
+        if (monthView) monthView.style.display = 'none';
+      } else {
+        if (weekView) weekView.style.display = 'none';
+        if (!monthView) {
+          monthView = document.createElement('div');
+          monthView.id = 'activity-month-view';
+          container.appendChild(monthView);
+          renderMonthHeatmap(monthView);
+        }
+        monthView.style.display = 'block';
+      }
+    });
+  });
+}
+
+function renderMonthHeatmap(container) {
+  if (!container) {
+    container = document.querySelector('#activity-month-view');
+  }
+  if (!container) return;
+
+  const key = `englift_weekly_review_detail_${window.currentUserId}`;
+  const saved = localStorage.getItem(key);
+  const detail = saved ? JSON.parse(saved) : weeklyReviewDetail;
+
+  const cells = [];
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const stats = detail.find(day => day.date === dateStr);
+    const total = stats ? (stats.words ?? 0) + (stats.idioms ?? 0) : 0;
+    let level = 0;
+    if (total > 0) level = 1;
+    if (total >= 50) level = 2;
+    if (total >= 80) level = 3;
+    if (total >= 100) level = 4;
+    cells.push({ dateStr, total, level });
+  }
+
+  container.innerHTML = `
+    <p style="font-size:0.82rem; color: var(--muted); margin: 0 0 0.5rem; text-align: center;">Последние 35 дней</p>
+    <div class="month-heatmap">
+      ${cells.map(c => {
+        const stats = detail.find(day => day.date === c.dateStr);
+        const words = stats ? (stats.words ?? 0) : 0;
+        const idioms = stats ? (stats.idioms ?? 0) : 0;
+        return `<div class="heatmap-cell level-${c.level}" data-date="${c.dateStr}" data-total="${c.total}" data-tooltip="${c.dateStr}\nСлов: ${words}\nИдиом: ${idioms}" tabindex="0" aria-label="${c.dateStr}: ${words} слов, ${idioms} идиом"></div>`;
+      }).join('')}
+    </div>
+    <div class="heatmap-legend">
+      <div class="legend-item"><div class="legend-cell level-0"></div><span>0</span></div>
+      <div class="legend-item"><div class="legend-cell level-1"></div><span>1-49</span></div>
+      <div class="legend-item"><div class="legend-cell level-2"></div><span>50-79</span></div>
+      <div class="legend-item"><div class="legend-cell level-3"></div><span>80-99</span></div>
+      <div class="legend-item"><div class="legend-cell level-4"></div><span>100+</span></div>
+    </div>
+  `;
+
+  // Привязываем тултипы к ячейкам
+  container.querySelectorAll('.heatmap-cell').forEach(cell => {
+    if (typeof bindTooltip === 'function') {
+      bindTooltip(cell);
+    }
+  });
 }
 
 // ============================================================
@@ -4608,85 +4697,6 @@ function hideFeedbackSheet() {
 
 }
 
-/**
-
- * Показывает нижний лист с сообщением "Попробуйте ещё раз!" и кнопкой "Сбросить".
-
- * @param {Function} resetCallback - функция, которая будет выполнена при нажатии на кнопку сброса.
-
- */
-
-function showBuilderIncorrectFeedback(resetCallback) {
-
-  const sheet = document.getElementById('fb-sheet');
-
-  const inner = document.getElementById('fb-sheet-inner');
-
-  const backdrop = document.getElementById('fb-backdrop');
-
-  if (!sheet || !inner) return;
-
-  // Сбрасываем предыдущие классы и анимации
-
-  sheet.className = 'fb-sheet';
-
-  void sheet.offsetWidth; // reflow для рестарта анимаций
-
-  sheet.classList.add('incorrect');
-
-  inner.innerHTML = `
-
-    <div class="fb-icon">
-
-      <svg class="fb-svg" viewBox="0 0 36 36" fill="none">
-
-        <circle cx="18" cy="18" r="16" stroke="rgba(239,68,68,0.2)" stroke-width="2"/>
-
-        <line class="fb-x-1" x1="12" y1="12" x2="24" y2="24"/>
-
-        <line class="fb-x-2" x1="24" y1="12" x2="12" y2="24"/>
-
-      </svg>
-
-    </div>
-
-    <div class="fb-text">
-
-      <div class="fb-verdict">Попробуйте ещё раз!</div>
-
-      <div class="fb-correct-hint">Соберите слово правильно</div>
-
-    </div>
-
-    <button class="btn-pill btn-pill--secondary fb-reset-btn">
-
-      <span class="material-symbols-outlined">refresh</span>
-
-      Сбросить
-
-    </button>
-
-  `;
-
-  sheet.classList.add('show');
-
-  backdrop.classList.add('show');
-
-  const resetBtn = inner.querySelector('.fb-reset-btn');
-
-  if (resetBtn) {
-
-    resetBtn.onclick = () => {
-
-      resetCallback(); // вызываем переданную функцию сброса
-
-      hideFeedbackSheet(); // закрываем лист
-
-    };
-
-  }
-
-}
 
 window.proceedToNext = function () {
 
@@ -5612,10 +5622,18 @@ window.wordBank = [];
 
 // Инициализация при старте
 
-window.WordAPI.loadWordBank().then(bank => {
-
-  window.wordBank = bank;
-
+window.WordAPI.loadWordBank().then(async () => {
+  // После загрузки банка получаем кэшированные данные
+  if (window.WordAPI && window.WordAPI.getCachedWordBank) {
+    window.wordBank = await window.WordAPI.getCachedWordBank();
+    console.log('[SCRIPT] WordBank loaded into window.wordBank:', window.wordBank.length);
+  } else {
+    // Fallback через API если getCachedWordBank не экспортирован
+    const debugInfo = await window.WordAPI.debugWordBank();
+    if (debugInfo) {
+      console.log('[SCRIPT] WordBank available via debugWordBank:', debugInfo.total);
+    }
+  }
 });
 
 async function load() {
@@ -5877,7 +5895,7 @@ function generateId() {
 
 // Функция очистки пользовательских данных из IndexedDB
 
-async function clearUserData() {
+async function clearLocalWordCache() {
 
   try {
 
@@ -7595,6 +7613,184 @@ function recordDailyActivity() {
   }
 }
 
+// Восстанавливает стрик на основе истории активности
+function restoreStreakFromHistory() {
+  const history = getStreakHistory();
+  const today = window.getLocalDate();
+  const dates = Object.keys(history).sort().reverse(); // от новых к старым
+  
+  let streakCount = 0;
+  let lastActiveDate = null;
+  let currentDate = new Date(today);
+  let freePassAvailable = canUseFreePass();
+  
+  // Проходим по дням от сегодня назад
+  for (let i = 0; i < 365; i++) { // проверяем максимум год назад
+    const dateStr = window.getLocalDate(currentDate);
+    
+    if (history[dateStr]) {
+      // День был активен
+      streakCount++;
+      lastActiveDate = dateStr;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else if (freePassAvailable && i > 0) {
+      // Пропущенный день, но есть выходной
+      freePassAvailable = false;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      // Пропуск без выходного или сегодня еще не занимался
+      if (i === 0 && streakCount > 0) {
+        // Сегодня еще не занимались, но стрик сохраняем
+        break;
+      }
+      // Прерываем серию
+      break;
+    }
+  }
+  
+  if (streakCount > 0) {
+    streak.count = streakCount;
+    streak.lastDate = lastActiveDate;
+    markProfileDirty('streak', streak.count);
+    markProfileDirty('laststreakdate', streak.lastDate);
+    
+    // Обновляем рекорд если нужно
+    if (streak.count > (streak.bestStreak || 0)) {
+      streak.bestStreak = streak.count;
+      markProfileDirty('best_streak', streak.bestStreak);
+    }
+    
+    renderStreak();
+    renderStats();
+    console.log(`[STREAK] Восстановлен стрик: ${streakCount} дней, последний день: ${lastActiveDate}`);
+    return { count: streakCount, lastDate: lastActiveDate };
+  }
+  
+  console.log('[STREAK] Нет данных для восстановления стрика');
+  return null;
+}
+
+// Делаем функцию доступной глобально для вызова из консоли
+window.restoreStreakFromHistory = restoreStreakFromHistory;
+
+// Восстанавливает стрик на основе переданных данных (даты с активностью)
+function restoreStreakFromDates(activeDates) {
+  const today = window.getLocalDate();
+  let streakCount = 0;
+  let lastActiveDate = null;
+  let currentDate = new Date(today);
+  let freePassAvailable = canUseFreePass();
+  
+  // Проходим по дням от сегодня назад
+  for (let i = 0; i < 365; i++) {
+    const dateStr = window.getLocalDate(currentDate);
+    
+    if (activeDates.includes(dateStr)) {
+      // День был активен
+      streakCount++;
+      lastActiveDate = dateStr;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else if (freePassAvailable && i > 0) {
+      // Пропущенный день, но есть выходной
+      freePassAvailable = false;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      // Пропуск без выходного или сегодня еще не занимался
+      if (i === 0 && streakCount > 0) {
+        // Сегодня еще не занимались, но стрик сохраняем
+        break;
+      }
+      // Прерываем серию
+      break;
+    }
+  }
+  
+  if (streakCount > 0) {
+    streak.count = streakCount;
+    streak.lastDate = lastActiveDate;
+    markProfileDirty('streak', streak.count);
+    markProfileDirty('laststreakdate', streak.lastDate);
+    
+    // Обновляем рекорд если нужно
+    if (streak.count > (streak.bestStreak || 0)) {
+      streak.bestStreak = streak.count;
+      markProfileDirty('best_streak', streak.bestStreak);
+    }
+    
+    // Заполняем историю активности
+    const history = getStreakHistory();
+    activeDates.forEach(date => {
+      history[date] = true;
+    });
+    saveStreakHistory(history);
+    
+    renderStreak();
+    renderStats();
+    console.log(`[STREAK] Восстановлен стрик: ${streakCount} дней, последний день: ${lastActiveDate}`);
+    return { count: streakCount, lastDate: lastActiveDate };
+  }
+  
+  console.log('[STREAK] Нет данных для восстановления стрика');
+  return null;
+}
+
+// Делаем функцию доступной глобально
+window.restoreStreakFromDates = restoreStreakFromDates;
+
+// Устанавливает стрик на указанное количество дней и дату, отправляет на сервер
+function setStreakCount(days, lastDate = null) {
+  if (typeof days !== 'number' || days < 0) {
+    console.error('[STREAK] Неверное значение дней');
+    return null;
+  }
+  
+  streak.count = days;
+  
+  // Если lastDate не передан и дней > 0, устанавливаем на сегодня
+  if (days > 0 && !lastDate) {
+    streak.lastDate = window.getLocalDate();
+  } else if (days === 0) {
+    streak.lastDate = null;
+  } else {
+    streak.lastDate = lastDate;
+  }
+  
+  // Обновляем рекорд если нужно
+  if (streak.count > (streak.bestStreak || 0)) {
+    streak.bestStreak = streak.count;
+    markProfileDirty('best_streak', streak.bestStreak);
+  }
+  
+  // Отправляем на сервер
+  markProfileDirty('streak', streak.count);
+  markProfileDirty('laststreakdate', streak.lastDate);
+  
+  renderStreak();
+  renderStats();
+  console.log(`[STREAK] Установлен стрик: ${days} дней, lastDate: ${streak.lastDate}`);
+  return { count: days, lastDate: streak.lastDate };
+}
+
+// Делаем функцию доступной глобально
+window.setStreakCount = setStreakCount;
+
+// Сбрасывает состояние выходного для тестирования
+function resetFreePass() {
+  streak.freePassUsedThisWeek = false;
+  streak.freezeNotificationShown = false;
+  const weekStart = getWeekStart();
+  streak.freePassWeekStart = weekStart;
+  markProfileDirty('free_pass_used', false);
+  markProfileDirty('freeze_notification_shown', false);
+  markProfileDirty('free_pass_week_start', weekStart);
+  console.log('[FREE PASS] Выходной сброшен для тестирования');
+  renderStreak();
+  return { used: false, shown: false, weekStart };
+}
+
+// Делаем функцию доступной глобально
+window.resetFreePass = resetFreePass;
+
 // === Free pass ===
 function getWeekStart() {
   const now = new Date();
@@ -7608,9 +7804,11 @@ function canUseFreePass() {
   const weekStart = getWeekStart();
   if (streak.freePassWeekStart !== weekStart) {
     streak.freePassUsedThisWeek = false;
+    streak.freezeNotificationShown = false;
     streak.freePassWeekStart = weekStart;
     markProfileDirty('free_pass_week_start', weekStart);
     markProfileDirty('free_pass_used', false);
+    markProfileDirty('freeze_notification_shown', false);
   }
   return !streak.freePassUsedThisWeek;
 }
@@ -7651,7 +7849,15 @@ function getDayWordForCount(count) {
 function useFreePass() {
   streak.freePassUsedThisWeek = true;
   markProfileDirty('free_pass_used', true);
-  toast('🔥 Выходной использован, серия сохранена!', 'info', 'shield');
+
+  // Обновляем lastDate на вчерашний день (пропущенный день)
+  // Это нужно чтобы при перезагрузке страницы стрик не сбросился
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  streak.lastDate = window.getLocalDate(yesterdayDate);
+  markProfileDirty('laststreakdate', streak.lastDate);
+
+  toast('Выходной использован, серия сохранена!', 'info', 'shield');
 }
 
 // Обработчик закрытия модалки уведомления о выходном
@@ -7675,7 +7881,10 @@ function getPracticeTimeToday() {
 }
 
 function updStreak() {
+  if (!window.profileFullyLoaded) return; // не трогаем стрик, пока профиль точно не загружен
+
   const today = window.getLocalDate();
+  console.log('[STREAK DEBUG]', { today, lastDate: streak.lastDate, profileFullyLoaded: window.profileFullyLoaded });
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = window.getLocalDate(yesterdayDate);
@@ -7687,8 +7896,19 @@ function updStreak() {
   }
 
   // Проверяем, выполнены ли условия для засчитывания дня
+  // Используем максимум из текущего practice_time, сохранённого в истории и серверных данных
   const practiceTimeToday = getPracticeTimeToday();
-  const isEligible = practiceTimeToday >= STREAK_CRITERIA.minPracticeTime;
+  const streakHistory = getStreakHistory();
+  const historyToday = streakHistory[today];
+  
+  // Также проверяем, был ли practice_time накоплен до сброса (сохранён в _preservedPracticeTime)
+  const preservedTime = window.dailyProgress._preservedPracticeTime || 0;
+  
+  // Если в истории есть запись за сегодня или practice_time был сохранён до сброса,
+  // значит активность была (даже если текущий practice_time сброшен)
+  const isEligible = practiceTimeToday >= STREAK_CRITERIA.minPracticeTime || 
+                     historyToday === true || 
+                     preservedTime >= STREAK_CRITERIA.minPracticeTime;
 
   if (!streak.lastDate) {
     // Первая активность вообще
@@ -7729,11 +7949,18 @@ function updStreak() {
   } else {
     // Сегодня нет активности
     if (daysSinceLastActive >= 2) {
-      // Серия сгорает
-      streak.count = 0;
-      streak.lastDate = null;
-      markProfileDirty('streak', streak.count);
-      markProfileDirty('laststreakdate', streak.lastDate);
+      // Проверяем, можно ли использовать выходной
+      if (daysSinceLastActive === 2 && canUseFreePass()) {
+        // Ровно 1 пропущенный день и есть выходной - используем его для защиты стрика
+        useFreePass();
+        // Ждём сегодняшней активности
+      } else {
+        // Серия сгорает
+        streak.count = 0;
+        streak.lastDate = null;
+        markProfileDirty('streak', streak.count);
+        markProfileDirty('laststreakdate', streak.lastDate);
+      }
     }
     // Если daysSinceLastActive === 1 — ничего не делаем (ждём завтра)
   }
@@ -9213,6 +9440,7 @@ window.switchTab = switchTab;
 window.switchToFriendsWithoutScroll = switchToFriendsWithoutScroll;
 
 window.renderWeekChart = renderWeekChart;
+window.renderMonthHeatmap = renderMonthHeatmap;
 
 document
 
@@ -14242,7 +14470,7 @@ document.getElementById('clear-words-btn')?.addEventListener('click', () => {
 
         // 4. Очищаем IndexedDB
 
-        await clearUserData();
+        await clearLocalWordCache();
 
         // 5. Очищаем очереди синхронизации
 
@@ -14500,7 +14728,7 @@ document.getElementById('reset-progress-btn')?.addEventListener('click', () => {
 
         // 4. Очищаем IndexedDB
 
-        await clearUserData();
+        await clearLocalWordCache();
 
         // 5. Обновляем списки если они открыты
 
@@ -14950,6 +15178,26 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
 
         </div>
 
+        <div class="exercise-card" data-ex="builder">
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
+
+          <div class="exercise-name">Собери</div>
+
+          <div class="exercise-desc">Составь слово из букв</div>
+
+        </div>
+
+        <div class="exercise-card" data-ex="match">
+
+          <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
+
+          <div class="exercise-name">Пары</div>
+
+          <div class="exercise-desc">Соедини слово и перевод</div>
+
+        </div>
+
         <div class="exercise-card" data-ex="type">
 
           <div class="exercise-icon"><span class="material-symbols-outlined">keyboard</span></div>
@@ -14967,46 +15215,6 @@ document.querySelectorAll('.chip[data-mode]').forEach(c =>
           <div class="exercise-name">Диктант</div>
 
           <div class="exercise-desc">Напиши, что слышишь</div>
-
-        </div>
-
-        <div class="exercise-card" data-ex="speech">
-
-          <div class="exercise-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
-
-          <div class="exercise-name">Скажи</div>
-
-          <div class="exercise-desc">Тренируй произношение</div>
-
-        </div>
-
-        <div class="exercise-card" data-ex="match">
-
-          <div class="exercise-icon"><span class="material-symbols-outlined">extension</span></div>
-
-          <div class="exercise-name">Пары</div>
-
-          <div class="exercise-desc">Соедини слово и перевод</div>
-
-        </div>
-
-        <div class="exercise-card" data-ex="builder">
-
-          <div class="exercise-icon"><span class="material-symbols-outlined">construction</span></div>
-
-          <div class="exercise-name">Собери</div>
-
-          <div class="exercise-desc">Составь слово из букв</div>
-
-        </div>
-
-        <div class="exercise-card" data-ex="sentence-builder">
-
-          <div class="exercise-icon"><span class="material-symbols-outlined">format_quote</span></div>
-
-          <div class="exercise-name">Собери предложение</div>
-
-          <div class="exercise-desc">Составь предложение из слов</div>
 
         </div>
 
@@ -17438,7 +17646,7 @@ function nextExercise() {
 
         correctVariants.length > 0 ? correctVariants.join(', ') : correctFull;
 
-      // --- Сбор дистракторов ---
+      // --- Сбор дистракторов с умным подбором ---
 
       let dataSource = isIdiom
 
@@ -17446,9 +17654,92 @@ function nextExercise() {
 
         : window.words;
 
-      let otherWords = dataSource.filter(x => x.id !== w.id);
+      // Для слов используем весь банк для лучшего подбора дистракторов
+      let bankPool = (!isIdiom && window.wordBank && window.wordBank.length > 0)
+        ? window.wordBank
+        : [];
 
-      let distractorCandidates = otherWords
+      // Если банк не загружен - используем личные слова как fallback
+      if (!isIdiom && bankPool.length === 0) {
+        console.warn('[MULTI] WordBank not loaded, using personal words as fallback');
+        bankPool = dataSource;
+      }
+
+      const currentEn = w.en?.toLowerCase() || '';
+      const targetLevel = w.cefr || null;
+
+      // Извлекаем основной русский перевод (первый вариант без скобок)
+      const currentRuVariants = parseAnswerVariants(w.ru);
+      const currentRu = currentRuVariants.length ? currentRuVariants[0].toLowerCase() : w.ru?.toLowerCase() || '';
+
+      // Фильтруем по уровню CEFR (если есть и это не идиома)
+      let candidates = bankPool;
+      if (!isIdiom && targetLevel) {
+        candidates = candidates.filter(item => item.cefr === targetLevel);
+      }
+
+      // Убираем само слово
+      candidates = candidates.filter(item => item.id !== w.id);
+
+      // Если после фильтрации по уровню мало слов — расширяем на все уровни
+      if (candidates.length < 3 && !isIdiom) {
+        candidates = bankPool.filter(item => item.id !== w.id);
+      }
+
+      // Префиксный поиск - выбираем поле в зависимости от направления
+      let finalCandidates = [];
+      if (!isIdiom) {
+        // Для RU→EN ищем похожие английские слова
+        // Для EN→RU ищем похожие русские переводы
+        const searchKey = isRUEN ? currentEn : currentRu;
+        const compareField = isRUEN ? 'en' : 'ru';
+
+        if (searchKey.length > 2) {
+          const prefixLengths = [3, 2, 1];
+          for (let len of prefixLengths) {
+            if (searchKey.length <= len) continue;
+            const prefix = searchKey.slice(0, len);
+
+            const matches = candidates.filter(item => {
+              let compareValue;
+              if (compareField === 'en') {
+                compareValue = item.en?.toLowerCase() || '';
+              } else {
+                // Для русского поля берем первый вариант перевода
+                const ruVariants = parseAnswerVariants(item.ru);
+                compareValue = ruVariants.length ? ruVariants[0].toLowerCase() : item.ru?.toLowerCase() || '';
+              }
+              return compareValue.startsWith(prefix);
+            });
+
+            if (matches.length >= 3) {
+              finalCandidates = matches;
+              break;
+            }
+          }
+        }
+      }
+
+      // Если по префиксу не хватило — берём случайные из отфильтрованных кандидатов
+      if (finalCandidates.length < 3) {
+        finalCandidates = candidates.sort(() => Math.random() - 0.5);
+      }
+
+      // Выбираем больше кандидатов чем нужно (10 вместо 5) чтобы после фильтрации осталось минимум 3-4
+      const distractorItems = finalCandidates.slice(0, 10);
+
+      let distractorCandidates = distractorItems
+
+        .filter(x => {
+          // Фильтруем ДО маппинга, чтобы иметь доступ к оригинальным полям
+          // Убираем если en/ru совпадает с правильным ответом
+          const enMatch = !isIdiom && x.en && x.en.toLowerCase() === currentEn;
+          const ruMatch = !isIdiom && x.ru && x.ru.toLowerCase() === currentRu;
+          if (enMatch || ruMatch) {
+            return false;
+          }
+          return true;
+        })
 
         .map(x => {
 
@@ -17472,11 +17763,55 @@ function nextExercise() {
 
           const variants = parseAnswerVariants(trans);
 
-          return { id: x.id, text: variants.length > 0 ? variants[0] : trans };
+          const result = { id: x.id, text: variants.length > 0 ? variants[0] : trans };
+          return result;
 
         })
 
-        .filter(item => item.text && !correctVariants.includes(item.text)); // убираем пустые и все варианты правильного ответа
+        .filter(item => item.text && !correctVariants.includes(item.text)) // убираем пустые и все варианты правильного ответа
+
+        .filter((item, index, self) => {
+          // Убираем дубликаты по тексту (например, house и home оба маппятся в "дом")
+          const firstIndex = self.findIndex(x => x.text === item.text);
+          return firstIndex === index;
+        });
+
+      // Если после фильтрации меньше 3 дистракторов, добираем из оставшихся кандидатов
+      if (distractorCandidates.length < 3) {
+        const remainingCandidates = finalCandidates.slice(10); // Берём следующие кандидаты
+        for (const x of remainingCandidates) {
+          if (distractorCandidates.length >= 3) break;
+          // Проверяем что не дубликат
+          const enMatch = !isIdiom && x.en && x.en.toLowerCase() === currentEn;
+          const ruMatch = !isIdiom && x.ru && x.ru.toLowerCase() === currentRu;
+          if (enMatch || ruMatch) continue;
+
+          let trans = isIdiom ? (field === 'definition' ? x.idiom.toLowerCase() : x.meaning) : (isRUEN ? x.en : x.ru);
+          const variants = parseAnswerVariants(trans);
+          const text = variants.length > 0 ? variants[0] : trans;
+          if (text && !correctVariants.includes(text) && !distractorCandidates.some(d => d.text === text)) {
+            distractorCandidates.push({ id: x.id, text });
+          }
+        }
+
+        // Если всё ещё мало - берём из всего банка (но без фильтрации по уровню)
+        if (distractorCandidates.length < 3 && bankPool.length > finalCandidates.length) {
+          const extraPool = bankPool.filter(item => !finalCandidates.includes(item));
+          for (const x of extraPool) {
+            if (distractorCandidates.length >= 3) break;
+            const enMatch = !isIdiom && x.en && x.en.toLowerCase() === currentEn;
+            const ruMatch = !isIdiom && x.ru && x.ru.toLowerCase() === currentRu;
+            if (enMatch || ruMatch) continue;
+
+            let trans = isIdiom ? (field === 'definition' ? x.idiom.toLowerCase() : x.meaning) : (isRUEN ? x.en : x.ru);
+            const variants = parseAnswerVariants(trans);
+            const text = variants.length > 0 ? variants[0] : trans;
+            if (text && !correctVariants.includes(text) && !distractorCandidates.some(d => d.text === text)) {
+              distractorCandidates.push({ id: x.id, text });
+            }
+          }
+        }
+      }
 
       // Перемешиваем и берём до 3 дистракторов
 
@@ -18204,19 +18539,7 @@ function nextExercise() {
 
             </div>
 
-            <div class="builder-hint"></div>
-
           </div>
-
-          <div class="builder-controls">
-
-  <button class="btn-pill btn-pill--secondary" id="builder-hint-btn">
-
-    <span class="material-symbols-outlined">lightbulb</span> Подсказка
-
-  </button>
-
-</div>
 
         `;
 
@@ -18412,106 +18735,6 @@ function nextExercise() {
 
       // Очистка ответа теперь через клик по буквам в ответе
 
-      // Подсказка
-
-      document
-
-        .getElementById('builder-hint-btn')
-
-        .addEventListener('click', () => {
-
-          const answerContainer = document.getElementById('builder-answer');
-
-          const currentAnswer = answerContainer.textContent.toLowerCase();
-
-          // Нормализуем для сравнения: удаляем знаки препинания и лишние пробелы
-          const normalizedAnswer = currentAnswer.replace(/[.,!?;:"'`]/g, '').replace(/\s+/g, ' ').trim();
-          const normalizedWord = word.replace(/[.,!?;:"'`]/g, '').replace(/\s+/g, ' ').trim();
-
-          // Уже всё введено — нечего подсказывать
-
-          if (normalizedAnswer === normalizedWord || normalizedAnswer.length >= normalizedWord.length)
-
-            return;
-
-          // Проверяем каждую уже введённую букву (игнорируя пробелы)
-
-          const answerChars = normalizedAnswer.replace(/\s/g, '');
-
-          const wordChars = normalizedWord.replace(/\s/g, '');
-
-          for (let i = 0; i < answerChars.length; i++) {
-
-            if (answerChars[i] !== wordChars[i]) return;
-
-          }
-
-          // Все предыдущие буквы верны — подсвечиваем следующую
-
-          const nextLetter = wordChars[answerChars.length];
-
-          const allBtns = document.querySelectorAll('.builder-letter');
-
-          const targetBtn = Array.from(allBtns).find(btn => {
-
-            const isVisible =
-
-              btn.style.visibility !== 'hidden' && btn.style.display !== 'none';
-
-            return btn.dataset.letter === nextLetter && isVisible;
-
-          });
-
-          if (targetBtn) {
-
-            const orig = {
-
-              background: targetBtn.style.background,
-
-              borderColor: targetBtn.style.borderColor,
-
-              color: targetBtn.style.color,
-
-              boxShadow: targetBtn.style.boxShadow,
-
-              transform: targetBtn.style.transform,
-
-              transition: targetBtn.style.transition,
-
-            };
-
-            targetBtn.style.transition = 'all 0.2s ease';
-
-            targetBtn.style.background = '#ffc107';
-
-            targetBtn.style.borderColor = '#ffc107';
-
-            targetBtn.style.color = '#fff';
-
-            targetBtn.style.boxShadow = '0 0 16px rgba(255,193,7,0.8)';
-
-            targetBtn.style.transform = 'scale(1.15)';
-
-            setTimeout(() => {
-
-              targetBtn.style.background = orig.background;
-
-              targetBtn.style.borderColor = orig.borderColor;
-
-              targetBtn.style.color = orig.color;
-
-              targetBtn.style.boxShadow = orig.boxShadow;
-
-              targetBtn.style.transform = orig.transform;
-
-              targetBtn.style.transition = orig.transition;
-
-            }, 1500);
-
-          }
-
-        });
-
       function checkBuilderAnswer() {
 
         const currentAnswer = answerContainer.textContent.toLowerCase();
@@ -18568,73 +18791,33 @@ function nextExercise() {
 
         } else if (normalizedAnswer.length >= normalizedWord.length) {
 
-          // НЕПРАВИЛЬНЫЙ ОТВЕТ — используем новый лист
+          // НЕПРАВИЛЬНЫЙ ОТВЕТ — используем общий фидбек
 
           lettersContainer.style.display = 'none';
 
-          const resetAction = () => {
+          recordAnswer(false, t);
 
-            // Код сброса с поддержкой multi-word выражений
+          getFeedbackHTML(
 
-            answerContainer.innerHTML = '';
+            w,
 
-            let charIndex = 0;
+            false,
 
-            words.forEach((word, wordIdx) => {
+            null,
 
-              // Добавляем ячейки для букв текущего слова
+            () => {
 
-              for (let i = 0; i < word.replace(/[^a-z]/g, '').replace(/["'`]/g, '').length; i++) {
+              hideFeedbackSheet();
 
-                const placeholder = document.createElement('span');
+              sIdx++;
 
-                placeholder.className = 'builder-answer-letter placeholder';
+              nextExercise();
 
-                placeholder.textContent = '';
+            },
 
-                placeholder.dataset.index = charIndex++;
+            null,
 
-                answerContainer.appendChild(placeholder);
-
-              }
-
-              // Добавляем пробельную ячейку между словами (если не последнее слово)
-
-              if (wordIdx < words.length - 1) {
-
-                const spacePlaceholder = document.createElement('span');
-
-                spacePlaceholder.className = 'builder-answer-letter space-placeholder';
-
-                spacePlaceholder.textContent = ' ';
-
-                spacePlaceholder.dataset.isSpace = 'true';
-
-                answerContainer.appendChild(spacePlaceholder);
-
-              }
-
-            });
-
-            // Восстанавливаем все кнопки букв
-
-            document.querySelectorAll('.builder-letter').forEach(btn => {
-
-              btn.disabled = false;
-
-              btn.style.visibility = 'visible';
-
-              btn.classList.remove('builder-hint-pulse'); // убираем подсветку
-
-            });
-
-            // Показываем контейнер с буквами
-
-            document.getElementById('builder-letters').style.display = 'flex';
-
-          };
-
-          showBuilderIncorrectFeedback(resetAction);
+          );
 
           playSound('wrong');
 
@@ -19110,6 +19293,8 @@ function nextExercise() {
 
       try {
 
+        const matchCount = Math.min(6, window.session.items.length - sIdx);
+
         if (window.session.dataType === 'idioms') {
 
           runIdiomMatchExercise(
@@ -19118,7 +19303,7 @@ function nextExercise() {
 
             elapsed => {
 
-              sIdx++;
+              sIdx += matchCount;
 
               nextExercise();
 
@@ -19136,7 +19321,7 @@ function nextExercise() {
 
             elapsed => {
 
-              sIdx++;
+              sIdx += matchCount;
 
               nextExercise();
 
@@ -20428,19 +20613,19 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
   content.innerHTML = `
 
-    <div class="match-timer" id="match-timer">0.0s</div>
+    <div class="match-columns" style="display: flex; gap: 12px;">
 
-    <div class="match-progress" id="match-progress"></div>
+      <div class="match-col" id="match-col-en" style="flex: 1; display: flex; flex-direction: column; gap: 8px;"></div>
 
-    <div class="match-grid" id="match-grid"></div>
+      <div class="match-col" id="match-col-ru" style="flex: 1; display: flex; flex-direction: column; gap: 8px;"></div>
+
+    </div>
 
   `;
 
-  const timerEl = document.getElementById('match-timer');
+  const colEn = document.getElementById('match-col-en');
 
-  const progressEl = document.getElementById('match-progress');
-
-  const grid = document.getElementById('match-grid');
+  const colRu = document.getElementById('match-col-ru');
 
   let startTime = Date.now();
 
@@ -20448,41 +20633,15 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
   const currentWords = initialWords.slice(0, wordsCount);
 
-  progressEl.textContent = `Найди ${wordsCount} пар`;
-
-  let timerRunning = true;
-
-  function updateTimer() {
-
-    if (!timerRunning) return;
-
-    timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-
-    requestAnimationFrame(updateTimer);
-
-  }
-
-  requestAnimationFrame(updateTimer);
-
-  // Сохраняем функцию для остановки
-
-  window._matchTimerCancel = () => {
-
-    timerRunning = false;
-
-  };
-
-  const enWords = [...currentWords];
+  const enWords = [...currentWords].sort(() => Math.random() - 0.5);
 
   const ruWords = [...currentWords].sort(() => Math.random() - 0.5);
 
-  grid.innerHTML = '';
+  colEn.innerHTML = '';
 
-  for (let i = 0; i < currentWords.length; i++) {
+  colRu.innerHTML = '';
 
-    const enW = enWords[i];
-
-    const ruW = ruWords[i];
+  enWords.forEach(enW => {
 
     const enBtn = document.createElement('button');
 
@@ -20494,6 +20653,12 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
     enBtn.textContent = enW.en || '';
 
+    colEn.appendChild(enBtn);
+
+  });
+
+  ruWords.forEach(ruW => {
+
     const ruBtn = document.createElement('button');
 
     ruBtn.className = 'match-btn';
@@ -20504,11 +20669,9 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
     ruBtn.textContent = ruW.ru || ruW.translation || '';
 
-    grid.appendChild(enBtn);
+    colRu.appendChild(ruBtn);
 
-    grid.appendChild(ruBtn);
-
-  }
+  });
 
   let matchedInRound = 0;
 
@@ -20526,8 +20689,6 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
     const id = btn.dataset.id;
 
-    // Отмена выбора при клике на ту же кнопку
-
     if (selectedWord && selectedWord.element === btn) {
 
       selectedWord.element.classList.remove('selected');
@@ -20537,8 +20698,6 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
       return;
 
     }
-
-    // Первое нажатие
 
     if (!selectedWord) {
 
@@ -20550,23 +20709,15 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
     }
 
-    // Второе нажатие – проверка пары
-
     if (selectedWord.id === id && selectedWord.side !== side) {
 
       playSound('correct');
 
       matchedInRound++;
 
-      // Захватываем ссылки ДО того как selectedWord = null
-
       const matchedBtn1 = btn;
 
       const matchedBtn2 = selectedWord.element;
-
-      const matchedId2 = selectedWord.id;
-
-      // Мгновенно — зелёная подсветка
 
       btn.classList.add('correct');
 
@@ -20580,11 +20731,7 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
       sResults.correct.push(initialWords.find(w => w.id === id));
 
-      // selectedWord.id — это тот же самый id, просто другая сторона
-
       selectedWord = null;
-
-      // Через 280мс — анимация исчезновения
 
       setTimeout(() => {
 
@@ -20593,8 +20740,6 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
         matchedBtn2.classList.add('match-fade-out');
 
       }, 280);
-
-      // Через 600мс — прячем чтобы grid не прыгал
 
       setTimeout(() => {
 
@@ -20606,31 +20751,19 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
       if (matchedInRound === totalInRound) {
 
-        if (window._matchTimerCancel) {
-
-          window._matchTimerCancel();
-
-          window._matchTimerCancel = null;
-
-        }
-
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-        setTimeout(() => onComplete(elapsed), 600); // ждём окончания анимации
+        setTimeout(() => onComplete(elapsed), 600);
 
       }
 
     } else {
-
-      // Ошибка
 
       playSound('wrong');
 
       btn.classList.add('wrong');
 
       selectedWord.element.classList.add('wrong');
-
-      // Записываем ошибку для первого выбранного слова
 
       updStats(selectedWord.id, false, exerciseType);
 
@@ -20654,7 +20787,9 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
   }
 
-  grid.addEventListener('click', clickHandler);
+  colEn.addEventListener('click', clickHandler);
+
+  colRu.addEventListener('click', clickHandler);
 
 }
 
@@ -20672,19 +20807,19 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
   content.innerHTML = `
 
-    <div class="match-timer" id="match-timer">0.0s</div>
+    <div class="match-columns" style="display: flex; gap: 12px;">
 
-    <div class="match-progress" id="match-progress"></div>
+      <div class="match-col" id="match-col-left" style="flex: 1; display: flex; flex-direction: column; gap: 8px;"></div>
 
-    <div class="match-grid" id="match-grid"></div>
+      <div class="match-col" id="match-col-right" style="flex: 1; display: flex; flex-direction: column; gap: 8px;"></div>
+
+    </div>
 
   `;
 
-  const timerEl = document.getElementById('match-timer');
+  const colLeft = document.getElementById('match-col-left');
 
-  const progressEl = document.getElementById('match-progress');
-
-  const grid = document.getElementById('match-grid');
+  const colRight = document.getElementById('match-col-right');
 
   let startTime = Date.now();
 
@@ -20692,39 +20827,15 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
   const currentItems = items.slice(0, wordsCount);
 
-  progressEl.textContent = `Найди ${wordsCount} пар`;
-
-  let timerRunning = true;
-
-  function updateTimer() {
-
-    if (!timerRunning) return;
-
-    timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-
-    requestAnimationFrame(updateTimer);
-
-  }
-
-  requestAnimationFrame(updateTimer);
-
-  window._matchTimerCancel = () => {
-
-    timerRunning = false;
-
-  };
-
-  const leftItems = [...currentItems];
+  const leftItems = [...currentItems].sort(() => Math.random() - 0.5);
 
   const rightItems = [...currentItems].sort(() => Math.random() - 0.5);
 
-  grid.innerHTML = '';
+  colLeft.innerHTML = '';
 
-  for (let i = 0; i < currentItems.length; i++) {
+  colRight.innerHTML = '';
 
-    const left = leftItems[i];
-
-    const right = rightItems[i];
+  leftItems.forEach(left => {
 
     const leftBtn = document.createElement('button');
 
@@ -20736,6 +20847,12 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
     leftBtn.textContent = left.idiom.toLowerCase();
 
+    colLeft.appendChild(leftBtn);
+
+  });
+
+  rightItems.forEach(right => {
+
     const rightBtn = document.createElement('button');
 
     rightBtn.className = 'match-btn';
@@ -20746,11 +20863,9 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
     rightBtn.textContent = right.meaning;
 
-    grid.appendChild(leftBtn);
+    colRight.appendChild(rightBtn);
 
-    grid.appendChild(rightBtn);
-
-  }
+  });
 
   let matchedInRound = 0;
 
@@ -20768,8 +20883,6 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
     const id = btn.dataset.id;
 
-    // Отмена выбора при клике на ту же кнопку
-
     if (selected && selected.element === btn) {
 
       selected.element.classList.remove('selected');
@@ -20779,8 +20892,6 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
       return;
 
     }
-
-    // Первое нажатие
 
     if (!selected) {
 
@@ -20792,8 +20903,6 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
     }
 
-    // Второе нажатие – проверка пары
-
     if (selected.id === id && selected.side !== side) {
 
       playSound('correct');
@@ -20803,8 +20912,6 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
       const matchedBtn1 = btn;
 
       const matchedBtn2 = selected.element;
-
-      const matchedId2 = selected.id;
 
       btn.classList.add('correct');
 
@@ -20817,8 +20924,6 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
       updIdiomStats(id, true, exerciseType);
 
       sResults.correct.push(currentItems.find(i => i.id === id));
-
-      // selected.id — это тот же самый id, просто другая сторона
 
       selected = null;
 
@@ -20840,14 +20945,6 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
       if (matchedInRound === totalInRound) {
 
-        if (window._matchTimerCancel) {
-
-          window._matchTimerCancel();
-
-          window._matchTimerCancel = null;
-
-        }
-
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
         setTimeout(() => onComplete(elapsed), 600);
@@ -20855,8 +20952,6 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
       }
 
     } else {
-
-      // Ошибка
 
       playSound('wrong');
 
@@ -20886,7 +20981,9 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
   }
 
-  grid.addEventListener('click', clickHandler);
+  colLeft.addEventListener('click', clickHandler);
+
+  colRight.addEventListener('click', clickHandler);
 
 }
 
@@ -20948,7 +21045,7 @@ function runContextExercise(item, onComplete, exerciseType) {
 
     exampleText = item.example || item.ex || '';
 
-    exampleTranslation = item.example_translation || '';
+    exampleTranslation = item.example_translation || item.meaning || '';
 
     correctAnswer = item.idiom;
 
@@ -20956,7 +21053,7 @@ function runContextExercise(item, onComplete, exerciseType) {
 
     exampleText = item.ex || '';
 
-    exampleTranslation = item.examples?.[0]?.translation || '';
+    exampleTranslation = item.examples?.[0]?.translation || item.meaning || '';
 
     correctAnswer = item.en;
 
@@ -20966,6 +21063,10 @@ function runContextExercise(item, onComplete, exerciseType) {
 
   const escapedWord = correctAnswer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+  console.log('[CONTEXT] correctAnswer:', correctAnswer);
+  console.log('[CONTEXT] escapedWord:', escapedWord);
+  console.log('[CONTEXT] exampleText:', exampleText);
+
   const exampleWithBlank = exampleText.replace(
 
     new RegExp(escapedWord, 'gi'),
@@ -20973,6 +21074,16 @@ function runContextExercise(item, onComplete, exerciseType) {
     '_____',
 
   );
+
+  console.log('[CONTEXT] exampleWithBlank:', exampleWithBlank);
+
+  // Если замена не сработала (слово не найдено), пробуем без учёта регистра и спецсимволов
+  const finalExampleWithBlank =
+    exampleWithBlank === exampleText
+      ? exampleText.replace(new RegExp(correctAnswer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '_____')
+      : exampleWithBlank;
+
+  console.log('[CONTEXT] finalExampleWithBlank:', finalExampleWithBlank);
 
   // Перемешиваем варианты
 
@@ -20986,7 +21097,7 @@ function runContextExercise(item, onComplete, exerciseType) {
 
         <div class="context-text" onclick="this.nextElementSibling.style.display='block'; this.style.background='transparent'; this.onmouseover=null; this.onmouseout=null;" style="cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s;" title="Нажмите для перевода" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">
 
-          ${esc(exampleWithBlank)}
+          ${esc(finalExampleWithBlank)}
 
         </div>
 
@@ -21041,7 +21152,7 @@ function runContextExercise(item, onComplete, exerciseType) {
 
       getFeedbackHTML(
 
-        item,
+        isIdiom ? { en: item.idiom, ru: item.meaning } : item,
 
         isCorrect,
 
@@ -21741,16 +21852,6 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
     </div>
 
-    <div class="builder-controls">
-
-      <button class="btn-pill btn-pill--secondary" id="idiom-builder-hint-btn">
-
-        <span class="material-symbols-outlined">lightbulb</span> Подсказка
-
-      </button>
-
-    </div>
-
   `;
 
   const answerContainer = document.getElementById('idiom-builder-answer');
@@ -21907,129 +22008,33 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
     } else if (current.length >= phrase.length) {
 
-      // НЕПРАВИЛЬНЫЙ ОТВЕТ — используем новый лист
+      // НЕПРАВИЛЬНЫЙ ОТВЕТ — используем общий фидбек
 
-      wordsContainer.style.display = 'none'; // скрываем буквы
+      wordsContainer.style.display = 'none';
 
-      // Сохраняем ссылку на контейнеры для сброса
+      recordAnswer(false, exerciseType);
 
-      const resetAction = () => {
+      getFeedbackHTML(
 
-        // Код сброса (тот же, что был у кнопки)
+        { en: phrase, ru: item.meaning },
 
-        answerContainer.innerHTML = '';
+        false,
 
-        for (let i = 0; i < words.length; i++) {
+        null,
 
-          const placeholder = document.createElement('span');
+        () => {
 
-          placeholder.className = 'builder-answer-letter placeholder';
+          hideFeedbackSheet();
 
-          placeholder.dataset.index = i;
+          onComplete();
 
-          answerContainer.appendChild(placeholder);
+        },
 
-        }
+        null,
 
-        wordsContainer.innerHTML = '';
-
-        shuffled.forEach((word, index) => {
-
-          const btn = document.createElement('button');
-
-          btn.className = 'builder-letter';
-
-          btn.textContent = word;
-
-          btn.dataset.word = word;
-
-          btn.dataset.index = index;
-
-          btn.addEventListener('click', () => {
-
-            if (btn.disabled) return;
-
-            const firstPlaceholder = answerContainer.querySelector(
-
-              '.builder-answer-letter.placeholder',
-
-            );
-
-            if (!firstPlaceholder) return;
-
-            firstPlaceholder.classList.remove('placeholder');
-
-            firstPlaceholder.textContent = word;
-
-            firstPlaceholder.style.cursor = 'pointer';
-
-            firstPlaceholder.title = 'Нажмите, чтобы убрать';
-
-            firstPlaceholder.dataset.word = word;
-
-            btn.disabled = true;
-
-            btn.style.visibility = 'hidden';
-
-            firstPlaceholder.addEventListener(
-
-              'click',
-
-              function removeHandler() {
-
-                if (!firstPlaceholder.classList.contains('placeholder')) {
-
-                  const targetBtn = Array.from(wordsContainer.children).find(
-
-                    b => b.dataset.word === word && b.disabled,
-
-                  );
-
-                  if (targetBtn) {
-
-                    targetBtn.disabled = false;
-
-                    targetBtn.style.visibility = 'visible';
-
-                  }
-
-                  firstPlaceholder.classList.add('placeholder');
-
-                  firstPlaceholder.textContent = '';
-
-                  firstPlaceholder.style.cursor = 'default';
-
-                  firstPlaceholder.title = '';
-
-                  delete firstPlaceholder.dataset.word;
-
-                  firstPlaceholder.removeEventListener('click', removeHandler);
-
-                }
-
-                checkAnswer();
-
-              },
-
-            );
-
-            checkAnswer();
-
-          });
-
-          wordsContainer.appendChild(btn);
-
-        });
-
-        wordsContainer.style.display = 'flex';
-
-      };
-
-      showBuilderIncorrectFeedback(resetAction);
+      );
 
       playSound('wrong');
-
-      // НЕ вызываем recordAnswer(false) и onComplete()
 
     }
 
@@ -22037,96 +22042,7 @@ function runIdiomBuilderExercise(item, onComplete, exerciseType) {
 
   // Старая кнопка сброса убрана - теперь сброс только в фидбеке при неправильном ответе
 
-  // Логика подсказки
-
-  const hintBtn = document.getElementById('idiom-builder-hint-btn');
-
-  if (hintBtn) {
-
-    hintBtn.addEventListener('click', () => {
-
-      const current = Array.from(answerContainer.children)
-
-        .map(el => el.textContent)
-
-        .join(' ')
-
-        .trim();
-
-      const currentWords = current ? current.split(' ') : [];
-
-      // Проверяем, что все уже поставленные слова правильные
-      for (let i = 0; i < currentWords.length; i++) {
-        if (currentWords[i] !== words[i]) {
-          // Если хоть одно слово неправильно, подсказка не работает
-          toast('Сначала исправьте неправильные слова', 'warning');
-          return;
-        }
-      }
-
-      const nextWord = words[currentWords.length];
-
-      if (!nextWord) return;
-
-      const targetBtn = Array.from(wordsContainer.children).find(
-
-        b => b.dataset.word === nextWord && !b.disabled,
-
-      );
-
-      if (targetBtn) {
-
-        const orig = {
-
-          background: targetBtn.style.background,
-
-          borderColor: targetBtn.style.borderColor,
-
-          color: targetBtn.style.color,
-
-          boxShadow: targetBtn.style.boxShadow,
-
-          transform: targetBtn.style.transform,
-
-          transition: targetBtn.style.transition,
-
-        };
-
-        targetBtn.style.transition = 'all 0.2s ease';
-
-        targetBtn.style.background = '#ffc107';
-
-        targetBtn.style.borderColor = '#ffc107';
-
-        targetBtn.style.color = '#fff';
-
-        targetBtn.style.boxShadow = '0 0 16px rgba(255,193,7,0.8)';
-
-        targetBtn.style.transform = 'scale(1.15)';
-
-        setTimeout(() => {
-
-          targetBtn.style.background = orig.background;
-
-          targetBtn.style.borderColor = orig.borderColor;
-
-          targetBtn.style.color = orig.color;
-
-          targetBtn.style.boxShadow = orig.boxShadow;
-
-          targetBtn.style.transform = orig.transform;
-
-          targetBtn.style.transition = orig.transition;
-
-        }, 2000);
-
-      }
-
-    });
-
-  }
-
-  // Убираем кнопку пропуска - не нужна как в собери слово
+  // Hint button removed - no longer needed
 
 }
 
@@ -22177,16 +22093,6 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
         <div class="builder-letters" id="sentence-builder-words"></div>
 
       </div>
-
-    </div>
-
-    <div class="builder-controls">
-
-      <button class="btn-pill btn-pill--secondary" id="sentence-builder-hint-btn">
-
-        <span class="material-symbols-outlined">lightbulb</span> Подсказка
-
-      </button>
 
     </div>
 
@@ -22369,119 +22275,31 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
 
     } else if (current.length >= sentence.length) {
 
+      // НЕПРАВИЛЬНЫЙ ОТВЕТ — используем общий фидбек
+
       wordsContainer.style.display = 'none';
 
-      const resetAction = () => {
+      recordAnswer(false, exerciseType);
 
-        answerContainer.innerHTML = '';
+      getFeedbackHTML(
 
-        for (let i = 0; i < words.length; i++) {
+        { en: sentence, ru: translation || word.ru },
 
-          const placeholder = document.createElement('span');
+        false,
 
-          placeholder.className = 'builder-answer-letter placeholder';
+        null,
 
-          placeholder.dataset.index = i;
+        () => {
 
-          answerContainer.appendChild(placeholder);
+          hideFeedbackSheet();
 
-        }
+          onComplete();
 
-        wordsContainer.innerHTML = '';
+        },
 
-        shuffled.forEach((wordToken, idx) => {
+        null,
 
-          const btn = document.createElement('button');
-
-          btn.className = 'builder-letter';
-
-          btn.textContent = wordToken;
-
-          btn.dataset.word = wordToken;
-
-          btn.dataset.index = idx;
-
-          btn.addEventListener('click', () => {
-
-            if (btn.disabled) return;
-
-            const firstPlaceholder = answerContainer.querySelector(
-
-              '.builder-answer-letter.placeholder',
-
-            );
-
-            if (!firstPlaceholder) return;
-
-            firstPlaceholder.classList.remove('placeholder');
-
-            firstPlaceholder.textContent = wordToken;
-
-            firstPlaceholder.style.cursor = 'pointer';
-
-            firstPlaceholder.title = 'Нажмите, чтобы убрать';
-
-            firstPlaceholder.dataset.word = wordToken;
-
-            btn.disabled = true;
-
-            btn.style.visibility = 'hidden';
-
-            firstPlaceholder.addEventListener(
-
-              'click',
-
-              function removeHandler() {
-
-                if (!firstPlaceholder.classList.contains('placeholder')) {
-
-                  const targetBtn = Array.from(wordsContainer.children).find(
-
-                    b => b.dataset.word === wordToken && b.disabled,
-
-                  );
-
-                  if (targetBtn) {
-
-                    targetBtn.disabled = false;
-
-                    targetBtn.style.visibility = 'visible';
-
-                  }
-
-                  firstPlaceholder.classList.add('placeholder');
-
-                  firstPlaceholder.textContent = '';
-
-                  firstPlaceholder.style.cursor = 'default';
-
-                  firstPlaceholder.title = '';
-
-                  delete firstPlaceholder.dataset.word;
-
-                  firstPlaceholder.removeEventListener('click', removeHandler);
-
-                }
-
-                checkAnswer();
-
-              },
-
-            );
-
-            checkAnswer();
-
-          });
-
-          wordsContainer.appendChild(btn);
-
-        });
-
-        wordsContainer.style.display = 'flex';
-
-      };
-
-      showBuilderIncorrectFeedback(resetAction);
+      );
 
       playSound('wrong');
 
@@ -22489,92 +22307,7 @@ function runSentenceBuilderExercise(word, onComplete, exerciseType) {
 
   }
 
-  const hintBtn = document.getElementById('sentence-builder-hint-btn');
-
-  if (hintBtn) {
-
-    hintBtn.addEventListener('click', () => {
-
-      const current = Array.from(answerContainer.children)
-
-        .map(el => el.textContent)
-
-        .join(' ')
-
-        .trim();
-
-      const currentWords = current ? current.split(' ') : [];
-
-      // Проверяем, что все уже поставленные слова правильные
-      for (let i = 0; i < currentWords.length; i++) {
-        if (currentWords[i] !== words[i]) {
-          // Если хоть одно слово неправильно, подсказка не работает
-          toast('Сначала исправьте неправильные слова', 'warning');
-          return;
-        }
-      }
-
-      const nextWord = words[currentWords.length];
-
-      if (!nextWord) return;
-
-      const targetBtn = Array.from(wordsContainer.children).find(
-
-        b => b.dataset.word === nextWord && !b.disabled,
-
-      );
-
-      if (targetBtn) {
-
-        const orig = {
-
-          background: targetBtn.style.background,
-
-          borderColor: targetBtn.style.borderColor,
-
-          color: targetBtn.style.color,
-
-          boxShadow: targetBtn.style.boxShadow,
-
-          transform: targetBtn.style.transform,
-
-          transition: targetBtn.style.transition,
-
-        };
-
-        targetBtn.style.transition = 'all 0.2s ease';
-
-        targetBtn.style.background = '#ffc107';
-
-        targetBtn.style.borderColor = '#ffc107';
-
-        targetBtn.style.color = '#fff';
-
-        targetBtn.style.boxShadow = '0 0 16px rgba(255,193,7,0.8)';
-
-        targetBtn.style.transform = 'scale(1.15)';
-
-        setTimeout(() => {
-
-          targetBtn.style.background = orig.background;
-
-          targetBtn.style.borderColor = orig.borderColor;
-
-          targetBtn.style.color = orig.color;
-
-          targetBtn.style.boxShadow = orig.boxShadow;
-
-          targetBtn.style.transform = orig.transform;
-
-          targetBtn.style.transition = orig.transition;
-
-        }, 2000);
-
-      }
-
-    });
-
-  }
+  // Hint button removed - no longer needed
 
 }
 
@@ -22859,9 +22592,9 @@ window.clearUserData = async function (isExplicitLogout = false) {
 
   window.idioms = [];
 
-  window.xpData = { xp: 0, level: 1, badges: [] };
+  Object.assign(window.xpData, { xp: 0, level: 1, badges: [] });
 
-  window.streak = { count: 0, lastDate: null, bestStreak: 0, freePassUsedThisWeek: false, freePassWeekStart: null };
+  Object.assign(window.streak, { count: 0, lastDate: null, bestStreak: 0, freePassUsedThisWeek: false, freePassWeekStart: null });
 
   window.dailyProgress = {
 
@@ -24023,45 +23756,58 @@ document.addEventListener('visibilitychange', () => {
 
 window.onProfileFullyLoaded = async function () {
 
-  console.log('[PROFILE] Профиль загружен');
+  console.log('[PROFILE] onProfileFullyLoaded called');
 
   try {
 
     window.profileFullyLoaded = true;
 
+    console.log('[PROFILE] Removing loading class from body');
     // Убираем класс loading с body
 
     document.body.classList.remove('loading');
 
+    console.log('[PROFILE] Starting migrateFromLocalStorage');
     // 1. Миграция из localStorage (один раз)
 
     await migrateFromLocalStorage();
+    console.log('[PROFILE] migrateFromLocalStorage completed');
 
+    console.log('[PROFILE] Starting loadFromCache');
     // 2. Быстрая загрузка из кеша (без рендера)
 
     await loadFromCache();
+    console.log('[PROFILE] loadFromCache completed');
 
+    console.log('[PROFILE] Starting updateWordsFromBank');
     // 2.5. Обновляем существующие слова данными из WordBankDB (включая grammar)
 
     await updateWordsFromBank();
+    console.log('[PROFILE] updateWordsFromBank completed');
 
+    console.log('[PROFILE] Starting enrichWordsWithBankData');
     // 2.55. Обогащаем старые слова аудио примеров и CEFR из банка
 
     await enrichWordsWithBankData();
+    console.log('[PROFILE] enrichWordsWithBankData completed');
 
+    console.log('[PROFILE] Starting loadIdiomBank');
     // 2.56. Запускаем загрузку банка идиом (как и слов)
 
     if (window.IdiomAPI) {
 
       window.IdiomAPI.loadIdiomBank().catch(console.warn);
+      console.log('[PROFILE] loadIdiomBank initiated');
 
     }
 
+    console.log('[PROFILE] Starting loadWordsOnce');
     // 2.6. Загружаем слова из Supabase
 
     await new Promise(resolve => {
 
       window.authExports?.loadWordsOnce(remoteWords => {
+        console.log('[PROFILE] loadWordsOnce callback received, remoteWords count:', remoteWords?.length);
 
         const localWords = window.words || [];
 
@@ -24084,6 +23830,8 @@ window.onProfileFullyLoaded = async function () {
         const wordsKey = `englift_words_${window.currentUserId}`;
         localStorage.setItem(wordsKey, JSON.stringify(window.words));
 
+        console.log('[PROFILE] Words saved to localStorage, count:', window.words?.length);
+
         // Принудительная перерисовка после обновления слов
 
         if (window.renderWords) window.renderWords();
@@ -24096,26 +23844,32 @@ window.onProfileFullyLoaded = async function () {
 
         if (window.refreshUI) window.refreshUI();
 
+        console.log('[PROFILE] UI refresh completed');
         resolve();
 
       });
 
     });
 
+    console.log('[PROFILE] loadWordsOnce completed');
     // 3. Применяем данные профиля (они уже должны быть загружены из Supabase)
 
     if (window.profileData) {
 
+      console.log('[PROFILE] Applying profile data');
       window.applyProfileData(window.profileData);
 
     }
 
+    console.log('[PROFILE] Checking streak');
     // Проверяем и обновляем серию при загрузке
     updStreak();
 
+    console.log('[PROFILE] Rendering streak');
     // Отображаем текущее состояние серии (без изменения логики)
     renderStreak();
 
+    console.log('[PROFILE] Checking badges');
     // Проверяем бейджи только после полной загрузки слов
     checkBadges();
 
@@ -24325,16 +24079,11 @@ window.addEventListener('online', () => {
 
   if (window.authExports?.supabase) {
 
-    // Supabase v2 API: onAuthStateChange (без d)
-
-    window.authExports.supabase.auth.onAuthStateChange((event, session) => {
-
-      if (event === 'SIGNED_IN' && session?.user) {
-
+    // Проверяем текущую сессию один раз, без подписки на события (избегаем утечки слушателей)
+    window.authExports.supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
         console.log('[ONLINE] Пользователь авторизован');
-
       }
-
     });
 
   }
@@ -25281,9 +25030,16 @@ async function loadLeaderboard(period = 'week') {
 
     if (period === 'all') {
 
-      // Просто берём XP из profiles
+      // Считаем XP за всё время из xp_log
+      const { data: logs } = await supabase
 
-      const { data } = await supabase
+        .from('xp_log')
+
+        .select('user_id, amount')
+
+        .in('user_id', allIds);
+
+      const { data: profiles } = await supabase
 
         .from('profiles')
 
@@ -25291,7 +25047,21 @@ async function loadLeaderboard(period = 'week') {
 
         .in('id', allIds);
 
-      scores = (data || []).map(p => ({ ...p, periodXp: p.xp }));
+      const xpMap = {};
+
+      (logs || []).forEach(l => {
+
+        xpMap[l.user_id] = (xpMap[l.user_id] || 0) + l.amount;
+
+      });
+
+      scores = (profiles || []).map(p => ({
+
+        ...p,
+
+        periodXp: xpMap[p.id] || 0,
+
+      }));
 
     } else {
 
@@ -26417,7 +26187,14 @@ async function loadLeaderboard(period = 'week') {
 
     if (period === 'all') {
 
-      // Берём XP из profiles
+      // Считаем XP за всё время из xp_log
+      const { data: logs } = await supabase
+
+        .from('xp_log')
+
+        .select('user_id, amount')
+
+        .in('user_id', allIds);
 
       const { data: profiles } = await supabase
 
@@ -26427,7 +26204,21 @@ async function loadLeaderboard(period = 'week') {
 
         .in('id', allIds);
 
-      scores = (profiles || []).map(p => ({ ...p, periodXp: p.xp || 0 }));
+      const xpMap = {};
+
+      (logs || []).forEach(l => {
+
+        xpMap[l.user_id] = (xpMap[l.user_id] || 0) + l.amount;
+
+      });
+
+      scores = (profiles || []).map(p => ({
+
+        ...p,
+
+        periodXp: xpMap[p.id] || 0,
+
+      }));
 
     } else {
 
@@ -30702,6 +30493,8 @@ let friendshipsChannel = null;
 
 let reactionsChannel = null;
 
+let isSubscribing = false; // Защита от повторных подписок
+
 // Глобальная функция для пикера реакций (используется для входящих сообщений)
 
 window.showReactionPickerGlobal = function (messageId) {
@@ -30784,6 +30577,20 @@ function subscribeToMessages() {
 
   );
 
+  // Защита от повторных подписок
+  if (isSubscribing) {
+    console.log('[GLOBAL MSG] Already subscribing, skipping duplicate call');
+    return;
+  }
+
+  // Если канал уже подписан успешно, не пересоздаём
+  if (messagesChannel && messagesChannel.state === 'joined') {
+    console.log('[GLOBAL MSG] Already subscribed, skipping');
+    return;
+  }
+
+  isSubscribing = true;
+
   if (messagesChannel) {
 
     console.log('[GLOBAL MSG] Unsubscribing existing channel');
@@ -30797,6 +30604,8 @@ function subscribeToMessages() {
   if (!userId) {
 
     console.warn('[GLOBAL MSG] No userId, skipping subscription');
+
+    isSubscribing = false;
 
     return;
 
@@ -30962,9 +30771,19 @@ function subscribeToMessages() {
 
             console.log('[GLOBAL MSG] ✅ Successfully subscribed to messages');
 
+            isSubscribing = false; // Сбрасываем флаг после успешной подписки
+
           } else if (status === 'CHANNEL_ERROR') {
 
             console.error('[GLOBAL MSG] ❌ Subscription error');
+
+            isSubscribing = false; // Сбрасываем флаг при ошибке
+
+          } else if (status === 'TIMED_OUT') {
+
+            console.warn('[GLOBAL MSG] ⏱️ Subscription timed out');
+
+            isSubscribing = false; // Сбрасываем флаг при таймауте
 
           }
 
@@ -30974,6 +30793,8 @@ function subscribeToMessages() {
 
           console.error('[GLOBAL MSG] Subscription error:', err);
 
+          isSubscribing = false; // Сбрасываем флаг при ошибке
+
         },
 
       );
@@ -30981,6 +30802,8 @@ function subscribeToMessages() {
   } catch (err) {
 
     console.error('[GLOBAL MSG] Error creating subscription:', err);
+
+    isSubscribing = false; // Сбрасываем флаг при ошибке
 
   }
 

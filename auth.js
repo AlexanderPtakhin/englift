@@ -27,21 +27,27 @@ async function loadUserProfile(user) {
   const savedUsername = localStorage.getItem('englift_pending_username');
 
   if (window._profileLoadInProgress) {
+    console.log('[AUTH] Profile load already in progress, skipping');
     return;
   }
   window._profileLoadInProgress = true;
   window.currentUserId = user.id;
 
   try {
+    console.log('[AUTH] Waiting for applyProfileData function...');
     if (typeof window.applyProfileData !== 'function') {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
+    console.log('[AUTH] applyProfileData function available:', typeof window.applyProfileData);
 
+    console.log('[AUTH] Fetching profile from Supabase...');
     const { data: serverProfile, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .maybeSingle();
+
+    console.log('[AUTH] Supabase response:', { serverProfile, error });
 
     // КЕЙС 1: Сервер вернул ошибку (упал, нет сети, временная недоступность)
     // → используем локальные данные, НЕ создаём новый профиль
@@ -217,18 +223,23 @@ async function applyInvite(inviteId, newUserId) {
 
 // Следим за состоянием аутентификации
 supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log('[AUTH] Auth state change:', event, session?.user?.id);
   window.currentAccessToken = session?.access_token || null;
   const user = session?.user;
 
   const shouldLoadProfile =
     user && user.email_confirmed_at && !profileLoaded && !profileLoadPromise;
 
+  console.log('[AUTH] shouldLoadProfile:', shouldLoadProfile, 'profileLoaded:', profileLoaded, 'profileLoadPromise:', !!profileLoadPromise);
+
   if (shouldLoadProfile) {
+    console.log('[AUTH] Starting profile load...');
     if (!profileLoadPromise) {
       profileLoadPromise = loadUserProfile(user).finally(() => {
         profileLoaded = true;
         profileLoadPromise = null;
         lastProfileLoadTime = Date.now();
+        console.log('[AUTH] Profile load completed');
       });
     }
   } else if (event === 'TOKEN_REFRESHED' && user) {

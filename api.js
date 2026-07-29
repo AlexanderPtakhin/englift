@@ -391,6 +391,7 @@ async function forceUpdateAllLevels() {
 // Экспорт API
 window.WordAPI = {
   loadWordBank,
+  getCachedWordBank,
   searchWords: async (prefix, limit = 15) => {
     if (!prefix) return [];
     if (!cachedWordBank) {
