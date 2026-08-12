@@ -107,7 +107,7 @@
           : document.querySelector('.nav-btn[data-tab="practice"]'),
       title:
         '<span class="material-symbols-outlined">rocket_launch</span> Практика',
-      text: '9 типов упражнений: флэш-карты, тесты, диктовка, распознавание речи и другие. Режимы: слова, глаголы, идиомы. Умный алгоритм сам решает что показать.',
+      text: '6 типов упражнений: флэш-карты, тесты, ввод текста, конструктор, соединение и диктовка. Режимы: слова, глаголы, идиомы. Умный алгоритм сам решает что показать.',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="practice"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="practice"]')?.click();
@@ -154,7 +154,7 @@
           ? document.querySelector('.mobile-nav-btn[data-tab="friends"]')
           : document.querySelector('.nav-btn[data-tab="friends"]'),
       title: '<span class="material-symbols-outlined">group</span> Друзья',
-      text: 'Добавляй друзей, общайся в чате, создавай совместные челленджи, следи за прогрессом в ленте активности, соревнуйся в лидерборде.',
+      text: 'Добавляй друзей, общайся в чате, следи за прогрессом в ленте активности, соревнуйся в лидерборде.',
       onBefore: () => {
         document.querySelector('.nav-btn[data-tab="friends"]')?.click();
         document.querySelector('.mobile-nav-btn[data-tab="friends"]')?.click();

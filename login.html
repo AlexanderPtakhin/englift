@@ -20,7 +20,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <meta name="theme-color" content="#fff9f4" />
+    <meta name="theme-color" content="#17181d" />
     <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
     <link rel="stylesheet" href="style.css" />
     <link rel="manifest" href="manifest.json" />
@@ -154,6 +154,24 @@
           transform: translateY(0);
         }
       }
+      /* Перебиваем автозаполнение браузера */
+      .form-control:-webkit-autofill,
+      .form-control:-webkit-autofill:hover,
+      .form-control:-webkit-autofill:focus,
+      .form-control:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px var(--bg) inset !important;
+        -webkit-text-fill-color: var(--text) !important;
+        background-color: var(--bg) !important;
+        background-image: none !important;
+        transition: background-color 5000s ease-in-out 0s;
+      }
+      html.dark .form-control:-webkit-autofill,
+      html.dark .form-control:-webkit-autofill:hover,
+      html.dark .form-control:-webkit-autofill:focus,
+      html.dark .form-control:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px var(--bg) inset !important;
+        -webkit-text-fill-color: var(--text) !important;
+      }
     </style>
   </head>
   <body class="loading">
@@ -179,7 +197,7 @@
               class="form-control"
               type="email"
               id="gate-email"
-              placeholder="name@example.com"
+              placeholder="name@yandex.ru"
               autocomplete="email"
             />
             <div

@@ -372,6 +372,8 @@ import {
 
   getLeaderboard,
 
+  // ========== ЧЕЛЛЕНДЖИ (ЗАКОММЕНТИРОВАНО) ==========
+  /*
   getAllActiveChallenges,
 
   updateAllChallengesProgress,
@@ -383,15 +385,12 @@ import {
   updateChallengeProgress,
 
   leaveChallenge,
-
-  sendGift,
-
-  getGiftsReceived,
+  */
 
   toggleReaction,
 
-  // Приглашения в челленджи
-
+  // Приглашения в челленджи (ЗАКОММЕНТИРОВАНО)
+  /*
   sendChallengeInvite,
 
   getChallengeInvites,
@@ -401,6 +400,7 @@ import {
   declineChallengeInvite,
 
   deleteChallenge,
+  */
 
 } from './js/social.js';
 
@@ -507,6 +507,12 @@ if (!window.dailyProgress.lastReset) {
 async function resetDailyGoalsIfNeeded() {
 
   const today = window.getLocalDate();
+  console.log('[DAILY DEBUG] resetDailyGoalsIfNeeded:', {
+    today,
+    lastReset: window.dailyProgress.lastReset,
+    practiceTimeBefore: window.dailyProgress.practice_time,
+    willReset: window.dailyProgress.lastReset !== today
+  });
 
   if (window.dailyProgress.lastReset !== today) {
 
@@ -774,9 +780,17 @@ async function loadFromCache() {
 
     window.idioms = idioms.length ? idioms.map(normalizeIdiom) : [];
 
+    console.log('[CACHE] Загружено из кеша:', window.words.length, 'слов,', window.idioms.length, 'идиом');
+
   } catch (e) {
 
-    console.error('Ошибка загрузки кеша', e);
+    console.error('[CACHE] Ошибка загрузки кеша:', e);
+
+    // При ошибке кеша оставляем пустые массивы — данные загрузятся с сервера
+
+    window.words = [];
+
+    window.idioms = [];
 
   }
 
@@ -904,7 +918,9 @@ async function syncFromSupabase() {
 
       .eq('user_id', window.currentUserId)
 
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+
+      .range(0, 19999);
 
     if (wordsError) throw wordsError;
 
@@ -1218,6 +1234,12 @@ window.applyProfileData = function (data) {
   // Серия занятий
 
   if (data.streak !== undefined && data.laststreakdate !== undefined) {
+    console.log('[MERGE DEBUG] Streak before merge:', {
+      localCount: window.streak.count,
+      localLastDate: window.streak.lastDate,
+      serverCount: data.streak,
+      serverLastDate: data.laststreakdate
+    });
 
     if (window.streak.count < data.streak) {
 
@@ -1235,6 +1257,7 @@ window.applyProfileData = function (data) {
 
     } else {
       // Если серия равна, всё равно восстанавливаем lastDate из сервера
+      console.log('[MERGE DEBUG] Streak counts equal, overwriting lastDate from server');
       window.streak.lastDate = data.laststreakdate;
     }
 
@@ -1264,6 +1287,12 @@ window.applyProfileData = function (data) {
   const today = window.getLocalDate();
 
   if (data.dailyprogress) {
+    console.log('[MERGE DEBUG] DailyProgress before merge:', {
+      localBefore: window.dailyProgress.practice_time,
+      serverValue: data.dailyprogress.practice_time,
+      serverLastReset: data.dailyprogress.lastReset,
+      today: today
+    });
 
     // Проверяем, что данные с сервера за сегодняшний день, иначе игнорируем practice_time
     const isServerDataToday = data.dailyprogress.lastReset === today;
@@ -1367,7 +1396,17 @@ window.applyProfileData = function (data) {
 
   if (data.usersettings) {
 
-    window.user_settings = { ...window.user_settings, ...data.usersettings };
+    // Если пользователь не выбирал тему вручную, не перезаписываем её с сервера
+    // чтобы системные настройки работали
+    const localSettings = window.user_settings || {};
+    const serverSettings = data.usersettings || {};
+
+    if (!localSettings._themeManuallySet) {
+      // Удаляем тему из серверных настроек, чтобы она не перезаписала системную
+      delete serverSettings.dark;
+    }
+
+    window.user_settings = { ...localSettings, ...serverSettings };
 
   }
 
@@ -1514,64 +1553,6 @@ window.applyProfileData = function (data) {
 
   window._profileApplyingInProgress = false;
 
-  // Обновляем theme-color после применения темы
-
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-
-  if (metaTheme) {
-
-    const colors = {
-
-      lavender: '#fff',
-
-      sunset: '#FF6E40',
-
-      forest: '#43A047',
-
-      ocean: '#1976D2',
-
-      purple: '#9B87B8',
-
-      sky: '#7FC1E0',
-
-      sand: '#C4A484',
-
-      graphite: '#6B7280',
-
-    };
-
-    let color = colors[window.user_settings?.baseTheme] || colors.lavender;
-
-    if (window.user_settings?.dark) {
-
-      const darkColors = {
-
-        lavender: '#23252b',
-
-        sunset: '#D84315',
-
-        forest: '#2E7D32',
-
-        ocean: '#1565C0',
-
-        purple: '#B8A7D1',
-
-        sky: '#A8D8F0',
-
-        sand: '#E0C9B1',
-
-        graphite: '#9CA3AF',
-
-      };
-
-      color = darkColors[window.user_settings?.baseTheme] || color;
-
-    }
-
-    metaTheme.content = color;
-
-  }
-
   refreshUI();
 
 };
@@ -1653,8 +1634,6 @@ let streak = { count: 0, lastDate: null };
 let xpData = { xp: 0, level: 1, badges: [] };
 
 let pendingXpLogs = []; // Очередь для XP логов в офлайн режиме
-
-let pendingChallengeUpdates = { practice_time: 0 }; // Батчинг обновлений челленджей
 
 // 🔥 ФИКС 1: Привязываем window.xpData и window.streak к локальным переменным
 
@@ -4304,20 +4283,20 @@ function renderWeekChart() {
   const totalWords = days.reduce((s, d) => s + d.words, 0);
   const totalIdioms = days.reduce((s, d) => s + d.idioms, 0);
 
-  const trendHtml = trend === null
-    ? `<span class="week-trend">Нет данных</span>`
-    : `
+  // Вставляем тренд в заголовок только если есть данные
+  const header = container.querySelector('.daily-cap-header');
+  const existingTrend = header.querySelector('.week-trend');
+  if (existingTrend) existingTrend.remove();
+  
+  if (trend !== null) {
+    const trendHtml = `
     <div class="week-trend" data-tooltip="Сравнение с прошлой неделей: ${thisWeekTotal} слов на этой неделе против ${lastWeekTotal} на прошлой" tabindex="0" aria-label="Сравнение с прошлой неделей: ${thisWeekTotal} слов на этой неделе против ${lastWeekTotal} на прошлой">
       <span class="material-symbols-outlined">${trend >= 0 ? 'trending_up' : 'trending_down'}</span>
       ${trend >= 0 ? '+' : ''}${trend}%
     </div>
   `;
-
-  // Вставляем тренд в заголовок
-  const header = container.querySelector('.daily-cap-header');
-  const existingTrend = header.querySelector('.week-trend');
-  if (existingTrend) existingTrend.remove();
-  header.insertAdjacentHTML('beforeend', trendHtml);
+    header.insertAdjacentHTML('beforeend', trendHtml);
+  }
 
   // Привязываем тултип к новому элементу
   const newTrend = header.querySelector('.week-trend');
@@ -6365,13 +6344,12 @@ async function addWord(
 
     gainXP(1, 'новое слово');
 
-    // Обновляем прогресс челленджей
-
+    // Обновляем прогресс челленджей (ЗАКОММЕНТИРОВАНО)
+    /*
     if (window.currentUserId && window.updateAllChallengesProgress) {
-
       window.updateAllChallengesProgress(window.currentUserId, 'words', 1);
-
     }
+    */
 
     visibleLimit = 30; // сброс при добавлении слова
 
@@ -6693,13 +6671,12 @@ async function addIdiom(
 
   gainXP(1, 'новая идиома');
 
-  // Обновляем прогресс челленджей
-
+  // Обновляем прогресс челленджей (ЗАКОММЕНТИРОВАНО)
+  /*
   if (window.currentUserId && window.updateAllChallengesProgress) {
-
     window.updateAllChallengesProgress(window.currentUserId, 'words', 1);
-
   }
+  */
 
   markProfileDirty('total_idioms', window.idioms.length);
 
@@ -6932,13 +6909,12 @@ function gainXP(amount, reason = '', icon = 'bolt', position = 'bottom') {
 
   toast('+' + amount + ' XP' + (reason ? ' · ' + reason : ''), 'xp', icon, 4000, position);
 
-  // Обновляем прогресс челленджей
-
+  // Обновляем прогресс челленджей (ЗАКОММЕНТИРОВАНО)
+  /*
   if (window.currentUserId && window.updateAllChallengesProgress) {
-
     window.updateAllChallengesProgress(window.currentUserId, 'xp', amount);
-
   }
+  */
 
   markProfileDirty('xp', xpData.xp);
 
@@ -6949,8 +6925,7 @@ function gainXP(amount, reason = '', icon = 'bolt', position = 'bottom') {
     if (!window.dailyXp) window.dailyXp = 0;
     window.dailyXp += amount;
     markProfileDirty('dailyxp', window.dailyXp);
-    recordDailyActivity();
-    updStreak();
+    updStreak(); // updStreak сам запишет активность когда время будет достигнуто
   }
 
   // Бейджи сохраняются в checkBadges() - дублирование не нужно
@@ -7040,37 +7015,10 @@ async function flushXpQueue() {
 }
 
 // Сброс ожидающих обновлений челленджей в конце сессии
+// Больше не нужен - обновление происходит сразу при завершении каждого упражнения
 
 async function flushChallengeUpdates() {
-
-  if (!navigator.onLine || !window.currentUserId) return;
-
-  const practiceTimeUpdates = pendingChallengeUpdates.practice_time;
-
-  if (practiceTimeUpdates > 0 && window.updateAllChallengesProgress) {
-
-    try {
-
-      await window.updateAllChallengesProgress(
-
-        window.currentUserId,
-
-        'practice_time',
-
-        practiceTimeUpdates,
-
-      );
-
-      pendingChallengeUpdates.practice_time = 0;
-
-    } catch (e) {
-
-      console.warn('Failed to sync challenge updates:', e);
-
-    }
-
-  }
-
+  // Ничего не делаем - челленджи обновляются в finishExercise()
 }
 
 function checkBadges(perfectSession = false) {
@@ -7884,13 +7832,14 @@ function updStreak() {
   if (!window.profileFullyLoaded) return; // не трогаем стрик, пока профиль точно не загружен
 
   const today = window.getLocalDate();
-  console.log('[STREAK DEBUG]', { today, lastDate: streak.lastDate, profileFullyLoaded: window.profileFullyLoaded });
+  console.log('[STREAK DEBUG] updStreak start:', { today, lastDate: streak.lastDate, count: streak.count, profileFullyLoaded: window.profileFullyLoaded });
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = window.getLocalDate(yesterdayDate);
 
   // Если уже обновлено сегодня – выходим
   if (streak.lastDate === today) {
+    console.log('[STREAK DEBUG] Already updated today, skipping');
     renderStreak();
     return;
   }
@@ -7900,15 +7849,22 @@ function updStreak() {
   const practiceTimeToday = getPracticeTimeToday();
   const streakHistory = getStreakHistory();
   const historyToday = streakHistory[today];
-  
+
   // Также проверяем, был ли practice_time накоплен до сброса (сохранён в _preservedPracticeTime)
   const preservedTime = window.dailyProgress._preservedPracticeTime || 0;
-  
-  // Если в истории есть запись за сегодня или practice_time был сохранён до сброса,
-  // значит активность была (даже если текущий practice_time сброшен)
-  const isEligible = practiceTimeToday >= STREAK_CRITERIA.minPracticeTime || 
-                     historyToday === true || 
+
+  // Если в истории есть запись за сегодня но времени практики недостаточно,
+  // удаляем эту запись (она могла остаться от старой логики)
+  if (historyToday === true && practiceTimeToday < STREAK_CRITERIA.minPracticeTime && preservedTime < STREAK_CRITERIA.minPracticeTime) {
+    const history = getStreakHistory();
+    delete history[today];
+    saveStreakHistory(history);
+  }
+
+  // Проверяем условия для засчитывания дня
+  const isEligible = practiceTimeToday >= STREAK_CRITERIA.minPracticeTime ||
                      preservedTime >= STREAK_CRITERIA.minPracticeTime;
+  console.log('[STREAK DEBUG] Eligibility check:', { practiceTimeToday, preservedTime, minRequired: STREAK_CRITERIA.minPracticeTime, isEligible });
 
   if (!streak.lastDate) {
     // Первая активность вообще
@@ -7939,6 +7895,9 @@ function updStreak() {
       streak.count = 1;
     }
     streak.lastDate = today;
+    // Сохраняем стрик на сервер
+    markProfileDirty('streak', streak.count);
+    markProfileDirty('laststreakdate', streak.lastDate);
     // Обновляем рекорд
     if (streak.count > (streak.bestStreak || 0)) {
       streak.bestStreak = streak.count;
@@ -7946,6 +7905,7 @@ function updStreak() {
     }
     // Сохраняем активность в историю
     recordDailyActivity();
+    console.log('[STREAK DEBUG] Streak updated:', { count: streak.count, lastDate: streak.lastDate });
   } else {
     // Сегодня нет активности
     if (daysSinceLastActive >= 2) {
@@ -8128,6 +8088,14 @@ function updateDueBadge() {
 
   ).length;
 
+  // Считаем learning слова (не выученные)
+
+  const wordsLearning = window.words.filter(w => !w.stats?.learned).length;
+
+  // Считаем learning идиомы (не выученные)
+
+  const idiomsLearning = window.idioms.filter(i => !i.stats?.learned).length;
+
   // Считаем due идиомы
 
   const idiomsDue = window.idioms.filter(
@@ -8207,6 +8175,58 @@ function updateDueBadge() {
     duePill.textContent = pillCount;
 
     duePill.style.display = pillCount > 0 ? 'inline' : 'none';
+
+  }
+
+  // Обновляем learning-pill в фильтрах практики в зависимости от режима
+
+  const learningPill = document.getElementById('learning-pill');
+
+  if (learningPill) {
+
+    const currentMode =
+
+      document.querySelector('#practice-mode .chip.on')?.dataset.mode ||
+
+      'normal';
+
+    const learningCount =
+
+      currentMode === 'idioms'
+
+        ? idiomsLearning
+
+        : wordsLearning;
+
+    learningPill.textContent = learningCount;
+
+    learningPill.style.display = learningCount > 0 ? 'inline' : 'none';
+
+  }
+
+  // Обновляем learning-pill-mobile в мобильном меню
+
+  const learningPillMobile = document.getElementById('learning-pill-mobile');
+
+  if (learningPillMobile) {
+
+    const currentMode =
+
+      document.querySelector('#practice-mode .chip.on')?.dataset.mode ||
+
+      'normal';
+
+    const learningCount =
+
+      currentMode === 'idioms'
+
+        ? idiomsLearning
+
+        : wordsLearning;
+
+    learningPillMobile.textContent = learningCount;
+
+    learningPillMobile.style.display = learningCount > 0 ? 'inline-flex' : 'none';
 
   }
 
@@ -8649,10 +8669,6 @@ function renderStats() {
 
   // ── Совместимость со старыми ID ─────────────────
 
-  document.getElementById('st-due')?.textContent !== undefined &&
-
-    (document.getElementById('st-due').textContent = totalDue);
-
   document.getElementById('st-total') &&
 
     (document.getElementById('st-total').textContent = totalAll);
@@ -8673,7 +8689,7 @@ function renderStats() {
 
   if (document.getElementById('st-week'))
 
-    document.getElementById('st-week').textContent = thisWeek;
+    document.getElementById('st-week').textContent = window.learningStreak || 0;
 
   // ── due-pill ────────────────────────────────────
 
@@ -8885,107 +8901,7 @@ function renderStats() {
 
   };
 
-  const hardWords = [...wordsWithStats]
 
-    .filter(w => w.stats.shown > 0)
-
-    .map(w => ({ ...w, accuracy: w.stats.correct / w.stats.shown }))
-
-    .sort((a, b) => a.accuracy - b.accuracy || a.stats.shown - b.stats.shown)
-
-    .slice(0, 5);
-
-  const easyWords = [...wordsWithStats]
-
-    .filter(w => w.stats.shown > 0)
-
-    .map(w => ({ ...w, accuracy: w.stats.correct / w.stats.shown }))
-
-    .sort((a, b) => b.accuracy - a.accuracy || b.stats.shown - a.stats.shown)
-
-    .slice(0, 5);
-
-  const stHardEl = document.getElementById('st-hard');
-
-  if (stHardEl)
-
-    stHardEl.innerHTML = hardWords.length
-
-      ? hardWords.map(makeWordItem).join('')
-
-      : `<li class="stat-empty">Пока нет данных</li>`;
-
-  const stEasyEl = document.getElementById('st-easy');
-
-  if (stEasyEl)
-
-    stEasyEl.innerHTML = easyWords.length
-
-      ? easyWords.map(makeWordItem).join('')
-
-      : `<li class="stat-empty">Пока нет данных</li>`;
-
-  // ── HARD / EASY ИДИОМЫ ──────────────────────────
-
-  const makeIdiomItem = i => {
-
-    return `<li>
-
-      <span class="word-info">
-
-        <strong>${esc(i.idiom.toLowerCase())}</strong>
-
-      </span>
-
-      <button class="btn-audio audio-card-btn" onclick="window.speakIdiom('${i.id}')" title="Прослушать">
-
-        <span class="material-symbols-outlined">volume_up</span>
-
-      </button>
-
-    </li>`;
-
-  };
-
-  const hardIdioms = [...idiomsWithStats]
-
-    .filter(i => i.stats.shown > 0)
-
-    .map(i => ({ ...i, accuracy: i.stats.correct / i.stats.shown }))
-
-    .sort((a, b) => a.accuracy - b.accuracy)
-
-    .slice(0, 5);
-
-  const easyIdioms = [...idiomsWithStats]
-
-    .filter(i => i.stats.shown > 0)
-
-    .map(i => ({ ...i, accuracy: i.stats.correct / i.stats.shown }))
-
-    .sort((a, b) => b.accuracy - a.accuracy)
-
-    .slice(0, 5);
-
-  const stHardIdiomsEl = document.getElementById('st-hard-idioms');
-
-  if (stHardIdiomsEl)
-
-    stHardIdiomsEl.innerHTML = hardIdioms.length
-
-      ? hardIdioms.map(makeIdiomItem).join('')
-
-      : `<li class="stat-empty">Попрактикуйся в идиомах!</li>`;
-
-  const stEasyIdiomsEl = document.getElementById('st-easy-idioms');
-
-  if (stEasyIdiomsEl)
-
-    stEasyIdiomsEl.innerHTML = easyIdioms.length
-
-      ? easyIdioms.map(makeIdiomItem).join('')
-
-      : `<li class="stat-empty">Попрактикуйся в идиомах!</li>`;
 
   renderDailyGoals();
 
@@ -10422,30 +10338,6 @@ function sortWords(list, sortBy) {
 
       return sortedList.sort((a, b) => b.en.localeCompare(a.en));
 
-    case 'progress-asc':
-
-      return sortedList.sort(
-
-        (a, b) =>
-
-          (a.stats.shown ? a.stats.correct / a.stats.shown : 1) -
-
-          (b.stats.shown ? b.stats.correct / b.stats.shown : 1),
-
-      );
-
-    case 'progress-desc':
-
-      return sortedList.sort(
-
-        (a, b) =>
-
-          (b.stats.shown ? b.stats.correct / b.stats.shown : 1) -
-
-          (a.stats.shown ? a.stats.correct / a.stats.shown : 1),
-
-      );
-
     default:
 
       return sortedList;
@@ -10491,30 +10383,6 @@ function sortIdioms(list, sortBy) {
     case 'alpha-desc':
 
       return sortedList.sort((a, b) => b.idiom.localeCompare(a.idiom));
-
-    case 'progress-asc':
-
-      return sortedList.sort(
-
-        (a, b) =>
-
-          (a.stats.shown ? a.stats.correct / a.stats.shown : 1) -
-
-          (b.stats.shown ? b.stats.correct / b.stats.shown : 1),
-
-      );
-
-    case 'progress-desc':
-
-      return sortedList.sort(
-
-        (a, b) =>
-
-          (b.stats.shown ? b.stats.correct / b.stats.shown : 1) -
-
-          (a.stats.shown ? a.stats.correct / a.stats.shown : 1),
-
-      );
 
     default:
 
@@ -12436,6 +12304,11 @@ document
 
     isSubmittingWord = true;
 
+    const submitBtn = document.getElementById('add-word-submit-btn');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading-spinner" style="width:16px;height:16px;margin-right:8px"></span> Добавляем...';
+
     try {
 
       const en = document.getElementById('modal-word-en').value.trim();
@@ -12456,6 +12329,9 @@ document
 
         toast('Заполни английское слово и перевод', 'warning');
 
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+        isSubmittingWord = false;
         return;
 
       }
@@ -12550,23 +12426,33 @@ document
 
         playSound('sound/add.mp3');
 
-        closeAddWordModal();
+        // Вместо закрытия просто сбрасываем форму для массового добавления
+        resetAddForm();
+
+        // Фокус на первое поле для удобства
+        setTimeout(() => {
+          document.getElementById('modal-word-en')?.focus();
+        }, 100);
 
         if (document.querySelector('.tab-pane.active')?.id !== 'tab-words')
 
           switchTab('words');
 
+      } else {
+        toast('Не удалось добавить слово. Попробуй ещё раз.', 'danger');
       }
 
     } catch (error) {
 
       console.error('Ошибка при добавлении слова:', error);
 
-      toast('Ошибка добавления слова', 'danger');
+      toast('Ошибка добавления слова: ' + (error.message || 'Сервер не отвечает'), 'danger');
 
     } finally {
 
       isSubmittingWord = false;
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnText;
 
     }
 
@@ -15898,7 +15784,7 @@ function startSession(cfg) {
 
       document.body.classList.remove('exercise-active'); // ← добавлено
 
-      return;
+      return false; // Возвращаем false для обработки в repeat-btn
 
     }
 
@@ -16078,7 +15964,7 @@ function startSession(cfg) {
 
     // Если выбран только один тип упражнения, исключаем слова, у которых этот тип уже засчитан
 
-    if (exTypes.length === 1 && !isAllFilter) {
+    if (exTypes.length === 1 && !isAllFilter && filterVal !== 'due') {
 
       const currentEx = exTypes[0];
 
@@ -16237,6 +16123,8 @@ function startSession(cfg) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     nextExercise();
+
+    return true; // Возвращаем true при успешном запуске
 
   } catch (error) {
 
@@ -16744,9 +16632,16 @@ function showResults() {
 
   document.getElementById('repeat-btn')?.addEventListener('click', () => {
 
+    // Скрываем результаты всегда
     document.getElementById('practice-results').style.display = 'none';
 
-    startSession(lastSessionConfig);
+    // Пробуем запустить сессию
+    const sessionStarted = startSession(lastSessionConfig);
+    
+    // Если запуск не удался, показываем настройки
+    if (!sessionStarted) {
+      document.getElementById('practice-setup').style.display = 'block';
+    }
 
   });
 
@@ -16757,6 +16652,12 @@ function showResults() {
     document.getElementById('practice-results').style.display = 'none';
 
     document.getElementById('practice-setup').style.display = 'block';
+
+    // Скрываем результаты, если они были показаны
+    const resultsContainer = document.getElementById('practice-results');
+    if (resultsContainer) {
+      resultsContainer.style.display = 'none';
+    }
 
   });
 
@@ -16833,6 +16734,20 @@ function showResults() {
     window.lastProfileUpdate = Date.now();
 
     checkDailyGoalsCompletion();
+
+    // Обновляем челленджи practice_time так же как daily progress (в минутах с дробной частью) (ЗАКОММЕНТИРОВАНО)
+    /*
+    if (window.currentUserId && window.updateAllChallengesProgress) {
+      const sessionMinutes = practiceSeconds / 60;
+      if (sessionMinutes > 0) {
+        window.updateAllChallengesProgress(
+          window.currentUserId,
+          'practice_time',
+          sessionMinutes,
+        );
+      }
+    }
+    */
 
   }
 
@@ -17686,44 +17601,8 @@ function nextExercise() {
         candidates = bankPool.filter(item => item.id !== w.id);
       }
 
-      // Префиксный поиск - выбираем поле в зависимости от направления
-      let finalCandidates = [];
-      if (!isIdiom) {
-        // Для RU→EN ищем похожие английские слова
-        // Для EN→RU ищем похожие русские переводы
-        const searchKey = isRUEN ? currentEn : currentRu;
-        const compareField = isRUEN ? 'en' : 'ru';
-
-        if (searchKey.length > 2) {
-          const prefixLengths = [3, 2, 1];
-          for (let len of prefixLengths) {
-            if (searchKey.length <= len) continue;
-            const prefix = searchKey.slice(0, len);
-
-            const matches = candidates.filter(item => {
-              let compareValue;
-              if (compareField === 'en') {
-                compareValue = item.en?.toLowerCase() || '';
-              } else {
-                // Для русского поля берем первый вариант перевода
-                const ruVariants = parseAnswerVariants(item.ru);
-                compareValue = ruVariants.length ? ruVariants[0].toLowerCase() : item.ru?.toLowerCase() || '';
-              }
-              return compareValue.startsWith(prefix);
-            });
-
-            if (matches.length >= 3) {
-              finalCandidates = matches;
-              break;
-            }
-          }
-        }
-      }
-
-      // Если по префиксу не хватило — берём случайные из отфильтрованных кандидатов
-      if (finalCandidates.length < 3) {
-        finalCandidates = candidates.sort(() => Math.random() - 0.5);
-      }
+      // Берём случайные кандидаты (без префиксного поиска)
+      let finalCandidates = candidates.sort(() => Math.random() - 0.5);
 
       // Выбираем больше кандидатов чем нужно (10 вместо 5) чтобы после фильтрации осталось минимум 3-4
       const distractorItems = finalCandidates.slice(0, 10);
@@ -17737,6 +17616,14 @@ function nextExercise() {
           const ruMatch = !isIdiom && x.ru && x.ru.toLowerCase() === currentRu;
           if (enMatch || ruMatch) {
             return false;
+          }
+          // Исключаем аббревиатуры из дистракторов, если правильный ответ не аббревиатура
+          if (!isIdiom && x.en && x.en.length <= 4 && x.en === x.en.toUpperCase() && x.en !== x.en.toLowerCase()) {
+            // Исключаем только если текущее слово тоже не аббревиатура
+            const currentIsAbbr = w.en && w.en.length <= 4 && w.en === w.en.toUpperCase() && w.en !== w.en.toLowerCase();
+            if (!currentIsAbbr) {
+              return false;
+            }
           }
           return true;
         })
@@ -17779,12 +17666,17 @@ function nextExercise() {
       // Если после фильтрации меньше 3 дистракторов, добираем из оставшихся кандидатов
       if (distractorCandidates.length < 3) {
         const remainingCandidates = finalCandidates.slice(10); // Берём следующие кандидаты
+        const currentIsAbbr = w.en && w.en.length <= 4 && w.en === w.en.toUpperCase() && w.en !== w.en.toLowerCase();
         for (const x of remainingCandidates) {
           if (distractorCandidates.length >= 3) break;
           // Проверяем что не дубликат
           const enMatch = !isIdiom && x.en && x.en.toLowerCase() === currentEn;
           const ruMatch = !isIdiom && x.ru && x.ru.toLowerCase() === currentRu;
           if (enMatch || ruMatch) continue;
+          // Исключаем аббревиатуры из дистракторов, если правильный ответ не аббревиатура
+          if (!isIdiom && x.en && x.en.length <= 4 && x.en === x.en.toUpperCase() && x.en !== x.en.toLowerCase() && !currentIsAbbr) {
+            continue;
+          }
 
           let trans = isIdiom ? (field === 'definition' ? x.idiom.toLowerCase() : x.meaning) : (isRUEN ? x.en : x.ru);
           const variants = parseAnswerVariants(trans);
@@ -17797,11 +17689,16 @@ function nextExercise() {
         // Если всё ещё мало - берём из всего банка (но без фильтрации по уровню)
         if (distractorCandidates.length < 3 && bankPool.length > finalCandidates.length) {
           const extraPool = bankPool.filter(item => !finalCandidates.includes(item));
+          const currentIsAbbr = w.en && w.en.length <= 4 && w.en === w.en.toUpperCase() && w.en !== w.en.toLowerCase();
           for (const x of extraPool) {
             if (distractorCandidates.length >= 3) break;
             const enMatch = !isIdiom && x.en && x.en.toLowerCase() === currentEn;
             const ruMatch = !isIdiom && x.ru && x.ru.toLowerCase() === currentRu;
             if (enMatch || ruMatch) continue;
+            // Исключаем аббревиатуры из дистракторов, если правильный ответ не аббревиатура
+            if (!isIdiom && x.en && x.en.length <= 4 && x.en === x.en.toUpperCase() && x.en !== x.en.toLowerCase() && !currentIsAbbr) {
+              continue;
+            }
 
             let trans = isIdiom ? (field === 'definition' ? x.idiom.toLowerCase() : x.meaning) : (isRUEN ? x.en : x.ru);
             const variants = parseAnswerVariants(trans);
@@ -19511,24 +19408,26 @@ function recordAnswer(correct, exerciseType) {
 
   incrementDailyCount();
 
-  // ===== СЕРИЯ ПРАВИЛЬНЫХ ОТВЕТОВ =====
+  // ===== СЕРИЯ ПРАВИЛЬНЫХ ОТВЕТОВ (исключая карточки) =====
 
-  if (correct) {
+  if (exerciseType !== 'flash') {
+    if (correct) {
 
-    window.learningStreak = (window.learningStreak || 0) + 1;
+      window.learningStreak = (window.learningStreak || 0) + 1;
 
-    markProfileDirty('learning_streak', window.learningStreak);
+      markProfileDirty('learning_streak', window.learningStreak);
 
-  } else {
+    } else {
 
-    window.learningStreak = 0;
+      window.learningStreak = 0;
 
-    markProfileDirty('learning_streak', 0);
+      markProfileDirty('learning_streak', 0);
 
+    }
   }
 
-  // Записываем активность для серии при любом ответе
-  recordDailyActivity();
+  // Записываем активность для серии только при достижении времени практики
+  // updStreak() сам запишет активность когда время будет достигнуто
   updStreak();
 
   // Stop and remove timer if exists
@@ -19570,14 +19469,6 @@ function recordAnswer(correct, exerciseType) {
     updStats(currentItem.id, correct, exerciseType);
 
     if (correct) updateWeeklyReviewDetail('words');
-
-  }
-
-  // Батчим обновления челленджей вместо прямых вызовов
-
-  if (window.currentUserId) {
-
-    pendingChallengeUpdates.practice_time++;
 
   }
 
@@ -19656,14 +19547,6 @@ function recordAnswer(correct, exerciseType) {
     // Mark profile as dirty to ensure progress is saved
 
     markProfileDirty('dailyprogress', window.dailyProgress);
-
-    // Батчим обновления челленджей вместо прямых вызовов
-
-    if (window.currentUserId) {
-
-      pendingChallengeUpdates.practice_time++;
-
-    }
 
     // Update UI to show progress immediately
 
@@ -20729,6 +20612,8 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
 
       updStats(id, true, exerciseType);
 
+      recordAnswer(true, exerciseType);
+
       sResults.correct.push(initialWords.find(w => w.id === id));
 
       selectedWord = null;
@@ -20766,6 +20651,8 @@ function runMatchExercise(initialWords, onComplete, exerciseType) {
       selectedWord.element.classList.add('wrong');
 
       updStats(selectedWord.id, false, exerciseType);
+
+      recordAnswer(false, exerciseType);
 
       sResults.wrong.push(initialWords.find(w => w.id === selectedWord.id));
 
@@ -20923,6 +20810,8 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
 
       updIdiomStats(id, true, exerciseType);
 
+      recordAnswer(true, exerciseType);
+
       sResults.correct.push(currentItems.find(i => i.id === id));
 
       selected = null;
@@ -20960,6 +20849,8 @@ function runIdiomMatchExercise(items, onComplete, exerciseType) {
       selected.element.classList.add('wrong');
 
       updIdiomStats(selected.id, false, exerciseType);
+
+      recordAnswer(false, exerciseType);
 
       sResults.wrong.push(currentItems.find(i => i.id === selected.id));
 
@@ -22397,6 +22288,20 @@ document.getElementById('ex-exit-btn').addEventListener('click', () => {
 
         checkDailyGoalsCompletion();
 
+        // Обновляем челленджи practice_time так же как daily progress (в минутах с дробной частью) (ЗАКОММЕНТИРОВАНО)
+        /*
+        if (window.currentUserId && window.updateAllChallengesProgress) {
+          const sessionMinutes = practiceSeconds / 60;
+          if (sessionMinutes > 0) {
+            window.updateAllChallengesProgress(
+              window.currentUserId,
+              'practice_time',
+              sessionMinutes,
+            );
+          }
+        }
+        */
+
       }
 
       practiceStartTime = null;
@@ -23779,6 +23684,15 @@ window.onProfileFullyLoaded = async function () {
     await loadFromCache();
     console.log('[PROFILE] loadFromCache completed');
 
+    // Если кеш пуст, сразу загружаем с сервера
+    if (window.words.length === 0 && window.idioms.length === 0) {
+      console.warn('[PROFILE] Кеш пуст, загружаем с сервера');
+      await syncFromSupabase();
+    }
+
+    // Сохраняем количество слов из кеша для сравнения
+    const cachedWordsCount = window.words.length;
+
     console.log('[PROFILE] Starting updateWordsFromBank');
     // 2.5. Обновляем существующие слова данными из WordBankDB (включая grammar)
 
@@ -23826,6 +23740,14 @@ window.onProfileFullyLoaded = async function () {
             : word
 
         );
+
+        // Если сервер вернул больше слов чем было в кеше, обновляем кеш
+        if (merged.length > cachedWordsCount) {
+          console.warn('[PROFILE] Сервер вернул больше слов чем в кеше (' + merged.length + ' vs ' + cachedWordsCount + '), обновляем кеш');
+          window.UserDataCache.clearAllWords().then(() => {
+            window.UserDataCache.saveWords(merged);
+          });
+        }
 
         const wordsKey = `englift_words_${window.currentUserId}`;
         localStorage.setItem(wordsKey, JSON.stringify(window.words));
@@ -23929,7 +23851,8 @@ window.onProfileFullyLoaded = async function () {
     subscribeToFriendRequests();
 
     // Делаем функции доступными глобально
-
+    // ========== ЧЕЛЛЕНДЖИ (ЗАКОММЕНТИРОВАНО) ==========
+    /*
     window.getAllActiveChallenges = getAllActiveChallenges;
 
     window.updateAllChallengesProgress = updateAllChallengesProgress;
@@ -23939,11 +23862,12 @@ window.onProfileFullyLoaded = async function () {
     window.joinChallenge = joinChallenge;
 
     window.leaveChallenge = leaveChallenge;
+    */
 
     window.getFriends = getFriends;
 
-    // Приглашения в челленджи
-
+    // Приглашения в челленджи (ЗАКОММЕНТИРОВАНО)
+    /*
     window.sendChallengeInvite = sendChallengeInvite;
 
     window.getChallengeInvites = getChallengeInvites;
@@ -23953,6 +23877,7 @@ window.onProfileFullyLoaded = async function () {
     window.declineChallengeInvite = declineChallengeInvite;
 
     window.deleteChallenge = deleteChallenge;
+    */
 
     window.getFriendRequests = getFriendRequests;
 
@@ -24401,6 +24326,18 @@ window.addEventListener('beforeunload', () => {
       if (window.currentUserId) {
 
         markProfileDirty('dailyprogress', window.dailyProgress);
+
+        // Обновляем челленджи practice_time так же как daily progress (в минутах с дробной частью) (ЗАКОММЕНТИРОВАНО)
+        /*
+        const sessionMinutes = practiceSeconds / 60;
+        if (sessionMinutes > 0 && window.updateAllChallengesProgress) {
+          window.updateAllChallengesProgress(
+            window.currentUserId,
+            'practice_time',
+            sessionMinutes,
+          );
+        }
+        */
 
       }
 
@@ -25911,6 +25848,8 @@ async function openFriendModal(friendId) {
 
       <div class="friend-modal-actions">
 
+        <!-- ЗАКОММЕНТИРОВАНО: Кнопка бросить вызов -->
+        <!--
         <button class="modal-action-btn primary" id="challenge-friend">
 
           <span class="material-symbols-outlined">sports_score</span>
@@ -25918,20 +25857,13 @@ async function openFriendModal(friendId) {
           Бросить вызов
 
         </button>
+        -->
 
         <button class="modal-action-btn" id="compare-words">
 
           <span class="material-symbols-outlined">compare</span>
 
           Сравнить словари
-
-        </button>
-
-        <button class="modal-action-btn" id="send-gift-btn">
-
-          <span class="material-symbols-outlined">card_giftcard</span>
-
-          Подарить XP
 
         </button>
 
@@ -26013,6 +25945,8 @@ async function openFriendModal(friendId) {
 
   };
 
+  // ЗАКОММЕНТИРОВАНО: Обработчик кнопки бросить вызов
+  /*
   modal.querySelector('#challenge-friend').onclick = () => {
 
     toast(`🚀 Вызов ${friend.username} на недельный челлендж!`, 'info');
@@ -26020,18 +25954,13 @@ async function openFriendModal(friendId) {
     // TODO: реализовать челлендж
 
   };
+  */
 
   modal.querySelector('#compare-words').onclick = async () => {
 
     const result = await compareDictionaries(window.currentUserId, friendId);
 
     showComparisonModal(result, friend.username);
-
-  };
-
-  modal.querySelector('#send-gift-btn').onclick = () => {
-
-    showGiftModal(friendId, friend.username);
 
   };
 
@@ -26046,120 +25975,6 @@ async function openFriendModal(friendId) {
     modal.classList.add('open');
 
   });
-
-}
-
-function showGiftModal(friendId, friendName) {
-
-  const modal = document.createElement('div');
-
-  modal.className = 'modal-backdrop open';
-
-  modal.style.zIndex = '10002';
-
-  modal.innerHTML = `
-
-    <div class="modal-box" style="max-width: 400px;">
-
-      <div class="modal-header">
-
-        <h3>Подарить XP ${friendName}</h3>
-
-        <button class="modal-close">✖</button>
-
-      </div>
-
-      <div class="modal-body">
-
-        <div class="form-group">
-
-          <label for="gift-amount">Количество XP (1-100)</label>
-
-          <input type="number" id="gift-amount" class="form-control" placeholder="10" min="1" max="100">
-
-        </div>
-
-        <div class="form-group">
-
-          <label for="gift-message">Сообщение (необязательно)</label>
-
-          <textarea id="gift-message" class="form-control" placeholder="За отличные успехи!" rows="3"></textarea>
-
-        </div>
-
-      </div>
-
-      <div class="modal-actions">
-
-        <button class="btn-pill btn-pill--secondary" id="cancel-gift">
-
-          <span class="material-symbols-outlined">close</span> Отмена
-
-        </button>
-
-        <button class="btn-pill btn-pill--primary" id="send-gift">
-
-          <span class="material-symbols-outlined">card_giftcard</span> Подарить
-
-        </button>
-
-      </div>
-
-    </div>
-
-  `;
-
-  document.body.appendChild(modal);
-
-  // Обработчики
-
-  modal.querySelector('.modal-close').onclick = () => modal.remove();
-
-  modal.querySelector('#cancel-gift').onclick = () => modal.remove();
-
-  modal.addEventListener('click', e => {
-
-    if (e.target === modal) modal.remove();
-
-  });
-
-  modal.querySelector('#send-gift').onclick = async () => {
-
-    const amount = parseInt(modal.querySelector('#gift-amount').value, 10);
-
-    const message = modal.querySelector('#gift-message').value.trim();
-
-    if (isNaN(amount) || amount < 1 || amount > 100) {
-
-      toast('Введите корректное количество XP (1-100)', 'warning');
-
-      return;
-
-    }
-
-    try {
-
-      await sendGift(window.currentUserId, friendId, amount, message);
-
-      toast(`Отправлено ${amount} XP!`, 'success');
-
-      modal.remove();
-
-      renderGifts(); // Обновляем список подарков
-
-    } catch (e) {
-
-      toast(
-
-        'Ошибка отправки: ' + (e.message || e.toString() || 'неизвестная'),
-
-        'danger',
-
-      );
-
-    }
-
-  };
 
 }
 
@@ -27486,7 +27301,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <span class="material-symbols-outlined bs-opt-icon">cognition_2</span>
 
-            <span class="bs-opt-text">Учу</span>
+            <span class="bs-opt-text">
+              Учу
+              <span class="bs-learning-badge" id="bs-learning-badge" style="margin-left: auto; background: var(--primary); color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center;">0</span>
+            </span>
 
             <span class="material-symbols-outlined bs-opt-check">check_circle</span>
 
@@ -27537,7 +27355,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <span class="material-symbols-outlined bs-opt-icon">cognition_2</span>
 
-            <span class="bs-opt-text">Учу</span>
+            <span class="bs-opt-text">
+              Учу
+              <span class="bs-learning-badge" id="bs-learning-badge" style="margin-left: auto; background: var(--primary); color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center;">0</span>
+            </span>
 
             <span class="material-symbols-outlined bs-opt-check">check_circle</span>
 
@@ -27644,7 +27465,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bsBadge = document.getElementById('bs-due-badge');
 
-    if (bsBadge) bsBadge.textContent = duePill;
+    if (bsBadge) {
+      bsBadge.textContent = duePill;
+      bsBadge.style.display = parseInt(duePill) > 0 ? 'inline-flex' : 'none';
+    }
+
+    // learning badge
+
+    const learningPill = document.getElementById('learning-pill')?.textContent || '0';
+
+    const bsLearningBadge = document.getElementById('bs-learning-badge');
+
+    if (bsLearningBadge) {
+      bsLearningBadge.textContent = learningPill;
+      bsLearningBadge.style.display = parseInt(learningPill) > 0 ? 'inline-flex' : 'none';
+    }
 
   }
 
@@ -28058,8 +27893,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ========== Инициализация социальных вкладок ==========
 
-// Отображение входящих приглашений в челленджи
-
+// Отображение входящих приглашений в челленджи (ЗАКОММЕНТИРОВАНО)
+/*
 async function renderChallengeInvites() {
 
   const section = document.getElementById('challenge-invites-list');
@@ -28223,7 +28058,10 @@ async function renderChallengeInvites() {
   }
 
 }
+*/
 
+// Отображение челленджей (ЗАКОММЕНТИРОВАНО)
+/*
 async function renderChallenges() {
 
   const container = document.getElementById('challenges-list');
@@ -28601,9 +28439,10 @@ async function renderChallenges() {
   }
 
 }
+*/
 
-// ========== МОДАЛКА ПРИГЛАШЕНИЯ В ЧЕЛЛЕНДЖ ==========
-
+// ========== МОДАЛКА ПРИГЛАШЕНИЯ В ЧЕЛЛЕНДЖ (ЗАКОММЕНТИРОВАНО) ==========
+/*
 let currentChallengeId = null;
 
 async function openInviteChallengeModal(challengeId) {
@@ -28835,70 +28674,7 @@ document
     document.body.classList.remove('modal-open');
 
   });
-
-async function renderGifts() {
-
-  const container = document.getElementById('gifts-list');
-
-  if (!container) return;
-
-  try {
-
-    const gifts = await getGiftsReceived(window.currentUserId);
-
-    if (!gifts.length) {
-
-      container.innerHTML =
-
-        '<div class="friends-empty"><span class="material-symbols-outlined">card_giftcard</span><p>Подарки пока не приходят</p></div>';
-
-      return;
-
-    }
-
-    container.innerHTML = gifts
-
-      .map(
-
-        g => `
-
-      <div class="lb-row">
-
-        <div class="lb-rank">🎁</div>
-
-        <div class="lb-info">
-
-          <div class="lb-name">${esc(g.sender.username)}</div>
-
-          <div class="lb-level">+${g.amount} XP</div>
-
-          ${g.message ? `<div class="lb-level" style="font-size:0.8rem">«${esc(g.message)}»</div>` : ''}
-
-        </div>
-
-        <div class="lb-xp">
-
-          <div class="lb-xp-num">${new Date(g.created_at).toLocaleDateString('ru-RU')}</div>
-
-        </div>
-
-      </div>
-
-    `,
-
-      )
-
-      .join('');
-
-  } catch (e) {
-
-    console.error(e);
-
-    container.innerHTML = '<div class="friends-empty">Ошибка загрузки</div>';
-
-  }
-
-}
+*/
 
 // Чат
 
@@ -30270,18 +30046,17 @@ function showComparisonModal(data, friendName) {
 
 }
 
-// Добавляем вызов рендера вкладок при загрузке
-
+// Добавляем вызов рендера вкладок при загрузке (ЗАКОММЕНТИРОВАНО)
+/*
 window.renderChallenges = renderChallenges;
-
-window.renderGifts = renderGifts;
+*/
 
 window.updateUnreadCounts = updateUnreadCounts;
 
 window.updateFloatingChatButton = updateFloatingChatButton;
 
-// ========== Кнопка создания челленджа ==========
-
+// ========== Кнопка создания челленджа (ЗАКОММЕНТИРОВАНО) ==========
+/*
 document
 
   .getElementById('create-challenge-btn')
@@ -30293,6 +30068,7 @@ document
     document.body.classList.add('modal-open');
 
   });
+*/
 
 // Подключаем рендер к переключению вкладок
 
@@ -30302,9 +30078,9 @@ document.querySelectorAll('[data-fpill]').forEach(pill => {
 
     const target = pill.dataset.fpill;
 
-    // Закрываем чат при переключении на challenges или gifts
-
-    if (target === 'challenges' || target === 'gifts') {
+    // Закрываем чат при переключении на challenges (ЗАКОММЕНТИРОВАНО)
+    /*
+    if (target === 'challenges') {
 
       const chatContainer = document.getElementById('chat-messages');
 
@@ -30323,12 +30099,10 @@ document.querySelectorAll('[data-fpill]').forEach(pill => {
     }
 
     if (target === 'challenges') {
-
-      renderChallenges();
-
-      renderChallengeInvites();
-
-    } else if (target === 'gifts') renderGifts();
+      // renderChallenges(); // ЗАКОММЕНТИРОВАНО
+      // renderChallengeInvites(); // ЗАКОММЕНТИРОВАНО
+    }
+    */
 
   });
 
@@ -30965,15 +30739,15 @@ function subscribeToFriendRequests() {
 
 }
 
-// Модальное окно создания челленджа
-
+// Модальное окно создания челленджа (ЗАКОММЕНТИРОВАНО)
+/*
 const createChallengeModal = document.getElementById('create-challenge-modal');
 
 const createChallengeBtn = document.getElementById('create-challenge-btn');
 
 const closeChallengeModal = document.getElementById('close-challenge-modal');
 
-const cancelChallengeBtn = document.getElementById('cancel-challenge-btn');
+const cancelChallengeBtn = document.getElementById('cancel-challenge-button');
 
 createChallengeBtn?.addEventListener('click', () => {
 
@@ -30987,7 +30761,7 @@ createChallengeBtn?.addEventListener('click', () => {
 
 });
 
-// ========== НОВАЯ ЛОГИКА ДЛЯ МОДАЛКИ ЧЕЛЛЕНДЖА ==========
+// ========== НОВАЯ ЛОГИКА ДЛЯ МОДАЛКИ ЧЕЛЛЕНДКА ==========
 
 let currentChallengeType = 'xp';
 
@@ -31334,6 +31108,7 @@ submitChallengeBtn?.addEventListener('click', async () => {
   }
 
 });
+*/
 
 // ===== ГЛОБАЛЬНЫЕ ЭКСПОРТЫ ДЛЯ HTML =====
 

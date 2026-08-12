@@ -25,8 +25,22 @@ function toast(msg, type = '', icon = '') {
   }, 4000);
 }
 
+// Инициализация темы на основе системных настроек
+function initResetTheme() {
+  const saved = JSON.parse(localStorage.getItem('englift_user_settings') || '{}');
+  // Если пользователь выбирал тему вручную, используем её, иначе системную
+  const dark = saved._themeManuallySet ? saved.dark : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (dark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
+  // Инициализируем тему перед всем остальным
+  initResetTheme();
   // DOM элементы
   const resetForm = document.getElementById('reset-password-form');
   const newPassword = document.getElementById('reset-new-password');

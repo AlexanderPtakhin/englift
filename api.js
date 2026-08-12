@@ -324,11 +324,26 @@ async function loadWordBank() {
         return;
       }
 
-      // IndexedDB пустая — грузим A1 синхронно, остальное фоном
+      // IndexedDB пустая — грузим A1 синхронно с retry, остальное фоном
       console.log('[API] Dictionary not loaded, starting with level A1...');
       cachedWordBank = null;
       cachedWordBankByLevel = null;
-      await loadLevel('A1');
+
+      let lastError = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await loadLevel('A1');
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+          console.warn(`[API] Попытка ${attempt}/3 загрузки A1 не удалась:`, error.message);
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // 1с, потом 2с
+          }
+        }
+      }
+      if (lastError) throw lastError; // если и после 3 попыток не вышло — тогда уже сдаёмся
 
       console.log('[API] Starting background load for remaining levels...');
       if (!backgroundLoadingPromise) {

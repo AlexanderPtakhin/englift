@@ -120,9 +120,19 @@
       const tx = db.transaction(WORD_STORE, 'readonly');
       const store = tx.objectStore(WORD_STORE);
       const index = store.index('userId');
-      const request = index.getAll(userId);
+      const request = index.openCursor(userId);
+      const results = [];
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          results.push(cursor.value);
+          cursor.continue();
+        } else {
+          console.log('[CACHE] getAllWords loaded:', results.length, 'words');
+          resolve(results);
+        }
+      };
     });
   }
 
@@ -134,9 +144,18 @@
       const tx = db.transaction(IDIOM_STORE, 'readonly');
       const store = tx.objectStore(IDIOM_STORE);
       const index = store.index('userId');
-      const request = index.getAll(userId);
+      const request = index.openCursor(userId);
+      const results = [];
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          results.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
     });
   }
 

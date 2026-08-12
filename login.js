@@ -67,10 +67,13 @@ let lastCheckedUsername = '';
 // --- Вспомогательные функции ---
 
 function toggleRegisterFields(show) {
+  const forgotLink = document.querySelector('.forgot-link');
   if (show) {
     gateConfirmGroup.style.display = 'block';
     gateUsernameGroup.style.display = 'block';
     gatePasswordHint.style.display = 'block';
+    // Скрываем "Забыли пароль?" на регистрации
+    if (forgotLink) forgotLink.style.display = 'none';
     // Меняем autocomplete для регистрации
     gatePassword.setAttribute('autocomplete', 'new-password');
     // Скрываем индикатор силы пароля при переключении
@@ -86,6 +89,8 @@ function toggleRegisterFields(show) {
     gatePasswordHint.style.display = 'none';
     isUsernameTaken = false;
     lastCheckedUsername = '';
+    // Показываем "Забыли пароль?" на входе
+    if (forgotLink) forgotLink.style.display = 'block';
     // Меняем autocomplete для входа
     gatePassword.setAttribute('autocomplete', 'current-password');
     // Скрываем индикатор силы пароля
@@ -697,8 +702,23 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
+// Инициализация темы на основе системных настроек
+function initLoginTheme() {
+  const saved = JSON.parse(localStorage.getItem('englift_user_settings') || '{}');
+  // Если пользователь выбирал тему вручную, используем её, иначе системную
+  const dark = saved._themeManuallySet ? saved.dark : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (dark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
 // Если уже есть сессия при загрузке страницы
 (async () => {
+  // Инициализируем тему перед всем остальным
+  initLoginTheme();
+
   const {
     data: { session },
   } = await supabase.auth.getSession();

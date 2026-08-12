@@ -82,7 +82,7 @@ export async function getLeaderboard(period = 'week') {
 }
 
 // ========== Приглашения в челленджи ==========
-
+/*
 // Отправить приглашение другу
 export async function sendChallengeInvite(challengeId, senderId, receiverId) {
   const { data, error } = await supabase
@@ -130,12 +130,23 @@ export async function acceptChallengeInvite(inviteId, userId) {
   }
 
   // Проверяем, не добавлен ли уже пользователь
-  const { data: existingParticipant } = await supabase
-    .from('challenge_participants')
-    .select('*')
-    .eq('challenge_id', invite.challenge_id)
-    .eq('user_id', userId)
-    .maybeSingle();
+  let existingParticipant = null;
+  try {
+    const result = await supabase
+      .from('challenge_participants')
+      .select('*')
+      .eq('challenge_id', invite.challenge_id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (result.error) {
+      console.error('[CHALLENGE] Error checking existing participant:', result.error);
+      // Продолжаем несмотря на ошибку, считаем что участник не существует
+    } else {
+      existingParticipant = result.data;
+    }
+  } catch (err) {
+    console.error('[CHALLENGE] Exception checking existing participant:', err);
+  }
 
   // Добавляем только если ещё не участвует
   if (!existingParticipant) {
@@ -159,9 +170,10 @@ export async function declineChallengeInvite(inviteId, userId) {
     .eq('receiver_id', userId);
   if (error) throw error;
 }
+*/
 
 // ========== Челленджи ==========
-
+/*
 // Кэш для челленджей
 let challengesCache = null;
 let challengesCacheTime = 0;
@@ -304,7 +316,7 @@ export async function leaveChallenge(challengeId, userId) {
 export async function updateChallengeProgress(challengeId, userId, progress) {
   const { error } = await supabase
     .from('challenge_participants')
-    .update({ progress })
+    .update({ progress: Math.round(progress * 100) / 100 }) // Round to 2 decimal places
     .eq('challenge_id', challengeId)
     .eq('user_id', userId);
   if (error) throw error;
@@ -330,28 +342,7 @@ export async function deleteChallenge(challengeId, userId) {
     .eq('id', challengeId);
   if (error) throw error;
 }
-
-// ========== Подарки ==========
-export async function sendGift(senderId, receiverId, amount, message) {
-  const { data, error } = await supabase
-    .from('gifts')
-    .insert({ sender_id: senderId, receiver_id: receiverId, amount, message })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
-
-export async function getGiftsReceived(userId) {
-  const { data, error } = await supabase
-    .from('gifts')
-    .select('*, sender:profiles!sender_id(username)')
-    .eq('receiver_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(20);
-  if (error) throw error;
-  return data;
-}
+*/
 
 // ========== Сообщения ==========
 export async function sendMessage(senderId, receiverId, text) {

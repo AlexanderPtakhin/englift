@@ -20,7 +20,8 @@ export async function loadWordsOnce(callback) {
     .from('user_words')
     .select('*')
     .eq('user_id', user.id)
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .range(0, 19999);
 
   if (error) {
     console.error('[DB] ❌ Ошибка загрузки слов:', error);
@@ -179,7 +180,8 @@ export async function loadIdiomsOnce(callback) {
     .from('user_idioms')
     .select('*')
     .eq('user_id', user.id)
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .range(0, 19999);
 
   if (error) {
     console.error('Error loading idioms:', error);

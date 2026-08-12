@@ -597,6 +597,12 @@ html:not(.dark) {
   --btn-gradient: linear-gradient(135deg, #f47b36, #ff9a47);
   --btn-gradient-hover: linear-gradient(135deg, #ef6d2d, #ff8c38);
   --accent-gradient: linear-gradient(135deg, #d94d2d 0%, #f47b36 45%, #ffb45b 100%);
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --glass-blur: 12px;
 }
 /* Тёмная тема: Graphite with Orange */
 html.dark {
@@ -618,6 +624,12 @@ html.dark {
   --btn-gradient: linear-gradient(135deg, #ff9a4d, #ffb86f);
   --btn-gradient-hover: linear-gradient(135deg, #ff8c38, #ffa858);
   --accent-gradient: linear-gradient(135deg, #d94d2d 0%, #ff9a4d 45%, #ffb45b 100%);
+
+  /* Glassmorphism */
+  --glass-bg: rgba(35, 37, 43, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --glass-blur: 12px;
 }
 /* Тема Океан (светлая) */
 .theme-ocean {
@@ -1122,14 +1134,18 @@ html.dark {
   left: 0;
   width: 100%;
   height: 60px;
-  background: var(--card);
-  border-top: 2px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--glass-border);
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   z-index: 100;
 }
 header {
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
   z-index: 1001;
   padding: 1rem 2rem;
   position: sticky;
@@ -1351,8 +1367,10 @@ header nav {
   display: none; /* по умолчанию скрыта */
   width: 48px;
   height: 48px;
-  background: var(--card);
-  border: 2px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 50%;
   color: var(--muted);
   cursor: pointer;
@@ -1367,7 +1385,7 @@ header nav {
     border-color 0.2s ease,
     color 0.2s ease,
     box-shadow 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--glass-shadow);
 }
 .install-btn.visible {
   display: flex;
@@ -1618,6 +1636,14 @@ nav {
   right: -5px;
   box-shadow: -2px 3px 3px rgba(0, 0, 0, 0.25);
 }
+/* Glassmorphism */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
 /* Due pill */
 .due-pill {
   background: var(--primary);
@@ -1631,6 +1657,24 @@ nav {
   align-items: center;
   justify-content: center;
   box-shadow: -2px 3px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Learning pill for mobile */
+#learning-pill-mobile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  margin-left: auto;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
 }
 /* Friend chat badge */
 .friend-chat-badge {
@@ -2251,8 +2295,10 @@ textarea {
   gap: 0.4rem;
 }
 .pill {
-  background: var(--card);
-  border: 2px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 20px;
   padding: 0.4rem 0.7rem;
   font-size: 0.8rem;
@@ -2288,14 +2334,16 @@ textarea {
   will-change: contents;
 }
 .word-card {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.25rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
   transition:
     transform 0.2s,
     box-shadow 0.2s;
-  border: 2px solid transparent;
 }
 .word-card:hover {
   transform: translateY(-3px);
@@ -2421,13 +2469,15 @@ textarea {
 }
 .custom-tooltip {
   position: fixed;
-  background: var(--card);
-  border: 2px solid var(--primary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   color: var(--text);
   padding: 0.5rem 0.8rem;
   border-radius: 8px;
   font-size: 0.9rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--glass-shadow);
   pointer-events: none;
   z-index: 9999;
   max-width: 300px;
@@ -2641,10 +2691,13 @@ html.dark .badge-learned {
   }
 }
 .add-card {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.75rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
 }
 .add-layout .add-card:last-child {
   align-self: flex-start;
@@ -2719,8 +2772,8 @@ html.dark .badge-learned {
 .setup-card {
   background: var(--card);
   border-radius: var(--radius);
-  padding: 2rem;
   box-shadow: var(--shadow);
+  padding: 2rem;
 }
 .setup-card h2 {
   font-size: 1.3rem;
@@ -2744,14 +2797,17 @@ html.dark .badge-learned {
 }
 .chip {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  background: var(--card);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   color: var(--text);
+  position: relative;
 }
 .chip:hover,
 .chip.on {
@@ -2776,6 +2832,7 @@ html.dark .badge-learned {
 /* EXERCISE */
 .ex-wrap {
   background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 2rem 2rem 2rem 2rem;
   box-shadow: var(--shadow);
@@ -3040,8 +3097,10 @@ html.dark .badge-learned {
   margin-top: 0.5rem;
 }
 .exercise-card {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 1rem;
   cursor: pointer;
@@ -3286,11 +3345,13 @@ html.dark .badge-learned {
   text-align: center !important;
   justify-content: center !important;
   border-left: 3px solid transparent !important;
-  border: 2px solid var(--border) !important;
+  border: 1px solid var(--glass-border) !important;
   transition: all 0.18s ease !important;
   min-height: 3.5rem !important;
   font-weight: 600 !important;
-  background: var(--card) !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
   color: var(--text) !important;
   cursor: pointer !important;
   display: flex !important;
@@ -3713,10 +3774,13 @@ html.dark .badge-learned {
 }
 /* RESULTS */
 .results-card {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 2.5rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
   text-align: center;
   max-width: 500px;
   margin: 0 auto;
@@ -3814,11 +3878,14 @@ html.dark .badge-learned {
 /* ============================================================ */
 /* Обновлённый XP блок */
 .xp-stats-row {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -3881,17 +3948,19 @@ html.dark .badge-learned {
   margin-bottom: 2rem;
 }
 .stat-card {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.2rem 1rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
   display: flex;
   align-items: center;
   gap: 1rem;
   transition:
     transform 0.2s,
     box-shadow 0.2s;
-  border: 1px solid var(--border);
   text-align: left;
   flex-direction: row;
 }
@@ -3945,11 +4014,14 @@ html.dark .badge-learned {
 }
 /* График активности */
 .week-chart-container {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.25rem;
   margin-bottom: 2rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
 }
 
 .daily-cap-header {
@@ -4011,9 +4083,12 @@ html.dark .badge-learned {
   color: var(--text);
 }
 .activity-tab.active {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   color: var(--primary-text, var(--primary));
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--glass-shadow);
   font-weight: 700;
 }
 
@@ -4202,11 +4277,14 @@ html.dark .badge-learned {
 .legend-cell.level-4 { background: var(--primary); }
 /* Лимит повторений */
 .daily-cap-section {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
 }
 .daily-cap-header {
   display: flex;
@@ -4304,11 +4382,14 @@ html.dark .badge-learned {
 }
 /* Уровни CEFR */
 .cefr-progress {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
 }
 .cefr-grid {
   display: grid;
@@ -4343,11 +4424,13 @@ html.dark .badge-learned {
   gap: 1.5rem;
 }
 .word-list-card {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow);
 }
 .wlist {
   list-style: none;
@@ -4681,7 +4764,9 @@ html.dark .badge-learned {
 .preview-table td {
   padding: 0.6rem;
   border-bottom: 1px solid var(--border);
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 .preview-table tbody tr:nth-child(even) td {
   background: var(--bg);
@@ -4744,8 +4829,10 @@ html.dark .badge-learned {
 /* Обновлённые чипсы */
 .chip {
   padding: 0.6rem 1.2rem;
-  border: 1px solid var(--border);
-  background: var(--card);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: 30px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -4755,7 +4842,8 @@ html.dark .badge-learned {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--glass-shadow);
+  position: relative;
 }
 .chip .material-symbols-outlined {
   font-size: 1rem;
@@ -4775,8 +4863,10 @@ html.dark .badge-learned {
 }
 /* Карточки упражнений */
 .exercise-card {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 1.2rem 0.5rem;
   cursor: pointer;
@@ -4786,7 +4876,7 @@ html.dark .badge-learned {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--glass-shadow);
 }
 .exercise-card:hover {
   transform: translateY(-3px);
@@ -4866,6 +4956,10 @@ html.dark .badge-learned {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  /* Растягиваем карточку с классом stat-card-full на всю ширину */
+  .stats-grid .stat-card-full {
+    grid-column: 1 / -1; /* занимает все колонки */
+  }
   /* Растягиваем третью (последнюю) карточку на всю ширину */
   .stats-grid .stat-card:last-child {
     grid-column: 1 / -1; /* занимает все колонки */
@@ -4897,10 +4991,13 @@ html.dark .badge-learned {
   height: 260px !important;
 }
 .sparkline-wrap {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
   margin-bottom: 1.5rem;
 }
 .sparkline-wrap h3 {
@@ -4931,10 +5028,13 @@ html.dark .badge-learned {
   }
 }
 .word-list-card {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
 }
 .word-list-card h3 {
   font-size: 1rem;
@@ -4959,10 +5059,13 @@ html.dark .badge-learned {
 }
 /* SPEECH SETTINGS */
 .speech-settings {
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
   margin-bottom: 1.5rem;
 }
 .speech-settings.modal-box {
@@ -5357,10 +5460,12 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
 }
 .comparison-section {
   margin-bottom: 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   overflow: hidden;
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 .comparison-section-header {
   display: flex;
@@ -5396,8 +5501,10 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
 }
 .comparison-section-content {
   padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border);
-  background: var(--card);
+  border-top: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 .comparison-search {
   margin-bottom: 1rem;
@@ -5436,8 +5543,10 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
 }
 .subsection-content {
   padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border);
-  background: var(--card);
+  border-top: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 .badges-grid-mini {
   display: flex;
@@ -5477,10 +5586,11 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
   right: auto !important; /* переопределяем inline style из utils.js */
 }
 .toast {
-  background: var(--card);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.7rem 1.2rem;
-  box-shadow: var(--shadow-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   font-weight: 700;
   font-size: 0.9rem;
   border-left: 4px solid var(--success);
@@ -6093,8 +6203,10 @@ html.dark .due-soon {
   gap: 1rem; /* Увеличили отступы */
 }
 .badge-card {
-  background: var(--card);
-  border: 2px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 16px; /* Более скругленные */
   padding: 1.2rem 1rem; /* Больше padding */
   text-align: center;
@@ -6394,8 +6506,10 @@ html.dark .due-soon {
 .context-option-btn {
   font-size: 1rem;
   font-weight: 600;
-  border: 2px solid var(--border);
-  background: var(--card);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text);
   border-radius: 12px;
   transition: all 0.2s;
@@ -6478,8 +6592,10 @@ html.dark .due-soon {
 .io-btn {
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  border: 2px solid var(--border);
-  background: var(--card);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text);
   cursor: pointer;
   display: flex;
@@ -6547,8 +6663,10 @@ html.dark .due-soon {
   /* min-width: 140px; */
 }
 .custom-select-trigger {
-  background: var(--card);
-  border: 2px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 20px;
   padding: 0.4rem 0.7rem;
   font-size: 0.8rem;
@@ -6583,10 +6701,12 @@ html.dark .due-soon {
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--card);
-  border: 2px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--glass-shadow);
   z-index: 1000;
   margin-top: 0.5rem;
   display: none;
@@ -6630,8 +6750,10 @@ html.dark .due-soon {
 /* SORT */
 .sort-select {
   padding: 0.4rem 0.8rem;
-  border: 2px solid var(--border);
-  background: var(--card);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text);
   border-radius: 20px;
   font-size: 0.85rem;
@@ -6862,8 +6984,10 @@ html.dark .due-soon {
 .match-btn {
   font-size: 1rem;
   font-weight: 600;
-  border: 2px solid var(--border);
-  background: var(--card);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text);
   border-radius: 12px;
   transition: all 0.2s;
@@ -7030,7 +7154,7 @@ html.dark .due-soon {
   left: 0;
   right: 0;
   background: var(--card);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: 0 0 10px 10px;
   max-height: 200px;
   overflow-y: auto;
@@ -9277,8 +9401,10 @@ html.dark .chip.on {
 }
 /* ── EXERCISE CARDS ── */
 .exercise-card {
-  background: var(--card) !important;
-  border: 1.5px solid var(--border) !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  border: 1px solid var(--glass-border) !important;
   border-radius: 16px !important;
   padding: 1.1rem 0.7rem 1rem !important;
   cursor: pointer !important;
@@ -9290,6 +9416,7 @@ html.dark .chip.on {
   gap: 0.5rem !important;
   position: relative !important;
   overflow: hidden !important;
+  box-shadow: var(--glass-shadow) !important;
 }
 /* Полоска сверху — акцент без цвета */
 .exercise-card::before {
@@ -11145,6 +11272,29 @@ body.bs-open .bs-trigger-arrow {
   margin-left: auto;
   margin-right: 0.5rem;
 }
+
+.bs-learning-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  margin-left: auto;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+#bs-learning-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
 /* --- Segmented control (Autopron + Direction) --- */
 .bs-seg {
   display: flex;
@@ -11789,7 +11939,8 @@ body.bs-open .bs-trigger-arrow {
 .friend-card-new.no-arrow::after {
   display: none;
 }
-/* ===== ЧЕЛЛЕНДЖ КАРТОЧКИ (минималистичный дизайн) ===== */
+/* ===== ЧЕЛЛЕНДЖ КАРТОЧКИ (минималистичный дизайн) - ЗАКОММЕНТИРОВАНО ===== */
+/*
 .challenge-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -11991,7 +12142,8 @@ body.bs-open .bs-trigger-arrow {
     padding-top: 0.6rem;
   }
 }
-/* ===== ВХОДЯЩИЕ ПРИГЛАШЕНИЯ В ЧЕЛЛЕНДЖИ ===== */
+/* ===== ВХОДЯЩИЕ ПРИГЛАШЕНИЯ В ЧЕЛЛЕНДЖИ - ЗАКОММЕНТИРОВАНО ===== */
+/*
 .challenge-invites-section {
   margin-bottom: 1.5rem;
 }
@@ -12094,12 +12246,13 @@ body.bs-open .bs-trigger-arrow {
   font-size: 20px;
   color: white;
 }
-/* ===== МОДАЛКА ПРИГЛАШЕНИЯ В ЧЕЛЛЕНДЖ ===== */
+/* ===== МОДАЛКА ПРИГЛАШЕНИЯ В ЧЕЛЛЕНДЖ - ЗАКОММЕНТИРОВАНО ===== */
+/*
 .challenge-invite-modal .modal-body {
   padding: 1.25rem;
   overflow-x: hidden;
 }
-/* Инфо о челлендже */
+Инфо о челлендже
 .invite-challenge-info {
   margin-bottom: 1.5rem;
 }
@@ -12161,7 +12314,7 @@ body.bs-open .bs-trigger-arrow {
   font-size: 0.85rem;
   color: var(--muted);
 }
-/* Список друзей */
+Список друзей
 .invite-friends-section {
   margin-bottom: 0.5rem;
 }
@@ -12182,6 +12335,9 @@ body.bs-open .bs-trigger-arrow {
   overflow-x: hidden;
   padding-right: 0.5rem;
 }
+*/
+/* ===== ОСТАЛЬНЫЕ СТИЛИ ЧЕЛЛЕНДЖЕЙ - ЗАКОММЕНТИРОВАНО ===== */
+/*
 .challenge-participants {
   font-size: 0.8rem;
   color: var(--muted);
@@ -12376,6 +12532,8 @@ body.bs-open .bs-trigger-arrow {
   color: var(--muted);
   margin-bottom: 1rem;
 }
+/* ===== ОСТАЛЬНЫЕ СТИЛИ ЧЕЛЛЕНДЖЕЙ (часть 2) - ЗАКОММЕНТИРОВАНО ===== */
+/*
 .customize-header .material-symbols-outlined {
   font-size: 1.1rem;
 }
@@ -13409,54 +13567,28 @@ body.bs-open .bs-trigger-arrow {
   }
 }
 /* ============================================================
-   СОЦИАЛЬНЫЕ МОДУЛИ (челленджи, подарки, чат)
+   СОЦИАЛЬНЫЕ МОДУЛИ (челленджи, подарки, чат) - ЧЕЛЛЕНДЖИ ЗАКОММЕНТИРОВАНО
    ============================================================ */
 /* Список челленджей - без ограничения высоты */
+/*
 #challenges-list {
   max-height: none;
   overflow-y: visible;
-  padding-bottom: 100px; /* место для кнопки создания */
+  padding-bottom: 100px;
 }
-/* Общие для списков */
-#challenges-list .lb-row,
-#gifts-list .lb-row {
+Общие для списков
+#challenges-list .lb-row {
   cursor: pointer;
   transition:
     transform 0.2s,
     box-shadow 0.2s;
 }
-#challenges-list .lb-row:hover,
-#gifts-list .lb-row:hover {
+#challenges-list .lb-row:hover {
   transform: scale(1.02);
   border-color: var(--primary);
   box-shadow: var(--shadow-hover);
 }
-.modal-box .badge-mini[data-en],
-.modal-box .badge-mini[data-idiom] {
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.modal-box .badge-mini[data-en]:hover,
-.modal-box .badge-mini[data-idiom]:hover {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-  transform: scale(1.05);
-}
-.modal-box h4 {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0.75rem 0 0.25rem;
-}
-.modal-box h4:first-of-type {
-  margin-top: 0;
-}
-/* Бейджи непрочитанных сообщений */
-.lb-row .badge {
-  position: static;
-}
-/* Кнопки действий челленджей */
+Кнопки действий челленджей
 .challenge-actions {
   display: flex;
   gap: 0.5rem;
@@ -13479,7 +13611,7 @@ body.bs-open .bs-trigger-arrow {
   color: white;
   border-color: var(--primary);
 }
-/* Кнопка удаления челленджа - как стандартная delete-btn */
+Кнопка удаления челленджа - как стандартная delete-btn
 .challenge-actions .btn-icon.delete-challenge-btn {
   width: 36px;
   height: 36px;
@@ -13509,7 +13641,7 @@ body.bs-open .bs-trigger-arrow {
   .material-symbols-outlined {
   color: var(--danger);
 }
-/* Info box для модалки создания челленджа */
+Info box для модалки создания челленджа
 .info-box {
   background: var(--bg);
   border-left: 4px solid var(--primary);
@@ -13518,6 +13650,7 @@ body.bs-open .bs-trigger-arrow {
   font-size: 0.85rem;
   line-height: 1.4;
 }
+*/
 /* Реакции на сообщения как в Telegram */
 .chat-reactions {
   display: flex;
