@@ -781,6 +781,7 @@ async function loadFromCache() {
     window.idioms = idioms.length ? idioms.map(normalizeIdiom) : [];
 
     console.log('[CACHE] Загружено из кеша:', window.words.length, 'слов,', window.idioms.length, 'идиом');
+    console.log('[CACHE] window.words после присваивания:', window.words.length);
 
   } catch (e) {
 
@@ -1392,21 +1393,16 @@ window.applyProfileData = function (data) {
 
   checkAndResetDailyCount();
 
-  // Настройки – объединяем (серверные могут быть новее, но локальные – приоритет)
+  // Настройки – серверные настройки полностью заменяют локальные
 
   if (data.usersettings) {
 
-    // Если пользователь не выбирал тему вручную, не перезаписываем её с сервера
-    // чтобы системные настройки работали
-    const localSettings = window.user_settings || {};
-    const serverSettings = data.usersettings || {};
+    console.log('[PROFILE] Загрузка настроек с сервера:', data.usersettings);
 
-    if (!localSettings._themeManuallySet) {
-      // Удаляем тему из серверных настроек, чтобы она не перезаписала системную
-      delete serverSettings.dark;
-    }
+    // Полностью заменяем настройки серверными
+    window.user_settings = { ...data.usersettings };
 
-    window.user_settings = { ...localSettings, ...serverSettings };
+    console.log('[PROFILE] Итоговые настройки после замены:', window.user_settings);
 
   }
 
@@ -3637,7 +3633,10 @@ async function syncProfileNow() {
 
   } catch (err) {
 
-    console.error('Ошибка сохранения профиля:', err);
+    // Возвращаем данные в очередь при ошибке
+    for (const [key, value] of Object.entries(updates)) {
+      pendingProfileUpdates.set(key, value);
+    }
 
     // Тост отключен - данные сохраняются локально и будут отправлены позже
     // window.toast?.(
@@ -6868,6 +6867,9 @@ function updStats(wordId, correct, exerciseType) {
 
   calcSrs(w.stats, correct, exerciseType);
 
+  // Обновляем updatedAt при практике
+  w.updatedAt = new Date().toISOString();
+
   if (!wasLearned && w.stats.learned) {
 
     const isMobile = window.innerWidth < 1000;
@@ -9560,11 +9562,15 @@ window.mergeWords = function (localWords, remoteWords) {
 
       ).getTime();
 
-      if (localTime >= remoteTime) {
+      if (localTime > remoteTime) {
 
+        // Локальные явно новее — берём их
         merged.set(w.id, w);
 
       } else {
+
+        // Сервер новее или равен — берём серверные данные
+        // Это гарантирует что актуальные данные с сервера не перезаписываются локальным кешем
 
         // Сервер новее по updated_at, но stats могут быть богаче локально
 
@@ -9948,6 +9954,7 @@ function renderWords(appendOnly = false) {
 
   if (!window.words || !Array.isArray(window.words)) {
 
+    console.warn('[RENDER] window.words is not array or empty:', window.words);
     return;
 
   }
@@ -12429,11 +12436,6 @@ document
         // Вместо закрытия просто сбрасываем форму для массового добавления
         resetAddForm();
 
-        // Фокус на первое поле для удобства
-        setTimeout(() => {
-          document.getElementById('modal-word-en')?.focus();
-        }, 100);
-
         if (document.querySelector('.tab-pane.active')?.id !== 'tab-words')
 
           switchTab('words');
@@ -13794,7 +13796,13 @@ document
   ?.addEventListener('click', () => {
     const isDark = document.documentElement.classList.contains('dark');
     const baseTheme = window.user_settings?.baseTheme || 'lavender';
-    window.applyTheme(baseTheme, !isDark);
+    const newDark = !isDark;
+    window.applyTheme(baseTheme, newDark);
+    window.user_settings.dark = newDark;
+    window.user_settings._themeManuallySet = true;
+    if (window.currentUserId) {
+      markProfileDirty('usersettings', window.user_settings);
+    }
     document.getElementById('user-dropdown').style.display = 'none';
   });
 
@@ -14096,7 +14104,8 @@ if (speechModalSave && themeSelect) {
 
     ).value;
 
-    const currentDark = window.user_settings?.dark ?? false;
+    const currentDark = document.documentElement.classList.contains('dark');
+    window.user_settings.dark = currentDark;
 
     // 2. Обновляем глобальный объект настроек
 
@@ -14131,6 +14140,26 @@ if (speechModalSave && themeSelect) {
       markProfileDirty('usersettings', window.user_settings);
 
     }
+
+    // 5. Сохраняем все настройки в localStorage для быстрой загрузки
+
+    const saved = JSON.parse(localStorage.getItem('englift_user_settings') || '{}');
+
+    saved.voice = newVoice;
+
+    saved.reviewLimit = newLimit === '9999' ? 9999 : parseInt(newLimit, 10);
+
+    saved.baseTheme = newTheme;
+
+    saved.showPhonetic = showPhonetic;
+
+    saved.bankWordLevel = bankWordLevel;
+
+    saved.dark = currentDark;
+
+    saved._themeManuallySet = true;
+
+    localStorage.setItem('englift_user_settings', JSON.stringify(saved));
 
     // 5. Обновляем интерфейс, чтобы отобразить новый лимит
 
@@ -15749,12 +15778,11 @@ function startSession(cfg) {
       if (filterVal === 'due') {
 
         pool = getCardsToReview(); // Use capped function
-
       }
 
     }
 
-    // Перемешиваем для всех фильтров, кроме 'due' (для due сохраняем порядок по urgency)
+    // Перемешиваем для всех фильтров, кроме 'due'
 
     if (filterVal !== 'due') {
 
@@ -15984,7 +16012,7 @@ function startSession(cfg) {
 
     }
 
-    // ========== АДАПТИВНОЕ ИСКЛЮЧЕНИЕ (для всех, кроме due) ==========
+    // ========== АДАПТИВНОЕ ИСКЛЮЧЕНИЕ (для всех, кроме due, stale) ==========
 
     let freshPool = pool;
 
@@ -22406,9 +22434,9 @@ function initPWA() {
 
   const manifest = {
 
-    name: 'EngLift',
+    name: 'EngUply',
 
-    short_name: 'EngLift',
+    short_name: 'EngUply',
 
     description: 'Учи английские слова',
 
@@ -23741,6 +23769,8 @@ window.onProfileFullyLoaded = async function () {
 
         );
 
+        console.log('[PROFILE] window.words после merge:', window.words.length);
+
         // Если сервер вернул больше слов чем было в кеше, обновляем кеш
         if (merged.length > cachedWordsCount) {
           console.warn('[PROFILE] Сервер вернул больше слов чем в кеше (' + merged.length + ' vs ' + cachedWordsCount + '), обновляем кеш');
@@ -24079,7 +24109,7 @@ function showManualInstallInstructions() {
 
         </ol>
 
-        <p style="color: var(--muted); margin-top: 1rem;">Готово! EngLift появится на главном экране как отдельное приложение.</p>
+        <p style="color: var(--muted); margin-top: 1rem;">Готово! EngUply появится на главном экране как отдельное приложение.</p>
 
       </div>
 
@@ -24103,7 +24133,7 @@ function showManualInstallInstructions() {
 
         </ol>
 
-        <p style="color: var(--muted); margin-top: 1rem;">После этого EngLift будет доступен как приложение.</p>
+        <p style="color: var(--muted); margin-top: 1rem;">После этого EngUply будет доступен как приложение.</p>
 
       </div>
 
@@ -24113,7 +24143,7 @@ function showManualInstallInstructions() {
 
     instructions = `
 
-      <p>На вашем устройстве можно установить EngLift как приложение через меню браузера (обычно «Установить приложение» или «Добавить на главный экран»).</p>
+      <p>На вашем устройстве можно установить EngUply как приложение через меню браузера (обычно «Установить приложение» или «Добавить на главный экран»).</p>
 
     `;
 
@@ -25756,7 +25786,7 @@ async function openFriendModal(friendId) {
 
         <div class="friend-modal-name">${esc(friend.username)}</div>
 
-        <div class="friend-modal-bio">${friend.bio || 'Изучает английский с EngLift'}</div>
+        <div class="friend-modal-bio">${friend.bio || 'Изучает английский с EngUply'}</div>
 
       </div>
 
@@ -27113,7 +27143,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } else {
 
-      filterContainer = document.getElementById('filter-chips-words');
+      // Для слов проверяем оба контейнера
+      const primaryContainer = document.getElementById('filter-chips-words');
+      const secondaryContainer = document.getElementById('filter-chips-words-secondary');
+      const activeInPrimary = primaryContainer?.querySelector('.chip.on');
+      const activeInSecondary = secondaryContainer?.querySelector('.chip.on');
+      filterContainer = activeInPrimary ? primaryContainer : secondaryContainer;
 
     }
 
@@ -27195,7 +27230,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } else {
 
-      filterContainer = document.getElementById('filter-chips-words');
+      // Для слов проверяем оба контейнера
+      const primaryContainer = document.getElementById('filter-chips-words');
+      const secondaryContainer = document.getElementById('filter-chips-words-secondary');
+      const activeInPrimary = primaryContainer?.querySelector('.chip.on');
+      const activeInSecondary = secondaryContainer?.querySelector('.chip.on');
+      filterContainer = activeInPrimary ? primaryContainer : secondaryContainer;
 
     }
 
@@ -27310,16 +27350,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
           </button>
 
-          <button class="bs-option" data-bs-filter-w="random">
-
-            <span class="material-symbols-outlined bs-opt-icon">shuffle</span>
-
-            <span class="bs-opt-text">Случайные</span>
-
-            <span class="material-symbols-outlined bs-opt-check">check_circle</span>
-
-          </button>
-
           <button class="bs-option" data-bs-filter-w="due">
 
             <span class="material-symbols-outlined bs-opt-icon">schedule</span>
@@ -27359,16 +27389,6 @@ document.addEventListener('DOMContentLoaded', () => {
               Учу
               <span class="bs-learning-badge" id="bs-learning-badge" style="margin-left: auto; background: var(--primary); color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center;">0</span>
             </span>
-
-            <span class="material-symbols-outlined bs-opt-check">check_circle</span>
-
-          </button>
-
-          <button class="bs-option" data-bs-filter-w="random">
-
-            <span class="material-symbols-outlined bs-opt-icon">shuffle</span>
-
-            <span class="bs-opt-text">Случайные</span>
 
             <span class="material-symbols-outlined bs-opt-check">check_circle</span>
 
@@ -31133,6 +31153,31 @@ window.generateInviteLink = generateInviteLink;
 window.addWord = addWord;
 
 window.addIdiom = addIdiom;
+
+// Инициализация настроек из localStorage (до загрузки профиля с сервера)
+// Используется только как fallback если сервер недоступен
+
+function initUserSettings() {
+  // Если настройки уже загружены с сервера, не трогаем localStorage
+  if (window.user_settings && Object.keys(window.user_settings).length > 0) {
+    return;
+  }
+
+  const saved = JSON.parse(localStorage.getItem('englift_user_settings') || '{}');
+
+  window.user_settings = window.user_settings || {};
+
+  // Загружаем только если нет серверных настроек
+  if (saved.voice) window.user_settings.voice = saved.voice;
+  if (saved.reviewLimit) window.user_settings.reviewLimit = saved.reviewLimit;
+  if (saved.baseTheme) window.user_settings.baseTheme = saved.baseTheme;
+  if (saved.showPhonetic !== undefined) window.user_settings.showPhonetic = saved.showPhonetic;
+  if (saved.bankWordLevel) window.user_settings.bankWordLevel = saved.bankWordLevel;
+  if (saved.dark !== undefined) window.user_settings.dark = saved.dark;
+  if (saved._themeManuallySet !== undefined) window.user_settings._themeManuallySet = saved._themeManuallySet;
+}
+
+initUserSettings();
 
 // Инициализация темы
 

@@ -1,5 +1,5 @@
 /**
- * TGLCHAT - Telegram-style Chat Module for EngLift
+ * TGLCHAT - Telegram-style Chat Module for EngUply
  * Unique prefix: tgl- for all classes
  */
 

@@ -1,4 +1,4 @@
-// tour.js — EngLift Onboarding Tour (полная версия с исходными стилями)
+// tour.js — EngUply Onboarding Tour (полная версия с исходными стилями)
 (function () {
   const TOUR_KEY = 'englift_tour_v1_done';
   const MOBILE_BP = 830;
@@ -13,7 +13,7 @@
     {
       target: null,
       title:
-        '<span class="material-symbols-outlined">waving_hand</span> Добро пожаловать в EngLift!',
+        '<span class="material-symbols-outlined">waving_hand</span> Добро пожаловать в EngUply!',
       text: 'Быстрый тур по приложению — пара минут, и ты будешь знать всё самое важное.',
       position: 'center',
     },

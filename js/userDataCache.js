@@ -1,7 +1,7 @@
 // js/userDataCache.js
 (function () {
   let db = null;
-  const DB_NAME = 'EngLiftCache';
+  const DB_NAME = 'EngUplyCache';
   const DB_VERSION = 3; // Увеличена версия для миграции на userId-ключи
   const WORD_STORE = 'words';
   const IDIOM_STORE = 'idioms';

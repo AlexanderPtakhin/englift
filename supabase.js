@@ -9,6 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[SUPABASE] ❌ Отсутствуют переменные окружения!');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+  },
+});
 
-console.log('[SUPABASE] ✅ Клиент создан');
+console.log('[SUPABASE] ✅ Клиент создан с заголовками против кеширования');

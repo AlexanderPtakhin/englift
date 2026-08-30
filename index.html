@@ -8,7 +8,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>EngLift — твой личный взлёт в английском</title>
+    <title>EngUply — твой личный взлёт в английском</title>
 
     <!-- SEO Meta Tags -->
 
@@ -16,7 +16,7 @@
 
       name="description"
 
-      content="EngLift - бесплатное приложение для изучения английских слов и идиом. Интерактивные упражнения, социальные челленджи, персональный прогресс. Учите английский эффективно!"
+      content="EngUply - бесплатное приложение для изучения английских слов и идиом. Интерактивные упражнения, социальные челленджи, персональный прогресс. Учите английский эффективно!"
 
     />
 
@@ -24,11 +24,11 @@
 
       name="keywords"
 
-      content="английский язык, изучение английского, слова, идиомы, упражнения, практика, бесплатно, приложение, EngLift"
+      content="английский язык, изучение английского, слова, идиомы, упражнения, практика, бесплатно, приложение, EngUply"
 
     />
 
-    <meta name="author" content="EngLift Team" />
+    <meta name="author" content="EngUply Team" />
 
     <!-- Anti-cache meta tags -->
 
@@ -62,7 +62,7 @@
 
       property="og:title"
 
-      content="EngLift — твой личный взлёт в английском"
+      content="EngUply — твой личный взлёт в английском"
 
     />
 
@@ -76,7 +76,7 @@
 
     <meta property="og:image" content="https://englift.ru/icons/icon-512.png" />
 
-    <meta property="og:site_name" content="EngLift" />
+    <meta property="og:site_name" content="EngUply" />
 
     <meta property="og:locale" content="ru_RU" />
 
@@ -90,7 +90,7 @@
 
       property="twitter:title"
 
-      content="EngLift — твой личный взлёт в английском"
+      content="EngUply — твой личный взлёт в английском"
 
     />
 
@@ -118,7 +118,7 @@
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
 
-    <meta name="apple-mobile-web-app-title" content="EngLift" />
+    <meta name="apple-mobile-web-app-title" content="EngUply" />
 
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
@@ -190,7 +190,7 @@
 
     </style>
 
-    <meta name="sw-file" content="/sw.1786485578449-4d95adaa.js">
+    <meta name="sw-file" content="/sw.1788082558794-6a9fcb6f.js">
 
 </head>
 
@@ -222,7 +222,7 @@
 
       <div style="margin-top: 1rem; color: var(--text); font-size: 0.9rem">
 
-        Загружаем EngLift...
+        Загружаем EngUply...
 
       </div>
 
@@ -230,7 +230,7 @@
 
     <header>
 
-      <div class="logo">Eng<span>Lift</span></div>
+      <div class="logo">Eng<span>Uply</span></div>
 
       <nav>
 
@@ -694,24 +694,6 @@
 
             </div>
 
-            <div class="setup-row">
-
-              <label>Количество заданий</label>
-
-              <div class="chip-group">
-
-                <button class="chip on" data-count="10">10</button>
-
-                <button class="chip" data-count="20">20</button>
-
-                <button class="chip" data-count="50">50</button>
-
-                <button class="chip" data-count="all">Все</button>
-
-              </div>
-
-            </div>
-
             <!-- Блок настроек для экзамена (изначально скрыт) -->
 
             <div id="exam-settings" style="display: none">
@@ -936,40 +918,43 @@
 
             <div class="setup-row">
 
+              <label>Количество заданий</label>
+
+              <div class="chip-group">
+
+                <button class="chip on" data-count="10">10</button>
+
+                <button class="chip" data-count="20">20</button>
+
+                <button class="chip" data-count="50">50</button>
+
+                <button class="chip" data-count="all">Все</button>
+
+              </div>
+
+            </div>
+
+            <div class="setup-row">
+
               <label>Слова для практики</label>
 
               <div class="chip-group" id="filter-chips-words">
 
-                <button class="chip on" data-filter-w="all">Все</button>
+                <button class="chip on" data-filter-w="all">
+                  <span class="material-symbols-outlined">list</span>
+                  Все
+                </button>
 
                 <button class="chip" data-filter-w="learning">
 
+                  <span class="material-symbols-outlined">cognition_2</span>
                   Только учу <span class="chip-badge" id="learning-pill" style="display: none;">0</span>
 
                 </button>
 
-                <button class="chip" data-filter-w="random">Случайные</button>
-
                 <button class="chip" data-filter-w="due">
-
-                  <span
-
-                    class="material-symbols-outlined"
-
-                    style="
-
-                      font-size: 16px;
-
-                      vertical-align: middle;
-
-                      margin-right: 4px;
-
-                    "
-
-                    >schedule</span
-
-                  >К повторению <span class="chip-badge" id="due-pill">0</span>
-
+                  <span class="material-symbols-outlined">schedule</span>
+                  К повторению <span class="chip-badge" id="due-pill">0</span>
                 </button>
 
               </div>
@@ -3532,19 +3517,7 @@
 
             </button>
 
-            <button class="bs-option" data-bs-filter-w="random">
 
-              <span class="material-symbols-outlined bs-opt-icon">shuffle</span>
-
-              <span class="bs-opt-text">Случайные</span>
-
-              <span class="material-symbols-outlined bs-opt-check"
-
-                >check_circle</span
-
-              >
-
-            </button>
 
             <button class="bs-option" data-bs-filter-w="due">
 

@@ -47,6 +47,7 @@ async function loadUserProfile(user) {
       .eq('id', user.id)
       .maybeSingle();
 
+
     console.log('[AUTH] Supabase response:', { serverProfile, error });
 
     // КЕЙС 1: Сервер вернул ошибку (упал, нет сети, временная недоступность)

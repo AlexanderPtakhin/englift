@@ -1,4 +1,4 @@
-const CACHE_NAME = 'englift-v2336-05';
+const CACHE_NAME = 'englift-v2336-06';
 
 // Критическое логирование для важных событий
 const log = (category, ...args) => {
@@ -94,8 +94,16 @@ self.addEventListener('fetch', event => {
   const urlObj = new URL(event.request.url);
 
   // Пропускаем API и аудио (только генерируемые аудио)
+  if (urlObj.hostname.includes('supabase.co')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then(response => response)
+        .catch(() => new Response('Network error', { status: 503 }))
+    );
+    return;
+  }
+
   if (
-    urlObj.hostname.includes('supabase.co') ||
     urlObj.pathname.startsWith('/audio/') ||
     urlObj.pathname.startsWith('/audio-male/') ||
     urlObj.pathname.startsWith('/audio-idioms/') ||
@@ -108,7 +116,7 @@ self.addEventListener('fetch', event => {
   // JS и CSS — network-first (всегда свежие)
   if (urlObj.pathname.endsWith('.js') || urlObj.pathname.endsWith('.css')) {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: 'no-store' })
         .then(response => {
           const clone = response.clone();
           caches
@@ -124,7 +132,7 @@ self.addEventListener('fetch', event => {
   // HTML (навигация) — network-first
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: 'no-store' })
         .then(response => {
           const clone = response.clone();
           caches
