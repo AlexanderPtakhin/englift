@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://englift.ru/sitemap.xml
+Sitemap: https://enguply.com/sitemap.xml
 
 # Block common crawl paths
 Disallow: /api/

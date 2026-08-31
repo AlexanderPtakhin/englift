@@ -621,7 +621,7 @@ sendResetBtn.addEventListener('click', async () => {
   try {
     // Используем прямой клиент Supabase для сброса пароля, чтобы ссылка генерировалась с правильным доменом
     const { error } = await directSupabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://englift.ru/reset-password.html'
+      redirectTo: 'https://enguply.com/reset-password.html'
     });
     if (error) throw error;
     toast(

@@ -56,7 +56,7 @@
 
     <meta property="og:type" content="website" />
 
-    <meta property="og:url" content="https://englift.ru/" />
+    <meta property="og:url" content="https://enguply.com/" />
 
     <meta
 
@@ -74,7 +74,7 @@
 
     />
 
-    <meta property="og:image" content="https://englift.ru/icons/icon-512.png" />
+    <meta property="og:image" content="https://enguply.com/icons/icon-512.png" />
 
     <meta property="og:site_name" content="EngUply" />
 
@@ -84,7 +84,7 @@
 
     <meta property="twitter:card" content="summary_large_image" />
 
-    <meta property="twitter:url" content="https://englift.ru/" />
+    <meta property="twitter:url" content="https://enguply.com/" />
 
     <meta
 
@@ -106,13 +106,13 @@
 
       property="twitter:image"
 
-      content="https://englift.ru/icons/icon-512.png"
+      content="https://enguply.com/icons/icon-512.png"
 
     />
 
     <!-- Canonical URL -->
 
-    <link rel="canonical" href="https://englift.ru/" />
+    <link rel="canonical" href="https://enguply.com/" />
 
     <meta name="mobile-web-app-capable" content="yes" />
 
@@ -179,6 +179,7 @@
     <script src="js/wordBankDB.js"></script>
 
     <script src="js/idiomBankDB.js"></script>
+    <script src="js/storyBankDB.js"></script>
 
     <script src="api.js"></script>
 
@@ -190,7 +191,7 @@
 
     </style>
 
-    <meta name="sw-file" content="/sw.1788082558794-6a9fcb6f.js">
+    <meta name="sw-file" content="/sw.1788210498313-66cb27ef.js">
 
 </head>
 
@@ -242,11 +243,19 @@
 
         </button>
 
-        <button class="nav-btn" data-tab="idioms">
+        <button class="nav-btn" data-tab="idioms" style="display:none;">
 
           <span class="material-symbols-outlined">theater_comedy</span>
 
           <span class="nav-text">Идиомы</span>
+
+        </button>
+
+        <button class="nav-btn" data-tab="stories">
+
+          <span class="material-symbols-outlined">auto_stories</span>
+
+          <span class="nav-text">Истории</span>
 
         </button>
 
@@ -390,11 +399,19 @@
 
       </button>
 
-      <button class="mobile-nav-btn" data-tab="idioms">
+      <button class="mobile-nav-btn" data-tab="idioms" style="display:none;">
 
         <span class="material-symbols-outlined">theater_comedy</span>
 
         <span>Идиомы</span>
+
+      </button>
+
+      <button class="mobile-nav-btn" data-tab="stories">
+
+        <span class="material-symbols-outlined">auto_stories</span>
+
+        <span>Истории</span>
 
       </button>
 
@@ -1659,6 +1676,48 @@
 
       </div>
 
+      <!-- TAB: STORIES -->
+
+      <div class="tab-pane" id="tab-stories">
+
+        <!-- История дня -->
+
+        <div id="story-bank-wrap" style="margin-bottom: 2rem"></div>
+
+        <!-- Сетка для историй -->
+
+        <div id="stories-grid" class="words-grid"></div>
+
+        <!-- Пустое состояние -->
+
+        <div
+
+          id="empty-stories"
+
+          style="
+
+            display: none;
+
+            text-align: center;
+
+            padding: 3rem;
+
+            color: var(--muted);
+
+          "
+
+        >
+
+          <h3>Историй пока нет</h3>
+
+          <p>Добавьте первую историю, чтобы запомнить её!</p>
+
+          <br />
+
+        </div>
+
+      </div>
+
       <!-- TAB FRIENDS -->
 
       <div class="tab-pane" id="tab-friends">
@@ -1880,6 +1939,15 @@
       <span class="material-symbols-outlined">theater_comedy</span>
 
     </button>
+
+    <!-- Плавающая кнопка добавления истории отключена -->
+    <!--
+    <button class="floating-add-btn" id="floating-add-story-btn" style="display:none;">
+
+      <span class="material-symbols-outlined">auto_stories</span>
+
+    </button>
+    -->
 
     <!-- Плавающая кнопка чата -->
 
@@ -2627,6 +2695,184 @@
             <span class="material-symbols-outlined">add</span>
 
             Добавить идиому
+
+          </button>
+
+        </form>
+
+      </div>
+
+    </div>
+
+    <!-- Модальное окно чтения истории -->
+
+    <div class="modal-backdrop" id="read-story-modal" style="display:none;">
+
+      <div class="modal-box" style="max-width: 800px">
+
+        <div class="modal-header">
+
+          <h3 id="read-story-title">История</h3>
+
+          <button class="modal-close" id="read-story-modal-close">
+
+            <span class="material-symbols-outlined">close</span>
+
+          </button>
+
+        </div>
+
+        <div class="modal-body" id="read-story-content">
+
+          <!-- Контент истории будет здесь -->
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Модальное окно добавления истории -->
+
+    <div class="modal-backdrop" id="add-story-modal">
+
+      <div class="modal-box" style="max-width: 500px">
+
+        <div class="modal-header">
+
+          <h3>Добавить историю</h3>
+
+          <button class="modal-close" id="add-story-modal-close">
+
+            <span class="material-symbols-outlined">close</span>
+
+          </button>
+
+        </div>
+
+        <form id="add-story-form">
+
+          <div class="form-group">
+
+            <label>Название истории *</label>
+
+            <input
+
+              class="form-control"
+
+              type="text"
+
+              id="modal-story-title"
+
+              name="study-story-title"
+
+              required
+
+              autocomplete="off"
+
+              autocorrect="off"
+
+              autocapitalize="sentences"
+
+              spellcheck="false"
+
+              inputmode="text"
+
+              enterkeyhint="next"
+
+            />
+
+          </div>
+
+          <div class="form-group">
+
+            <label>Текст истории *</label>
+
+            <textarea
+
+              class="form-control"
+
+              id="modal-story-text"
+
+              name="study-story-text"
+
+              required
+
+              autocomplete="off"
+
+              autocorrect="off"
+
+              autocapitalize="sentences"
+
+              spellcheck="false"
+
+              rows="6"
+
+            ></textarea>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>Перевод *</label>
+
+            <textarea
+
+              class="form-control"
+
+              id="modal-story-translation"
+
+              name="study-story-translation"
+
+              required
+
+              autocomplete="off"
+
+              autocorrect="off"
+
+              autocapitalize="sentences"
+
+              spellcheck="false"
+
+              rows="6"
+
+            ></textarea>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>Теги</label>
+
+            <input class="form-control" type="text" id="modal-story-tags" name="study-story-tags" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" enterkeyhint="done" />
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+
+              <input type="checkbox" id="modal-story-scheduled" name="study-story-scheduled">
+
+              Отложенная публикация (в 0:00 UTC следующего дня)
+
+            </label>
+
+          </div>
+
+          <button
+
+            type="submit"
+
+            class="btn-pill btn-pill--secondary"
+
+            style="width: 100%"
+
+          >
+
+            <span class="material-symbols-outlined">add</span>
+
+            Добавить историю
 
           </button>
 

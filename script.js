@@ -4,6 +4,9 @@ import { initChat, openChatWithFriend, refreshChatBadges } from './js/chat.js';
 
 console.log('[SCRIPT] 🚀 script.js начинает загрузку');
 
+// Инициализация роли пользователя (по умолчанию обычный пользователь)
+window.userRole = 'user';
+
 import {
 
   applyTheme,
@@ -1191,6 +1194,14 @@ window.applyProfileData = function (data) {
   }
 
   window._profileApplyingInProgress = true;
+
+  // Сохраняем роль пользователя
+  if (data.role) {
+    window.userRole = data.role;
+    console.log('[AUTH] User role:', window.userRole);
+  } else {
+    window.userRole = 'user';
+  }
 
   // Инициализируем глобальные объекты, если их нет
 
@@ -9321,6 +9332,10 @@ function switchTab(name, skipScroll = false) {
 
   }
 
+  if (name === 'stories') {
+    renderStories();
+  }
+
   if (name === 'friends') {
 
     loadFriendsDataNew();
@@ -12578,6 +12593,75 @@ document
 
   });
 
+// Обработчик формы добавления истории в модальном окне
+
+let isSubmittingStory = false;
+
+document
+  .getElementById('add-story-form')
+  ?.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (isSubmittingStory) {
+      return;
+    }
+    isSubmittingStory = true;
+    try {
+      const title = document.getElementById('modal-story-title').value.trim();
+      const text = document.getElementById('modal-story-text').value.trim();
+      const translation = document.getElementById('modal-story-translation').value.trim();
+      const tags = document.getElementById('modal-story-tags').value.trim();
+      const isScheduled = document.getElementById('modal-story-scheduled').checked;
+
+      const storyId = Date.now().toString();
+
+      // Вычисляем время публикации
+      let publishTime;
+      if (isScheduled) {
+        // Следующее 0:00 UTC
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        tomorrow.setUTCHours(0, 0, 0, 0);
+        publishTime = tomorrow.toISOString();
+      } else {
+        publishTime = new Date().toISOString();
+      }
+
+      const story = {
+        id: storyId,
+        title,
+        text,
+        translation,
+        tags: tags ? tags.split(',').map(t => t.trim()) : [],
+        createdAt: publishTime,
+        scheduled: isScheduled,
+        level: 'learning'
+      };
+
+      await window.StoryBankDB.saveStoriesBatch([story]);
+
+      toast(
+        `"${esc(title)}" добавлено!`,
+        'success',
+        'add_circle',
+      );
+      playSound('sound/add.mp3');
+      closeAddStoryModal();
+
+      // Рендерим добавленную историю
+      renderStories();
+
+      if (document.querySelector('.tab-pane.active')?.id !== 'tab-stories')
+        switchTab('stories');
+
+    } catch (error) {
+      console.error('Ошибка при добавлении истории:', error);
+      toast('Ошибка добавления истории', 'danger');
+    } finally {
+      isSubmittingStory = false;
+    }
+  });
+
 // File import variables
 
 // Переменные для автодополнения
@@ -13733,10 +13817,9 @@ document
   ?.addEventListener('click', () => {
 
     const modal = document.getElementById('speech-modal');
-
     modal.classList.add('open');
-
     document.body.classList.add('modal-open'); // Блокируем скролл
+    document.body.classList.add('settings-modal-active'); // Скрываем хедер и меню
 
     // Load practice settings
 
@@ -14176,8 +14259,8 @@ if (speechModalSave && themeSelect) {
     // 6. Закрываем модалку и показываем тост
 
     document.getElementById('speech-modal').classList.remove('open');
-
     document.body.classList.remove('modal-open');
+    document.body.classList.remove('settings-modal-active'); // Показываем хедер и меню
 
     window.toast?.('Настройки сохранены!', 'success');
 
@@ -14188,11 +14271,9 @@ if (speechModalSave && themeSelect) {
 // Кнопка закрытия удалена из HTML
 
 document.getElementById('speech-modal-close').addEventListener('click', () => {
-
   document.getElementById('speech-modal').classList.remove('open');
-
   document.body.classList.remove('modal-open'); // Возвращаем скролл
-
+  document.body.classList.remove('settings-modal-active'); // Показываем хедер и меню
 });
 
 document.getElementById('speech-modal').addEventListener('click', e => {
@@ -14200,8 +14281,8 @@ document.getElementById('speech-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) {
 
     document.getElementById('speech-modal').classList.remove('open');
-
     document.body.classList.remove('modal-open'); // Возвращаем скролл
+    document.body.classList.remove('settings-modal-active'); // Показываем хедер и меню
 
   }
 
@@ -14242,8 +14323,8 @@ function showConfirmModal(message, hintText, expectedText, onConfirm) {
   // Показываем модальное окно
 
   modal.classList.add('open');
-
-  document.body.classList.add('modal-open'); // Блокируем скролл
+  document.body.classList.add('modal-open');
+  document.body.classList.add('settings-modal-active'); // Блокируем скролл
 
   // Функция проверки
 
@@ -22835,6 +22916,1004 @@ function renderIdioms(appendOnly = false) {
 
 window.renderIdioms = renderIdioms;
 
+// Инициализация массива историй
+window.stories = [];
+window.currentStory = null;
+window.currentStoryLevel = 'easy'; // easy, intermediate, challenge
+
+// Получение текущей даты в формате YYYY-MM-DD по локальному времени пользователя
+function getCurrentLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Проверка, должна ли история быть видимой
+function isStoryVisible(story) {
+  const scheduledDate = story.scheduledDate || story.date;
+  if (!scheduledDate) return true; // Если даты нет - показываем
+
+  const today = getCurrentLocalDate();
+  return scheduledDate <= today;
+}
+
+// Проверка и обновление видимых историй каждую минуту
+setInterval(() => {
+  // Проверяем, изменилась ли дата
+  const currentDate = getCurrentLocalDate();
+  const lastDate = window.lastStoryCheckDate;
+
+  if (lastDate !== currentDate) {
+    console.log('[STORIES] Дата изменилась, обновляем истории:', lastDate, '->', currentDate);
+    window.lastStoryCheckDate = currentDate;
+
+    // Проверяем, появилась ли новая история
+    loadAvailableStories().then(stories => {
+      const newVisibleStories = stories.filter(story => isStoryVisible(story));
+      const oldVisibleCount = window.stories.filter(s => isStoryVisible(s)).length;
+
+      if (newVisibleStories.length > oldVisibleCount) {
+        // Появилась новая история
+        const newStory = newVisibleStories[newVisibleStories.length - 1];
+        toast(`Новая история: ${newStory.title.en}`, 'success', 'auto_stories');
+        playSound('sound/add.mp3');
+      }
+
+      renderStories(); // Перерендерим истории
+    });
+  }
+}, 60000); // Каждую минуту
+
+// Сохраняем дату последней проверки
+window.lastStoryCheckDate = getCurrentLocalDate();
+
+// Получение текущей даты в формате YYYY-MM-DD по локальному времени пользователя
+function getCurrentLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Проверка, должна ли история быть видимой
+function isStoryVisible(story) {
+  const scheduledDate = story.scheduledDate || story.date;
+  if (!scheduledDate) return true; // Если даты нет - показываем
+
+  const today = getCurrentLocalDate();
+  return scheduledDate <= today;
+}
+
+// Загрузка истории из JSON
+async function loadStoryFromJSON(storyPath) {
+  try {
+    const response = await fetch(storyPath);
+    const story = await response.json();
+    console.log('[STORIES] Загружена история:', story.title?.en);
+    return story;
+  } catch (error) {
+    console.error('[STORIES] Ошибка загрузки истории:', error, storyPath);
+    return null;
+  }
+}
+
+// Загрузка списка историй из папки story
+async function getAvailableStories() {
+  const CACHE_KEY = 'englift_stories';
+  const CACHE_TIMESTAMP_KEY = 'englift_stories_timestamp';
+  const CACHE_DATE_KEY = 'englift_stories_date';
+  const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 часов
+
+  const today = getCurrentLocalDate();
+
+  // Проверяем кеш
+  const cachedStories = localStorage.getItem(CACHE_KEY);
+  const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+  const cachedDate = localStorage.getItem(CACHE_DATE_KEY);
+  const now = Date.now();
+
+  // Если дата изменилась - инвалидировать кеш
+  if (cachedDate && cachedDate !== today) {
+    console.log('[STORIES] Дата изменилась, инвалидация кеша:', cachedDate, '->', today);
+    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+    localStorage.removeItem(CACHE_DATE_KEY);
+  }
+
+  if (cachedStories && cachedTimestamp && cachedDate === today) {
+    const timestamp = parseInt(cachedTimestamp, 10);
+    const age = now - timestamp;
+
+    // Если кеш свежий (менее 6 часов) - возвращаем из кеша
+    if (age < CACHE_DURATION) {
+      console.log('[STORIES] Истории загружены из кеша, возраст:', Math.floor(age / 1000 / 60), 'минут');
+      return JSON.parse(cachedStories);
+    }
+  }
+
+  // Загружаем с сервера
+  const stories = [];
+  try {
+    // Загружаем все истории из папки story
+    const response = await fetch('story/stories.json');
+    const data = await response.json();
+    console.log('[STORIES] Загружен список историй:', data);
+
+    // Загружаем каждую историю параллельно
+    const storyPromises = data.stories.map(storyPath => loadStoryFromJSON(storyPath));
+    const loadedStories = await Promise.all(storyPromises);
+
+    // Фильтруем null значения (ошибки загрузки)
+    loadedStories.forEach(story => {
+      if (story) {
+        stories.push(story);
+      }
+    });
+
+    // Сохраняем в кеш
+    localStorage.setItem(CACHE_KEY, JSON.stringify(stories));
+    localStorage.setItem(CACHE_TIMESTAMP_KEY, now.toString());
+    localStorage.setItem(CACHE_DATE_KEY, today);
+    console.log('[STORIES] Истории сохранены в кеш');
+
+    return stories;
+  } catch (error) {
+    console.error('[STORIES] Ошибка загрузки списка историй:', error);
+
+    // Если есть кеш (даже старый) - возвращаем его при ошибке
+    if (cachedStories) {
+      console.log('[STORIES] Ошибка загрузки, используем старый кеш');
+      return JSON.parse(cachedStories);
+    }
+
+    return [];
+  }
+}
+
+// Получение текста для текущего уровня
+function getStoryLevelText(story, levelId) {
+  if (!story || !story.levels) {
+    console.error('[STORIES] История не имеет поле levels:', story);
+    return null;
+  }
+
+  let level;
+
+  // Проверяем структуру - массив или объект
+  if (Array.isArray(story.levels)) {
+    // Структура как в The Red Umbrella: levels: [{id: 'easy', ...}, ...]
+    level = story.levels.find(l => l.id === levelId);
+  } else {
+    // Структура как в The Wrong Suitcase и The Library Note: levels: {easy: {...}, intermediate: {...}, ...}
+    level = story.levels[levelId];
+  }
+
+  if (!level) {
+    console.error('[STORIES] Уровень не найден:', levelId, 'Доступные уровни:', Array.isArray(story.levels) ? story.levels.map(l => l.id) : Object.keys(story.levels));
+    return null;
+  }
+
+  // Проверяем структуру текста
+  let text, translation, vocabulary, questions, paragraphs;
+
+  if (level.text && level.text.en) {
+    // Структура как в The Red Umbrella: text.en: [{text, translationRu}, ...]
+    text = level.text.en.map(p => p.text).join('\n\n');
+    translation = level.text.en.map(p => p.translationRu).join('\n\n');
+    vocabulary = level.vocabulary || [];
+    questions = level.questions || [];
+  } else if (level.paragraphs) {
+    // Структура как в The Wrong Suitcase и The Library Note: paragraphs: [{en, ru}, ...]
+    // Сохраняем параграфы как массив для отображения
+    paragraphs = level.paragraphs;
+    text = level.paragraphs.map(p => p.en).join('\n\n');
+    translation = level.paragraphs.map(p => p.ru).join('\n\n');
+    vocabulary = level.vocabulary || [];
+    // Преобразуем quiz в questions
+    questions = (level.quiz || []).map(q => ({
+      id: q.id,
+      type: q.type === 'choice' ? 'multiple_choice' : q.type,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.type === 'choice' ? q.options[q.answer] : q.answer,
+      explanationRu: q.explanationRu
+    }));
+  } else {
+    console.error('[STORIES] Неизвестная структура текста:', level);
+    return null;
+  }
+
+  return {
+    text,
+    translation,
+    vocabulary,
+    questions,
+    paragraphs, // Добавляем массив параграфов
+    wordCount: level.wordCount || 0,
+    estimatedMinutes: level.estimatedReadingMinutes || level.readingMinutes || 0
+  };
+}
+
+function renderStories() {
+  const grid = document.getElementById('stories-grid');
+  const empty = document.getElementById('empty-stories');
+  const bankWrap = document.getElementById('story-bank-wrap');
+
+  if (!grid) return;
+
+  // Показываем индикатор загрузки
+  grid.innerHTML = '<div class="loading-spinner">Загрузка историй...</div>';
+  if (bankWrap) bankWrap.innerHTML = '<div class="loading-spinner">Загрузка истории дня...</div>';
+
+  // Загружаем истории из JSON
+  getAvailableStories().then(stories => {
+    window.stories = stories;
+
+    if (!stories.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      if (bankWrap) bankWrap.innerHTML = '';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    // Сортируем по дате публикации, если даты одинаковые - по порядку в stories.json
+    const sortedStories = stories.slice().sort((a, b) => {
+      const dateA = a.publishedAt ? new Date(a.publishedAt) : new Date(a.scheduledDate || a.date);
+      const dateB = b.publishedAt ? new Date(b.publishedAt) : new Date(b.scheduledDate || b.date);
+      const dateDiff = dateB - dateA;
+
+      // Если даты разные - сортируем по дате
+      if (dateDiff !== 0) return dateDiff;
+
+      // Если даты одинаковые - сохраняем порядок из stories.json
+      const indexA = stories.indexOf(a);
+      const indexB = stories.indexOf(b);
+      return indexA - indexB;
+    });
+
+    // Фильтруем только видимые истории (по расписанию)
+    const visibleStories = sortedStories.filter(story => isStoryVisible(story));
+
+    if (!visibleStories.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      if (bankWrap) bankWrap.innerHTML = '<div class="word-bank-card">Истории скоро появятся</div>';
+      return;
+    }
+
+    // Последняя история - главная
+    const mainStory = visibleStories[0];
+    const otherStories = visibleStories.slice(1);
+
+    // Рендерим историю дня
+    if (mainStory && bankWrap) {
+      renderStoryBankOnly(mainStory);
+    }
+
+    let html = '';
+
+    // Остальные истории
+    otherStories.forEach(story => {
+      const summary = story.summary || story.description;
+      const storyDate = story.publishedAt ? new Date(story.publishedAt).toLocaleDateString('ru-RU') :
+                         story.date ? new Date(story.date).toLocaleDateString('ru-RU') : 'Без даты';
+
+      html += `
+        <div class="word-card" data-id="${story.id}">
+          <div class="word-card-header">
+            <div class="word-main">
+              <h3 class="word-title">${esc(story.title.en)}</h3>
+              <div class="story-date">${storyDate}</div>
+            </div>
+            <div class="word-actions">
+              <button class="audio-btn story-read-btn" data-story-id="${story.id}" title="Читать полностью">
+                <span class="material-symbols-outlined">menu_book</span>
+              </button>
+            </div>
+          </div>
+          <div class="word-translation">${esc(summary?.en || '')}</div>
+          <div class="word-card-footer">
+            <span class="expand-hint">Нажмите, чтобы прочитать</span>
+            <span class="material-symbols-outlined expand-icon">expand_more</span>
+          </div>
+        </div>
+      `;
+    });
+
+    grid.innerHTML = html;
+
+    // Добавляем обработчики для раскрытия
+    grid.querySelectorAll('.word-card').forEach(card => {
+      // Обработчик клика для раскрытия
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.story-read-btn')) return;
+
+        card.classList.toggle('expanded');
+        const expandHint = card.querySelector('.expand-hint');
+        const expandIcon = card.querySelector('.expand-icon');
+
+        if (card.classList.contains('expanded')) {
+          if (expandHint) expandHint.textContent = 'Нажмите, чтобы скрыть перевод';
+          if (expandIcon) expandIcon.textContent = 'expand_less';
+          showFullStoryContent(card);
+        } else {
+          if (expandHint) expandHint.textContent = 'Нажмите, чтобы увидеть перевод';
+          if (expandIcon) expandIcon.textContent = 'expand_more';
+          const extra = card.querySelector('.word-card-extra');
+          if (extra) extra.remove();
+        }
+      });
+
+      // Обработчик кнопки чтения
+      const readBtn = card.querySelector('.story-read-btn');
+      if (readBtn) {
+        readBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const storyId = readBtn.dataset.storyId;
+          const story = window.stories.find(s => s.id === storyId);
+          if (story) {
+            openStoryModal(story);
+          }
+        });
+      }
+    });
+  });
+}
+
+function renderStoryBankOnly(story) {
+  const bankWrap = document.getElementById('story-bank-wrap');
+  if (!bankWrap) return;
+
+  window.currentStory = story;
+  const levelData = getStoryLevelText(story, window.currentStoryLevel);
+
+  if (!levelData) {
+    console.error('[STORIES] Не удалось получить данные уровня:', window.currentStoryLevel);
+    bankWrap.innerHTML = '<div class="word-bank-card">Ошибка загрузки истории</div>';
+    return;
+  }
+
+  const summary = story.summary || story.description;
+
+  bankWrap.innerHTML = `
+    <div class="word-bank-card" id="story-bank-card">
+      <div class="word-bank-content">
+        <div class="word-bank-label">
+          <span class="material-symbols-outlined">auto_stories</span>
+          История дня
+        </div>
+        <div class="word-bank-en-wrapper">
+          <div class="word-bank-en">${esc(story.title.en)}</div>
+          <button class="word-bank-nav-btn" id="story-read-btn" title="Читать полностью">
+            <span class="material-symbols-outlined">menu_book</span>
+          </button>
+        </div>
+        <div class="word-bank-ru">${esc(summary?.en || '')}</div>
+        <div class="word-bank-footer">
+          <span class="expand-hint">Нажмите, чтобы увидеть перевод</span>
+          <span class="material-symbols-outlined expand-icon">expand_more</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Обработчики переключения уровней
+  bankWrap.querySelectorAll('.level-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      window.currentStoryLevel = btn.dataset.level;
+      console.log('[STORIES] Переключение уровня на:', window.currentStoryLevel);
+      renderStoryBankOnly(story);
+    });
+  });
+
+  // Обработчик кнопки "Читать полностью"
+  bankWrap.querySelector('#story-read-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openStoryModal(story);
+  });
+
+  // Обработчик клика для раскрытия перевода сюжета
+  const bankCard = bankWrap.querySelector('#story-bank-card');
+  if (bankCard) {
+    bankCard.addEventListener('click', (e) => {
+      if (e.target.closest('#story-read-btn')) return;
+
+      bankCard.classList.toggle('expanded');
+      const expandHint = bankCard.querySelector('.expand-hint');
+      const expandIcon = bankCard.querySelector('.expand-icon');
+
+      if (bankCard.classList.contains('expanded')) {
+        if (expandHint) expandHint.textContent = 'Нажмите, чтобы скрыть перевод';
+        if (expandIcon) expandIcon.textContent = 'expand_less';
+
+        // Удаляем старый контент если есть
+        const existingExtra = bankCard.querySelector('.word-card-extra');
+        if (existingExtra) existingExtra.remove();
+
+        const extraDiv = document.createElement('div');
+        extraDiv.className = 'word-card-extra';
+        extraDiv.innerHTML = `
+          <p>${esc(summary?.ru || '')}</p>
+        `;
+        bankCard.appendChild(extraDiv);
+      } else {
+        if (expandHint) expandHint.textContent = 'Нажмите, чтобы увидеть перевод';
+        if (expandIcon) expandIcon.textContent = 'expand_more';
+        const extra = bankCard.querySelector('.word-card-extra');
+        if (extra) extra.remove();
+      }
+    });
+  }
+}
+
+function generateStoryContent(story, levelData) {
+  // Используем параграфы если есть, иначе старый формат
+  const paragraphs = levelData.paragraphs || [{ en: levelData.text, ru: levelData.translation }];
+
+  let html = `
+    <div class="story-level-info">
+      <span class="level-badge ${window.currentStoryLevel}">${window.currentStoryLevel.toUpperCase()}</span>
+      <span class="word-count">${levelData.wordCount} слов</span>
+    </div>
+    <div class="story-text-container">
+      <div class="story-text-en">
+        ${paragraphs.map(p => `<p>${esc(p.en)}</p>`).join('')}
+        <div class="story-audio-player">
+          <div class="story-audio-controls">
+            <button class="story-audio-play-btn" id="story-audio-play" title="Воспроизвести">
+              <span class="material-symbols-outlined">play_arrow</span>
+            </button>
+            <div class="story-audio-progress" id="story-audio-progress">
+              <div class="story-audio-progress-bar" id="story-audio-progress-bar"></div>
+              <div class="story-audio-speed-controls">
+                <button class="speed-btn speed-down" title="Уменьшить скорость">
+                  <span class="material-symbols-outlined">remove</span>
+                </button>
+                <button class="speed-btn speed-display" data-speed="1.0" title="1.0x">1.0x</button>
+                <button class="speed-btn speed-up" title="Увеличить скорость">
+                  <span class="material-symbols-outlined">add</span>
+                </button>
+              </div>
+            </div>
+            <span class="story-audio-time" id="story-audio-time">0:00</span>
+          </div>
+          <audio id="story-audio" preload="metadata">
+            <source src="" type="audio/mpeg">
+          </audio>
+        </div>
+      </div>
+      <div class="story-text-ru" id="story-translation" style="display:none;">
+        ${paragraphs.map(p => `<p>${esc(p.ru)}</p>`).join('')}
+      </div>
+    </div>
+    <div class="story-actions">
+      <button class="btn btn-primary story-translation-btn" id="toggle-translation-btn">
+        <span class="material-symbols-outlined story-translation-icon">translate</span>
+        Показать перевод
+      </button>
+    </div>
+  `;
+
+  // Если есть словарь
+  if (levelData.vocabulary && levelData.vocabulary.length > 0) {
+    html += `
+      <div class="story-vocabulary">
+        <h4>Словарь</h4>
+        <div class="vocab-list">
+          ${levelData.vocabulary.map(v => {
+            // Поддержка разных форматов JSON
+            const word = v.word;
+            const translation = v.translationRu || v.translation || '';
+            const definition = v.definitionEn || v.definition || '';
+            return `
+              <div class="vocab-item">
+                <strong>${esc(word)}</strong> - ${esc(translation)}
+                ${definition ? `<div class="vocab-definition">${esc(definition)}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Если есть задания
+  if (levelData.questions && levelData.questions.length > 0) {
+    html += `
+      <div class="story-questions">
+        <h4>Задания</h4>
+        <div class="questions-list">
+          ${levelData.questions.map((q, index) => `
+            <div class="question-item">
+              <div class="question-text">${index + 1}. ${esc(q.question)}</div>
+              ${q.type === 'multiple_choice' ? `
+                <div class="question-options">
+                  ${q.options.map(opt => `
+                    <label class="question-option">
+                      <input type="radio" name="question-${q.id}" value="${esc(opt)}">
+                      ${esc(opt)}
+                    </label>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${q.type === 'true_false' ? `
+                <div class="question-options">
+                  <label class="question-option">
+                    <input type="radio" name="question-${q.id}" value="true">
+                    Верно
+                  </label>
+                  <label class="question-option">
+                    <input type="radio" name="question-${q.id}" value="false">
+                    Неверно
+                  </label>
+                </div>
+              ` : ''}
+              ${q.type === 'short_answer' ? `
+                <input type="text" class="form-control" placeholder="Ваш ответ">
+              ` : ''}
+              ${q.type === 'discussion' ? `
+                <textarea class="form-control" rows="3" placeholder="Ваш ответ"></textarea>
+              ` : ''}
+              <button class="btn btn-sm btn-secondary check-answer-btn" data-question-id="${q.id}" style="margin-top: 0.5rem;">
+                Проверить
+              </button>
+              <div class="question-explanation" id="explanation-${q.id}" style="display:none; margin-top: 0.5rem; color: var(--muted); font-size: 0.85rem;">
+                ${esc(q.explanationRu || '')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  return html;
+
+  // Если есть словарь
+  if (levelData.vocabulary && levelData.vocabulary.length > 0) {
+    html += `
+      <div class="story-vocabulary">
+        <h4>Словарь</h4>
+        <div class="vocab-list">
+          ${levelData.vocabulary.map(v => {
+            // Поддержка разных форматов JSON
+            const word = v.word;
+            const translation = v.translationRu || v.translation || '';
+            const definition = v.definitionEn || v.definition || '';
+            return `
+              <div class="vocab-item">
+                <strong>${esc(word)}</strong> - ${esc(translation)}
+                ${definition ? `<div class="vocab-definition">${esc(definition)}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Если есть задания
+  if (levelData.questions && levelData.questions.length > 0) {
+    html += `
+      <div class="story-questions">
+        <h4>Задания</h4>
+        <div class="questions-list">
+          ${levelData.questions.map((q, index) => `
+            <div class="question-item">
+              <div class="question-text">${index + 1}. ${esc(q.question)}</div>
+              ${q.type === 'multiple_choice' ? `
+                <div class="question-options">
+                  ${q.options.map(opt => `
+                    <label class="question-option">
+                      <input type="radio" name="question-${q.id}" value="${esc(opt)}">
+                      ${esc(opt)}
+                    </label>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${q.type === 'true_false' ? `
+                <div class="question-options">
+                  <label class="question-option">
+                    <input type="radio" name="question-${q.id}" value="true">
+                    Верно
+                  </label>
+                  <label class="question-option">
+                    <input type="radio" name="question-${q.id}" value="false">
+                    Неверно
+                  </label>
+                </div>
+              ` : ''}
+              ${q.type === 'short_answer' ? `
+                <input type="text" class="form-control" placeholder="Ваш ответ">
+              ` : ''}
+              ${q.type === 'discussion' ? `
+                <textarea class="form-control" rows="3" placeholder="Ваш ответ"></textarea>
+              ` : ''}
+              <button class="btn btn-sm btn-secondary check-answer-btn" data-question-id="${q.id}" style="margin-top: 0.5rem;">
+                Проверить
+              </button>
+              <div class="question-explanation" id="explanation-${q.id}" style="display:none; margin-top: 0.5rem; color: var(--muted); font-size: 0.85rem;">
+                ${esc(q.explanationRu || '')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function attachStoryContentHandlers(content, levelData) {
+  // Обработчик кнопки показа перевода
+  const toggleBtn = document.getElementById('toggle-translation-btn');
+  const translationDiv = document.getElementById('story-translation');
+
+  if (toggleBtn && translationDiv) {
+    toggleBtn.addEventListener('click', () => {
+      if (translationDiv.style.display === 'none') {
+        translationDiv.style.display = 'block';
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Скрыть перевод';
+      } else {
+        translationDiv.style.display = 'none';
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Показать перевод';
+      }
+    });
+  }
+
+  // Настройка аудио плеера
+  const audioElement = document.getElementById('story-audio');
+  if (audioElement) {
+    setupStoryAudioPlayer(audioElement);
+  }
+
+  // Обработчики кнопок проверки ответов
+  content.querySelectorAll('.check-answer-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const questionId = btn.dataset.questionId;
+      const question = levelData.questions.find(q => q.id === questionId);
+      const explanationDiv = document.getElementById(`explanation-${questionId}`);
+
+      if (!question || !explanationDiv) return;
+
+      let isCorrect = false;
+
+      if (question.type === 'multiple_choice' || question.type === 'true_false') {
+        const selected = content.querySelector(`input[name="question-${questionId}"]:checked`);
+        if (selected) {
+          if (question.type === 'true_false') {
+            isCorrect = (selected.value === 'true' && question.correctAnswer === true) ||
+                         (selected.value === 'false' && question.correctAnswer === false);
+          } else {
+            isCorrect = selected.value === question.correctAnswer;
+          }
+        }
+      }
+
+      // Показываем объяснение
+      explanationDiv.style.display = 'block';
+
+      // Меняем кнопку
+      if (isCorrect) {
+        btn.textContent = 'Правильно!';
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-success');
+      } else {
+        btn.textContent = 'Попробуйте ещё раз';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-danger');
+      }
+    });
+  });
+}
+
+// Загрузка аудио для истории
+function loadStoryAudio(story, levelId) {
+  const audioElement = document.getElementById('story-audio');
+  if (!audioElement) return;
+
+  // Определяем голос пользователя
+  const voice = window.user_settings?.voice || 'female';
+  const voiceFolder = voice === 'male' ? 'man' : 'woman';
+
+  // Формируем путь к аудио
+  // Используем поле folder из JSON для точного соответствия имени папки
+  const storyFolder = story.folder || story.slug || story.id;
+  const audioPath = `story/${storyFolder}/${voiceFolder}/${levelId}.mp3`;
+
+  console.log('[STORIES] Загрузка аудио:', audioPath);
+
+  audioElement.src = audioPath;
+  audioElement.load();
+
+  // Настраиваем кастомный плеер
+  setupStoryAudioPlayer(audioElement);
+}
+
+// Настройка кастомного аудио плеера
+function setupStoryAudioPlayer(audioElement) {
+  const playBtn = document.getElementById('story-audio-play');
+  const progressBar = document.getElementById('story-audio-progress');
+  const progressBarFill = document.getElementById('story-audio-progress-bar');
+  const timeDisplay = document.getElementById('story-audio-time');
+
+  if (!playBtn || !progressBar || !progressBarFill || !timeDisplay) return;
+
+  let isPlaying = false;
+
+  // Кнопка play/pause
+  playBtn.addEventListener('click', () => {
+    if (isPlaying) {
+      audioElement.pause();
+      playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
+      isPlaying = false;
+    } else {
+      audioElement.play();
+      playBtn.innerHTML = '<span class="material-symbols-outlined">pause</span>';
+      isPlaying = true;
+    }
+  });
+
+  // Кнопки скорости
+  const speedDownBtn = document.querySelector('.speed-down');
+  const speedUpBtn = document.querySelector('.speed-up');
+  const speedDisplay = document.querySelector('.speed-display');
+
+  if (speedDownBtn && speedUpBtn && speedDisplay) {
+    let currentSpeed = 1.0;
+
+    speedDownBtn.addEventListener('click', () => {
+      currentSpeed = Math.max(0.5, currentSpeed - 0.05);
+      currentSpeed = Math.round(currentSpeed * 100) / 100;
+      audioElement.playbackRate = currentSpeed;
+      speedDisplay.textContent = currentSpeed.toFixed(2) + 'x';
+      speedDisplay.dataset.speed = currentSpeed.toFixed(2);
+    });
+
+    speedUpBtn.addEventListener('click', () => {
+      currentSpeed = Math.min(2.0, currentSpeed + 0.05);
+      currentSpeed = Math.round(currentSpeed * 100) / 100;
+      audioElement.playbackRate = currentSpeed;
+      speedDisplay.textContent = currentSpeed.toFixed(2) + 'x';
+      speedDisplay.dataset.speed = currentSpeed.toFixed(2);
+    });
+  }
+
+  // Обновление прогресса
+  audioElement.addEventListener('timeupdate', () => {
+    const progress = (audioElement.currentTime / audioElement.duration) * 100;
+    progressBarFill.style.width = `${progress}%`;
+    timeDisplay.textContent = formatTime(audioElement.currentTime);
+  });
+
+  // Обновление времени при загрузке метаданных
+  audioElement.addEventListener('loadedmetadata', () => {
+    timeDisplay.textContent = formatTime(audioElement.duration);
+  });
+
+  // Событие окончания воспроизведения
+  audioElement.addEventListener('ended', () => {
+    playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
+    isPlaying = false;
+    progressBarFill.style.width = '0%';
+    timeDisplay.textContent = '0:00';
+  });
+
+  // Перемотка по клику на прогресс бар
+  progressBar.addEventListener('click', (e) => {
+    // Не перематываем если кликнули на кнопку скорости
+    if (e.target.closest('.speed-btn')) return;
+
+    const rect = progressBar.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    audioElement.currentTime = percentage * audioElement.duration;
+  });
+}
+
+// Форматирование времени в ММ:СС
+function formatTime(seconds) {
+  if (isNaN(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function openStoryModal(story) {
+  const modal = document.getElementById('read-story-modal');
+  const title = document.getElementById('read-story-title');
+  const content = document.getElementById('read-story-content');
+  const closeBtn = document.getElementById('read-story-modal-close');
+
+  if (!modal || !title || !content) {
+    console.error('[STORIES] Модальное окно не найдено');
+    return;
+  }
+
+  // Получаем данные для текущего уровня
+  const levelData = getStoryLevelText(story, window.currentStoryLevel);
+
+  if (!levelData) {
+    console.error('[STORIES] Не удалось получить данные уровня:', window.currentStoryLevel);
+    return;
+  }
+
+  // Устанавливаем заголовок
+  title.textContent = story.title.en;
+
+  // Создаем табы для уровней
+  const levels = ['easy', 'intermediate', 'challenge'];
+  const levelLabels = { easy: 'Easy (A2)', intermediate: 'Intermediate (B1)', challenge: 'Challenge (B2)' };
+
+  // Формируем контент с табами
+  let html = `
+    <div class="story-tabs">
+      ${levels.map(level => `
+        <button class="story-tab ${window.currentStoryLevel === level ? 'active' : ''}" data-level="${level}">
+          ${levelLabels[level]}
+        </button>
+      `).join('')}
+    </div>
+    <div class="story-tab-content">
+      ${generateStoryContent(story, levelData)}
+    </div>
+  `;
+
+  content.innerHTML = html;
+
+  // Загружаем аудио для текущего уровня
+  loadStoryAudio(story, window.currentStoryLevel);
+
+  // Обработчики переключения табов уровней
+  content.querySelectorAll('.story-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const newLevel = tab.dataset.level;
+      window.currentStoryLevel = newLevel;
+
+      // Обновляем активный таб
+      content.querySelectorAll('.story-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // Получаем новые данные уровня
+      const newLevelData = getStoryLevelText(story, newLevel);
+      if (newLevelData) {
+        // Останавливаем старое аудио
+        const oldAudio = document.getElementById('story-audio');
+        if (oldAudio) {
+          oldAudio.pause();
+          oldAudio.currentTime = 0;
+        }
+
+        // Обновляем только контент таба
+        const tabContent = content.querySelector('.story-tab-content');
+        if (tabContent) {
+          tabContent.innerHTML = generateStoryContent(story, newLevelData);
+          // Добавляем обработчики для нового контента
+          attachStoryContentHandlers(tabContent, newLevelData);
+          // Загружаем аудио для нового уровня
+          loadStoryAudio(story, newLevel);
+        }
+      }
+    });
+  });
+
+  // Показываем модальное окно
+  modal.style.display = 'flex';
+
+  // Скрываем хедер и меню как в практике
+  document.body.classList.add('story-modal-active');
+
+  // Обработчик кнопки показа перевода
+  const toggleBtn = document.getElementById('toggle-translation-btn');
+  const translationDiv = document.getElementById('story-translation');
+
+  if (toggleBtn && translationDiv) {
+    toggleBtn.addEventListener('click', () => {
+      if (translationDiv.style.display === 'none') {
+        translationDiv.style.display = 'block';
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Скрыть перевод';
+      } else {
+        translationDiv.style.display = 'none';
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Показать перевод';
+      }
+    });
+  }
+
+  // Обработчики кнопок проверки ответов
+  content.querySelectorAll('.check-answer-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const questionId = btn.dataset.questionId;
+      const question = levelData.questions.find(q => q.id === questionId);
+      const explanationDiv = document.getElementById(`explanation-${questionId}`);
+
+      if (!question || !explanationDiv) return;
+
+      let isCorrect = false;
+
+      if (question.type === 'multiple_choice' || question.type === 'true_false') {
+        const selected = content.querySelector(`input[name="question-${questionId}"]:checked`);
+        if (selected) {
+          if (question.type === 'true_false') {
+            isCorrect = (selected.value === 'true' && question.correctAnswer === true) ||
+                         (selected.value === 'false' && question.correctAnswer === false);
+          } else {
+            isCorrect = selected.value === question.correctAnswer;
+          }
+        }
+      }
+
+      // Показываем объяснение
+      explanationDiv.style.display = 'block';
+
+      // Меняем кнопку
+      if (isCorrect) {
+        btn.textContent = 'Правильно!';
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-success');
+      } else {
+        btn.textContent = 'Попробуйте ещё раз';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-danger');
+      }
+    });
+  });
+
+  // Обработчик закрытия
+  closeBtn.onclick = () => {
+    const audioElement = document.getElementById('story-audio');
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+    }
+    modal.style.display = 'none';
+    document.body.classList.remove('story-modal-active');
+  };
+
+  // Закрытие по клику на backdrop
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      const audioElement = document.getElementById('story-audio');
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      }
+      modal.style.display = 'none';
+      document.body.classList.remove('story-modal-active');
+    }
+  };
+}
+
+function showFullStoryContent(card) {
+  const storyId = card.dataset.id;
+  const story = window.stories.find(s => s.id === storyId);
+  if (!story) return;
+
+  // Удаляем старый контент если есть
+  const existingExtra = card.querySelector('.word-card-extra');
+  if (existingExtra) existingExtra.remove();
+
+  const extraDiv = document.createElement('div');
+  extraDiv.className = 'word-card-extra';
+
+  const summary = story.summary || story.description;
+
+  extraDiv.innerHTML = `
+    <p>${esc(summary?.ru || '')}</p>
+  `;
+
+  card.appendChild(extraDiv);
+}
+
+window.renderStories = renderStories;
+
 function appendMoreIdioms() {
 
   const grid = document.getElementById('idioms-grid');
@@ -23417,6 +24496,25 @@ function closeAddIdiomModal() {
 
 }
 
+// Обработчики для модального окна добавления историй
+
+const addStoryModal = document.getElementById('add-story-modal');
+
+const addStoryModalClose = document.getElementById('add-story-modal-close');
+
+const addStoryBtn = document.getElementById('floating-add-story-btn');
+
+function openAddStoryModal() {
+  addStoryModal.classList.add('open');
+  document.body.classList.add('modal-open');
+}
+
+function closeAddStoryModal() {
+  addStoryModal.classList.remove('open');
+  document.body.classList.remove('modal-open');
+  document.getElementById('add-story-form').reset();
+}
+
 addIdiomBtn?.addEventListener('click', openAddIdiomModal);
 
 emptyAddBtn?.addEventListener('click', openAddIdiomModal);
@@ -23427,6 +24525,14 @@ addIdiomModal?.addEventListener('click', e => {
 
   if (e.target === addIdiomModal) closeAddIdiomModal();
 
+});
+
+addStoryBtn?.addEventListener('click', openAddStoryModal);
+
+addStoryModalClose?.addEventListener('click', closeAddStoryModal);
+
+addStoryModal?.addEventListener('click', e => {
+  if (e.target === addStoryModal) closeAddStoryModal();
 });
 
 // Обработчики для модального окна добавления слова
@@ -24503,6 +25609,8 @@ function updateFloatingButtonsForTab(tabName) {
 
   const floatingFriendBtn = document.getElementById('floating-add-friend-btn');
 
+  const floatingStoryBtn = document.getElementById('floating-add-story-btn');
+
   if (!floatingWordBtn || !floatingIdiomBtn) {
 
     console.warn('Floating buttons not ready yet');
@@ -24542,6 +25650,26 @@ function updateFloatingButtonsForTab(tabName) {
       floatingFriendBtn.style.display = 'none';
 
     }
+    if (floatingStoryBtn) {
+      floatingStoryBtn.classList.add('fab-hidden');
+      floatingStoryBtn.style.display = 'none';
+    }
+
+  } else if (tabName === 'stories') {
+    floatingWordBtn.classList.add('fab-hidden');
+    floatingIdiomBtn.classList.add('fab-hidden');
+    if (floatingFriendBtn) {
+      floatingFriendBtn.classList.add('fab-hidden');
+      floatingFriendBtn.style.display = 'none';
+    }
+    // Показываем кнопку историй только для администраторов
+    if (floatingStoryBtn && window.userRole === 'admin') {
+      floatingStoryBtn.style.display = 'flex';
+      floatingStoryBtn.classList.remove('fab-hidden');
+    } else if (floatingStoryBtn) {
+      floatingStoryBtn.style.display = 'none';
+      floatingStoryBtn.classList.add('fab-hidden');
+    }
 
   } else if (tabName === 'friends') {
 
@@ -24568,6 +25696,10 @@ function updateFloatingButtonsForTab(tabName) {
     floatingWordBtn.classList.add('fab-hidden');
 
     floatingIdiomBtn.classList.add('fab-hidden');
+    if (floatingStoryBtn) {
+      floatingStoryBtn.classList.add('fab-hidden');
+      floatingStoryBtn.style.display = 'none';
+    }
 
     if (floatingFriendBtn) {
 
@@ -26953,6 +28085,8 @@ function hardenStudyInputs(root = document) {
 
     '#add-idiom-form input',
 
+    '#add-story-form input, #add-story-form textarea',
+
     '#single-form input',
 
     '#confirm-input',
@@ -27034,6 +28168,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Защищаем все учебные поля от автозаполнения
 
   hardenStudyInputs();
+
+  // Предварительная загрузка историй (для быстрого отображения)
+  getAvailableStories().then(stories => {
+    window.stories = stories;
+    console.log('[STORIES] Истории предварительно загружены:', stories.length);
+  });
 
   // Инициализация floating кнопок
 

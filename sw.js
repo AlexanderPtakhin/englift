@@ -1,4 +1,4 @@
-const CACHE_NAME = 'englift-v2336-06';
+const CACHE_NAME = 'enguply-v1-06';
 
 // Критическое логирование для важных событий
 const log = (category, ...args) => {
@@ -94,16 +94,12 @@ self.addEventListener('fetch', event => {
   const urlObj = new URL(event.request.url);
 
   // Пропускаем API и аудио (только генерируемые аудио)
-  if (urlObj.hostname.includes('supabase.co')) {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
-        .then(response => response)
-        .catch(() => new Response('Network error', { status: 503 }))
-    );
-    return;
-  }
-
   if (
+    urlObj.pathname.startsWith('/rest/v1/') ||
+    urlObj.pathname.startsWith('/auth/v1/') ||
+    urlObj.pathname.startsWith('/realtime/v1/') ||
+    urlObj.pathname.startsWith('/storage/v1/') ||
+    urlObj.pathname.startsWith('/functions/v1/') ||
     urlObj.pathname.startsWith('/audio/') ||
     urlObj.pathname.startsWith('/audio-male/') ||
     urlObj.pathname.startsWith('/audio-idioms/') ||
