@@ -1,8 +1,16 @@
-const CACHE_NAME = 'enguply-v1-06';
+const CACHE_NAME = 'enguply-v2-ede84f12';
 
 // Критическое логирование для важных событий
 const log = (category, ...args) => {
   console.log(`[SW:${category}]`, ...args);
+};
+
+const logError = (category, ...args) => {
+  console.error(`[SW:${category}]`, ...args);
+};
+
+const logCache = (action, url, result) => {
+  console.log(`[SW:CACHE] ${action}: ${url} → ${result}`);
 };
 
 self.addEventListener('message', event => {
@@ -16,49 +24,35 @@ self.addEventListener('message', event => {
 
 self.addEventListener('install', event => {
   log('INSTALL', '📦 Начинается установка SW');
+  log('INSTALL', `CACHE_NAME: ${CACHE_NAME}`);
   event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      log('INSTALL', 'Кэш открыт');
-
-      // Только статические файлы (словари, офлайн-страница)
-      const staticFiles = [
+    caches.open(CACHE_NAME).then(cache => {
+      log('INSTALL', '📂 Кэш открыт, добавляем файлы');
+      return cache.addAll([
         '/offline.html',
         '/manifest.json',
-        '/data-manifest.json',
-        '/A1/dict-A1.json',
-        '/A2/dict-A2.json',
-        '/B1/dict-B1.json',
-        '/B2/dict-B2.json',
-        '/C1/dict-C1.json',
-        '/C2/dict-C2.json',
-      ];
-
-      log('INSTALL', `✅ Добавлено ${staticFiles.length} файлов в кэш`);
-      for (const file of staticFiles) {
-        try {
-          await cache.add(file);
-          log('INSTALL', `Файл добавлен в кэш: ${file}`);
-        } catch (e) {
-          log('INSTALL', `Ошибка добавления файла ${file}:`, e);
-        }
-      }
-
-      log('INSTALL', 'Вызываем skipWaiting()');
-      await self.skipWaiting();
-    })(),
+      ]).then(() => {
+        log('INSTALL', '✅ Файлы успешно добавлены в кэш');
+      }).catch(error => {
+        logError('INSTALL', '❌ Ошибка добавления файлов:', error);
+      });
+    })
   );
+  log('INSTALL', '🚀 Вызываем skipWaiting()');
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   log('ACTIVATE', '⚡ Активация SW');
+  log('ACTIVATE', `CACHE_NAME: ${CACHE_NAME}`);
   event.waitUntil(
     caches
       .keys()
       .then(keys => {
-        log('ACTIVATE', `Найдено кэшей: ${keys.length}`);
+        log('ACTIVATE', `🔍 Найдено кэшей: ${keys.length}`);
+        log('ACTIVATE', `Список кэшей:`, keys);
         const oldCaches = keys.filter(k => k !== CACHE_NAME);
-        log('ACTIVATE', `🗑️ Удалено старых кэшей: ${oldCaches.length}`);
+        log('ACTIVATE', `🗑️ Старые кэши для удаления: ${oldCaches.length}`, oldCaches);
         return Promise.all(
           oldCaches.map(k => {
             log('ACTIVATE', `Удаляем кэш: ${k}`);
@@ -67,114 +61,210 @@ self.addEventListener('activate', event => {
         );
       })
       .then(() => {
-        log('ACTIVATE', 'Вызываем clients.claim()');
-        // Уведомляем все вкладки о новой версии
+        log('ACTIVATE', '✅ Удаление старых кэшей завершено');
+        log('ACTIVATE', '📡 Уведомляем клиентов');
         return self.clients.matchAll({
           type: 'window',
           includeUncontrolled: true,
         });
       })
       .then(clients => {
-        log('ACTIVATE', `Найдено клиентов: ${clients.length}`);
+        log('ACTIVATE', `👥 Найдено клиентов: ${clients.length}`);
         clients.forEach(client => {
+          log('ACTIVATE', `📤 Отправляем сообщение клиенту: ${client.url}`);
           client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
         });
+        log('ACTIVATE', '🎯 Вызываем clients.claim()');
         return self.clients.claim();
       }),
   );
 });
 
 self.addEventListener('fetch', event => {
-  const url = event.request.url;
+  const request = event.request;
+  const url = new URL(request.url);
 
-  if (event.request.method !== 'GET') {
+  if (request.method !== 'GET') {
+    log('FETCH', `⏭️ Пропускаем не-GET запрос: ${request.method} ${url.pathname}`);
     return;
   }
 
-  const urlObj = new URL(event.request.url);
+  log('FETCH', `📥 Запрос: ${url.pathname}`);
 
-  // Пропускаем API и аудио (только генерируемые аудио)
+  // 1. Supabase / API — всегда сеть (без SW-кеша)
   if (
-    urlObj.pathname.startsWith('/rest/v1/') ||
-    urlObj.pathname.startsWith('/auth/v1/') ||
-    urlObj.pathname.startsWith('/realtime/v1/') ||
-    urlObj.pathname.startsWith('/storage/v1/') ||
-    urlObj.pathname.startsWith('/functions/v1/') ||
-    urlObj.pathname.startsWith('/audio/') ||
-    urlObj.pathname.startsWith('/audio-male/') ||
-    urlObj.pathname.startsWith('/audio-idioms/') ||
-    urlObj.pathname.match(/^\/[A-C][1-2]\/(?:man|women)\//) ||
-    urlObj.pathname.startsWith('/idioms/')
+    url.pathname.startsWith('/rest/v1/') ||
+    url.pathname.startsWith('/auth/v1/') ||
+    url.pathname.startsWith('/realtime/v1/') ||
+    url.pathname.startsWith('/storage/v1/') ||
+    url.pathname.startsWith('/functions/v1/')
   ) {
+    log('FETCH', `🔗 API запрос, пропускаем без кеширования: ${url.pathname}`);
     return;
   }
 
-  // JS и CSS — network-first (всегда свежие)
-  if (urlObj.pathname.endsWith('.js') || urlObj.pathname.endsWith('.css')) {
+  // 2. data-manifest.json — ВСЕГДА сеть (он маленький, это источник правды о версиях)
+  if (url.pathname === '/data-manifest.json') {
+    log('FETCH', `📋 Data-manifest, всегда из сети: ${url.pathname}`);
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
+
+  // 3. Словари (dict-*.json) — cache-first с фоновым обновлением
+  if (url.pathname.match(/^\/[A-C][1-2]\/dict-.*\.json$/)) {
+    log('FETCH', `📚 Словарь, cache-first с фоновым обновлением: ${url.pathname}`);
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
-        .then(response => {
-          const clone = response.clone();
-          caches
-            .open(CACHE_NAME)
-            .then(cache => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => caches.match(event.request)),
+      caches.open(CACHE_NAME).then(async cache => {
+        const cached = await cache.match(request);
+        if (cached) {
+          logCache('CACHED', url.pathname, '✅ Взято из кеша');
+        } else {
+          logCache('CACHED', url.pathname, '❌ Не в кеше, загрузка из сети');
+        }
+        
+        // Параллельно обновляем в фоне
+        fetch(request, { cache: 'no-store' }).then(response => {
+          if (response.status === 200) {
+            logCache('UPDATE', url.pathname, '🔄 Обновлено в фоне');
+            cache.put(request, response.clone());
+          } else {
+            logError('UPDATE', url.pathname, `❌ Ошибка обновления: ${response.status}`);
+          }
+        }).catch(error => {
+          logError('UPDATE', url.pathname, `❌ Ошибка сети: ${error.message}`);
+        });
+        
+        return cached || fetch(request, { cache: 'no-store' });
+      })
     );
     return;
   }
 
-  // HTML (навигация) — network-first
-  if (event.request.mode === 'navigate') {
+  // 4. Истории (story/*.json) — cache-first с фоновым обновлением
+  if (url.pathname.startsWith('/story/')) {
+    log('FETCH', `📖 История, cache-first с фоновым обновлением: ${url.pathname}`);
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
-        .then(response => {
-          const clone = response.clone();
-          caches
-            .open(CACHE_NAME)
-            .then(cache => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => caches.match('/offline.html')),
+      caches.open(CACHE_NAME).then(async cache => {
+        const cached = await cache.match(request);
+        if (cached) {
+          logCache('CACHED', url.pathname, '✅ Взято из кеша');
+        } else {
+          logCache('CACHED', url.pathname, '❌ Не в кеше, загрузка из сети');
+        }
+        
+        // Параллельно обновляем в фоне
+        fetch(request, { cache: 'no-store' }).then(response => {
+          if (response.status === 200) {
+            logCache('UPDATE', url.pathname, '🔄 Обновлено в фоне');
+            cache.put(request, response.clone());
+          } else {
+            logError('UPDATE', url.pathname, `❌ Ошибка обновления: ${response.status}`);
+          }
+        }).catch(error => {
+          logError('UPDATE', url.pathname, `❌ Ошибка сети: ${error.message}`);
+        });
+        
+        return cached || fetch(request, { cache: 'no-store' });
+      })
     );
     return;
   }
 
-  // Остальное (шрифты, картинки, JSON) — cache-first
+  // 5. Глаголы, идиомы — network-first (они меньше и чаще меняются)
+  if (url.pathname.includes('/verb/') || url.pathname.includes('/idioms/')) {
+    log('FETCH', `🔤 Глаголы/идиомы, network-first: ${url.pathname}`);
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            logCache('SAVE', url.pathname, '💾 Сохранено в кеш');
+            cache.put(request, clone);
+          });
+          return response;
+        })
+        .catch(() => {
+          logCache('FALLBACK', url.pathname, '🔄 Попытка взять из кеша');
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // 6. Пропускаем аудио (story аудио и генерируемые)
+  if (
+    url.pathname.startsWith('/audio/') ||
+    url.pathname.startsWith('/audio-male/') ||
+    url.pathname.startsWith('/audio-idioms/') ||
+    url.pathname.match(/^\/[A-C][1-2]\/(?:man|women)\//)
+  ) {
+    log('FETCH', `🎵 Аудио, пропускаем без кеширования: ${url.pathname}`);
+    return;
+  }
+
+  // 7. Остальные JSON — network-first
+  if (url.pathname.endsWith('.json')) {
+    log('FETCH', `📄 JSON файл, network-first: ${url.pathname}`);
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            logCache('SAVE', url.pathname, '💾 Сохранено в кеш');
+            cache.put(request, clone);
+          });
+          return response;
+        })
+        .catch(() => {
+          logCache('FALLBACK', url.pathname, '🔄 Попытка взять из кеша');
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // 8. JS/CSS — network-first
+  if (
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css')
+  ) {
+    log('FETCH', `🎨 JS/CSS файл, network-first: ${url.pathname}`);
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .catch(() => {
+          logCache('FALLBACK', url.pathname, '🔄 Попытка взять из кеша');
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // 9. HTML (навигация) — network-first (выше картинок, чтобы корневой путь обрабатывался правильно)
+  if (request.mode === 'navigate' || url.pathname === '/') {
+    log('FETCH', `🌐 HTML навигация, network-first: ${url.pathname}`);
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .catch(() => {
+          logCache('OFFLINE', url.pathname, '📴 Офлайн режим, показываем offline.html');
+          return caches.match('/offline.html');
+        })
+    );
+    return;
+  }
+
+  // 10. Картинки, шрифты — cache-first
+  log('FETCH', `🖼️ Картинка/шрифт, cache-first: ${url.pathname}`);
   event.respondWith(
-    caches.match(event.request).then(cached => {
+    caches.match(request).then(cached => {
       if (cached) {
+        logCache('CACHED', url.pathname, '✅ Взято из кеша');
         return cached;
       }
-      return fetch(event.request)
-        .then(response => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches
-              .open(CACHE_NAME)
-              .then(cache => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(error => {
-          console.warn(
-            'SW: Ошибка загрузки ресурса:',
-            event.request.url,
-            error,
-          );
-          // Возвращаем пустой ответ для аудио файлов, чтобы не ломать приложение
-          if (event.request.url.includes('/sound/')) {
-            return new Response('', { status: 200, statusText: 'OK' });
-          }
-          // Для остальных файлов пробуем вернуть из кэша или пустой ответ
-          return caches.match(event.request).then(cached => {
-            return (
-              cached ||
-              new Response('', { status: 404, statusText: 'Not Found' })
-            );
-          });
-        });
-    }),
+      logCache('NETWORK', url.pathname, '🌐 Загрузка из сети');
+      return fetch(request).catch(() => {
+        logCache('ERROR', url.pathname, '❌ Ошибка загрузки');
+        return new Response('Error', { status: 500 });
+      });
+    })
   );
 });

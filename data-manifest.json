@@ -3,38 +3,50 @@
     "file": "dict-A1.json",
     "version": "2.0",
     "words": 1177,
-    "lastUpdated": "2026-03-27T12:00:00Z"
+    "lastUpdated": "2026-09-01T06:50:31.143Z",
+    "hash": "47bc7065a8e9f1c29a35d1cea7d7acb5"
   },
   "A2": {
     "file": "dict-A2.json",
     "version": "2.0",
     "words": 1694,
-    "lastUpdated": "2026-03-27T12:00:00Z"
+    "lastUpdated": "2026-09-01T06:50:31.146Z",
+    "hash": "e6767e9ff6edcc25e02b0a204a0832b5"
   },
   "B1": {
     "file": "dict-B1.json",
     "version": "2.0",
     "words": 4667,
-    "lastUpdated": "2026-03-27T12:00:00Z"
+    "lastUpdated": "2026-09-01T06:50:31.152Z",
+    "hash": "e77f040c566a5a9b217b3d9036b1717b"
   },
   "B2": {
     "file": "dict-B2.json",
     "version": "2.0",
     "words": 8549,
-    "lastUpdated": "2026-03-27T12:00:00Z"
+    "lastUpdated": "2026-09-01T06:50:31.162Z",
+    "hash": "3b1eb51c9f0512c9d617d840bd473ce8"
   },
   "C1": {
     "file": "dict-C1.json",
     "version": "2.0",
     "words": 4857,
-    "lastUpdated": "2026-03-27T12:00:00Z"
+    "lastUpdated": "2026-09-01T06:50:31.168Z",
+    "hash": "7390d8e3efec535db60dfc75ce8ca1fd"
   },
   "C2": {
     "file": "dict-C2.json",
     "version": "2.0",
     "words": 307,
-    "lastUpdated": "2026-03-27T12:00:00Z"
+    "lastUpdated": "2026-09-01T06:50:31.170Z",
+    "hash": "4d0cf1d81f6c707299009146029c8cc6"
+  },
+  "stories": {
+    "file": "story/stories.json",
+    "version": "1.0",
+    "lastUpdated": "2026-09-01T06:42:21.193Z",
+    "hash": "d6eb80c8465c60581b2b30196692c22c"
   },
   "totalWords": 21251,
-  "appVersion": "1.0.0"
+  "appVersion": "2026-09-01T06:50:31.170Z"
 }

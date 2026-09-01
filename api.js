@@ -162,8 +162,9 @@ async function loadLevel(level) {
     console.log(`[API] Level ${level} saved to IndexedDB`);
 
     const manifest = await loadDataManifest();
-    if (manifest?.[level]?.version) {
-      localStorage.setItem(`dict_${level}_version`, manifest[level].version);
+    const version = manifest?.[level]?.hash || manifest?.[level]?.version;
+    if (version) {
+      localStorage.setItem(`dict_${level}_version`, version);
     }
 
     levelsLoaded.add(level);
@@ -238,8 +239,9 @@ async function backgroundLoad() {
       await window.WordBankDB.saveWordsBatch(wordsWithIdAndCefr);
 
       const manifest = await loadDataManifest();
-      if (manifest?.[level]?.version) {
-        localStorage.setItem(`dict_${level}_version`, manifest[level].version);
+      const version = manifest?.[level]?.hash || manifest?.[level]?.version;
+      if (version) {
+        localStorage.setItem(`dict_${level}_version`, version);
       }
 
       levelsLoaded.add(level);

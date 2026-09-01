@@ -90,10 +90,7 @@ window.authExports = {
 // Функция регистрации Service Worker
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    const swFileMeta = document.querySelector(
-      'meta[name="sw-file"]',
-    )?.content;
-    const SW_URL = swFileMeta || '/sw.js';
+    const SW_URL = '/sw.js';
     console.log('[SW] Регистрация:', SW_URL);
 
     try {
@@ -103,28 +100,8 @@ async function registerServiceWorker() {
       });
       console.log('[SW] Зарегистрирован:', registration);
 
-      // Проверка обновлений каждые 5 минут
-      setInterval(
-        () => {
-          const isInLesson =
-            document.body.classList.contains('exercise-active') ||
-            document.body.classList.contains('modal-open') ||
-            document.body.classList.contains('bs-open') ||
-            window.isSessionActive;
-
-          if (!isInLesson) {
-            console.log('[SW] Проверка обновлений...');
-            registration.update();
-          }
-        },
-        5 * 60 * 1000,
-      );
-
-      // Принудительное обновление при загрузке страницы
-      setTimeout(() => {
-        console.log('[SW] Принудительная проверка при загрузке...');
-        registration.update();
-      }, 1000);
+      // Один раз при загрузке
+      await registration.update();
 
       if (registration.waiting) {
         console.log('[SW] Найден waiting worker, отправляем SKIP_WAITING');

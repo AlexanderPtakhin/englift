@@ -895,17 +895,21 @@ window.speakVerb = function (verbObj, onEnd) {
 };
 
 function dataHasChanged(remote, local) {
-
   if (remote.length !== local.length) return true;
-
   if (remote.length === 0) return false;
 
-  const getRemoteTime = item => item?.updated_at || item?.updatedat || '';
+  const localMap = new Map(
+    local.map(item => [
+      item.id,
+      item.updatedAt ?? item.updated_at ?? ''
+    ])
+  );
 
-  const getLocalTime = item => item?.updatedAt || item?.updatedat || '';
-
-  return getRemoteTime(remote[0]) !== getLocalTime(local[0]);
-
+  return remote.some(item => {
+    const remoteTime = item.updated_at ?? item.updatedAt ?? '';
+    const localTime = localMap.get(item.id);
+    return localTime !== remoteTime;
+  });
 }
 
 async function syncFromSupabase() {
@@ -23144,9 +23148,9 @@ function renderStories() {
 
   if (!grid) return;
 
-  // Показываем индикатор загрузки
-  grid.innerHTML = '<div class="loading-spinner">Загрузка историй...</div>';
-  if (bankWrap) bankWrap.innerHTML = '<div class="loading-spinner">Загрузка истории дня...</div>';
+  // Показываем один красивый спиннер на весь раздел
+  grid.innerHTML = '<div class="stories-loading-spinner"><div class="spinner"></div><p>Загрузка историй...</p></div>';
+  if (bankWrap) bankWrap.innerHTML = '';
 
   // Загружаем истории из JSON
   getAvailableStories().then(stories => {
@@ -23339,8 +23343,10 @@ function renderStoryBankOnly(story) {
 
         const extraDiv = document.createElement('div');
         extraDiv.className = 'word-card-extra';
+        const titleRu = story.title?.ru || '';
         extraDiv.innerHTML = `
-          <p>${esc(summary?.ru || '')}</p>
+          ${titleRu ? `<div class="word-bank-en">${esc(titleRu)}</div>` : ''}
+          <div class="word-bank-ru">${esc(summary?.ru || '')}</div>
         `;
         bankCard.appendChild(extraDiv);
       } else {
@@ -23904,9 +23910,11 @@ function showFullStoryContent(card) {
   extraDiv.className = 'word-card-extra';
 
   const summary = story.summary || story.description;
+  const titleRu = story.title?.ru || '';
 
   extraDiv.innerHTML = `
-    <p>${esc(summary?.ru || '')}</p>
+    ${titleRu ? `<h3 class="word-title">${esc(titleRu)}</h3>` : ''}
+    <div class="word-translation">${esc(summary?.ru || '')}</div>
   `;
 
   card.appendChild(extraDiv);
@@ -32728,4 +32736,68 @@ window.downloadWords = function() {
   toast('Слова скачаны!', 'success');
 
 };
+
+// Тестовая кнопка для Service Worker
+function addDebugButton() {
+  const debugBtn = document.createElement('button');
+  debugBtn.textContent = '🔧 Debug SW';
+  debugBtn.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    padding: 10px 15px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  `;
+  
+  debugBtn.addEventListener('click', async () => {
+    console.log('[DEBUG] === Service Worker Debug Info ===');
+    
+    // Показываем версию SW
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      console.log('[DEBUG] SW Registration:', registration);
+      if (registration) {
+        console.log('[DEBUG] Active SW:', registration.active?.scriptURL);
+        console.log('[DEBUG] Waiting SW:', registration.waiting?.scriptURL);
+        console.log('[DEBUG] Installing SW:', registration.installing?.scriptURL);
+      }
+    }
+    
+    // Показываем состояние кеша
+    const caches = await window.caches.keys();
+    console.log('[DEBUG] All caches:', caches);
+    
+    for (const cacheName of caches) {
+      const cache = await window.caches.open(cacheName);
+      const keys = await cache.keys();
+      console.log(`[DEBUG] Cache "${cacheName}": ${keys.length} items`);
+      console.log('[DEBUG] Items:', keys.map(k => k.url));
+    }
+    
+    // Показываем localStorage
+    console.log('[DEBUG] localStorage keys:', Object.keys(localStorage));
+    
+    // Спрашиваем о очистке кеша
+    if (confirm('Информация собрана. Очистить все кеши?')) {
+      const cacheNames = await window.caches.keys();
+      await Promise.all(cacheNames.map(name => window.caches.delete(name)));
+      console.log('[DEBUG] ✅ Все кеши очищены');
+      location.reload();
+    }
+  });
+  
+  document.body.appendChild(debugBtn);
+}
+
+// Добавляем debug кнопку после загрузки
+setTimeout(() => {
+  addDebugButton();
+}, 2000);
 

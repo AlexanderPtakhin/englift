@@ -289,7 +289,7 @@ body.loading header {
   cursor: pointer;
   align-items: center;
   gap: .5rem;
-  margin-top: 1rem;
+  margin-top: 0.5em;
   font-size: .8rem;
   display: flex;
 }
@@ -3524,6 +3524,7 @@ html.dark .main-story {
 .modal-box .story-text-ru p {
   line-height: 1.6;
   margin: 0 0 1rem 0 !important;
+  font-size: 1rem;
 }
 .modal-box .story-text-en p:last-child,
 .modal-box .story-text-ru p:last-child {
@@ -3533,6 +3534,30 @@ html.dark .main-story {
   margin-top: 1rem;
   display: flex;
   justify-content: center;
+}
+.stories-loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--muted);
+}
+.stories-loading-spinner .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.stories-loading-spinner p {
+  margin: 0;
+  font-size: 0.9rem;
 }
 .story-translation-btn {
   display: flex;
@@ -8440,9 +8465,47 @@ html.dark .goal-item.locked .goal-progress-text {
 .word-card.expanded .expand-icon {
   transform: rotate(180deg);
 }
-/* Раскрываемая часть */
-.word-card-extra {
-  animation: fadeIn 0.3s ease;
+/* Карточка истории: отступ между футером и переводом */
+#story-bank-card {
+  gap: 0.5rem !important;
+}
+
+/* Обычные карточки историй - отступ между футером и переводом */
+.word-card[data-id*="2026-"] .word-card-extra,
+.word-card[data-id*="the-whistling-bridge"] .word-card-extra,
+.word-card[data-id*="the-library-note"] .word-card-extra,
+.word-card[data-id*="the-wrong-suitcase"] .word-card-extra {
+  margin-top: 1rem;
+}
+
+.word-card-extra .word-title {
+  margin-bottom: 0.5rem;
+}
+/* Истории в карточках - увеличенные размеры */
+.word-card[data-id*="2026-"] .word-title,
+.word-card[data-id*="the-whistling-bridge"] .word-title,
+.word-card[data-id*="the-library-note"] .word-title,
+.word-card[data-id*="the-wrong-suitcase"] .word-title {
+  font-size: 1.3rem;
+}
+.word-card[data-id*="2026-"] .word-translation,
+.word-card[data-id*="the-whistling-bridge"] .word-translation,
+.word-card[data-id*="the-library-note"] .word-translation,
+.word-card[data-id*="the-wrong-suitcase"] .word-translation {
+  font-size: 1rem;
+}
+/* История дня - те же размеры */
+#story-bank-card .word-card-extra .word-title {
+  font-size: 1.3rem;
+}
+#story-bank-card .word-card-extra .word-translation {
+  font-size: 1rem;
+}
+#story-bank-card .word-bank-en {
+  font-size: 1.3rem;
+}
+#story-bank-card .word-bank-ru {
+  font-size: 1rem;
 }
 .word-examples h4 {
   font-size: 0.9rem;
