@@ -907,30 +907,53 @@ function removeCurrentTooltip() {
     currentTooltipTarget = null;
   }
 }
-function positionTooltipBottomLeft(tooltip, targetElement) {
-  const gap = 10;
+function positionTooltipBottom(tooltip, targetElement) {
+  const gap = 8;
   const edge = 12;
-  const rect = targetElement.getBoundingClientRect();
-  const tipRect = tooltip.getBoundingClientRect();
-  // Position tooltip below and to the left of the target
-  let left = rect.right - tipRect.width;
-  let top = rect.bottom + gap;
-  let placement = 'bottom-left';
-  // Ensure tooltip doesn't go off left edge
-  if (left < edge) left = edge;
-  // Ensure tooltip doesn't go off right edge
-  if (left + tipRect.width > window.innerWidth - edge) {
-    left = window.innerWidth - tipRect.width - edge;
+
+  const targetRect = targetElement.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+
+  const viewportWidth = document.documentElement.clientWidth;
+  const viewportHeight = window.innerHeight;
+
+  let left = targetRect.left + (targetRect.width - tooltipRect.width) / 2;
+  let top = targetRect.bottom + gap;
+  let placement = 'bottom';
+
+  // Не даём тултипу вылезти за левый край
+  if (left < edge) {
+    left = edge;
+    placement = 'bottom-left';
   }
-  // If not enough space below, show above
-  if (top + tipRect.height > window.innerHeight - edge) {
-    top = rect.top - tipRect.height - gap;
-    placement = 'top-left';
+
+  // Не даём тултипу вылезти за правый край
+  if (left + tooltipRect.width > viewportWidth - edge) {
+    left = viewportWidth - tooltipRect.width - edge;
+    placement = 'bottom-right';
   }
-  // Ensure tooltip doesn't go off top edge
+
+  // Если снизу не хватает места — показываем сверху
+  if (top + tooltipRect.height > viewportHeight - edge) {
+    top = targetRect.top - tooltipRect.height - gap;
+    placement = 'top';
+
+    if (left < edge) {
+      left = edge;
+      placement = 'top-left';
+    }
+
+    if (left + tooltipRect.width > viewportWidth - edge) {
+      left = viewportWidth - tooltipRect.width - edge;
+      placement = 'top-right';
+    }
+  }
+
+  // Защита для очень высоких тултипов
   if (top < edge) {
     top = edge;
   }
+
   tooltip.style.left = `${Math.round(left)}px`;
   tooltip.style.top = `${Math.round(top)}px`;
   tooltip.dataset.placement = placement;
@@ -945,11 +968,9 @@ function showTooltip(text, targetElement, options = {}) {
   removeCurrentTooltip();
   const tooltip = document.createElement('div');
   tooltip.className = 'custom-tooltip';
-  tooltip.innerHTML = displayText.replace(/\n/g, '<br>');
-  tooltip.style.position = 'fixed';
-  tooltip.style.pointerEvents = 'none';
+  tooltip.textContent = displayText;
   document.body.appendChild(tooltip);
-  positionTooltipBottomLeft(tooltip, targetElement);
+  positionTooltipBottom(tooltip, targetElement);
   // Add is-visible class after positioning
   requestAnimationFrame(() => {
     tooltip.classList.add('is-visible');
@@ -967,7 +988,7 @@ function hideTooltip() {
 }
 function repositionTooltip() {
   if (currentTooltip && currentTooltipTarget?.isConnected) {
-    positionTooltipBottomLeft(currentTooltip, currentTooltipTarget);
+    positionTooltipBottom(currentTooltip, currentTooltipTarget);
   } else {
     removeCurrentTooltip();
   }
@@ -975,15 +996,64 @@ function repositionTooltip() {
 function bindTooltip(el) {
   if (!el || el.dataset.tooltipBound === 'true') return;
   el.dataset.tooltipBound = 'true';
+
+  const open = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (
+      currentTooltipTarget === el &&
+      currentTooltip
+    ) {
+      hideTooltip();
+      return;
+    }
+
+    showTooltip(el.dataset.tooltip || '', el, {
+      autoHide: false
+    });
+  };
+
+  const close = () => {
+    hideTooltip();
+  };
+
+  // Компьютер
   el.addEventListener('mouseenter', () => {
-    showTooltip(el.dataset.tooltip || '', el, { autoHide: false });
+    showTooltip(el.dataset.tooltip || '', el, {
+      autoHide: false
+    });
   });
-  el.addEventListener('mouseleave', hideTooltip);
+
+  el.addEventListener('mouseleave', close);
+
+  // Клавиатура
   el.addEventListener('focus', () => {
-    showTooltip(el.dataset.tooltip || '', el, { autoHide: false });
+    showTooltip(el.dataset.tooltip || '', el, {
+      autoHide: false
+    });
   });
-  el.addEventListener('blur', hideTooltip);
+
+  el.addEventListener('blur', close);
+
+  // Телефон и планшет
+  el.addEventListener('click', open);
 }
+
+// Глобальное закрытие тултипа при клике вне
+document.addEventListener('click', (event) => {
+  if (!currentTooltip) return;
+
+  const clickedTarget = event.target.closest('.vocab-word');
+
+  if (
+    clickedTarget !== currentTooltipTarget &&
+    !event.target.closest('.custom-tooltip')
+  ) {
+    hideTooltip();
+  }
+});
+
 window.addEventListener('scroll', hideTooltip, { passive: true });
 window.addEventListener('touchmove', hideTooltip, { passive: true });
 window.addEventListener('resize', repositionTooltip, { passive: true });
@@ -4361,26 +4431,6 @@ function renderStats() {
   const wordsPct = wordsTotal
     ? Math.round((wordsLearned / wordsTotal) * 100)
     : 0;
-  // REMOVED: idioms calculations section
-  // ── ОБЩЕЕ ─────────────────────────────────────
-  const totalAll = wordsTotal; // REMOVED: idioms
-  const totalLearned = wordsLearned; // REMOVED: idioms
-  const totalDue = wordsDue; // REMOVED: idioms
-  const totalPct = totalAll ? Math.round((totalLearned / totalAll) * 100) : 0;
-  const thisWeek = wordsThisWeek; // REMOVED: idioms
-  // ── Совместимость со старыми ID ─────────────────
-  document.getElementById('st-total') &&
-    (document.getElementById('st-total').textContent = totalAll);
-  document.getElementById('st-learned') &&
-    (document.getElementById('st-learned').textContent = totalLearned);
-  if (document.getElementById('st-learned-bar'))
-    document.getElementById('st-learned-bar').style.width = totalPct + '%';
-  if (document.getElementById('st-streak'))
-    document.getElementById('st-streak').textContent = streak.count;
-  // Вызываем renderStreak для обновления карточки серии
-  renderStreak();
-  if (document.getElementById('st-week'))
-    document.getElementById('st-week').textContent = window.learningStreak || 0;
   // ── due-pill ────────────────────────────────────
   const pillEl = document.getElementById('due-pill');
   if (pillEl) {
@@ -4424,25 +4474,6 @@ function renderStats() {
           <span><span class="material-symbols-outlined stat-icon-small learned-icon">${learnedIcon}</span> ${wordsLearnedText}</span>
           <span><span class="material-symbols-outlined stat-icon-small">menu_book</span> ${wordsTotalText}</span>
           ${dueBadgeW}
-        </div>
-      </div>
-      <!-- REMOVED: idioms progress card -->
-      <div class="spc-card spc-total">
-        <div class="spc-header">
-          <span class="material-symbols-outlined spc-icon total-icon">auto_awesome</span>
-          <span class="spc-title">Общий прогресс</span>
-          <span class="spc-pct total-pct">${totalPct}%</span>
-        </div>
-        <div class="spc-bar-wrap combined">
-          <div class="spc-bar-fill words" style="width:${totalPct}%"></div>
-          <!-- REMOVED: idioms bar fill -->
-        </div>
-        <div class="spc-legend">
-          <span><span class="spc-dot words"></span>Слова</span>
-          <!-- REMOVED: idioms legend -->
-        </div>
-        <div class="spc-nums">
-          <span><span class="material-symbols-outlined stat-icon-small">psychology</span> ${totalLearned} из ${totalAll} слов</span>
         </div>
       </div>
     `;
@@ -10381,6 +10412,10 @@ async function loadStoryFromJSON(storyPath) {
   try {
     const response = await fetch(storyPath);
     const story = await response.json();
+    // Добавляем путь к картинке, если есть папка
+    if (story.folder) {
+      story.imagePath = `story/${story.folder}/foto.webp`;
+    }
     console.log('[STORIES] Загружена история:', story.title?.en);
     return story;
   } catch (error) {
@@ -10390,61 +10425,65 @@ async function loadStoryFromJSON(storyPath) {
 }
 // Загрузка списка историй из папки story
 async function getAvailableStories() {
-  const CACHE_KEY = 'englift_stories';
-  const CACHE_TIMESTAMP_KEY = 'englift_stories_timestamp';
-  const CACHE_DATE_KEY = 'englift_stories_date';
-  const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 часов
-  const today = getCurrentLocalDate();
-  // Проверяем кеш
-  const cachedStories = localStorage.getItem(CACHE_KEY);
-  const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-  const cachedDate = localStorage.getItem(CACHE_DATE_KEY);
-  const now = Date.now();
-  // Если дата изменилась - инвалидировать кеш
-  if (cachedDate && cachedDate !== today) {
-    console.log('[STORIES] Дата изменилась, инвалидация кеша:', cachedDate, '->', today);
-    localStorage.removeItem(CACHE_KEY);
-    localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-    localStorage.removeItem(CACHE_DATE_KEY);
-  }
-  if (cachedStories && cachedTimestamp && cachedDate === today) {
-    const timestamp = parseInt(cachedTimestamp, 10);
-    const age = now - timestamp;
-    // Если кеш свежий (менее 6 часов) - возвращаем из кеша
-    if (age < CACHE_DURATION) {
-      console.log('[STORIES] Истории загружены из кеша, возраст:', Math.floor(age / 1000 / 60), 'минут');
-      return JSON.parse(cachedStories);
+  console.log('[STORIES] getAvailableStories: начало загрузки');
+  const cacheKey = 'engliftStoriesCache';
+  const cacheTtl = 5 * 60 * 1000; // 5 минут
+
+  // Проверяем кэш
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    console.log('[STORIES] Проверка кэша:', cached ? 'найден' : 'не найден');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const age = Date.now() - parsed.timestamp;
+      console.log('[STORIES] Возраст кэша:', Math.round(age / 1000), 'сек');
+      if (age < cacheTtl) {
+        console.log('[STORIES] Истории загружены из кэша:', parsed.stories.length);
+        return parsed.stories;
+      } else {
+        console.log('[STORIES] Кэш устарел, загружаем из сети');
+      }
     }
+  } catch (e) {
+    console.error('[STORIES] Ошибка чтения кэша:', e);
   }
-  // Загружаем с сервера
+
+  // Загружаем из сети
+  console.log('[STORIES] Начинаем загрузку из сети');
   const stories = [];
   try {
     // Загружаем все истории из папки story
+    console.log('[STORIES] Загружаем stories.json');
     const response = await fetch('story/stories.json');
     const data = await response.json();
-    console.log('[STORIES] Загружен список историй:', data);
+    console.log('[STORIES] stories.json загружен, историй в списке:', data.stories?.length);
     // Загружаем каждую историю параллельно
+    console.log('[STORIES] Начинаем параллельную загрузку', data.stories.length, 'историй');
     const storyPromises = data.stories.map(storyPath => loadStoryFromJSON(storyPath));
     const loadedStories = await Promise.all(storyPromises);
+    console.log('[STORIES] Все истории загружены, успешных:', loadedStories.filter(s => s !== null).length);
     // Фильтруем null значения (ошибки загрузки)
     loadedStories.forEach(story => {
       if (story) {
         stories.push(story);
       }
     });
-    // Сохраняем в кеш
-    localStorage.setItem(CACHE_KEY, JSON.stringify(stories));
-    localStorage.setItem(CACHE_TIMESTAMP_KEY, now.toString());
-    localStorage.setItem(CACHE_DATE_KEY, today);
-    console.log('[STORIES] Истории сохранены в кеш');
+    console.log('[STORIES] Истории загружены, всего:', stories.length);
+
+    // Сохраняем в кэш
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        stories: stories,
+        timestamp: Date.now()
+      }));
+      console.log('[STORIES] Сохранено в кэш');
+    } catch (e) {
+      console.error('[STORIES] Ошибка сохранения кэша:', e);
+    }
+
     return stories;
   } catch (error) {
     console.error('[STORIES] Ошибка загрузки списка историй:', error);
-    // Если есть кеш (даже старый) - возвращаем его при ошибке
-    if (cachedStories) {
-      console.log('[STORIES] Ошибка загрузки, используем старый кеш');
-      return JSON.parse(cachedStories);
-    }
     return [];
   }
 }
@@ -10510,11 +10549,25 @@ function renderStories() {
   const empty = document.getElementById('empty-stories');
   const bankWrap = document.getElementById('story-bank-wrap');
   if (!grid) return;
-  // Показываем один красивый спиннер на весь раздел
-  grid.innerHTML = '<div class="stories-loading-spinner"><div class="spinner"></div><p>Загрузка историй...</p></div>';
-  if (bankWrap) bankWrap.innerHTML = '';
-  // Загружаем истории из JSON
-  getAvailableStories().then(stories => {
+
+  // Если истории уже загружены - используем их, иначе показываем спиннер и ждём
+  if (window.stories && window.stories.length > 0) {
+    renderStoriesGrid(window.stories, grid, empty, bankWrap);
+  } else {
+    // Показываем спиннер только если истории ещё не загружены
+    grid.innerHTML = '<div class="stories-loading-spinner"><div class="spinner"></div><p>Загрузка историй...</p></div>';
+    if (bankWrap) bankWrap.innerHTML = '';
+    // Ждём предзагрузки из DOMContentLoaded
+    setTimeout(() => {
+      if (window.stories && window.stories.length > 0) {
+        renderStoriesGrid(window.stories, grid, empty, bankWrap);
+      }
+    }, 100);
+  }
+}
+
+function renderStoriesGrid(stories, grid, empty, bankWrap) {
+  try {
     window.stories = stories;
     if (!stories.length) {
       grid.innerHTML = '';
@@ -10535,33 +10588,34 @@ function renderStories() {
       const indexB = stories.indexOf(b);
       return indexA - indexB;
     });
-    // Фильтруем только видимые истории (по расписанию)
-    const visibleStories = sortedStories.filter(story => isStoryVisible(story));
-    if (!visibleStories.length) {
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      if (bankWrap) bankWrap.innerHTML = '<div class="word-bank-card">Истории скоро появятся</div>';
-      return;
-    }
-    // Последняя история - главная
-    const mainStory = visibleStories[0];
-    const otherStories = visibleStories.slice(1);
-    // Рендерим историю дня
-    if (mainStory && bankWrap) {
-      renderStoryBankOnly(mainStory);
-    }
-    let html = '';
-    // Остальные истории
-    otherStories.forEach(story => {
+      // Фильтруем только видимые истории (по расписанию)
+      const visibleStories = sortedStories.filter(story => isStoryVisible(story));
+      if (!visibleStories.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        if (bankWrap) bankWrap.innerHTML = '';
+        return;
+      }
+      if (bankWrap) bankWrap.innerHTML = '';
+      let html = '';
+      // Все истории, первая будет с градиентом
+      visibleStories.forEach((story, index) => {
+      const isMainStory = index === 0;
       const summary = story.summary || story.description;
       const storyDate = story.publishedAt ? new Date(story.publishedAt).toLocaleDateString('ru-RU') :
                          story.date ? new Date(story.date).toLocaleDateString('ru-RU') : 'Без даты';
+      const imageHtml = story.imagePath ? `
+        <div class="story-card-image">
+          <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="${isMainStory ? 'eager' : 'lazy'}" fetchpriority="${isMainStory ? 'high' : 'auto'}" onerror="this.style.display='none'">
+        </div>
+      ` : '';
+      const cardClass = isMainStory ? 'word-card story-card story-bank-card' : 'word-card story-card';
       html += `
-        <div class="word-card" data-id="${story.id}">
+        <div class="${cardClass}" data-id="${story.id}">
+          ${imageHtml}
           <div class="word-card-header">
             <div class="word-main">
               <h3 class="word-title">${esc(story.title.en)}</h3>
-              <div class="story-date">${storyDate}</div>
             </div>
             <div class="word-actions">
               <button class="audio-btn story-read-btn" data-story-id="${story.id}" title="Читать полностью">
@@ -10610,7 +10664,10 @@ function renderStories() {
         });
       }
     });
-  });
+  } catch (error) {
+    console.error('[STORIES] Ошибка в renderStoriesGrid:', error);
+    grid.innerHTML = '<div class="error">Ошибка загрузки историй</div>';
+  }
 }
 function renderStoryBankOnly(story) {
   const bankWrap = document.getElementById('story-bank-wrap');
@@ -10623,6 +10680,11 @@ function renderStoryBankOnly(story) {
     return;
   }
   const summary = story.summary || story.description;
+  const imageHtml = story.imagePath ? `
+    <div class="story-bank-image">
+      <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="lazy" onerror="this.style.display='none'">
+    </div>
+  ` : '';
   bankWrap.innerHTML = `
     <div class="word-bank-card" id="story-bank-card">
       <div class="word-bank-content">
@@ -10642,6 +10704,7 @@ function renderStoryBankOnly(story) {
           <span class="material-symbols-outlined expand-icon">expand_more</span>
         </div>
       </div>
+      ${imageHtml}
     </div>
   `;
   // Обработчики переключения уровней
@@ -10690,9 +10753,46 @@ function renderStoryBankOnly(story) {
     });
   }
 }
+// Функция для обработки текста с выделением словарных слов
+function processVocabularyInText(text, vocabulary) {
+  if (!vocabulary || !Array.isArray(vocabulary)) return text;
+
+  return text.replace(/\*\*(.+?)\*\*/g, (match, word) => {
+    const cleanWord = word.trim().toLowerCase();
+    const vocabItem = vocabulary.find(v => 
+      v.word.toLowerCase() === cleanWord || 
+      cleanWord.includes(v.word.toLowerCase()) ||
+      v.word.toLowerCase().includes(cleanWord) ||
+      v.word.toLowerCase() === cleanWord.replace(/[^\w\s]/g, '') ||
+      cleanWord.replace(/[^\w\s]/g, '') === v.word.toLowerCase() ||
+      // Проверка для фразовых глаголов (например, "lean forward" -> "leaning forward")
+      v.word.toLowerCase().includes(cleanWord.replace(/ing\b/g, '').trim()) ||
+      cleanWord.replace(/ing\b/g, '').trim() === v.word.toLowerCase().replace(/ing\b/g, '').trim() ||
+      // Проверка для прошедшего времени (showed -> show)
+      v.word.toLowerCase() === cleanWord.replace(/ed\b/g, '').trim() ||
+      cleanWord.replace(/ed\b/g, '').trim() === v.word.toLowerCase() ||
+      // Проверка для разных форм
+      v.word.toLowerCase().replace(/[^\w\s]/g, '') === cleanWord.replace(/[^\w\s]/g, '')
+    );
+    
+    if (vocabItem) {
+      const tooltipText = `${vocabItem.word}\n${vocabItem.translationRu}`;
+      return `<span class="vocab-word" data-tooltip="${tooltipText}" tabindex="0" aria-label="${tooltipText}">${word}</span>`;
+    }
+    return match;
+  });
+}
 function generateStoryContent(story, levelData) {
   // Используем параграфы если есть, иначе старый формат
   const paragraphs = levelData.paragraphs || [{ en: levelData.text, ru: levelData.translation }];
+
+  // Обрабатываем параграфы с выделением словарных слов
+  const processedParagraphs = paragraphs.map(p => ({
+    ...p,
+    en: processVocabularyInText(p.en, levelData.vocabulary),
+    ru: processVocabularyInText(p.ru, levelData.vocabulary)
+  }));
+  
   let html = `
     <div class="story-level-info">
       <span class="level-badge ${window.currentStoryLevel}">${window.currentStoryLevel.toUpperCase()}</span>
@@ -10700,7 +10800,7 @@ function generateStoryContent(story, levelData) {
     </div>
     <div class="story-text-container">
       <div class="story-text-en">
-        ${paragraphs.map(p => `<p>${esc(p.en)}</p>`).join('')}
+        ${processedParagraphs.map(p => `<p>${p.en}</p>`).join('')}
         <div class="story-audio-player">
           <div class="story-audio-controls">
             <button class="story-audio-play-btn" id="story-audio-play" title="Воспроизвести">
@@ -10726,7 +10826,7 @@ function generateStoryContent(story, levelData) {
         </div>
       </div>
       <div class="story-text-ru" id="story-translation" style="display:none;">
-        ${paragraphs.map(p => `<p>${esc(p.ru)}</p>`).join('')}
+        ${processedParagraphs.map(p => `<p>${p.ru}</p>`).join('')}
       </div>
     </div>
     <div class="story-actions">
@@ -10901,6 +11001,13 @@ function attachStoryContentHandlers(content, levelData) {
   if (audioElement) {
     setupStoryAudioPlayer(audioElement);
   }
+  // Обработчики для словарных слов - используем существующую систему bindTooltip
+  const vocabWords = content.querySelectorAll('.vocab-word');
+  vocabWords.forEach(wordSpan => {
+    if (typeof bindTooltip === 'function') {
+      bindTooltip(wordSpan);
+    }
+  });
   // Обработчики кнопок проверки ответов
   content.querySelectorAll('.check-answer-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -11047,8 +11154,15 @@ function openStoryModal(story) {
   // Создаем табы для уровней
   const levels = ['easy', 'intermediate', 'challenge'];
   const levelLabels = { easy: 'Easy (A2)', intermediate: 'Intermediate (B1)', challenge: 'Challenge (B2)' };
+  // Добавляем картинку если есть
+  const imageHtml = story.imagePath ? `
+    <div class="story-modal-image">
+      <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="lazy" onerror="this.style.display='none'">
+    </div>
+  ` : '';
   // Формируем контент с табами
   let html = `
+    ${imageHtml}
     <div class="story-tabs">
       ${levels.map(level => `
         <button class="story-tab ${window.currentStoryLevel === level ? 'active' : ''}" data-level="${level}">
@@ -11061,6 +11175,13 @@ function openStoryModal(story) {
     </div>
   `;
   content.innerHTML = html;
+
+  // Подключаем обработчики для начального контента
+  const initialTabContent = content.querySelector('.story-tab-content');
+  if (initialTabContent) {
+    attachStoryContentHandlers(initialTabContent, levelData);
+  }
+
   // Загружаем аудио для текущего уровня
   loadStoryAudio(story, window.currentStoryLevel);
   // Обработчики переключения табов уровней
@@ -11770,73 +11891,45 @@ window.addEventListener('scroll', () => {
   }
 });
 function updateFloatingButtonsForTab(tabName) {
-  // Получаем кнопки каждый раз для надежности
-  const floatingWordBtn = document.getElementById('floating-add-word-btn');
-  const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
-  const floatingChatBtn = document.getElementById('floating-chat-btn');
-  const floatingFriendBtn = document.getElementById('floating-add-friend-btn');
-  const floatingStoryBtn = document.getElementById('floating-add-story-btn');
-  if (!floatingWordBtn || !floatingIdiomBtn) {
-    console.warn('Floating buttons not ready yet');
-    return;
-  }
-  // Сбрасываем lastScrollY, чтобы скролл не мешал
-  lastScrollY = window.scrollY;
-  if (tabName === 'words') {
-    floatingWordBtn.classList.remove('fab-hidden');
-    floatingIdiomBtn.classList.add('fab-hidden');
-    if (floatingFriendBtn) {
-      floatingFriendBtn.classList.add('fab-hidden');
-      floatingFriendBtn.style.display = 'none';
+    // Получаем все кнопки
+    const floatingWordBtn = document.getElementById('floating-add-word-btn');
+    const floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');
+    const floatingChatBtn = document.getElementById('floating-chat-btn');
+    const floatingFriendBtn = document.getElementById('floating-add-friend-btn');
+    const floatingStoryBtn = document.getElementById('floating-add-story-btn');
+
+    // Сначала скрываем все кнопки (устанавливаем display: none и добавляем класс fab-hidden)
+    [floatingWordBtn, floatingIdiomBtn, floatingChatBtn, floatingFriendBtn, floatingStoryBtn].forEach(btn => {
+        if (btn) {
+            btn.style.display = 'none';
+            btn.classList.add('fab-hidden');
+        }
+    });
+
+    // Затем показываем только те, которые нужны для текущей вкладки
+    if (tabName === 'words') {
+        if (floatingWordBtn) {
+            floatingWordBtn.style.display = 'flex';
+            floatingWordBtn.classList.remove('fab-hidden');
+        }
+    } else if (tabName === 'idioms') {
+        if (floatingIdiomBtn) {
+            floatingIdiomBtn.style.display = 'flex';
+            floatingIdiomBtn.classList.remove('fab-hidden');
+        }
+    } else if (tabName === 'stories') {
+        // Для историй показываем только администраторам (если нужно)
+        if (floatingStoryBtn && window.userRole === 'admin') {
+            floatingStoryBtn.style.display = 'flex';
+            floatingStoryBtn.classList.remove('fab-hidden');
+        }
+    } else if (tabName === 'friends') {
+        if (floatingFriendBtn) {
+            floatingFriendBtn.style.display = 'flex';
+            floatingFriendBtn.classList.remove('fab-hidden');
+        }
     }
-  } else if (tabName === 'idioms') {
-    floatingIdiomBtn.classList.remove('fab-hidden');
-    floatingWordBtn.classList.add('fab-hidden');
-    if (floatingFriendBtn) {
-      floatingFriendBtn.classList.add('fab-hidden');
-      floatingFriendBtn.style.display = 'none';
-    }
-    if (floatingStoryBtn) {
-      floatingStoryBtn.classList.add('fab-hidden');
-      floatingStoryBtn.style.display = 'none';
-    }
-  } else if (tabName === 'stories') {
-    floatingWordBtn.classList.add('fab-hidden');
-    floatingIdiomBtn.classList.add('fab-hidden');
-    if (floatingFriendBtn) {
-      floatingFriendBtn.classList.add('fab-hidden');
-      floatingFriendBtn.style.display = 'none';
-    }
-    // Показываем кнопку историй только для администраторов
-    if (floatingStoryBtn && window.userRole === 'admin') {
-      floatingStoryBtn.style.display = 'flex';
-      floatingStoryBtn.classList.remove('fab-hidden');
-    } else if (floatingStoryBtn) {
-      floatingStoryBtn.style.display = 'none';
-      floatingStoryBtn.classList.add('fab-hidden');
-    }
-  } else if (tabName === 'friends') {
-    // Скрываем кнопки слов и идиом
-    floatingWordBtn.classList.add('fab-hidden');
-    floatingIdiomBtn.classList.add('fab-hidden');
-    // Показываем кнопку добавления друга
-    if (floatingFriendBtn) {
-      floatingFriendBtn.style.display = 'flex';
-      floatingFriendBtn.classList.remove('fab-hidden');
-    }
-  } else {
-    // Скрываем все кнопки для других вкладок
-    floatingWordBtn.classList.add('fab-hidden');
-    floatingIdiomBtn.classList.add('fab-hidden');
-    if (floatingStoryBtn) {
-      floatingStoryBtn.classList.add('fab-hidden');
-      floatingStoryBtn.style.display = 'none';
-    }
-    if (floatingFriendBtn) {
-      floatingFriendBtn.classList.add('fab-hidden');
-      floatingFriendBtn.style.display = 'none';
-    }
-  }
+    // Для вкладок practice, stats и любых других – все кнопки уже скрыты
 }
 // Переключение темы через кнопку в хедере - перенесено в js/theme.js
 // При загрузке страницы устанавливаем lastScrollY
@@ -13067,14 +13160,15 @@ function hardenStudyInputs(root = document) {
   });
 }
 // --- INIT TAB ---
+// Предварительная загрузка историй (для быстрого отображения)
+getAvailableStories().then(stories => {
+  window.stories = stories;
+});
+
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[STORIES] DOMContentLoaded сработал');
   // Защищаем все учебные поля от автозаполнения
   hardenStudyInputs();
-  // Предварительная загрузка историй (для быстрого отображения)
-  getAvailableStories().then(stories => {
-    window.stories = stories;
-    console.log('[STORIES] Истории предварительно загружены:', stories.length);
-  });
   // Инициализация floating кнопок
   floatingWordBtn = document.getElementById('floating-add-word-btn');
   floatingIdiomBtn = document.getElementById('floating-add-idiom-btn');

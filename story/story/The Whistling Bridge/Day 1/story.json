@@ -1,0 +1,352 @@
+{
+  "id": "2026-08-31-the-whistling-bridge-day-1",
+  "date": "2026-08-31",
+  "slug": "the-whistling-bridge-day-1",
+  "folder": "The Whistling Bridge/Day 1",
+  "seriesDay": 1,
+  "seriesTotal": 7,
+
+  "title": {
+    "en": "The Whistling Bridge",
+    "ru": "Мост, который свистит"
+  },
+
+  "summary": {
+    "en": "A local journalist in a quiet town hears a strange, unexplained whistling near an old stone bridge at night.",
+    "ru": "Местная журналистка в тихом городке слышит странный, необъяснимый свист ночью возле старого каменного моста."
+  },
+
+  "levels": {
+    "easy": {
+      "label": { "en": "Easy", "ru": "Легко" },
+      "cefr": "A1-A2",
+      "wordCount": 160,
+      "readingMinutes": 3,
+
+      "paragraphs": [
+        {
+          "id": "easy-1",
+          "en": "Maya lives in Ashbrook, a small, quiet town near green hills. She writes short stories for the local newspaper — mostly simple, everyday news.",
+          "ru": "Майя живёт в Эшбруке, маленьком тихом городке рядом с зелёными холмами. Она пишет короткие статьи для местной газеты — в основном простые, повседневные новости."
+        },
+        {
+          "id": "easy-2",
+          "en": "People in Ashbrook tell an old story. At night, near the stone bridge outside town, you can sometimes hear whistling. Nobody knows why, and nobody has ever seen who does it. Maya doesn't believe old stories. She thinks it's just the wind moving through the bridge.",
+          "ru": "Жители Эшбрука рассказывают старую историю. Ночью, рядом со старым каменным мостом за городом, иногда можно услышать свист. Никто не знает почему, и никто никогда не видел, кто это делает. Майя не верит в старые истории. Она думает, что это просто ветер, который проходит через мост."
+        },
+        {
+          "id": "easy-3",
+          "en": "One evening, she works late and walks home alone. Her way home goes past the old bridge, like every day. Suddenly, she hears it. A soft, clear whistle — a simple tune, again and again, somewhere close.",
+          "ru": "Однажды вечером она задерживается на работе и идёт домой одна. Её путь домой проходит мимо старого моста, как и каждый день. Внезапно она слышит это. Тихий, чистый свист — простая мелодия, снова и снова, где-то рядом."
+        },
+        {
+          "id": "easy-4",
+          "en": "Maya stops and looks around carefully. Nobody is there. Only the old bridge, the dark trees, and the quiet river below. The whistling stops too. Everything becomes silent, and even the wind seems to stop.",
+          "ru": "Майя останавливается и внимательно оглядывается. Никого нет. Только старый мост, тёмные деревья и тихая река внизу. Свист тоже прекращается. Всё становится тихо, и даже ветер словно замирает."
+        },
+        {
+          "id": "easy-5",
+          "en": "Maya stands alone on the bridge for a long moment. \"Maybe,\" she thinks, \"the old story is true after all.\"",
+          "ru": "Майя стоит одна на мосту ещё какое-то время. «Может быть, — думает она, — старая история всё-таки правда»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "whistle",
+          "translationRu": "свист / свистеть",
+          "definitionEn": "A high, clear sound made by blowing air through the lips.",
+          "partOfSpeech": "noun / verb",
+          "exampleEn": "She heard a soft whistle near the bridge.",
+          "exampleRu": "Она услышала тихий свист возле моста."
+        },
+        {
+          "word": "bridge",
+          "translationRu": "мост",
+          "definitionEn": "A structure that lets people cross a river or road.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The old stone bridge crosses the river.",
+          "exampleRu": "Старый каменный мост пересекает реку."
+        },
+        {
+          "word": "tune",
+          "translationRu": "мелодия",
+          "definitionEn": "A short, simple piece of music.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The whistle was a simple tune.",
+          "exampleRu": "Свист был простой мелодией."
+        },
+        {
+          "word": "alone",
+          "translationRu": "один / одна (без компании)",
+          "definitionEn": "Without other people.",
+          "partOfSpeech": "adverb / adjective",
+          "exampleEn": "She walked home alone.",
+          "exampleRu": "Она шла домой одна."
+        },
+        {
+          "word": "silent",
+          "translationRu": "тихий, безмолвный",
+          "definitionEn": "Completely quiet, with no sound.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Everything became silent.",
+          "exampleRu": "Всё стало тихо."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "easy-q1",
+          "type": "choice",
+          "question": "Where does Maya work?",
+          "questionRu": "Где работает Майя?",
+          "options": ["At a bookshop", "At the local newspaper", "At a school", "At a café"],
+          "answer": 1,
+          "explanationRu": "Майя пишет статьи для местной газеты."
+        },
+        {
+          "id": "easy-q2",
+          "type": "choice",
+          "question": "What does Maya hear near the bridge?",
+          "questionRu": "Что слышит Майя возле моста?",
+          "options": ["Music from a radio", "A car engine", "A soft whistle", "A dog barking"],
+          "answer": 2,
+          "explanationRu": "Майя слышит тихий, чистый свист — простую мелодию."
+        },
+        {
+          "id": "easy-q3",
+          "type": "choice",
+          "question": "What does Maya think at the end?",
+          "questionRu": "Что думает Майя в конце?",
+          "options": ["That it was just a bird", "That the old story might be true", "That she should call the police", "That she imagined everything"],
+          "answer": 1,
+          "explanationRu": "Майя думает: «Может быть, старая история всё-таки правда»."
+        }
+      ]
+    },
+
+    "intermediate": {
+      "label": { "en": "Intermediate", "ru": "Средне" },
+      "cefr": "B1",
+      "wordCount": 284,
+      "readingMinutes": 5,
+
+      "paragraphs": [
+        {
+          "id": "intermediate-1",
+          "en": "Maya had lived in Ashbrook her whole life, writing small stories for the local newspaper — school events, weather, the occasional lost cat. Nothing in the quiet town ever gave her much to write about, and she liked it that way.",
+          "ru": "Майя прожила в Эшбруке всю жизнь, писала небольшие заметки для местной газеты — школьные события, погода, изредка потерявшийся кот. В тихом городке редко случалось что-то, о чём стоило писать, и её это вполне устраивало."
+        },
+        {
+          "id": "intermediate-2",
+          "en": "Still, everyone in Ashbrook knew the story about the old stone bridge on the edge of town. Late at night, people said, you could sometimes hear someone whistling near the water, though nobody was ever there. Most residents treated it as a harmless local legend. Maya had always dismissed it. She was a practical person, and she assumed the sound was simply wind moving through the bridge's narrow stone arches — an easy trick of acoustics, nothing more.",
+          "ru": "И всё же каждый в Эшбруке знал историю о старом каменном мосте на окраине города. Поздно ночью, говорили люди, иногда можно услышать, как кто-то насвистывает рядом с водой, хотя там никогда никого не было. Большинство жителей считали это безобидной местной легендой. Майя всегда относилась к этому скептически. Она была практичным человеком и предполагала, что звук — это просто ветер, проходящий сквозь узкие каменные арки моста, обычный акустический эффект, не более того."
+        },
+        {
+          "id": "intermediate-3",
+          "en": "One evening, after finishing a late article at the office, she decided to walk home instead of taking the bus. Her usual route took her directly past the bridge, something she rarely thought twice about. As she crossed, a sound reached her — clear and unmistakable. A whistled tune, simple and slightly sad, repeating itself in the dark. It seemed to come from everywhere and nowhere at once.",
+          "ru": "Одним вечером, закончив позднюю статью в редакции, она решила пойти домой пешком, а не ехать на автобусе. Её обычный путь пролегал прямо мимо моста — о чём она обычно даже не задумывалась. Когда она проходила мост, до неё донёсся звук — чёткий и безошибочный. Насвистываемая мелодия, простая и немного грустная, повторялась снова в темноте. Казалось, что она доносится отовсюду и ниоткуда одновременно."
+        },
+        {
+          "id": "intermediate-4",
+          "en": "Maya stopped walking. She turned in a full circle, scanning the empty road, the riverbank, the shadows beneath the arches. There was no one. Only the bridge, the black water below, and the cold night air. Then, as suddenly as it had begun, the whistling stopped. The silence that followed felt heavier than before, as if the town itself were holding its breath.",
+          "ru": "Майя остановилась. Она развернулась на месте, вглядываясь в пустую дорогу, берег реки, тени под арками. Никого не было. Только мост, чёрная вода внизу и холодный ночной воздух. Затем так же внезапно, как и начался, свист прекратился. Наступившая тишина ощущалась тяжелее прежней, будто сам город затаил дыхание."
+        },
+        {
+          "id": "intermediate-5",
+          "en": "Standing alone in the dark, Maya found herself doubting her own explanation for the first time. Perhaps, she thought, there was more to the old story than wind and imagination — and perhaps it was worth looking into.",
+          "ru": "Стоя одна в темноте, Майя впервые засомневалась в собственном объяснении. Возможно, подумала она, в старой истории было нечто большее, чем ветер и воображение — и, возможно, стоило в этом разобраться."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "dismiss",
+          "translationRu": "отвергать, не принимать всерьёз",
+          "definitionEn": "To decide that something is not important or not worth considering.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Maya had always dismissed the old story.",
+          "exampleRu": "Майя всегда отвергала эту старую историю."
+        },
+        {
+          "word": "acoustics",
+          "translationRu": "акустика",
+          "definitionEn": "The way sound behaves in a particular space.",
+          "partOfSpeech": "noun",
+          "exampleEn": "She blamed the sound on the bridge's acoustics.",
+          "exampleRu": "Она объясняла звук акустикой моста."
+        },
+        {
+          "word": "unmistakable",
+          "translationRu": "безошибочный, невозможно перепутать",
+          "definitionEn": "So clear that it cannot be confused with anything else.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "The whistle was clear and unmistakable.",
+          "exampleRu": "Свист был чётким и безошибочным."
+        },
+        {
+          "word": "scan",
+          "translationRu": "внимательно осматривать",
+          "definitionEn": "To look at something carefully and quickly, searching for something.",
+          "partOfSpeech": "verb",
+          "exampleEn": "She scanned the empty road.",
+          "exampleRu": "Она внимательно осмотрела пустую дорогу."
+        },
+        {
+          "word": "hold one's breath",
+          "translationRu": "затаить дыхание",
+          "definitionEn": "To wait anxiously for something, almost not breathing.",
+          "partOfSpeech": "idiom",
+          "exampleEn": "It felt like the town was holding its breath.",
+          "exampleRu": "Казалось, что город затаил дыхание."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "intermediate-q1",
+          "type": "choice",
+          "question": "How did Maya usually explain the whistling story before that night?",
+          "questionRu": "Как Майя обычно объясняла историю про свист до этой ночи?",
+          "options": ["She thought it was a local musician", "She believed it was made up by children", "She assumed it was wind in the bridge's stone arches", "She thought tourists made the sound"],
+          "answer": 2,
+          "explanationRu": "Майя считала, что звук — это просто ветер, проходящий через каменные арки моста."
+        },
+        {
+          "id": "intermediate-q2",
+          "type": "choice",
+          "question": "Why did Maya walk home instead of taking the bus that evening?",
+          "questionRu": "Почему в тот вечер Майя пошла домой пешком, а не поехала на автобусе?",
+          "options": ["She had no money for the bus", "She wanted to think about a story idea", "She had just finished a late article and decided to walk", "She was meeting a friend near the bridge"],
+          "answer": 2,
+          "explanationRu": "Она закончила позднюю статью в редакции и решила пойти домой пешком."
+        },
+        {
+          "id": "intermediate-q3",
+          "type": "choice",
+          "question": "What changed in Maya by the end of the passage?",
+          "questionRu": "Что изменилось в Майе к концу отрывка?",
+          "options": ["She decided to move out of Ashbrook", "She began to doubt her own rational explanation", "She called the newspaper to report the noise", "She stopped believing in old stories completely"],
+          "answer": 1,
+          "explanationRu": "Майя впервые засомневалась в собственном объяснении и подумала, что стоит разобраться в истории подробнее."
+        }
+      ]
+    },
+
+    "challenge": {
+      "label": { "en": "Challenge", "ru": "Вызов" },
+      "cefr": "B2",
+      "wordCount": 390,
+      "readingMinutes": 7,
+
+      "paragraphs": [
+        {
+          "id": "challenge-1",
+          "en": "Maya Ellery had spent the better part of her adult life chronicling the unremarkable rhythms of Ashbrook for the local paper — council meetings, harvest fairs, the rare, mildly scandalous complaint about a neighbour's fence. It was a quiet existence, and she had long since made peace with its smallness.",
+          "ru": "Майя Эллери провела большую часть своей взрослой жизни, описывая ничем не примечательный ритм жизни Эшбрука для местной газеты — заседания совета, ярмарки урожая, редкие, слегка скандальные жалобы на соседский забор. Это была тихая жизнь, и она давно смирилась с её незначительностью."
+        },
+        {
+          "id": "challenge-2",
+          "en": "Every town, however, keeps at least one story it cannot quite explain away. In Ashbrook, that story belonged to the old stone bridge at the edge of the woods, where, according to generations of residents, a faint whistling sometimes drifted through the night air with no apparent source — a tune, some said, that no living person could ever quite place. Maya had heard the tale so many times throughout her childhood that it had lost all capacity to unsettle her. She attributed it, with the mild condescension of a rational adult, to wind funnelling through the bridge's narrow arches — an unremarkable trick of acoustics dressed up as folklore.",
+          "ru": "Однако у каждого городка есть хотя бы одна история, которую невозможно до конца объяснить. В Эшбруке такой историей был старый каменный мост на окраине леса, где, по словам многих поколений жителей, по ночам иногда раздавался едва слышный свист без видимого источника — мелодия, которую, как говорили некоторые, ни один живой человек не мог точно узнать. Майя слышала эту историю столько раз за своё детство, что она давно перестала её тревожить. Она объясняла это, с лёгким снисхождением рационального взрослого человека, ветром, проходящим сквозь узкие арки моста — обычным акустическим эффектом, наряженным в одежды фольклора."
+        },
+        {
+          "id": "challenge-3",
+          "en": "On the evening in question, she had stayed late at the office finishing a piece on the town's declining bus service, and, in a small irony she would later dwell on more than once, chose to walk home rather than wait for a bus that rarely came on time. Her route carried her, as it always did, along the river path and across the old bridge. She was perhaps halfway over when the sound reached her: a whistled tune, unhurried and faintly melancholic, threading itself through the darkness with unsettling clarity.",
+          "ru": "В тот вечер она задержалась в редакции, дописывая материал об ухудшении работы городских автобусов, и — с иронией, над которой она потом не раз задумается, — решила пойти домой пешком, а не ждать автобус, который редко приходил вовремя. Её путь, как обычно, шёл вдоль реки и через старый мост. Она была примерно на середине моста, когда до неё донёсся звук: насвистываемая мелодия, неторопливая и слегка тоскливая, пробивающаяся сквозь темноту с тревожащей чёткостью."
+        },
+        {
+          "id": "challenge-4",
+          "en": "She stopped mid-stride. The melody seemed to originate from no fixed point — not from beneath the arches, not from the trees along the bank, not from any direction she could name. She turned in a slow, deliberate circle, cataloguing the emptiness around her with the thoroughness of habit. There was, quite simply, no one there. Only the black gleam of the river, the cold press of night air, and the bridge's familiar silhouette, indifferent as ever to the story it had accumulated over the decades.",
+          "ru": "Она остановилась на полушаге. Мелодия, казалось, не имела определённого источника — ни из-под арок, ни от деревьев вдоль берега, ни с какой-либо стороны, которую она могла бы назвать. Она медленно, обдуманно развернулась по кругу, по привычке тщательно фиксируя пустоту вокруг себя. Там просто никого не было. Только чёрный блеск реки, холодный ночной воздух и знакомый силуэт моста, безразличный, как всегда, к истории, которая копилась вокруг него десятилетиями."
+        },
+        {
+          "id": "challenge-5",
+          "en": "Then the whistling ceased, as abruptly as it had begun, leaving behind a silence so complete it felt almost deliberate — as though something had chosen, quite precisely, the moment to stop. Standing alone on the bridge, Maya allowed herself, for the first time in years, to wonder whether the story might not be entirely wind after all.",
+          "ru": "Затем свист прекратился так же внезапно, как и начался, оставив после себя тишину настолько полную, что она казалась почти намеренной — будто что-то выбрало именно этот момент, чтобы замолчать. Стоя одна на мосту, Майя впервые за много лет позволила себе задуматься: а вдруг эта история — не только ветер."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "chronicle",
+          "translationRu": "описывать, вести хронику",
+          "definitionEn": "To record events in detail, often in writing.",
+          "partOfSpeech": "verb",
+          "exampleEn": "She spent years chronicling the town's small events.",
+          "exampleRu": "Она годами описывала мелкие события городка."
+        },
+        {
+          "word": "condescension",
+          "translationRu": "снисходительность, высокомерие",
+          "definitionEn": "An attitude of feeling superior to someone else.",
+          "partOfSpeech": "noun",
+          "exampleEn": "She dismissed the story with mild condescension.",
+          "exampleRu": "Она отмахнулась от истории с лёгким снисхождением."
+        },
+        {
+          "word": "folklore",
+          "translationRu": "фольклор",
+          "definitionEn": "Traditional stories and beliefs of a community.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The whistling had become part of local folklore.",
+          "exampleRu": "Свист стал частью местного фольклора."
+        },
+        {
+          "word": "melancholic",
+          "translationRu": "тоскливый, меланхоличный",
+          "definitionEn": "Having a feeling of sadness, often gentle or thoughtful.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "The tune was slow and melancholic.",
+          "exampleRu": "Мелодия была медленной и тоскливой."
+        },
+        {
+          "word": "deliberate",
+          "translationRu": "намеренный, продуманный",
+          "definitionEn": "Done consciously and intentionally, not by accident.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "The silence felt almost deliberate.",
+          "exampleRu": "Тишина казалась почти намеренной."
+        },
+        {
+          "word": "indifferent",
+          "translationRu": "безразличный, равнодушный",
+          "definitionEn": "Not caring about or interested in something.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "The bridge stood indifferent to the story around it.",
+          "exampleRu": "Мост оставался безразличен к истории вокруг него."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "challenge-q1",
+          "type": "choice",
+          "question": "How does Maya typically regard the town's whistling legend before this night?",
+          "questionRu": "Как Майя обычно относится к легенде о свисте до этой ночи?",
+          "options": ["As a genuine unexplained phenomenon", "As a story invented by local children", "As an unremarkable acoustic effect mistaken for folklore", "As a warning she takes seriously"],
+          "answer": 2,
+          "explanationRu": "Она годами объясняла звук обычным акустическим эффектом, который со временем превратился в фольклор."
+        },
+        {
+          "id": "challenge-q2",
+          "type": "choice",
+          "question": "What is notable about the way the whistling seems to originate?",
+          "questionRu": "Что необычного в том, откуда исходит свист?",
+          "options": ["It clearly comes from beneath the bridge", "It has no identifiable direction or source", "It comes from the trees along the riverbank", "It follows Maya as she walks"],
+          "answer": 1,
+          "explanationRu": "Мелодия не имела определённого источника — ни направления, ни места, откуда доносился звук."
+        },
+        {
+          "id": "challenge-q3",
+          "type": "choice",
+          "question": "What shift takes place in Maya by the end of the passage?",
+          "questionRu": "Какая перемена происходит с Майей к концу отрывка?",
+          "options": ["She resolves to leave Ashbrook immediately", "For the first time, she questions her rational explanation", "She decides the sound was just her imagination", "She becomes afraid of walking at night altogether"],
+          "answer": 1,
+          "explanationRu": "Впервые за много лет она позволяет себе усомниться в том, что это просто ветер."
+        }
+      ]
+    }
+  }
+}

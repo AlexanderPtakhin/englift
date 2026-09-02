@@ -56,7 +56,7 @@ async function checkLevelVersion(level) {
   if (!manifest) return true;
 
   const storedVersion = localStorage.getItem(`dict_${level}_version`);
-  const currentVersion = manifest?.[level]?.version;
+  const currentVersion = manifest?.[level]?.hash || manifest?.[level]?.version;
   if (!currentVersion) return true;
 
   // Если в localStorage нет версии, но данные уже есть в IndexedDB —
@@ -82,7 +82,7 @@ async function getMissingLevels() {
   return ALL_LEVELS.filter(lvl => {
     if (levelsLoaded.has(lvl)) return false;
     const stored = localStorage.getItem(`dict_${lvl}_version`);
-    const current = manifest?.[lvl]?.version;
+    const current = manifest?.[lvl]?.hash || manifest?.[lvl]?.version;
     return !stored || stored !== current;
   });
 }
@@ -291,7 +291,8 @@ async function loadWordBank() {
         const manifest = dataManifest;
         ALL_LEVELS.forEach(lvl => {
           const stored = localStorage.getItem(`dict_${lvl}_version`);
-          if (stored && stored === manifest?.[lvl]?.version) {
+          const current = manifest?.[lvl]?.hash || manifest?.[lvl]?.version;
+          if (stored && stored === current) {
             levelsLoaded.add(lvl);
           }
         });

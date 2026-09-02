@@ -1,4 +1,4 @@
-const CACHE_NAME = 'enguply-v2-6857a1df';
+const CACHE_NAME = 'enguply-v2-c9ad9ab7';
 
 // Критическое логирование для важных событий
 const log = (category, ...args) => {

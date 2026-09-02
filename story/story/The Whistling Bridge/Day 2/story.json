@@ -1,0 +1,352 @@
+{
+  "id": "2026-09-01-the-whistling-bridge-day-2",
+  "date": "2026-09-01",
+  "slug": "the-whistling-bridge-day-2",
+  "folder": "The Whistling Bridge/Day 2",
+  "seriesDay": 2,
+  "seriesTotal": 7,
+
+  "title": {
+    "en": "The Whistling Bridge — Day 2: The Archive",
+    "ru": "Мост, который свистит — День 2: Архив"
+  },
+
+  "summary": {
+    "en": "Maya visits the town archive and learns about a young man who disappeared near the bridge decades ago.",
+    "ru": "Майя приходит в городской архив и узнаёт о молодом человеке, который пропал у моста много лет назад."
+  },
+
+  "levels": {
+    "easy": {
+      "label": { "en": "Easy", "ru": "Легко" },
+      "cefr": "A1-A2",
+      "wordCount": 166,
+      "readingMinutes": 3,
+
+      "paragraphs": [
+        {
+          "id": "easy-1",
+          "en": "The next morning, Maya can't stop thinking about the bridge. She decides to visit the town archive before work. Maybe old newspapers can tell her more about the whistling story.",
+          "ru": "На следующее утро Майя не может перестать думать о мосте. Она решает зайти в городской архив перед работой. Может быть, старые газеты расскажут ей больше об истории со свистом."
+        },
+        {
+          "id": "easy-2",
+          "en": "The **archive** is small and quiet. An **elderly** woman named Grace works there. She has lived in Ashbrook for fifty years and knows almost every story about the town.",
+          "ru": "Архив маленький и тихий. Там работает пожилая женщина по имени Грейс. Она прожила в Эшбруке пятьдесят лет и знает почти каждую историю об этом городе."
+        },
+        {
+          "id": "easy-3",
+          "en": "\"I want to know about the whistling near the bridge,\" Maya says. \"Is it a real story, or just a legend?\" Grace looks at her carefully. \"People don't usually ask about that anymore,\" she says quietly.",
+          "ru": "«Я хочу узнать про свист возле моста, — говорит Майя. — Это правдивая история или просто легенда?» Грейс внимательно смотрит на неё. «Обычно об этом уже никто не спрашивает», — тихо говорит она."
+        },
+        {
+          "id": "easy-4",
+          "en": "Grace opens an old **folder**. Inside, there is a newspaper **article** from many years ago. It tells about a young man named Thomas. He always walked home whistling the same tune. One night, he walked to the bridge — and **disappeared**.",
+          "ru": "Грейс открывает старую папку. Внутри — газетная статья много лет назад. В ней рассказывается о молодом человеке по имени Томас. Он всегда шёл домой, насвистывая одну и ту же мелодию. Однажды вечером он пошёл к мосту — и пропал."
+        },
+        {
+          "id": "easy-5",
+          "en": "\"Nobody ever found him,\" Grace says. \"After that, people started to hear the whistling.\" She stops and looks at Maya. \"There's more to this story,\" she says slowly. \"But not today.\"",
+          "ru": "«Его так и не нашли, — говорит Грейс. — После этого люди начали слышать свист». Она замолкает и смотрит на Майю. «В этой истории есть кое-что ещё, — медленно говорит она. — Но не сегодня»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "archive",
+          "translationRu": "архив",
+          "definitionEn": "A place where old documents and records are kept.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Maya visited the town archive.",
+          "exampleRu": "Майя посетила городской архив."
+        },
+        {
+          "word": "elderly",
+          "translationRu": "пожилой",
+          "definitionEn": "Old, especially describing a person.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "An elderly woman named Grace works there.",
+          "exampleRu": "Там работает пожилая женщина по имени Грейс."
+        },
+        {
+          "word": "folder",
+          "translationRu": "папка",
+          "definitionEn": "A cover used to hold and organize papers.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Grace opens an old folder.",
+          "exampleRu": "Грейс открывает старую папку."
+        },
+        {
+          "word": "article",
+          "translationRu": "статья",
+          "definitionEn": "A piece of writing in a newspaper or magazine.",
+          "partOfSpeech": "noun",
+          "exampleEn": "There is a newspaper article from many years ago.",
+          "exampleRu": "Есть газетная статья много лет назад."
+        },
+        {
+          "word": "disappear",
+          "translationRu": "исчезнуть, пропасть",
+          "definitionEn": "To stop being seen; to become impossible to find.",
+          "partOfSpeech": "verb",
+          "exampleEn": "One night, he walked to the bridge and disappeared.",
+          "exampleRu": "Однажды вечером он пошёл к мосту и пропал."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "easy-q1",
+          "type": "choice",
+          "question": "Where does Maya go the next morning?",
+          "questionRu": "Куда идёт Майя на следующее утро?",
+          "options": ["To the police station", "To the town archive", "To Grace's house", "To the bridge again"],
+          "answer": 1,
+          "explanationRu": "Она решает пойти в городской архив перед работой."
+        },
+        {
+          "id": "easy-q2",
+          "type": "choice",
+          "question": "Who is Thomas?",
+          "questionRu": "Кто такой Томас?",
+          "options": ["Maya's colleague", "A young man who disappeared near the bridge years ago", "The town's mayor", "Grace's brother"],
+          "answer": 1,
+          "explanationRu": "Томас — молодой человек, который однажды вечером пропал у моста."
+        },
+        {
+          "id": "easy-q3",
+          "type": "choice",
+          "question": "What does Grace say at the end?",
+          "questionRu": "Что говорит Грейс в конце?",
+          "options": ["That she doesn't know anything else", "That there's more to the story, but not today", "That Maya should stop asking questions", "That the story isn't true"],
+          "answer": 1,
+          "explanationRu": "Грейс говорит, что в этой истории есть кое-что ещё, но не сегодня."
+        }
+      ]
+    },
+
+    "intermediate": {
+      "label": { "en": "Intermediate", "ru": "Средне" },
+      "cefr": "B1",
+      "wordCount": 269,
+      "readingMinutes": 5,
+
+      "paragraphs": [
+        {
+          "id": "intermediate-1",
+          "en": "The next morning, Maya found she couldn't shake the memory of the bridge. Something about the previous night's silence had **unsettled** her more than the whistling itself, and instead of heading straight to the newspaper office, she decided to stop by the town archive first.",
+          "ru": "На следующее утро Майя поняла, что не может выбросить из головы воспоминание о мосте. Тишина, наступившая прошлой ночью, встревожила её даже сильнее, чем сам свист, и вместо того чтобы идти прямо в редакцию, она решила сначала заглянуть в городской архив."
+        },
+        {
+          "id": "intermediate-2",
+          "en": "The archive occupied a small, dusty room above the library, and it was there she found Grace Whitfield, who had managed the town's records for as long as anyone could remember. Grace was in her seventies, sharp-eyed, and famously knew more about Ashbrook's history than any book on its shelves.",
+          "ru": "Архив занимал маленькую пыльную комнату над библиотекой, и именно там она нашла Грейс Уитфилд, которая вела городские записи столько, сколько кто-либо мог вспомнить. Грейс было за семьдесят, у неё был острый взгляд, и она, как все знали, разбиралась в истории Эшбрука лучше любой книги на её полках."
+        },
+        {
+          "id": "intermediate-3",
+          "en": "\"I wanted to ask about the old story — the whistling near the bridge,\" Maya said. \"Is there anything real behind it, or is it just something people made up?\" Grace studied her for a long moment before answering. \"Not many people ask about that anymore,\" she said quietly, almost as if the question itself surprised her.",
+          "ru": "«Я хотела спросить про старую историю — свист возле моста, — сказала Майя. — Есть ли за ней что-то реальное, или это просто то, что люди сами придумали?» Грейс долго изучала её взглядом, прежде чем ответить. «Уже давно никто не спрашивал меня об этом», — тихо сказала она, будто сам вопрос застал её врасплох."
+        },
+        {
+          "id": "intermediate-4",
+          "en": "Without another word, Grace pulled out a **worn** folder and set it on the table. Inside was a **yellowed** newspaper article, **decades** old. It told the story of a young man named Thomas Hale, known around town for whistling the same tune every evening on his walk home. One night, he crossed the bridge — and was never seen again.",
+          "ru": "Не говоря больше ни слова, Грейс достала потрёпанную папку и положила её на стол. Внутри лежала пожелтевшая газетная статья, которой было уже несколько десятилетий. В ней рассказывалась история молодого человека по имени Томас Хейл, известного в городе тем, что каждый вечер насвистывал одну и ту же мелодию по дороге домой. Однажды ночью он перешёл мост — и больше его никто не видел."
+        },
+        {
+          "id": "intermediate-5",
+          "en": "\"Nobody ever found him,\" Grace said, closing the folder gently. \"And not long after that, people began to hear the whistling near the bridge at night.\" She paused, glancing at Maya with an **expression** that was difficult to read. \"There's more to this story than what's in that article,\" she added slowly. \"But that's a conversation for another day.\"",
+          "ru": "«Его так и не нашли, — сказала Грейс, осторожно закрывая папку. — И вскоре после этого люди начали слышать свист возле моста по ночам». Она сделала паузу, взглянув на Майю с выражением, которое трудно было понять. «В этой истории есть больше, чем написано в статье, — добавила она медленно. — Но это разговор для другого раза»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "unsettle",
+          "translationRu": "тревожить, выбивать из колеи",
+          "definitionEn": "To make someone feel uneasy or worried.",
+          "partOfSpeech": "verb",
+          "exampleEn": "The silence had unsettled her more than the whistling itself.",
+          "exampleRu": "Тишина встревожила её даже больше, чем сам свист."
+        },
+        {
+          "word": "worn",
+          "translationRu": "потрёпанный, изношенный",
+          "definitionEn": "Damaged or faded from long use.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Grace pulled out a worn folder.",
+          "exampleRu": "Грейс достала потрёпанную папку."
+        },
+        {
+          "word": "yellowed",
+          "translationRu": "пожелтевший",
+          "definitionEn": "Turned yellow with age, especially paper.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Inside was a yellowed newspaper article.",
+          "exampleRu": "Внутри лежала пожелтевшая газетная статья."
+        },
+        {
+          "word": "decades",
+          "translationRu": "десятилетия",
+          "definitionEn": "Periods of ten years.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The article was decades old.",
+          "exampleRu": "Статье было уже несколько десятилетий."
+        },
+        {
+          "word": "expression",
+          "translationRu": "выражение (лица)",
+          "definitionEn": "The look on someone's face that shows what they feel.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Her expression was difficult to read.",
+          "exampleRu": "Её выражение лица было трудно понять."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "intermediate-q1",
+          "type": "choice",
+          "question": "Why does Maya go to the archive instead of the newspaper office?",
+          "questionRu": "Почему Майя идёт в архив, а не в редакцию?",
+          "options": ["She wants to avoid her boss", "She is drawn there after the previous night's experience", "Grace asked her to come", "The newspaper office is closed"],
+          "answer": 1,
+          "explanationRu": "После ночного случая её тянет туда — она хочет узнать больше о легенде."
+        },
+        {
+          "id": "intermediate-q2",
+          "type": "choice",
+          "question": "What does the old newspaper article describe?",
+          "questionRu": "О чём рассказывает старая газетная статья?",
+          "options": ["A festival that used to take place near the bridge", "A young man named Thomas Hale who disappeared near the bridge", "A flood that damaged the bridge", "A famous musician who once lived in town"],
+          "answer": 1,
+          "explanationRu": "Статья рассказывает о Томасе Хейле, который пропал у моста много лет назад."
+        },
+        {
+          "id": "intermediate-q3",
+          "type": "choice",
+          "question": "How does Grace react when Maya asks about the whistling?",
+          "questionRu": "Как реагирует Грейс, когда Майя спрашивает про свист?",
+          "options": ["She refuses to talk about it at all", "She seems surprised that anyone still asks", "She laughs and says it's nonsense", "She immediately calls the police"],
+          "answer": 1,
+          "explanationRu": "Грейс отвечает, что уже давно никто не спрашивал её об этом — вопрос словно застаёт её врасплох."
+        }
+      ]
+    },
+
+    "challenge": {
+      "label": { "en": "Challenge", "ru": "Вызов" },
+      "cefr": "B2",
+      "wordCount": 326,
+      "readingMinutes": 6,
+
+      "paragraphs": [
+        {
+          "id": "challenge-1",
+          "en": "By morning, Maya found that the previous night's encounter had **lodged** itself somewhere she couldn't easily dislodge it. It wasn't so much the whistling itself that troubled her as the silence that had followed — a silence that had felt, absurdly, deliberate. Rather than heading directly to the newspaper office, she found herself drawn instead toward the town archive.",
+          "ru": "К утру Майя обнаружила, что вчерашнее происшествие прочно засело где-то внутри неё, и избавиться от этого оказалось не так-то просто. Тревожил её не столько сам свист, сколько наступившая после него тишина — тишина, которая казалась, как ни абсурдно это звучало, намеренной. Вместо того чтобы идти прямо в редакцию, она обнаружила, что её тянет в городской архив."
+        },
+        {
+          "id": "challenge-2",
+          "en": "The archive occupied a cramped, dust-filled room above the public library, **presided over** by Grace Whitfield, a woman who had catalogued Ashbrook's records for nearly five decades and who was, by **unanimous** local agreement, the closest thing the town had to a living memory. Grace regarded Maya over her glasses with the particular attentiveness of someone accustomed to being asked the wrong questions.",
+          "ru": "Архив занимал тесную, пыльную комнату над публичной библиотекой, которой заведовала Грейс Уитфилд — женщина, каталогизировавшая городские записи почти пять десятилетий и являвшаяся, по единодушному мнению местных жителей, живой памятью города. Грейс смотрела на Майю поверх очков с особой внимательностью человека, привыкшего к тому, что ему задают не те вопросы."
+        },
+        {
+          "id": "challenge-3",
+          "en": "\"I wanted to ask about the bridge,\" Maya said. \"The story about the whistling — is there anything behind it, or is it simply something the town has told itself for so long that no one remembers why?\" Grace considered this with **unhurried** care. \"It's been a long time since anyone asked me that,\" she said eventually, her tone suggesting the question carried more weight than Maya had anticipated.",
+          "ru": "«Я хотела спросить про мост, — сказала Майя. — Историю про свист — есть ли за ней хоть что-то, или это просто то, что город так долго рассказывал сам себе, что уже никто не помнит почему?» Грейс обдумывала это без спешки. «Прошло много времени с тех пор, как меня об этом спрашивали», — сказала она наконец, и в её тоне слышалось, что вопрос значил больше, чем ожидала Майя."
+        },
+        {
+          "id": "challenge-4",
+          "en": "Without further explanation, Grace retrieved a worn manila folder from a locked drawer and laid it on the table between them. Inside, **brittle** with age, was a newspaper clipping **recounting** the story of Thomas Hale, a young man once known throughout Ashbrook for whistling the same unhurried tune on his evening walk home. One night, by all accounts, he crossed the old bridge — and simply never arrived.",
+          "ru": "Не давая дальнейших объяснений, Грейс достала из запертого ящика потрёпанную папку из манильской бумаги и положила её на стол между ними. Внутри, хрупкая от времени, лежала газетная вырезка, пересказывающая историю Томаса Хейла — молодого человека, некогда известного в Эшбруке тем, что насвистывал одну и ту же неторопливую мелодию по дороге домой вечерами. Однажды ночью, по всем данным, он перешёл старый мост — и просто не пришёл."
+        },
+        {
+          "id": "challenge-5",
+          "en": "\"He was never found,\" Grace said, closing the folder with a care that suggested the gesture was as much about the story as the paper itself. \"Not long afterward, people began hearing the whistling.\" She studied Maya for a moment, something unspoken passing behind her eyes. \"There is considerably more to this than that clipping tells you,\" she said at last. \"But it isn't a story for a first visit.\"",
+          "ru": "«Его так и не нашли, — сказала Грейс, закрывая папку с осторожностью, которая, казалось, относилась не столько к бумаге, сколько к самой истории. — Вскоре после этого люди начали слышать свист». Она посмотрела на Майю, и что-то невысказанное промелькнуло в её взгляде. «В этой истории намного больше, чем рассказывает та вырезка, — сказала она наконец. — Но это не история для первого визита»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "lodge (itself)",
+          "translationRu": "застрять, засесть (в памяти)",
+          "definitionEn": "To become firmly fixed or stuck in a place, often figuratively in the mind.",
+          "partOfSpeech": "verb",
+          "exampleEn": "The memory had lodged itself in her mind.",
+          "exampleRu": "Воспоминание засело у неё в голове."
+        },
+        {
+          "word": "preside over",
+          "translationRu": "руководить, заведовать",
+          "definitionEn": "To be in charge of something, especially a place or event.",
+          "partOfSpeech": "verb (phrasal)",
+          "exampleEn": "Grace had presided over the archive for decades.",
+          "exampleRu": "Грейс много лет заведовала архивом."
+        },
+        {
+          "word": "unanimous",
+          "translationRu": "единодушный, единогласный",
+          "definitionEn": "Agreed by everyone, without exception.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "By unanimous agreement, she was the town's memory.",
+          "exampleRu": "По единодушному мнению, она была живой памятью города."
+        },
+        {
+          "word": "brittle",
+          "translationRu": "хрупкий, ломкий",
+          "definitionEn": "Easily broken because it is old, dry, or fragile.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "The old clipping was brittle with age.",
+          "exampleRu": "Старая вырезка была хрупкой от времени."
+        },
+        {
+          "word": "unhurried",
+          "translationRu": "неторопливый, спокойный",
+          "definitionEn": "Done without rushing, calm and slow.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "He had an unhurried way of walking home.",
+          "exampleRu": "У него была неторопливая манера идти домой."
+        },
+        {
+          "word": "recount",
+          "translationRu": "рассказывать, пересказывать (события)",
+          "definitionEn": "To describe or tell the details of an event.",
+          "partOfSpeech": "verb",
+          "exampleEn": "The article recounted the story of a young man.",
+          "exampleRu": "Статья пересказывала историю молодого человека."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "challenge-q1",
+          "type": "choice",
+          "question": "What troubles Maya most about the previous night?",
+          "questionRu": "Что тревожит Майю больше всего в связи с прошлой ночью?",
+          "options": ["The cold weather", "The silence that followed the whistling", "Being alone on the bridge", "Missing the bus"],
+          "answer": 1,
+          "explanationRu": "Её тревожит не столько сам свист, сколько тишина, которая наступила после него — тишина, казавшаяся почти намеренной."
+        },
+        {
+          "id": "challenge-q2",
+          "type": "choice",
+          "question": "How is Grace Whitfield generally regarded in Ashbrook?",
+          "questionRu": "Как вообще жители относятся к Грейс Уитфилд в Эшбруке?",
+          "options": ["As an unreliable gossip", "As the closest thing the town has to a living memory", "As someone who avoids the town's history", "As a recent newcomer to the archive"],
+          "answer": 1,
+          "explanationRu": "По общему мнению жителей, Грейс — это живая память города."
+        },
+        {
+          "id": "challenge-q3",
+          "type": "choice",
+          "question": "What does Grace imply about the story as she ends the conversation?",
+          "questionRu": "На что намекает Грейс, заканчивая разговор?",
+          "options": ["That the newspaper article contains the whole truth", "That there is considerably more to the story than the clipping reveals", "That the story is a complete fabrication", "That she has forgotten the details herself"],
+          "answer": 1,
+          "explanationRu": "Грейс намекает, что в этой истории куда больше, чем рассказывает старая вырезка."
+        }
+      ]
+    }
+  }
+}

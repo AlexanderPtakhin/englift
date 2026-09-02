@@ -1,0 +1,352 @@
+{
+  "id": "2026-09-02-the-whistling-bridge-day-4",
+  "date": "2026-09-02",
+  "slug": "the-whistling-bridge-day-4",
+  "folder": "The Whistling Bridge/Day 4",
+  "seriesDay": 4,
+  "seriesTotal": 7,
+
+  "title": {
+    "en": "The Whistling Bridge — Day 4: The Woman Who Waited",
+    "ru": "Мост, который свистит — День 4: Женщина, которая ждала"
+  },
+
+  "summary": {
+    "en": "Maya visits Eleanor, who reveals a secret she has kept for fifty years: she heard the whistling too, on the very night Thomas disappeared.",
+    "ru": "Майя приходит к Элеоноре, которая раскрывает секрет, хранимый пятьдесят лет: она тоже слышала свист — в ту самую ночь, когда пропал Томас."
+  },
+
+  "levels": {
+    "easy": {
+      "label": { "en": "Easy", "ru": "Легко" },
+      "cefr": "A1-A2",
+      "wordCount": 161,
+      "readingMinutes": 3,
+
+      "paragraphs": [
+        {
+          "id": "easy-1",
+          "en": "The next day, Maya finds Eleanor's **address**. She lives in a small house near the edge of town, close to the old bridge. Maya feels **nervous**, and she **hesitates** before knocking on the door.",
+          "ru": "На следующий день Майя находит адрес Элеоноры. Она живёт в маленьком доме на окраине города, рядом со старым мостом. Майя нервничает и медлит перед тем, как постучать в дверь."
+        },
+        {
+          "id": "easy-2",
+          "en": "An old woman opens the door. Her hair is white, and her eyes are careful. When Maya says Thomas's name, Eleanor's face becomes **serious**. For a moment, she says nothing.",
+          "ru": "Дверь открывает пожилая женщина. Её волосы белые, а взгляд — настороженный. Когда Майя произносит имя Томаса, лицо Элеоноры становится серьёзным. Какое-то время она молчит."
+        },
+        {
+          "id": "easy-3",
+          "en": "\"I'm writing about the old story,\" Maya **explains** softly. \"About the bridge.\" Eleanor looks at her for a long time. Then she opens the door wider. \"Come in,\" she says quietly. \"Sit down.\"",
+          "ru": "«Я пишу про старую историю, — мягко объясняет Майя. — Про мост». Элеонора долго смотрит на неё. Потом она открывает дверь шире. «Заходите, — тихо говорит она. — Присаживайтесь»."
+        },
+        {
+          "id": "easy-4",
+          "en": "\"I waited for him that night,\" Eleanor says. \"At the bridge. For hours. I told myself he was just late.\" Her voice becomes quiet. \"But he never came.\"",
+          "ru": "«Я ждала его в ту ночь, — говорит Элеонора. — У моста. Несколько часов. Я говорила себе, что он просто опаздывает». Её голос становится тише. «Но он так и не пришёл»."
+        },
+        {
+          "id": "easy-5",
+          "en": "Then Eleanor says something new. \"That night, I heard whistling too,\" she says. \"From the other side of the bridge. I ran there. But nobody was there. I never told anyone this — not in fifty years.\"",
+          "ru": "Потом Элеонора говорит что-то новое. «В ту ночь я тоже слышала свист, — говорит она. — С другой стороны моста. Я побежала туда. Но там никого не было. Я никогда никому это не рассказывала — целых пятьдесят лет»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "address",
+          "translationRu": "адрес",
+          "definitionEn": "The details of where a person lives.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Maya finds Eleanor's address.",
+          "exampleRu": "Майя находит адрес Элеоноры."
+        },
+        {
+          "word": "nervous",
+          "translationRu": "нервничающий",
+          "definitionEn": "Feeling worried or afraid about something that is going to happen.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Maya feels nervous before knocking on the door.",
+          "exampleRu": "Майя нервничает перед тем, как постучать в дверь."
+        },
+        {
+          "word": "hesitate",
+          "translationRu": "колебаться, медлить",
+          "definitionEn": "To pause because you are unsure.",
+          "partOfSpeech": "verb",
+          "exampleEn": "She hesitates before knocking on the door.",
+          "exampleRu": "Она медлит перед тем, как постучать в дверь."
+        },
+        {
+          "word": "serious",
+          "translationRu": "серьёзный",
+          "definitionEn": "Not smiling or joking; thoughtful and grave.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Eleanor's face becomes serious.",
+          "exampleRu": "Лицо Элеоноры становится серьёзным."
+        },
+        {
+          "word": "explain",
+          "translationRu": "объяснять",
+          "definitionEn": "To make something clear by giving details.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Maya explains softly.",
+          "exampleRu": "Майя мягко объясняет."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "easy-q1",
+          "type": "choice",
+          "question": "Where does Eleanor live?",
+          "questionRu": "Где живёт Элеонора?",
+          "options": ["In the city", "In a small house near the bridge", "In Grace's archive", "In Walter's café"],
+          "answer": 1,
+          "explanationRu": "Она живёт в маленьком доме рядом со старым мостом."
+        },
+        {
+          "id": "easy-q2",
+          "type": "choice",
+          "question": "What did Eleanor do on the night Thomas disappeared?",
+          "questionRu": "Что делала Элеонора в ночь, когда пропал Томас?",
+          "options": ["She waited for him at the bridge", "She called the police immediately", "She went to sleep early", "She left Ashbrook that same night"],
+          "answer": 0,
+          "explanationRu": "Она ждала его у моста несколько часов."
+        },
+        {
+          "id": "easy-q3",
+          "type": "choice",
+          "question": "What surprising thing does Eleanor tell Maya?",
+          "questionRu": "Что удивительное рассказывает Элеонора Майе?",
+          "options": ["That she saw Thomas leave town", "That she also heard whistling that same night", "That Grace lied to Maya", "That Thomas wrote her a letter"],
+          "answer": 1,
+          "explanationRu": "Элеонора признаётся, что тоже слышала свист в ту самую ночь, с другой стороны моста."
+        }
+      ]
+    },
+
+    "intermediate": {
+      "label": { "en": "Intermediate", "ru": "Средне" },
+      "cefr": "B1",
+      "wordCount": 222,
+      "readingMinutes": 4,
+
+      "paragraphs": [
+        {
+          "id": "intermediate-1",
+          "en": "By the next day, Maya had found Eleanor's address through the town directory — a small house near the edge of town, not far from the bridge itself. Standing at the gate, she hesitated longer than she expected, **uneasy** about reopening a **wound** that had clearly never fully healed.",
+          "ru": "К следующему дню Майя нашла адрес Элеоноры через городской справочник — маленький дом на окраине города, недалеко от самого моста. Стоя у калитки, она колебалась дольше, чем ожидала, — ей было не по себе от мысли разбередить рану, которая явно так и не зажила до конца."
+        },
+        {
+          "id": "intermediate-2",
+          "en": "It was Eleanor herself who answered the door — an elderly woman with white hair and sharp, careful eyes. When Maya mentioned Thomas's name, something closed briefly behind her expression, and for a long moment she said nothing at all.",
+          "ru": "Дверь открыла сама Элеонора — пожилая женщина с белыми волосами и внимательным, настороженным взглядом. Когда Майя упомянула имя Томаса, что-то на мгновение закрылось в её лице, и она долго вообще ничего не говорила."
+        },
+        {
+          "id": "intermediate-3",
+          "en": "\"I'm writing something about the old story — about the bridge,\" Maya said gently, unsure how much to explain. Eleanor studied her for what felt like a full minute before stepping back from the **doorway**. \"Come in,\" she said finally. \"Sit down. I suppose it's time someone asked properly.\"",
+          "ru": "«Я пишу кое-что про старую историю — про мост», — мягко сказала Майя, не зная, сколько объяснять. Элеонора изучала её взглядом, казалось, целую минуту, прежде чем отступить от дверного проёма. «Заходите, — сказала она наконец. — Присаживайтесь. Полагаю, пора кому-то наконец спросить как следует»."
+        },
+        {
+          "id": "intermediate-4",
+          "en": "\"I waited for him at the bridge that night,\" Eleanor said, once they were seated. \"For hours. I told myself he was simply late — that something had **delayed** him, nothing more.\" Her voice grew quieter. \"But he never came.\"",
+          "ru": "«Я ждала его у моста в ту ночь, — сказала Элеонора, когда они сели. — Несколько часов. Я говорила себе, что он просто опаздывает — что что-то его задержало, не более того». Её голос стал тише. «Но он так и не пришёл»."
+        },
+        {
+          "id": "intermediate-5",
+          "en": "Then she said something Maya hadn't expected. \"That same night, I heard whistling too,\" Eleanor said slowly. \"From the far side of the bridge. I ran across, certain it was him. But there was no one there.\" She paused. \"I've never told anyone that. Not in fifty years.\"",
+          "ru": "Затем она сказала то, чего Майя не ожидала. «В ту же ночь я тоже слышала свист, — медленно сказала Элеонора. — С дальней стороны моста. Я побежала туда, уверенная, что это он. Но там никого не было». Она замолчала. «Я никогда никому это не рассказывала. Целых пятьдесят лет»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "uneasy",
+          "translationRu": "неспокойный, тревожный",
+          "definitionEn": "Feeling nervous or worried, not comfortable.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "She felt uneasy about reopening a wound.",
+          "exampleRu": "Ей было не по себе от мысли разбередить рану."
+        },
+        {
+          "word": "wound",
+          "translationRu": "рана (в переносном смысле)",
+          "definitionEn": "Emotional pain from a difficult past experience.",
+          "partOfSpeech": "noun",
+          "exampleEn": "A wound that had clearly never fully healed.",
+          "exampleRu": "Рана, которая явно так и не зажила до конца."
+        },
+        {
+          "word": "doorway",
+          "translationRu": "дверной проём",
+          "definitionEn": "The space where a door opens into a room or building.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Eleanor stepped back from the doorway.",
+          "exampleRu": "Элеонора отступила от дверного проёма."
+        },
+        {
+          "word": "delay",
+          "translationRu": "задержка / задерживать",
+          "definitionEn": "To make something happen later than planned.",
+          "partOfSpeech": "noun / verb",
+          "exampleEn": "Something had delayed him.",
+          "exampleRu": "Что-то его задержало."
+        },
+        {
+          "word": "gate",
+          "translationRu": "калитка, ворота",
+          "definitionEn": "A barrier at the entrance to a garden or property.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Standing at the gate, she hesitated.",
+          "exampleRu": "Стоя у калитки, она колебалась."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "intermediate-q1",
+          "type": "choice",
+          "question": "How does Maya feel while approaching Eleanor's house?",
+          "questionRu": "Что чувствует Майя, подходя к дому Элеоноры?",
+          "options": ["Excited and confident", "Uneasy about reopening old pain", "Bored and indifferent", "Angry at Eleanor"],
+          "answer": 1,
+          "explanationRu": "Она чувствует себя неспокойно, боясь потревожить незажившую рану."
+        },
+        {
+          "id": "intermediate-q2",
+          "type": "choice",
+          "question": "What does Eleanor say she told herself while waiting that night?",
+          "questionRu": "Что, по словам Элеоноры, она говорила себе, ожидая в ту ночь?",
+          "options": ["That Thomas had left her for someone else", "That he was simply late, delayed by something ordinary", "That he had already left town", "That she should call for help immediately"],
+          "answer": 1,
+          "explanationRu": "Она убеждала себя, что он просто задержался — ничего серьёзнее."
+        },
+        {
+          "id": "intermediate-q3",
+          "type": "choice",
+          "question": "What secret has Eleanor kept for fifty years?",
+          "questionRu": "Какой секрет хранила Элеонора пятьдесят лет?",
+          "options": ["That she was engaged to someone else", "That she also heard the whistling that same night, from the other side of the bridge", "That she saw who Thomas was meeting", "That the newspaper article was wrong"],
+          "answer": 1,
+          "explanationRu": "Она никогда никому не рассказывала, что в ту же ночь тоже слышала свист — с другой стороны моста."
+        }
+      ]
+    },
+
+    "challenge": {
+      "label": { "en": "Challenge", "ru": "Вызов" },
+      "cefr": "B2",
+      "wordCount": 278,
+      "readingMinutes": 5,
+
+      "paragraphs": [
+        {
+          "id": "challenge-1",
+          "en": "By the following day, Maya had tracked down Eleanor's address through the town directory — a modest house at the edge of Ashbrook, within sight of the bridge itself. Standing at the gate, she found herself hesitating longer than the occasion strictly **warranted**, uneasy at the prospect of disturbing a wound that had evidently never been permitted to close.",
+          "ru": "На следующий день Майя разыскала адрес Элеоноры через городской справочник — скромный дом на окраине Эшбрука, откуда был виден сам мост. Стоя у калитки, она обнаружила, что колеблется дольше, чем того действительно требовал момент, — её тревожила мысль разбередить рану, которой, судя по всему, так и не позволили зажить."
+        },
+        {
+          "id": "challenge-2",
+          "en": "It was Eleanor who eventually answered — a woman well into her eighties, white-haired, with a pair of pale eyes that seemed to **assess** Maya with **practised** caution. At the mention of Thomas's name, something **shuttered** briefly behind her expression, and for a long moment she offered nothing at all.",
+          "ru": "Открыла ей в итоге сама Элеонора — женщина далеко за восемьдесят, седая, с бледными глазами, которые, казалось, оценивали Майю с отработанной осторожностью. При упоминании имени Томаса что-то на мгновение захлопнулось в её выражении лица, и она долго не произносила ни слова."
+        },
+        {
+          "id": "challenge-3",
+          "en": "\"I'm writing something about the old story — about the bridge,\" Maya said carefully, uncertain how much explanation the moment required. Eleanor regarded her for what felt like a full minute before stepping back to allow her through the doorway. \"Come in,\" she said at last. \"Sit down. I imagine it's time someone finally asked properly.\"",
+          "ru": "«Я пишу кое-что про старую историю — про мост», — осторожно сказала Майя, не совсем понимая, сколько нужно объяснять. Элеонора разглядывала её, казалось, целую минуту, прежде чем отступить, пропуская её в дверной проём. «Заходите, — сказала она наконец. — Присаживайтесь. Полагаю, пора кому-то наконец спросить как следует»."
+        },
+        {
+          "id": "challenge-4",
+          "en": "\"I waited for him at the bridge that night,\" Eleanor said once they were settled, her hands folded with the particular stillness of long practice. \"For hours. I told myself something had simply delayed him — nothing more **sinister** than that.\" Her voice dropped further. \"But he never came.\"",
+          "ru": "«Я ждала его у моста в ту ночь, — сказала Элеонора, когда они устроились, её руки были сложены с особой неподвижностью давней привычки. — Несколько часов. Я говорила себе, что его просто что-то задержало — ничего более зловещего». Её голос стал ещё тише. «Но он так и не пришёл»."
+        },
+        {
+          "id": "challenge-5",
+          "en": "Then she said something Maya had not anticipated. \"That same night, I heard whistling too,\" Eleanor said, slowly, as though testing the words for the first time in decades. \"From the far side of the bridge. I ran across, certain — **utterly** certain — it was him. There was no one there.\" She paused, meeting Maya's eyes directly. \"I have never told a living soul that. Not in fifty years.\"",
+          "ru": "Затем она сказала то, чего Майя не предвидела. «В ту же ночь я тоже слышала свист, — медленно проговорила Элеонора, будто впервые за десятилетия пробуя эти слова на вкус. — С дальней стороны моста. Я побежала туда, совершенно, абсолютно уверенная, что это он. Там никого не было». Она замолчала, прямо глядя в глаза Майе. «Я никогда никому об этом не рассказывала. Целых пятьдесят лет»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "warrant",
+          "translationRu": "оправдывать (необходимость чего-л.)",
+          "definitionEn": "To make something necessary or reasonable.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Longer than the occasion strictly warranted.",
+          "exampleRu": "Дольше, чем того действительно требовал момент."
+        },
+        {
+          "word": "shutter",
+          "translationRu": "захлопнуться (об эмоциях/выражении лица)",
+          "definitionEn": "To close suddenly, as if with a shutter — often about hiding an emotion.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Something shuttered behind her expression.",
+          "exampleRu": "Что-то захлопнулось в её выражении лица."
+        },
+        {
+          "word": "assess",
+          "translationRu": "оценивать",
+          "definitionEn": "To carefully judge or examine something.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Her eyes seemed to assess Maya.",
+          "exampleRu": "Её глаза словно оценивали Майю."
+        },
+        {
+          "word": "practised",
+          "translationRu": "отработанный, наработанный",
+          "definitionEn": "Done with skill gained from repeated experience.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A pair of eyes with practised caution.",
+          "exampleRu": "Взгляд с отработанной осторожностью."
+        },
+        {
+          "word": "sinister",
+          "translationRu": "зловещий",
+          "definitionEn": "Suggesting something bad or evil is about to happen.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Nothing more sinister than a simple delay.",
+          "exampleRu": "Ничего более зловещего, чем обычная задержка."
+        },
+        {
+          "word": "utterly",
+          "translationRu": "полностью, совершенно",
+          "definitionEn": "Completely, totally.",
+          "partOfSpeech": "adverb",
+          "exampleEn": "She was utterly certain it was him.",
+          "exampleRu": "Она была совершенно уверена, что это он."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "challenge-q1",
+          "type": "choice",
+          "question": "Why does Maya hesitate at Eleanor's gate?",
+          "questionRu": "Почему Майя медлит у калитки Элеоноры?",
+          "options": ["She is unsure of the address", "She is uneasy about disturbing an unhealed wound", "She is worried about being late", "She doesn't want to be recognized"],
+          "answer": 1,
+          "explanationRu": "Она не решается тревожить рану, которая, судя по всему, так и не зажила."
+        },
+        {
+          "id": "challenge-q2",
+          "type": "choice",
+          "question": "How does Eleanor initially react to hearing Thomas's name?",
+          "questionRu": "Как Элеонора реагирует, впервые услышав имя Томаса?",
+          "options": ["She smiles warmly", "Her expression briefly closes, and she says nothing", "She becomes angry and asks Maya to leave", "She pretends not to recognize the name"],
+          "answer": 1,
+          "explanationRu": "Что-то на мгновение захлопывается в её выражении лица, и она какое-то время молчит."
+        },
+        {
+          "id": "challenge-q3",
+          "type": "choice",
+          "question": "What does Eleanor reveal that she has never told anyone before?",
+          "questionRu": "Что раскрывает Элеонора, чего никогда никому не рассказывала?",
+          "options": ["That she blames herself for Thomas's disappearance", "That she also heard whistling from the other side of the bridge that night", "That she found Thomas's body years later", "That she moved away and later returned"],
+          "answer": 1,
+          "explanationRu": "Она впервые признаётся, что в ту же ночь тоже слышала свист — с другой стороны моста, и что там никого не оказалось."
+        }
+      ]
+    }
+  }
+}

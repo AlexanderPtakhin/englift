@@ -1,0 +1,352 @@
+{
+  "id": "2026-09-02-the-whistling-bridge-day-3",
+  "date": "2026-09-02",
+  "slug": "the-whistling-bridge-day-3",
+  "folder": "The Whistling Bridge/Day 3",
+  "seriesDay": 3,
+  "seriesTotal": 7,
+
+  "title": {
+    "en": "The Whistling Bridge — Day 3: The Second Name",
+    "ru": "Мост, который свистит — День 3: Второе имя"
+  },
+
+  "summary": {
+    "en": "At the town café, Maya meets Thomas's old friend Walter and learns about Eleanor — the woman Thomas planned to leave Ashbrook with.",
+    "ru": "В городском кафе Майя встречает старого друга Томаса, Уолтера, и узнаёт об Элеоноре — женщине, с которой Томас планировал уехать из Эшбрука."
+  },
+
+  "levels": {
+    "easy": {
+      "label": { "en": "Easy", "ru": "Легко" },
+      "cefr": "A1-A2",
+      "wordCount": 161,
+      "readingMinutes": 3,
+
+      "paragraphs": [
+        {
+          "id": "easy-1",
+          "en": "Maya can't forget what Grace said. She wants to know more about Thomas and the bridge. That afternoon, she visits the old **café** in the town **square** — a good place to find people who **remember** the past.",
+          "ru": "Майя не может забыть слова Грейс. Она хочет узнать больше о Томасе и мосте. В тот день она идёт в старое кафе на городской площади — хорошее место, чтобы найти людей, которые помнят прошлое."
+        },
+        {
+          "id": "easy-2",
+          "en": "At the café, she meets Walter, an old man who often sits by the window. He has known everyone in Ashbrook for sixty years. When Maya mentions Thomas's name, Walter's face changes.",
+          "ru": "В кафе она встречает Уолтера, пожилого мужчину, который часто сидит у окна. Он знает всех в Эшбруке уже шестьдесят лет. Когда Майя упоминает имя Томаса, лицо Уолтера меняется."
+        },
+        {
+          "id": "easy-3",
+          "en": "\"Thomas was my best friend,\" Walter says quietly. \"We grew up together.\" He looks out the window for a moment. \"Everyone remembers him for the whistling. But not everyone remembers Eleanor.\"",
+          "ru": "«Томас был моим лучшим другом, — тихо говорит Уолтер. — Мы выросли вместе». Он на мгновение смотрит в окно. «Все помнят его из-за свиста. Но не все помнят Элеонору»."
+        },
+        {
+          "id": "easy-4",
+          "en": "\"Who is Eleanor?\" Maya asks. \"Thomas loved her,\" Walter says. \"They wanted to leave Ashbrook together — that same night. He was going to meet her at the bridge. But he never came.\"",
+          "ru": "«Кто такая Элеонора?» — спрашивает Майя. «Томас любил её, — говорит Уолтер. — Они хотели вместе уехать из Эшбрука — в ту же самую ночь. Он должен был встретить её у моста. Но он так и не пришёл»."
+        },
+        {
+          "id": "easy-5",
+          "en": "Maya writes the name in her **notebook**: Eleanor. \"Is she still alive?\" she asks. Walter **nods** slowly. \"She lives here,\" he says. \"Right here, in Ashbrook. She never left.\"",
+          "ru": "Майя записывает имя в блокнот: Элеонора. «Она ещё жива?» — спрашивает она. Уолтер медленно кивает. «Она живёт здесь, — говорит он. — Прямо здесь, в Эшбруке. Она никогда не уезжала»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "café",
+          "translationRu": "кафе",
+          "definitionEn": "A small restaurant serving coffee, snacks, and light meals.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Maya visits the old café in the town square.",
+          "exampleRu": "Майя приходит в старое кафе на городской площади."
+        },
+        {
+          "word": "square",
+          "translationRu": "площадь",
+          "definitionEn": "An open public area in a town, often in the center.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The café is in the town square.",
+          "exampleRu": "Кафе находится на городской площади."
+        },
+        {
+          "word": "remember",
+          "translationRu": "помнить",
+          "definitionEn": "To keep something in your mind from the past.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Everyone remembers him for the whistling.",
+          "exampleRu": "Все помнят его из-за свиста."
+        },
+        {
+          "word": "notebook",
+          "translationRu": "блокнот",
+          "definitionEn": "A small book for writing notes.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Maya writes the name in her notebook.",
+          "exampleRu": "Майя записывает имя в блокнот."
+        },
+        {
+          "word": "nod",
+          "translationRu": "кивать",
+          "definitionEn": "To move your head up and down to say yes.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Walter nods slowly.",
+          "exampleRu": "Уолтер медленно кивает."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "easy-q1",
+          "type": "choice",
+          "question": "Where does Maya go that afternoon?",
+          "questionRu": "Куда идёт Майя в тот день?",
+          "options": ["To the police station", "To the old café", "To the bridge", "To Grace's house"],
+          "answer": 1,
+          "explanationRu": "Она идёт в старое кафе на городской площади."
+        },
+        {
+          "id": "easy-q2",
+          "type": "choice",
+          "question": "Who was Eleanor?",
+          "questionRu": "Кто такая Элеонора?",
+          "options": ["Grace's sister", "The girl Thomas loved", "Walter's wife", "A newspaper writer"],
+          "answer": 1,
+          "explanationRu": "Элеонора — девушка, которую любил Томас."
+        },
+        {
+          "id": "easy-q3",
+          "type": "choice",
+          "question": "What does Walter say about Eleanor at the end?",
+          "questionRu": "Что говорит Уолтер об Элеоноре в конце?",
+          "options": ["She moved away years ago", "She is still alive and lives in Ashbrook", "She died before Thomas", "Nobody knows what happened to her"],
+          "answer": 1,
+          "explanationRu": "Элеонора до сих пор жива и живёт в Эшбруке — она никогда не уезжала."
+        }
+      ]
+    },
+
+    "intermediate": {
+      "label": { "en": "Intermediate", "ru": "Средне" },
+      "cefr": "B1",
+      "wordCount": 233,
+      "readingMinutes": 4,
+
+      "paragraphs": [
+        {
+          "id": "intermediate-1",
+          "en": "Grace's words stayed with Maya for the rest of the day, refusing to settle into any comfortable explanation. By early afternoon, unable to concentrate on anything else, she found herself walking toward the old café on the town square — the kind of place where the town's older residents gathered, and where, she suspected, memories lasted longer than they did on paper.",
+          "ru": "Слова Грейс не отпускали Майю весь остаток дня, отказываясь укладываться в какое-либо удобное объяснение. К раннему вечеру, не в силах сосредоточиться ни на чём другом, она обнаружила, что идёт к старому кафе на городской площади — месту, где обычно собирались пожилые жители города, и где, как она подозревала, воспоминания хранились дольше, чем на бумаге."
+        },
+        {
+          "id": "intermediate-2",
+          "en": "It was there she met Walter, a regular **fixture** by the window seat, known to have lived in Ashbrook for well over sixty years. When Maya mentioned Thomas's name, something shifted in his expression — a **flicker** of **recognition** mixed with something closer to sadness.",
+          "ru": "Именно там она встретила Уолтера — завсегдатая у окна, известного тем, что прожил в Эшбруке больше шестидесяти лет. Когда Майя упомянула имя Томаса, что-то изменилось в его выражении лица — проблеск узнавания, смешанный с чем-то похожим на грусть."
+        },
+        {
+          "id": "intermediate-3",
+          "en": "\"Thomas was my closest friend,\" Walter said, his voice quieter than before. \"We grew up on the same street.\" He paused, looking out at the square for a long moment. \"Everyone in this town remembers him for the whistling. Almost nobody remembers Eleanor.\"",
+          "ru": "«Томас был моим самым близким другом, — сказал Уолтер, его голос стал тише, чем прежде. — Мы выросли на одной улице». Он замолчал, глядя на площадь долгим взглядом. «Все в этом городе помнят его из-за свиста. Почти никто не помнит Элеонору»."
+        },
+        {
+          "id": "intermediate-4",
+          "en": "\"Who was Eleanor?\" Maya asked, **leaning forward**. \"The girl he loved,\" Walter said simply. \"They were planning to leave Ashbrook together, that very night. He was supposed to meet her at the bridge. He never **showed up**.\"",
+          "ru": "«Кто была Элеонора?» — спросила Майя, наклонившись вперёд. «Девушка, которую он любил, — просто сказал Уолтер. — Они планировали уехать из Эшбрука вместе, в ту самую ночь. Он должен был встретить её у моста. Он так и не появился»."
+        },
+        {
+          "id": "intermediate-5",
+          "en": "Maya wrote the name carefully in her notebook. \"Is she still alive?\" she asked, almost afraid of the answer. Walter nodded slowly, his eyes fixed somewhere in the past. \"She's still here,\" he said. \"Right here in Ashbrook. She never left this town — not once, in fifty years.\"",
+          "ru": "Майя аккуратно записала имя в блокнот. «Она ещё жива?» — спросила она, почти боясь ответа. Уолтер медленно кивнул, его взгляд был устремлён куда-то в прошлое. «Она всё ещё здесь, — сказал он. — Прямо здесь, в Эшбруке. Она ни разу не покидала этот город за пятьдесят лет»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "fixture",
+          "translationRu": "завсегдатай, неизменная часть (места)",
+          "definitionEn": "A person or thing that is always present in a particular place, so familiar it seems part of it.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Walter was a regular fixture by the window seat.",
+          "exampleRu": "Уолтер был завсегдатаем у окна."
+        },
+        {
+          "word": "flicker",
+          "translationRu": "проблеск, вспышка (эмоции)",
+          "definitionEn": "A brief, small feeling or expression that appears and quickly fades.",
+          "partOfSpeech": "noun",
+          "exampleEn": "A flicker of recognition crossed his face.",
+          "exampleRu": "На его лице мелькнул проблеск узнавания."
+        },
+        {
+          "word": "recognition",
+          "translationRu": "узнавание",
+          "definitionEn": "The act of recognizing someone or something.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Something shifted in his expression — a flicker of recognition.",
+          "exampleRu": "Что-то изменилось в его выражении — проблеск узнавания."
+        },
+        {
+          "word": "lean forward",
+          "translationRu": "наклониться вперёд",
+          "definitionEn": "To bend your body forward, often showing interest.",
+          "partOfSpeech": "verb (phrasal)",
+          "exampleEn": "Maya asked, leaning forward.",
+          "exampleRu": "Майя спросила, наклонившись вперёд."
+        },
+        {
+          "word": "show up",
+          "translationRu": "появиться, прийти",
+          "definitionEn": "To arrive at a place, especially when expected.",
+          "partOfSpeech": "verb (phrasal)",
+          "exampleEn": "He never showed up.",
+          "exampleRu": "Он так и не появился."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "intermediate-q1",
+          "type": "choice",
+          "question": "Why does Maya go to the café that afternoon?",
+          "questionRu": "Почему Майя идёт в кафе в тот день?",
+          "options": ["She is meeting Grace there", "She wants to find people who remember the past", "She works there part-time", "Walter invited her"],
+          "answer": 1,
+          "explanationRu": "Она надеется найти людей, которые помнят прошлое, и кафе — подходящее для этого место."
+        },
+        {
+          "id": "intermediate-q2",
+          "type": "choice",
+          "question": "What was the plan Thomas and Eleanor had made?",
+          "questionRu": "Какой план был у Томаса и Элеоноры?",
+          "options": ["To get married in Ashbrook", "To leave Ashbrook together that night", "To open a business together", "To move to the city for work"],
+          "answer": 1,
+          "explanationRu": "Они планировали уехать из Эшбрука вместе в ту же ночь."
+        },
+        {
+          "id": "intermediate-q3",
+          "type": "choice",
+          "question": "What surprises Maya about Eleanor?",
+          "questionRu": "Что удивляет Майю про Элеонору?",
+          "options": ["That she was Grace's relative", "That she is still alive and living in Ashbrook", "That she was the one who wrote the newspaper article", "That she never knew Thomas well"],
+          "answer": 1,
+          "explanationRu": "Её удивляет, что Элеонора до сих пор жива и никогда не покидала город."
+        }
+      ]
+    },
+
+    "challenge": {
+      "label": { "en": "Challenge", "ru": "Вызов" },
+      "cefr": "B2",
+      "wordCount": 309,
+      "readingMinutes": 6,
+
+      "paragraphs": [
+        {
+          "id": "challenge-1",
+          "en": "Grace's parting words refused to settle into anything Maya could file neatly away, and by early afternoon, unable to focus on the modest stack of council-meeting notes waiting on her desk, she found herself drawn toward the old café on the town square — the sort of establishment where Ashbrook's older residents tended to gather, and where, she suspected, memory outlasted paper by a considerable margin.",
+          "ru": "Прощальные слова Грейс никак не укладывались в аккуратную папку объяснений, и к раннему вечеру, не в силах сосредоточиться на скромной стопке протоколов заседаний совета, ждавших на её столе, Майя обнаружила, что её тянет к старому кафе на городской площади — заведению, где обычно собирались пожилые жители Эшбрука и где, как она подозревала, память переживала бумагу с большим запасом."
+        },
+        {
+          "id": "challenge-2",
+          "en": "It was there she encountered Walter Briggs, a fixture of the window seat for as long as anyone could recall, a man **reputed** to have known every resident of Ashbrook for the better part of sixty years. When she mentioned Thomas Hale's name, something in his expression shifted — a flicker of recognition quickly overtaken by something closer to grief, carefully **suppressed**.",
+          "ru": "Именно там она встретила Уолтера Бриггса — завсегдатая у окна, о котором говорили, что он знает каждого жителя Эшбрука за без малого шестьдесят лет. Когда она упомянула имя Томаса Хейла, что-то изменилось в его выражении — проблеск узнавания, быстро сменившийся чем-то похожим на тщательно подавляемое горе."
+        },
+        {
+          "id": "challenge-3",
+          "en": "\"Thomas was my closest friend,\" Walter said, his voice dropping to something quieter and more deliberate. \"We grew up on the same street, practically raised as brothers.\" He paused, gazing out at the square with the particular **stillness** of someone revisiting a memory he rarely allowed himself. \"Everyone in this town remembers him for the whistling. Almost no one remembers Eleanor.\"",
+          "ru": "«Томас был моим самым близким другом, — сказал Уолтер, его голос стал тише и более взвешенным. — Мы выросли на одной улице, практически как братья». Он замолчал, глядя на площадь с особой неподвижностью человека, заново переживающего воспоминание, которое он редко себе позволяет. «Все в этом городе помнят его из-за свиста. Почти никто не помнит Элеонору»."
+        },
+        {
+          "id": "challenge-4",
+          "en": "\"Who was Eleanor?\" Maya asked, leaning forward despite herself. \"The girl he loved,\" Walter said, with a simplicity that somehow made the statement heavier. \"They'd planned to leave Ashbrook together, that very night — some **arrangement** her family would never have approved of. He was meant to meet her at the bridge. He never arrived.\"",
+          "ru": "«Кто была Элеонора?» — спросила Майя, невольно наклонившись вперёд. «Девушка, которую он любил, — сказал Уолтер с простотой, от которой фраза становилась только тяжелее. — Они планировали уехать из Эшбрука вместе, в ту самую ночь — договорённость, которую её семья никогда бы не одобрила. Он должен был встретить её у моста. Он так и не появился»."
+        },
+        {
+          "id": "challenge-5",
+          "en": "Maya recorded the name carefully in her notebook, aware, without quite knowing why, that it mattered more than it should. \"Is she still alive?\" she asked, half-dreading the answer. Walter nodded slowly, his **gaze** fixed on some **middle distance** that had nothing to do with the café around them. \"She's still here,\" he said. \"Right here in Ashbrook. She never left this town — not once, in fifty years.\"",
+          "ru": "Майя аккуратно записала имя в блокнот, осознавая, сама не зная почему, что оно значит больше, чем должно было бы. «Она ещё жива?» — спросила она, почти со страхом ожидая ответа. Уолтер медленно кивнул, его взгляд был устремлён в одну точку, не имевшую отношения к кафе вокруг них. «Она всё ещё здесь, — сказал он. — Прямо здесь, в Эшбруке. Она ни разу не покидала этот город за пятьдесят лет»."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "reputed",
+          "translationRu": "считающийся, по слухам",
+          "definitionEn": "Generally believed or said to be something, though not proven.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A man reputed to have known every resident of Ashbrook.",
+          "exampleRu": "Человек, о котором говорили, что он знает каждого жителя Эшбрука."
+        },
+        {
+          "word": "suppress",
+          "translationRu": "подавлять (эмоцию)",
+          "definitionEn": "To stop yourself from showing a feeling.",
+          "partOfSpeech": "verb",
+          "exampleEn": "His grief was carefully suppressed.",
+          "exampleRu": "Его горе было тщательно подавлено."
+        },
+        {
+          "word": "stillness",
+          "translationRu": "неподвижность, тишина",
+          "definitionEn": "A state of being calm and without movement.",
+          "partOfSpeech": "noun",
+          "exampleEn": "He gazed out with a particular stillness.",
+          "exampleRu": "Он смотрел вдаль с особой неподвижностью."
+        },
+        {
+          "word": "arrangement",
+          "translationRu": "договорённость, план",
+          "definitionEn": "A plan or agreement made between people.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Some arrangement her family would never have approved of.",
+          "exampleRu": "Договорённость, которую её семья никогда бы не одобрила."
+        },
+        {
+          "word": "gaze",
+          "translationRu": "пристальный взгляд / пристально смотреть",
+          "definitionEn": "To look steadily at something for a long time.",
+          "partOfSpeech": "noun / verb",
+          "exampleEn": "His gaze was fixed on some middle distance.",
+          "exampleRu": "Его взгляд был устремлён в одну точку."
+        },
+        {
+          "word": "middle distance",
+          "translationRu": "точка вдали, взгляд «в никуда»",
+          "definitionEn": "A point ahead that is neither near nor far, often where someone looks when lost in thought.",
+          "partOfSpeech": "noun phrase",
+          "exampleEn": "His gaze fixed on some middle distance.",
+          "exampleRu": "Его взгляд был устремлён в одну точку — будто в никуда."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "challenge-q1",
+          "type": "choice",
+          "question": "Why does Maya end up at the café that afternoon?",
+          "questionRu": "Почему Майя в итоге оказывается в кафе в тот день?",
+          "options": ["She has a scheduled interview there", "She is unable to focus on other work and is drawn there instead", "Grace sends her there directly", "It's her usual lunch spot"],
+          "answer": 1,
+          "explanationRu": "Она не может сосредоточиться на другой работе, и её словно тянет в кафе."
+        },
+        {
+          "id": "challenge-q2",
+          "type": "choice",
+          "question": "What does Walter's reaction reveal when Maya mentions Thomas's name?",
+          "questionRu": "Что показывает реакция Уолтера, когда Майя упоминает имя Томаса?",
+          "options": ["Indifference to the topic", "A flicker of recognition mixed with carefully suppressed grief", "Open anger at being asked", "Confusion about who Thomas was"],
+          "answer": 1,
+          "explanationRu": "На его лице мелькает узнавание, смешанное с тщательно подавляемым горем."
+        },
+        {
+          "id": "challenge-q3",
+          "type": "choice",
+          "question": "What does the passage suggest about Eleanor's life after Thomas disappeared?",
+          "questionRu": "На что намекает текст о жизни Элеоноры после исчезновения Томаса?",
+          "options": ["She left Ashbrook shortly afterward", "She has remained in Ashbrook for the rest of her life", "She married someone else soon after", "Her fate is left completely unknown"],
+          "answer": 1,
+          "explanationRu": "Из слов Уолтера ясно, что она так и не покинула город за все эти годы."
+        }
+      ]
+    }
+  }
+}
