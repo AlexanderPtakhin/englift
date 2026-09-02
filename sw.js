@@ -1,4 +1,4 @@
-const CACHE_NAME = 'enguply-v2-ede84f12';
+const CACHE_NAME = 'enguply-v2-6857a1df';
 
 // Критическое логирование для важных событий
 const log = (category, ...args) => {
@@ -170,9 +170,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 5. Глаголы, идиомы — network-first (они меньше и чаще меняются)
-  if (url.pathname.includes('/verb/') || url.pathname.includes('/idioms/')) {
-    log('FETCH', `🔤 Глаголы/идиомы, network-first: ${url.pathname}`);
+  // 5. Глаголы — network-first (они меньше и чаще меняются)
+  if (url.pathname.includes('/verb/')) {
+    log('FETCH', `🔤 Глаголы, network-first: ${url.pathname}`);
     event.respondWith(
       fetch(request, { cache: 'no-store' })
         .then(response => {
@@ -195,7 +195,6 @@ self.addEventListener('fetch', event => {
   if (
     url.pathname.startsWith('/audio/') ||
     url.pathname.startsWith('/audio-male/') ||
-    url.pathname.startsWith('/audio-idioms/') ||
     url.pathname.match(/^\/[A-C][1-2]\/(?:man|women)\//)
   ) {
     log('FETCH', `🎵 Аудио, пропускаем без кеширования: ${url.pathname}`);

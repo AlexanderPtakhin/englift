@@ -1089,7 +1089,7 @@ const BADGES_DEF = [
   {
     id: 'first_learned',
     name: 'Первое изученное',
-    description: 'Изучите первое слово',
+    description: 'Изучите первое слово или идиому',
     icon: 'school',
     condition: data => data.learnedWords >= 1,
     progress: data => ({ current: Math.min(data.learnedWords, 1), target: 1 }),
@@ -1100,7 +1100,7 @@ const BADGES_DEF = [
   {
     id: 'learning_streak_3',
     name: 'Серия обучения',
-    description: 'Изучите 3 слова подряд',
+    description: 'Изучите 3 слова/идиомы подряд',
     icon: 'local_fire_department',
     condition: data => data.learningStreak >= 3,
     progress: data => ({
@@ -1114,7 +1114,7 @@ const BADGES_DEF = [
   {
     id: 'learning_streak_10',
     name: 'Горячая серия',
-    description: 'Изучите 10 слов подряд',
+    description: 'Изучите 10 слов/идиом подряд',
     icon: 'whatshot',
     condition: data => data.learningStreak >= 10,
     progress: data => ({
@@ -1128,7 +1128,7 @@ const BADGES_DEF = [
   {
     id: 'knowledge_master_25',
     name: 'Знаток основ',
-    description: 'Изучите 25 слов',
+    description: 'Изучите 25 слов/идиом',
     icon: 'psychology',
     condition: data => data.learnedWords >= 25,
     progress: data => ({
@@ -1142,7 +1142,7 @@ const BADGES_DEF = [
   {
     id: 'knowledge_master_100',
     name: 'Эрудит',
-    description: 'Изучите 100 слов',
+    description: 'Изучите 100 слов/идиом',
     icon: 'workspace_premium',
     condition: data => data.learnedWords >= 100,
     progress: data => ({
@@ -8295,6 +8295,7 @@ function nextExercise() {
         exContent.innerHTML = `
           <div class="mc-question">
             ${esc(question)}
+
           </div>
           <div class="mc-grid">
             ${options.map(o => `<button class="mc-btn" data-id="${o.id}">${esc(o.text)}</button>`).join('')}

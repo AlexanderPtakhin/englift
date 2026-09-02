@@ -1,6 +1,9 @@
 import { supabase } from './supabase.js';
+
 console.log('[DB] db.js загружается');
+
 // ─── WORDS ───────────────────────────────────────────────
+
 export async function loadWordsOnce(callback) {
   const {
     data: { user },
@@ -10,13 +13,16 @@ export async function loadWordsOnce(callback) {
     callback([]);
     return;
   }
+
   console.log('[DB] Загрузка слов для user:', user.id);
+
   const { data, error } = await supabase
     .from('user_words')
     .select('*')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
     .range(0, 19999);
+
   if (error) {
     console.error('[DB] ❌ Ошибка загрузки слов:', error);
     callback([]);
@@ -37,16 +43,19 @@ export async function loadWordsOnce(callback) {
     callback(normalizedData);
   }
 }
+
 export async function saveWordToDb(word) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+
   // Проверка обязательных полей
   if (!word || !word.en) {
     console.error('[DB] ❌ Ошибка сохранения слова: отсутствует поле en', word);
     throw new Error('Word object or word.en is required');
   }
+
   // Нормализуем correctExerciseTypes - ищем во всех возможных местах
   const correctExerciseTypes =
     word.stats?.correctExerciseTypes ||
@@ -54,12 +63,14 @@ export async function saveWordToDb(word) {
     word.correct_exercise_types ||
     word.correctExerciseTypes ||
     [];
+
   // Очищаем stats от correctExerciseTypes - храним только на верхнем уровне
   const {
     correctExerciseTypes: _,
     correct_exercise_types: __,
     ...cleanStats
   } = word.stats ?? {};
+
   const {
     updatedAt,
     createdAt,
@@ -69,10 +80,12 @@ export async function saveWordToDb(word) {
     correct_exercise_types: _cet2,
     ...wordRest
   } = word;
+
   console.log(
     '[DB SAVE] correctExerciseTypes extracted:',
     correctExerciseTypes,
   );
+
   // Проверяем существует ли слово (по id)
   const { data: existingWord } = await supabase
     .from('user_words')
@@ -80,6 +93,7 @@ export async function saveWordToDb(word) {
     .eq('id', word.id)
     .eq('user_id', user.id)
     .maybeSingle();
+
   const wordPayload = {
     ...wordRest,
     user_id: user.id,
@@ -89,6 +103,7 @@ export async function saveWordToDb(word) {
     grammar: word.grammar ?? null,
     stats: cleanStats,
   };
+
   // Если слово уже существует - используем update (не перезаписываем created_at)
   // Если новое слово - используем upsert с created_at
   if (existingWord) {
@@ -108,6 +123,7 @@ export async function saveWordToDb(word) {
     if (error) throw error;
   }
 }
+
 // Удалить слово
 export async function deleteWordFromDb(wordId) {
   const {
@@ -121,21 +137,26 @@ export async function deleteWordFromDb(wordId) {
     .eq('user_id', user.id);
   if (error) throw error;
 }
+
 // ─── PROFILES ────────────────────────────────────────────
+
 export async function saveUserData(uid, data) {
   if (!uid) {
     console.warn('[DB] ⚠️ saveUserData: нет uid');
     return;
   }
   console.log('[DB] Сохранение профиля для:', uid);
+
   const payload = {
     id: uid,
     updated_at: new Date().toISOString(),
     ...data,
   };
+
   const { error } = await supabase
     .from('profiles')
     .upsert(payload, { onConflict: 'id' });
+
   if (error) {
     console.error('[DB] ❌ Ошибка сохранения профиля:', error);
     throw error;
@@ -143,6 +164,8 @@ export async function saveUserData(uid, data) {
     console.log('[DB] ✅ Профиль сохранен');
   }
 }
+
+// REMOVED: idioms functionality (loadIdiomsOnce, saveIdiomToDb, deleteIdiomFromDb)
 // REMOVED: phrases functionality
 // // ─── PHRASES ─────────────────────────────────────────────
 // export async function loadPhrasesOnce(callback) {
@@ -275,12 +298,15 @@ export async function saveUserData(uid, data) {
 //     .eq('user_id', user.id);
 //   if (error) throw error;
 // }
+
 // ─── FRIENDSHIPS ───────────────────────────────────────────
+
 /**
  * Поиск пользователей по username или email (исключая себя и уже имеющих связь)
  */
 export async function searchUsers(query, currentUserId) {
   if (!query || query.length < 2) return [];
+
   const { data, error } = await supabase
     .from('profiles')
     .select(
@@ -289,25 +315,30 @@ export async function searchUsers(query, currentUserId) {
     .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
     .neq('id', currentUserId)
     .limit(20);
+
   if (error) {
     console.error('Error searching users:', error);
     return [];
   }
+
   // Получаем уже существующие связи с этими пользователями
   const { data: existing } = await supabase
     .from('friendships')
     .select('user_id, friend_id, status')
     .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
+
   const existingMap = new Map();
   existing?.forEach(f => {
     const otherId = f.user_id === currentUserId ? f.friend_id : f.user_id;
     existingMap.set(otherId, f.status);
   });
+
   return data.map(user => ({
     ...user,
     friendshipStatus: existingMap.get(user.id) || null,
   }));
 }
+
 /**
  * Отправить запрос в друзья
  */
@@ -315,8 +346,10 @@ export async function sendFriendRequest(userId, friendId) {
   const { error } = await supabase
     .from('friendships')
     .insert({ user_id: userId, friend_id: friendId, status: 'pending' });
+
   if (error) throw error;
 }
+
 /**
  * Принять запрос в друзья
  */
@@ -334,8 +367,10 @@ export async function acceptFriendRequest(userId, friendId) {
     .eq('user_id', friendId)
     .eq('friend_id', userId)
     .eq('status', 'pending');
+
   if (error) throw error;
 }
+
 /**
  * Отклонить/удалить запрос (или удалить из друзей)
  */
@@ -347,6 +382,7 @@ export async function rejectFriendRequest(userId, friendId) {
     });
     throw new Error('Недостаточно данных для отклонения заявки');
   }
+
   // Сначала проверим, есть ли вообще такие записи
   const { data: existingRecords, error: checkError } = await supabase
     .from('friendships')
@@ -354,18 +390,21 @@ export async function rejectFriendRequest(userId, friendId) {
     .or(
       `user_id.eq.${userId},friend_id.eq.${friendId},user_id.eq.${friendId},friend_id.eq.${userId}`,
     );
+
   // Удаляем запись, где текущий пользователь отправитель
   const { error: error1 } = await supabase
     .from('friendships')
     .delete()
     .eq('user_id', userId)
     .eq('friend_id', friendId);
+
   // Удаляем запись, где текущий пользователь получатель
   const { error: error2 } = await supabase
     .from('friendships')
     .delete()
     .eq('user_id', friendId)
     .eq('friend_id', userId);
+
   if (error1) {
     console.error('Error in first delete:', error1);
     throw error1;
@@ -375,6 +414,7 @@ export async function rejectFriendRequest(userId, friendId) {
     throw error2;
   }
 }
+
 /**
  * Получить список друзей (status = accepted)
  */
@@ -384,18 +424,24 @@ export async function getFriends(userId) {
     .from('friendships')
     .select('user_id, friend_id, status')
     .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
   if (error) {
     console.error('Error getting friends:', error);
     return [];
   }
+
   if (!friendships.length) return [];
+
   // Фильтруем только accepted
   const acceptedFriendships = friendships.filter(f => f.status === 'accepted');
+
   if (!acceptedFriendships.length) return [];
+
   // 2. Извлекаем ID друзей
   const friendIds = acceptedFriendships.map(f =>
     f.user_id === userId ? f.friend_id : f.user_id,
   );
+
   // 3. Получаем профили друзей
   const { data: profiles, error: profileError } = await supabase
     .from('profiles')
@@ -403,12 +449,15 @@ export async function getFriends(userId) {
       'id, username, xp, level, streak, laststreakdate, total_words, learned_words',
     )
     .in('id', friendIds);
+
   if (profileError) {
     console.error('Error fetching friend profiles:', profileError);
     return [];
   }
+
   return profiles;
 }
+
 /**
  * Получить входящие заявки (pending, где friend_id = текущий пользователь)
  */
@@ -418,18 +467,23 @@ export async function getIncomingRequests(userId) {
     .select('user_id')
     .eq('friend_id', userId)
     .eq('status', 'pending');
+
   if (error) {
     console.error('Error getting incoming requests:', error);
     return [];
   }
+
   if (!data.length) return [];
+
   const senderIds = data.map(req => req.user_id);
+
   const { data: profiles, error: profileError } = await supabase
     .from('profiles')
     .select(
       'id, username, xp, level, streak, total_words, learned_words',
     )
     .in('id', senderIds);
+
   if (profileError) {
     console.error(
       'Error fetching profiles for incoming requests:',
@@ -437,8 +491,10 @@ export async function getIncomingRequests(userId) {
     );
     return [];
   }
+
   return profiles;
 }
+
 /**
  * Получить исходящие заявки (pending, где user_id = текущий пользователь)
  */
@@ -448,18 +504,23 @@ export async function getOutgoingRequests(userId) {
     .select('friend_id')
     .eq('user_id', userId)
     .eq('status', 'pending');
+
   if (error) {
     console.error('Error getting outgoing requests:', error);
     return [];
   }
+
   if (!data.length) return [];
+
   const receiverIds = data.map(req => req.friend_id);
+
   const { data: profiles, error: profileError } = await supabase
     .from('profiles')
     .select(
       'id, username, xp, level, streak, total_words, learned_words',
     )
     .in('id', receiverIds);
+
   if (profileError) {
     console.error(
       'Error fetching profiles for outgoing requests:',
@@ -467,14 +528,17 @@ export async function getOutgoingRequests(userId) {
     );
     return [];
   }
+
   return profiles;
 }
+
 /**
  * Получить рейтинг друзей по XP (сортировка по убыванию)
  */
 export async function getFriendsLeaderboard(userId) {
   // Получаем друзей
   const friends = await getFriends(userId);
+
   // Получаем свой профиль
   const { data: myProfile, error } = await supabase
     .from('profiles')
@@ -483,6 +547,7 @@ export async function getFriendsLeaderboard(userId) {
     )
     .eq('id', userId)
     .maybeSingle();
+
   if (error) {
     console.error(
       'getFriendsLeaderboard — ошибка загрузки своего профиля',
@@ -490,11 +555,14 @@ export async function getFriendsLeaderboard(userId) {
     );
     return friends.sort((a, b) => (b.xp || 0) - (a.xp || 0));
   }
+
   // Объединяем себя с друзьями и сортируем по XP
   const all = [myProfile, ...friends];
   return all.sort((a, b) => (b.xp || 0) - (a.xp || 0));
 }
+
 // ========== REACTIONS ==========
+
 export async function addReaction(messageId, userId, emoji) {
   const { error } = await supabase
     .from('reactions')
@@ -504,6 +572,7 @@ export async function addReaction(messageId, userId, emoji) {
     throw error;
   }
 }
+
 export async function removeReaction(messageId, userId, emoji) {
   const { error } = await supabase
     .from('reactions')
@@ -516,6 +585,9 @@ export async function removeReaction(messageId, userId, emoji) {
     throw error;
   }
 }
+
+
+
 /**
  * Получает реакции для списка ID сообщений.
  * Возвращает массив объектов { message_id, user_id, emoji }

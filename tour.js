@@ -90,19 +90,6 @@
     {
       target: () =>
         isMobile()
-          ? document.querySelector('.mobile-nav-btn[data-tab="idioms"]')
-          : document.querySelector('.nav-btn[data-tab="idioms"]'),
-      title:
-        '<span class="material-symbols-outlined">theater_comedy</span> Идиомы',
-      text: 'Отдельный раздел для идиом и устойчивых выражений. Та же механика, отдельная база.',
-      onBefore: () => {
-        document.querySelector('.nav-btn[data-tab="idioms"]')?.click();
-        document.querySelector('.mobile-nav-btn[data-tab="idioms"]')?.click();
-      },
-    },
-    {
-      target: () =>
-        isMobile()
           ? document.querySelector('.mobile-nav-btn[data-tab="practice"]')
           : document.querySelector('.nav-btn[data-tab="practice"]'),
       title:

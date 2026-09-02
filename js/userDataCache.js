@@ -4,7 +4,6 @@
   const DB_NAME = 'EngUplyCache';
   const DB_VERSION = 3; // Увеличена версия для миграции на userId-ключи
   const WORD_STORE = 'words';
-  const IDIOM_STORE = 'idioms';
   // REMOVED: phrases functionality
   // const PHRASE_STORE = 'phrases';
 
@@ -32,21 +31,11 @@
           if (db.objectStoreNames.contains(WORD_STORE)) {
             db.deleteObjectStore(WORD_STORE);
           }
-          if (db.objectStoreNames.contains(IDIOM_STORE)) {
-            db.deleteObjectStore(IDIOM_STORE);
-          }
         }
         if (!db.objectStoreNames.contains(WORD_STORE)) {
           const wordStore = db.createObjectStore(WORD_STORE, { keyPath: 'id' });
           wordStore.createIndex('userId', 'userId');
           wordStore.createIndex('updatedAt', 'updatedAt');
-        }
-        if (!db.objectStoreNames.contains(IDIOM_STORE)) {
-          const idiomStore = db.createObjectStore(IDIOM_STORE, {
-            keyPath: 'id',
-          });
-          idiomStore.createIndex('userId', 'userId');
-          idiomStore.createIndex('updatedAt', 'updatedAt');
         }
       };
     });
@@ -69,23 +58,6 @@
     });
   }
 
-  // Сохранить массив идиом
-  async function saveIdioms(idiomsArray) {
-    if (!idiomsArray.length) return;
-    const userId = getUserId();
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(IDIOM_STORE, 'readwrite');
-      const store = tx.objectStore(IDIOM_STORE);
-      for (const idiom of idiomsArray) {
-        // Добавляем userId к каждой идиоме для изоляции
-        store.put({ ...idiom, userId });
-      }
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
   // Пакетное удаление слов
   async function deleteWords(wordIds) {
     if (!wordIds.length) return;
@@ -94,19 +66,6 @@
       const tx = db.transaction(WORD_STORE, 'readwrite');
       const store = tx.objectStore(WORD_STORE);
       for (const id of wordIds) store.delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  // Пакетное удаление идиом
-  async function deleteIdioms(idiomIds) {
-    if (!idiomIds.length) return;
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(IDIOM_STORE, 'readwrite');
-      const store = tx.objectStore(IDIOM_STORE);
-      for (const id of idiomIds) store.delete(id);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -136,29 +95,6 @@
     });
   }
 
-  // Загрузить все идиомы для текущего пользователя
-  async function getAllIdioms() {
-    const userId = getUserId();
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(IDIOM_STORE, 'readonly');
-      const store = tx.objectStore(IDIOM_STORE);
-      const index = store.index('userId');
-      const request = index.openCursor(userId);
-      const results = [];
-      request.onerror = () => reject(request.error);
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          results.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(results);
-        }
-      };
-    });
-  }
-
   // Очистить всё для текущего пользователя (при логауте)
   async function clearAllWords() {
     const userId = getUserId();
@@ -166,27 +102,6 @@
     return new Promise((resolve, reject) => {
       const tx = db.transaction(WORD_STORE, 'readwrite');
       const store = tx.objectStore(WORD_STORE);
-      const index = store.index('userId');
-      const request = index.openCursor(userId);
-      request.onerror = () => reject(tx.error);
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        } else {
-          resolve();
-        }
-      };
-    });
-  }
-
-  async function clearAllIdioms() {
-    const userId = getUserId();
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(IDIOM_STORE, 'readwrite');
-      const store = tx.objectStore(IDIOM_STORE);
       const index = store.index('userId');
       const request = index.openCursor(userId);
       request.onerror = () => reject(tx.error);
@@ -254,17 +169,13 @@
 
   window.UserDataCache = {
     saveWords,
-    saveIdioms,
     // REMOVED: phrases functionality
     // savePhrases,
     deleteWords,
-    deleteIdioms,
     // deletePhrases,
     getAllWords,
-    getAllIdioms,
     // getAllPhrases,
     clearAllWords,
-    clearAllIdioms,
     // clearAllPhrases,
   };
 })();

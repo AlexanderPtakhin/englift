@@ -405,30 +405,11 @@ export async function compareDictionaries(userId, friendId) {
     .eq('user_id', friendId);
   if (friendWordsError) console.error('friendWordsError:', friendWordsError);
 
-  const { data: userIdioms, error: userIdiomsError } = await supabase
-    .from('user_idioms')
-    .select('*')
-    .eq('user_id', userId);
-  if (userIdiomsError) console.error('userIdiomsError:', userIdiomsError);
-
-  const { data: friendIdioms, error: friendIdiomsError } = await supabase
-    .from('user_idioms')
-    .select('*')
-    .eq('user_id', friendId);
-  if (friendIdiomsError) console.error('friendIdiomsError:', friendIdiomsError);
-
   // Формируем множества и карты
   const userWordSet = new Set(userWords.map(w => w.en.toLowerCase()));
   const friendWordSet = new Set(friendWords.map(w => w.en.toLowerCase()));
   const userWordMap = new Map(userWords.map(w => [w.en.toLowerCase(), w]));
   const friendWordMap = new Map(friendWords.map(w => [w.en.toLowerCase(), w]));
-
-  const userIdiomSet = new Set(userIdioms.map(i => i.idiom.toLowerCase()));
-  const friendIdiomSet = new Set(friendIdioms.map(i => i.idiom.toLowerCase()));
-  const userIdiomMap = new Map(userIdioms.map(i => [i.idiom.toLowerCase(), i]));
-  const friendIdiomMap = new Map(
-    friendIdioms.map(i => [i.idiom.toLowerCase(), i]),
-  );
 
   const commonWords = [...friendWordSet]
     .filter(w => userWordSet.has(w))
@@ -446,23 +427,8 @@ export async function compareDictionaries(userId, friendId) {
     .filter(w => !friendWordSet.has(w))
     .map(w => userWordMap.get(w));
 
-  const commonIdioms = [...friendIdiomSet]
-    .filter(i => userIdiomSet.has(i))
-    .map(i => friendIdiomMap.get(i));
-  const missingIdioms = [...friendIdiomSet]
-    .filter(i => !userIdiomSet.has(i))
-    .map(i => friendIdiomMap.get(i));
-  const uniqueIdioms = [...userIdiomSet]
-    .filter(i => !friendIdiomSet.has(i))
-    .map(i => userIdiomMap.get(i));
-
   return {
     words: { common: commonWords, missing: missingWords, unique: uniqueWords },
-    idioms: {
-      common: commonIdioms,
-      missing: missingIdioms,
-      unique: uniqueIdioms,
-    },
   };
 }
 

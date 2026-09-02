@@ -7,9 +7,6 @@ import {
   deleteWordFromDb,
   saveUserData,
   loadWordsOnce,
-  loadIdiomsOnce,
-  saveIdiomToDb,
-  deleteIdiomFromDb,
   // REMOVED: phrases functionality
   // loadPhrasesOnce,
   // savePhraseToDb,
@@ -74,12 +71,6 @@ window.authExports = {
   saveUserData,
 
   loadWordsOnce,
-
-  loadIdiomsOnce,
-
-  saveIdiomToDb,
-
-  deleteIdiomFromDb,
 
   // REMOVED: phrases functionality
   // loadPhrasesOnce,

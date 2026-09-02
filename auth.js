@@ -538,7 +538,6 @@ dropdownLogout?.addEventListener('click', async () => {
   try {
     await window.syncSaveProfile?.();
     await window.syncPendingWords?.();
-    await window.syncPendingIdioms?.();
   } catch (e) {
     console.error('Ошибка синхронизации при выходе:', e);
   }

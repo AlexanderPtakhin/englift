@@ -375,33 +375,7 @@ function playAudio(filename, cefr, onEnd) {
   createManagedAudio(path, onEnd);
 }
 
-function playIdiomAudio(filename, onEnd) {
-  if (!filename) {
-    if (onEnd) onEnd();
-    console.warn('[IDIOM AUDIO] filename is empty');
-    return;
-  }
-
-  // Не воспроизводим аудио в офлайн режиме
-  if (!navigator.onLine) {
-    if (onEnd) onEnd();
-    return;
-  }
-
-  const voice = window.user_settings?.voice || 'female';
-  const folder = voice === 'male' ? 'man' : 'women';
-  const path = `idioms/${folder}/${filename}`;
-
-  console.log(
-    '🔊 playIdiomAudio path:',
-    path,
-    '| filename:',
-    filename,
-    '| voice:',
-    voice,
-  );
-  createManagedAudio(path, onEnd);
-}
+// REMOVED: playIdiomAudio function
 
 // === ЗВУКИ ===
 
@@ -914,7 +888,6 @@ export {
   getAudioContext,
   playSound,
   playAudio,
-  playIdiomAudio,
   speakText,
   getVoice,
   stopCurrentMediaAudio,

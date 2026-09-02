@@ -88,6 +88,7 @@
     <!-- Кеш пользовательских данных -->
     <script src="js/userDataCache.js"></script>
     <script src="js/wordBankDB.js"></script>
+    <!-- REMOVED: js/idiomBankDB.js -->
     <script src="js/storyBankDB.js"></script>
     <script src="api.js"></script>
     <script type="module" src="main.js"></script>
@@ -127,6 +128,7 @@
           <span class="material-symbols-outlined">menu_book</span>
           <span class="nav-text">Словарь</span>
         </button>
+        <!-- REMOVED: idioms nav button -->
         <button class="nav-btn" data-tab="stories">
           <span class="material-symbols-outlined">auto_stories</span>
           <span class="nav-text">Истории</span>
@@ -206,6 +208,7 @@
         <span class="material-symbols-outlined">menu_book</span>
         <span>Словарь</span>
       </button>
+      <!-- REMOVED: mobile idioms button -->
       <button class="mobile-nav-btn" data-tab="stories">
         <span class="material-symbols-outlined">auto_stories</span>
         <span>Истории</span>
@@ -346,6 +349,11 @@
                   <span class="chip-label">Фразы</span>
                   <span class="chip-badge" id="practice-phrases-due" style="display:none;"></span>
                 </button> -->
+                <button class="chip chip--mode" data-mode="idioms">
+                  <span class="material-symbols-outlined">theater_comedy</span>
+                  <span class="chip-label">Идиомы</span>
+                  <span class="chip-badge" id="practice-idioms-due" style="display:none;"></span>
+                </button>
                 <button class="chip chip--mode" data-mode="verbs">
                   <span class="material-symbols-outlined">psychology</span>
                   <span class="chip-label">Глаголы</span>
@@ -718,7 +726,11 @@
             <span class="material-symbols-outlined">insights</span>
             <h3>Активность</h3>
           </div>
-          <!-- Тепловая карта будет вставлена через JS -->
+          <div class="activity-tabs">
+            <button class="activity-tab active" data-view="week">Неделя</button>
+            <button class="activity-tab" data-view="month">Месяц</button>
+          </div>
+          <!-- Дальше JS будет вставлять недельный/месячный вид -->
         </div>
         <!-- Daily Review Cap -->
         <div class="daily-cap-section">
@@ -750,6 +762,102 @@
             <h3>Бейджи</h3>
           </div>
           <div class="badges-grid" id="badges-grid"></div>
+        </div>
+      </div>
+      <!-- REMOVED: TAB: IDIOMS -->
+      <div class="tab-pane" id="tab-idioms">
+        <!-- Банк идиом -->
+        <div id="idiom-bank-wrap" style="margin-bottom: 2rem"></div>
+        <div class="section-title">
+          Мои идиомы <span class="section-subtitle" id="idioms-subtitle"></span>
+        </div>
+        <!-- Поиск и фильтры -->
+        <div class="words-toolbar">
+          <div class="search-container">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input
+              class="form-control"
+              id="idioms-search"
+              type="text"
+              placeholder="Поиск..."
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              name="q"
+              data-form-type="search"
+              aria-label="Поиск идиом"
+            />
+          </div>
+          <div class="filter-pills">
+            <button class="pill active" data-filter="all" data-target="idioms">
+              <span class="material-symbols-outlined list-icon">list</span> Все
+            </button>
+            <button class="pill" data-filter="learning" data-target="idioms">
+              <span class="material-symbols-outlined learning-icon"
+                >cognition_2</span
+              >
+              Учу
+            </button>
+            <button class="pill" data-filter="learned" data-target="idioms">
+              <span class="material-symbols-outlined done-icon">done</span> Знаю
+            </button>
+            <div class="custom-select" id="idiom-sort-select-container">
+              <button
+                class="custom-select-trigger"
+                id="idiom-sort-select-trigger"
+              >
+                <span class="material-symbols-outlined">clock_loader_10</span>
+                <span>Новые</span>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="custom-select-options" id="idiom-sort-select-options">
+                <div class="custom-select-option active" data-value="date-desc">
+                  <span class="material-symbols-outlined">clock_loader_10</span>
+                  <span>Новые</span>
+                </div>
+                <div class="custom-select-option" data-value="date-asc">
+                  <span class="material-symbols-outlined">clock_loader_80</span>
+                  <span>Старые</span>
+                </div>
+                <div class="custom-select-option" data-value="alpha-asc">
+                  <span class="material-symbols-outlined">sort_by_alpha</span>
+                  <span>A → Z</span>
+                </div>
+                <div class="custom-select-option" data-value="alpha-desc">
+                  <span class="material-symbols-outlined">sort_by_alpha</span>
+                  <span>Z → A</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Сетка для идиом -->
+        <div id="idioms-grid" class="words-grid"></div>
+        <!-- Бесконечная прокрутка -->
+        <div
+          id="idioms-load-more-trigger"
+          style="height: 1px; width: 100%; visibility: hidden"
+        ></div>
+        <div
+          id="idioms-loading-more"
+          style="display: none; text-align: center; padding: 1rem"
+        >
+          <div class="loading-spinner"></div>
+          Загружаем ещё...
+        </div>
+        <!-- Пустое состояние -->
+        <div
+          id="empty-idioms"
+          style="
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+          "
+        >
+          <h3>Идиом пока нет</h3>
+          <p>Добавьте первую идиому, чтобы запомнить её!</p>
+          <br />
         </div>
       </div>
       <!-- TAB: STORIES -->
@@ -882,6 +990,10 @@
     <!-- Плавающая кнопка добавления слова -->
     <button class="floating-add-btn" id="floating-add-word-btn">
       <span class="material-symbols-outlined">add</span>
+    </button>
+    <!-- Плавающая кнопка добавления идиомы -->
+    <button class="floating-add-btn" id="floating-add-idiom-btn">
+      <span class="material-symbols-outlined">theater_comedy</span>
     </button>
     <!-- Плавающая кнопка добавления истории отключена -->
     <!--
@@ -1180,6 +1292,97 @@
       </div>
     </div>
     -->
+    <!-- Модальное окно добавления идиомы -->
+    <div class="modal-backdrop" id="add-idiom-modal">
+      <div class="modal-box" style="max-width: 500px">
+        <div class="modal-header">
+          <h3>Добавить идиому</h3>
+          <button class="modal-close" id="add-idiom-modal-close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <form id="add-idiom-form">
+          <div class="form-group">
+            <label>Английская идиома *</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-en"
+              name="study-idiom-en"
+              required
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              inputmode="text"
+              enterkeyhint="next"
+            />
+          </div>
+          <div class="form-group">
+            <label>Русский перевод *</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-ru"
+              name="study-idiom-ru"
+              required
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              inputmode="text"
+              enterkeyhint="next"
+            />
+          </div>
+          <div class="form-group">
+            <label>Определение</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-definition"
+              name="study-idiom-definition"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              inputmode="text"
+              enterkeyhint="next"
+            />
+          </div>
+          <div class="form-group">
+            <label>Пример использования</label>
+            <input class="form-control" type="text" id="modal-idiom-example" name="study-idiom-example" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" inputmode="text" enterkeyhint="next" />
+          </div>
+          <div class="form-group">
+            <label>Перевод примера</label>
+            <input
+              class="form-control"
+              type="text"
+              id="modal-idiom-example-translation"
+              name="study-idiom-example-ru"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              inputmode="text"
+              enterkeyhint="next"
+            />
+          </div>
+          <div class="form-group">
+            <label>Теги</label>
+            <input class="form-control" type="text" id="modal-idiom-tags" name="study-idiom-tags" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" enterkeyhint="done" />
+          </div>
+          <button
+            type="submit"
+            class="btn-pill btn-pill--secondary"
+            style="width: 100%"
+          >
+            <span class="material-symbols-outlined">add</span>
+            Добавить идиому
+          </button>
+        </form>
+      </div>
+    </div>
     <!-- Модальное окно чтения истории -->
     <div class="modal-backdrop" id="read-story-modal" style="display:none;">
       <div class="modal-box" style="max-width: 800px">

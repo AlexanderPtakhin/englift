@@ -925,9 +925,13 @@ html.dark {
 /* ═══════════════════════════════════════════════════════════════
    STAT TRIADS — тематические цвета для трёх полос статистики
    Words = --primary (уже есть в каждой теме)
+   Idioms и Phrases — новые переменные для каждой темы
    ═══════════════════════════════════════════════════════════════ */
 /* DEFAULT (тёплый лосось/апельсин) */
 :root {
+  --idioms-color: #6b8f6e;
+  --idioms-color-light: #8aaf8d;
+  --idioms-rgb: 107, 143, 110;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -937,6 +941,9 @@ html.dark {
   /* --phrases-rgb: 123, 110, 184; */
 }
 html.dark {
+  --idioms-color: #8ab48d;
+  --idioms-color-light: #a8ceac;
+  --idioms-rgb: 138, 180, 141;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
@@ -947,6 +954,9 @@ html.dark {
 }
 /* OCEAN (океанский синий) */
 .theme-ocean {
+  --idioms-color: #3d8a7a;
+  --idioms-color-light: #5aab9a;
+  --idioms-rgb: 61, 138, 122;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -956,6 +966,9 @@ html.dark {
   /* --phrases-rgb: 155, 122, 61; */
 }
 .dark.theme-ocean {
+  --idioms-color: #5aab9a;
+  --idioms-color-light: #7acaba;
+  --idioms-rgb: 90, 171, 154;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
@@ -966,6 +979,9 @@ html.dark {
 }
 /* FOREST (лесной зелёный) */
 .theme-forest {
+  --idioms-color: #7a5c3a;
+  --idioms-color-light: #9e7c58;
+  --idioms-rgb: 122, 92, 58;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -975,6 +991,9 @@ html.dark {
   /* --phrases-rgb: 74, 107, 138; */
 }
 .dark.theme-forest {
+  --idioms-color: #b89070;
+  --idioms-color-light: #d4aa8a;
+  --idioms-rgb: 184, 144, 112;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
@@ -985,6 +1004,9 @@ html.dark {
 }
 /* PURPLE (пыльный фиолетовый) */
 .theme-purple {
+  --idioms-color: #6a8a7a;
+  --idioms-color-light: #8aaa9a;
+  --idioms-rgb: 106, 138, 122;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -994,6 +1016,9 @@ html.dark {
   /* --phrases-rgb: 184, 122, 90; */
 }
 .dark.theme-purple {
+  --idioms-color: #8ab09e;
+  --idioms-color-light: #a8ceba;
+  --idioms-rgb: 138, 176, 158;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
@@ -1004,6 +1029,9 @@ html.dark {
 }
 /* SUNSET (коралловый закат) */
 .theme-sunset {
+  --idioms-color: #5a7a9e;
+  --idioms-color-light: #7a9aba;
+  --idioms-rgb: 90, 122, 158;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -1013,6 +1041,9 @@ html.dark {
   /* --phrases-rgb: 184, 144, 48; */
 }
 .dark.theme-sunset {
+  --idioms-color: #8aaece;
+  --idioms-color-light: #aacce0;
+  --idioms-rgb: 138, 174, 206;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
@@ -1023,6 +1054,9 @@ html.dark {
 }
 /* SKY (небесно-голубой) */
 .theme-sky {
+  --idioms-color: #5a9e5a;
+  --idioms-color-light: #78be78;
+  --idioms-rgb: 90, 158, 90;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -1032,6 +1066,9 @@ html.dark {
   /* --phrases-rgb: 196, 154, 96; */
 }
 .dark.theme-sky {
+  --idioms-color: #7aca7a;
+  --idioms-color-light: #9ae09a;
+  --idioms-rgb: 122, 202, 122;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
@@ -1042,6 +1079,9 @@ html.dark {
 }
 /* SAND (тёплый песок) */
 .theme-sand {
+  --idioms-color: #4a7a8a;
+  --idioms-color-light: #6a9aaa;
+  --idioms-rgb: 74, 122, 138;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -1051,13 +1091,9 @@ html.dark {
   /* --phrases-rgb: 154, 106, 64; */
 }
 .dark.theme-sand {
-  --streak-color: #ffa94d;
-  --streak-color-light: #ff8c42;
-  --streak-rgb: 255, 169, 77;
-  /* REMOVED: phrases functionality */
-  /* --phrases-color: #b89040; */
-  /* --phrases-color-light: #d4ac50; */
-  /* --phrases-rgb: 184, 144, 48; */
+  --idioms-color: #7aaabb;
+  --idioms-color-light: #9accd4;
+  --idioms-rgb: 122, 170, 187;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
@@ -1068,6 +1104,9 @@ html.dark {
 }
 /* GRAPHITE (нейтральный серый) */
 .theme-graphite {
+  --idioms-color: #3d8888;
+  --idioms-color-light: #5aacac;
+  --idioms-rgb: 61, 136, 136;
   --streak-color: #fb923c;
   --streak-color-light: #ff6b35;
   --streak-rgb: 251, 146, 60;
@@ -1077,12 +1116,15 @@ html.dark {
   /* --phrases-rgb: 154, 107, 107; */
 }
 .dark.theme-graphite {
+  --idioms-color: #6aacac;
+  --idioms-color-light: #8acece;
+  --idioms-rgb: 106, 172, 172;
   --streak-color: #ffa94d;
   --streak-color-light: #ff8c42;
   --streak-rgb: 255, 169, 77;
   /* REMOVED: phrases functionality */
   /* --phrases-color: #bc8e8e; */
-  /* --phrases-color-light: #d4a8a8; */
+  /* --phrases-color-light: #d4aaaa; */
   /* --phrases-rgb: 188, 142, 142; */
 }
 *,
@@ -1412,6 +1454,10 @@ body.exam-mode .exercise-grid {
 }
 /* Скрываем строку с фильтром слов */
 body.exam-mode .setup-row:nth-of-type(5) {
+  display: none;
+}
+/* Скрываем строку с направлением для идиом */
+body.practice-idioms .setup-row:nth-of-type(7) {
   display: none;
 }
 /* Скрываем строку с режимом на время */
@@ -3738,6 +3784,17 @@ body.settings-modal-active #speech-modal .modal-box {
 .question-option input[type="radio"] {
   margin: 0;
 }
+/* Дополнительная защита для идиом-банка */
+#idiom-bank-wrap .word-bank-card .audio-wave {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 44px;
+}
+#idiom-bank-wrap .word-bank-en {
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 @keyframes wave {
   0%,
   100% {
@@ -4509,6 +4566,164 @@ body.settings-modal-active #speech-modal .modal-box {
 .streak-badge .material-symbols-outlined {
   font-size: 1.1rem;
   color: var(--streak-color);
+}
+.activity-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  background: transparent;
+  border-radius: 12px;
+  padding: 0;
+}
+.activity-tab {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 8px 0;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+.activity-tab:hover {
+  color: var(--text);
+  border-color: var(--primary);
+}
+.activity-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
+  box-shadow: var(--glass-shadow);
+  font-weight: 700;
+}
+.week-trend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+  color: var(--primary-text, var(--primary));
+  font-size: 0.85rem;
+  margin-left: auto;
+  cursor: help;
+}
+.week-trend .material-symbols-outlined {
+  font-size: 1rem;
+}
+.week-stats {
+  position: relative;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-height: 100px;
+  padding: 1rem 1rem;
+  background: var(--bg);
+  border-radius: 12px;
+}
+.goal-line {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  border-top: 1px dashed var(--border);
+  opacity: 0.6;
+}
+.week-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.week-stat-item:hover {
+  background: rgba(var(--primary-rgb), 0.08);
+  transform: translateY(-2px);
+}
+.week-stat-item.today {
+  background: rgba(var(--primary-rgb), 0.12);
+}
+.week-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 60px;
+}
+.week-bar {
+  width: 10px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.week-bar.words-bar {
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
+}
+.week-bar.idioms-bar {
+  background: linear-gradient(180deg, var(--idioms-color) 0%, var(--idioms-color-light) 100%);
+}
+.week-bar.empty {
+  background: var(--border);
+  height: 3px !important;
+  box-shadow: none;
+}
+.week-day {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.week-stat-item.today .week-day {
+  color: var(--primary-text, var(--primary));
+}
+.day-detail {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  margin: 1rem 0 0;
+  min-height: 1.2em;
+  font-weight: 500;
+}
+.week-total {
+  display: flex;
+  gap: 10px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.week-total-item {
+  flex: 1;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 0.75rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.week-total-item:hover {
+  transform: translateY(-1px);
+}
+.week-total-item .value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+.week-total-item .label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-weight: 600;
 }
 .month-heatmap {
   display: grid;
@@ -5922,17 +6137,20 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
   }
 }
 @media (min-width: 801px) and (max-width: 1000px) {
-  #tab-words .words-toolbar {
+  #tab-words .words-toolbar,
+  #tab-idioms .words-toolbar {
     flex-wrap: nowrap;
   }
 }
 @media (max-width: 800px) {
-  #tab-words .words-toolbar {
+  #tab-words .words-toolbar,
+  #tab-idioms .words-toolbar {
     flex-wrap: nowrap;
     overflow: visible;
     align-items: center;
   }
-  #tab-words .search-container {
+  #tab-words .search-container,
+  #tab-idioms .search-container {
     order: -1;
     flex: 1;
     min-width: 120px;
@@ -5940,16 +6158,19 @@ html.dark .chat-messages-list::-webkit-scrollbar-thumb:hover {
   }
 }
 @media (max-width: 612px) {
-  #tab-words .words-toolbar {
+  #tab-words .words-toolbar,
+  #tab-idioms .words-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
-  #tab-words .search-container {
+  #tab-words .search-container,
+  #tab-idioms .search-container {
     width: 100%;
     margin-bottom: 0.75rem;
     order: -1;
   }
-  #tab-words .filter-pills {
+  #tab-words .filter-pills,
+  #tab-idioms .filter-pills {
     width: 100%;
     justify-content: center;
     flex-wrap: wrap;
@@ -6507,6 +6728,18 @@ html.dark .due-soon {
   );
   border-radius: 16px;
   z-index: -1;
+}
+/* Стили для карточек идиом */
+.word-card--idiom .word-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.idiom-definition {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 .badge-card:hover::before {
   opacity: 1;
@@ -8986,7 +9219,9 @@ html.dark .cefr-level:hover {
   --progress-card-shadow: var(--shadow);
   --progress-card-hover-shadow: var(--shadow-hover);
   --progress-bar-words: var(--primary);
+  --progress-bar-idioms: var(--idioms-color);
   --progress-bar-total-words: var(--primary);
+  --progress-bar-total-idioms: var(--idioms-color);
 }
 .st-progress-cards {
   display: grid;
@@ -9021,6 +9256,9 @@ html.dark .cefr-level:hover {
   font-size: 1.2rem;
   font-weight: 800;
   color: var(--primary);
+}
+.spc-card:has(.idioms-icon) .spc-pct {
+  color: var(--idioms-color);
 }
 /* REMOVED: phrases functionality */
 /* .spc-card:has(.phrases-icon) .spc-pct {
@@ -9090,6 +9328,14 @@ html.dark .cefr-level:hover {
   background: rgba(var(--primary-rgb), 0.12);
   color: var(--primary);
 }
+.idioms-icon {
+  background: rgba(var(--idioms-rgb), 0.12);
+  color: var(--idioms-color);
+}
+.spc-icon.idioms-icon {
+  background: rgba(var(--idioms-rgb), 0.12);
+  color: var(--idioms-color);
+}
 .total-icon {
   background: rgba(245, 158, 11, 0.12);
   color: #f59e0b;
@@ -9120,6 +9366,13 @@ html.dark .cefr-level:hover {
 }
 .spc-bar-fill.words {
   background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+.spc-bar-fill.idioms {
+  background: linear-gradient(
+    90deg,
+    var(--idioms-color),
+    var(--idioms-color-light)
+  );
 }
 /* REMOVED: phrases functionality */
 /* .spc-bar-fill.phrases {
@@ -9180,6 +9433,16 @@ html.dark .cefr-level:hover {
 .spc-dot.words {
   background: var(--primary);
 }
+.spc-dot.idioms {
+  background: var(--idioms-color);
+}
+/* ── Idiom difficulty row ────────────────────── */
+.idiom-difficulty-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
 /* ── Accuracy badge ──────────────────────────── */
 .stat-acc {
   font-size: 0.72rem;
@@ -9191,8 +9454,8 @@ html.dark .cefr-level:hover {
   flex-shrink: 0;
 }
 .stat-acc.good {
-  background: rgba(var(--primary-rgb), 0.12);
-  color: var(--primary);
+  background: rgba(var(--idioms-rgb), 0.12);
+  color: var(--idioms-color);
 }
 .stat-acc.mid {
   background: rgba(245, 158, 11, 0.12);
@@ -9211,7 +9474,8 @@ html.dark .cefr-level:hover {
 }
 /* ── Mobile ───────────────────────────────────── */
 @media (max-width: 620px) {
-  .st-progress-cards {
+  .st-progress-cards,
+  .idiom-difficulty-row {
     grid-template-columns: 1fr;
   }
   .spc-card {
@@ -10120,6 +10384,7 @@ html
 }
 button.floating-add-btn:hover .material-symbols-outlined,
 #floating-add-word-btn:hover .material-symbols-outlined,
+#floating-add-idiom-btn:hover .material-symbols-outlined,
 #floating-chat-btn:hover .material-symbols-outlined,
 #floating-add-friend-btn:hover .material-symbols-outlined {
   color: white !important;
@@ -10165,6 +10430,33 @@ button.floating-add-btn:hover .material-symbols-outlined,
   right: -5px;
 }
 /* Стили для карточек идиом */
+.word-card--idiom .word-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.idiom-definition {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.idiom-example {
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+.idiom-example p {
+  margin: 0;
+  font-style: italic;
+}
+.idiom-example .example-translation {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
 /* Прогресс через левый бордер карточки */
 .word-card[data-streak='1'] {
   border-left: 3px solid var(--primary);
