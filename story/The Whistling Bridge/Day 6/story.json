@@ -1,0 +1,353 @@
+{
+  "id": "2026-09-02-the-whistling-bridge-day-6",
+  "date": "2026-09-02",
+  "slug": "the-whistling-bridge-day-6",
+  "folder": "The Whistling Bridge/Day 6",
+  "seriesDay": 6,
+  "seriesTotal": 7,
+  "imagePath": "story/The Whistling Bridge/Day 6/foto.webp",
+
+  "title": {
+    "en": "The Whistling Bridge — Day 6: The Watch",
+    "ru": "Мост, который свистит — День 6: Часы"
+  },
+
+  "summary": {
+    "en": "Grace finds an old crew log with a personal item recovered near the bridge — a pocket watch engraved with Thomas Hale's initials.",
+    "ru": "Грейс находит старый журнал ремонтной бригады с личной вещью, найденной у моста — карманными часами с инициалами Томаса Хейла."
+  },
+
+  "levels": {
+    "easy": {
+      "label": { "en": "Easy", "ru": "Легко" },
+      "cefr": "A1-A2",
+      "wordCount": 133,
+      "readingMinutes": 3,
+
+      "paragraphs": [
+        {
+          "id": "easy-1",
+          "en": "Maya goes back to the archive to tell Grace what she found. Grace looks surprised — she has never heard about that repair before, not once in fifty years.",
+          "ru": "Майя возвращается в архив, чтобы рассказать Грейс о своей находке. Грейс выглядит удивлённой — она никогда не слышала об этом ремонте, ни разу за пятьдесят лет."
+        },
+        {
+          "id": "easy-2",
+          "en": "\"Wait,\" Grace says. \"The old repair **crews** sometimes kept their own notes — about things they found.\" She starts searching through more boxes in the back room.",
+          "ru": "«Подождите, — говорит Грейс. — Старые ремонтные бригады иногда вели свои собственные записи — про вещи, которые находили». Она начинает искать в других коробках в задней комнате."
+        },
+        {
+          "id": "easy-3",
+          "en": "After a while, Grace finds a small metal box. On it, a **faded** tag reads: \"Found near east arch.\" Inside, there is an old **pocket watch**. It has stopped.",
+          "ru": "Через некоторое время Грейс находит маленькую металлическую коробку. На ней выцветшая бирка гласит: «Найдено у восточной арки». Внутри лежат старые карманные часы. Они остановились."
+        },
+        {
+          "id": "easy-4",
+          "en": "On the back of the watch, there are two letters — its **initials**: T.H. Grace's hands begin to **shake**. \"Thomas Hale,\" she whispers. \"It's his.\"",
+          "ru": "На обратной стороне часов — две буквы, инициалы: T.H. Руки Грейс начинают дрожать. «Томас Хейл, — шепчет она. — Это его часы»."
+        },
+        {
+          "id": "easy-5",
+          "en": "Maya understands now. Thomas didn't run away that night. He was on the bridge — and something happened to him there. Now, somebody has to tell Eleanor the truth.",
+          "ru": "Теперь Майя понимает. Томас не сбежал в ту ночь. Он был на мосту — и там с ним что-то случилось. Теперь кто-то должен рассказать Элеоноре правду."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "crew",
+          "translationRu": "бригада, команда",
+          "definitionEn": "A group of people who work together, especially doing physical work.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The old repair crews kept notes.",
+          "exampleRu": "Старые ремонтные бригады вели записи."
+        },
+        {
+          "word": "faded",
+          "translationRu": "выцветший",
+          "definitionEn": "Having lost color or clearness over time.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A faded tag reads the note.",
+          "exampleRu": "Выцветшая бирка содержит надпись."
+        },
+        {
+          "word": "pocket watch",
+          "translationRu": "карманные часы",
+          "definitionEn": "A small watch carried in a pocket, not worn on the wrist.",
+          "partOfSpeech": "noun",
+          "exampleEn": "There is an old pocket watch inside.",
+          "exampleRu": "Внутри лежат старые карманные часы."
+        },
+        {
+          "word": "initials",
+          "translationRu": "инициалы",
+          "definitionEn": "The first letters of someone's names.",
+          "partOfSpeech": "noun",
+          "exampleEn": "There are two initials: T.H.",
+          "exampleRu": "Есть два инициала: T.H."
+        },
+        {
+          "word": "shake",
+          "translationRu": "дрожать, трястись",
+          "definitionEn": "To move quickly back and forth, often from strong emotion.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Grace's hands begin to shake.",
+          "exampleRu": "Руки Грейс начинают дрожать."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "easy-q1",
+          "type": "choice",
+          "question": "Why is Grace surprised?",
+          "questionRu": "Почему Грейс удивлена?",
+          "options": ["She already knew about the repair", "She has never heard about that repair before", "She doesn't believe Maya", "She thinks Maya made a mistake"],
+          "answer": 1,
+          "explanationRu": "Она никогда раньше не слышала об этом ремонте, за все пятьдесят лет."
+        },
+        {
+          "id": "easy-q2",
+          "type": "choice",
+          "question": "What do they find in the metal box?",
+          "questionRu": "Что они находят в металлической коробке?",
+          "options": ["A letter from Eleanor", "An old pocket watch", "A photograph", "Money"],
+          "answer": 1,
+          "explanationRu": "Они находят старые карманные часы."
+        },
+        {
+          "id": "easy-q3",
+          "type": "choice",
+          "question": "What do the initials on the watch tell them?",
+          "questionRu": "О чём говорят инициалы на часах?",
+          "options": ["It belonged to Grace", "It belonged to Thomas Hale", "It belonged to Walter", "It belonged to a stranger"],
+          "answer": 1,
+          "explanationRu": "Часы принадлежали Томасу Хейлу."
+        }
+      ]
+    },
+
+    "intermediate": {
+      "label": { "en": "Intermediate", "ru": "Средне" },
+      "cefr": "B1",
+      "wordCount": 216,
+      "readingMinutes": 4,
+
+      "paragraphs": [
+        {
+          "id": "intermediate-1",
+          "en": "Maya returned to the archive that same afternoon, eager to tell Grace what she'd found. But instead of the recognition she expected, Grace's expression turned **troubled**. In fifty years of keeping the town's records, she said, she had never once heard of that repair.",
+          "ru": "Майя вернулась в архив в тот же день, желая рассказать Грейс о своей находке. Но вместо ожидаемого узнавания на лице Грейс отразилась тревога. За пятьдесят лет ведения городских записей, сказала она, она ни разу не слышала об этом ремонте."
+        },
+        {
+          "id": "intermediate-2",
+          "en": "\"Wait,\" Grace said suddenly, straightening. \"The old repair crews used to keep their own private logs — sometimes noting things they found while they worked. It wasn't official. But it might still be here somewhere.\" She disappeared into the back room, returning several minutes later with an armful of **unlabeled** boxes.",
+          "ru": "«Подождите, — вдруг сказала Грейс, выпрямляясь. — Старые ремонтные бригады вели свои собственные, неофициальные журналы — иногда записывали то, что находили во время работы. Это не было официальным. Но, возможно, это всё ещё где-то здесь». Она исчезла в задней комнате и вернулась через несколько минут с охапкой коробок без надписей."
+        },
+        {
+          "id": "intermediate-3",
+          "en": "After nearly twenty minutes of searching, Grace pulled out a small, rusted metal box. A faded paper tag was tied to its handle: \"Found near east arch.\" Inside, wrapped in a **scrap** of cloth, lay an old pocket watch — stopped, its hands frozen at a quarter past midnight.",
+          "ru": "После почти двадцати минут поисков Грейс достала маленькую ржавую металлическую коробку. К её ручке была привязана выцветшая бумажная бирка: «Найдено у восточной арки». Внутри, завёрнутые в лоскут ткани, лежали старые карманные часы — остановившиеся, со стрелками, застывшими на четверти первого ночи."
+        },
+        {
+          "id": "intermediate-4",
+          "en": "On the back of the watch, two initials had been **engraved**: T.H. Grace's hands began to **tremble** as she turned it over. \"Thomas Hale,\" she said quietly. \"This was his.\"",
+          "ru": "На обратной стороне часов были выгравированы два инициала: T.H. Руки Грейс начали дрожать, когда она перевернула их. «Томас Хейл, — тихо сказала она. — Это были его часы»."
+        },
+        {
+          "id": "intermediate-5",
+          "en": "Maya finally understood. Thomas hadn't abandoned Eleanor that night — he had been on the bridge, and something had happened to him there, something no one had ever connected to his disappearance. Now, fifty years later, somebody would finally have to tell Eleanor the truth.",
+          "ru": "Майя наконец поняла. Томас не бросил Элеонору в ту ночь — он был на мосту, и там с ним что-то случилось, то, что никто и никогда не связывал с его исчезновением. Теперь, пятьдесят лет спустя, кому-то наконец придётся рассказать Элеоноре правду."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "troubled",
+          "translationRu": "встревоженный, обеспокоенный",
+          "definitionEn": "Showing signs of worry or distress.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Grace's expression turned troubled.",
+          "exampleRu": "На лице Грейс отразилась тревога."
+        },
+        {
+          "word": "unlabeled",
+          "translationRu": "без надписи, неподписанный",
+          "definitionEn": "Not marked with a label or name.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "An armful of unlabeled boxes.",
+          "exampleRu": "Охапка коробок без надписей."
+        },
+        {
+          "word": "engraved",
+          "translationRu": "выгравированный",
+          "definitionEn": "Cut into a hard surface as decoration or text.",
+          "partOfSpeech": "adjective / verb",
+          "exampleEn": "Two initials had been engraved.",
+          "exampleRu": "Были выгравированы два инициала."
+        },
+        {
+          "word": "tremble",
+          "translationRu": "дрожать",
+          "definitionEn": "To shake slightly, often from emotion or weakness.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Her hands began to tremble.",
+          "exampleRu": "Её руки начали дрожать."
+        },
+        {
+          "word": "scrap",
+          "translationRu": "обрывок, лоскут",
+          "definitionEn": "A small piece of something.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Wrapped in a scrap of cloth.",
+          "exampleRu": "Завёрнутые в лоскут ткани."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "intermediate-q1",
+          "type": "choice",
+          "question": "How does Grace react to hearing about the repair?",
+          "questionRu": "Как Грейс реагирует, услышав про ремонт?",
+          "options": ["She already knew about it", "She seems genuinely surprised — she'd never heard of it", "She refuses to discuss it", "She laughs it off"],
+          "answer": 1,
+          "explanationRu": "Она искренне удивлена — никогда прежде не слышала об этом ремонте."
+        },
+        {
+          "id": "intermediate-q2",
+          "type": "choice",
+          "question": "Where does Grace find the metal box?",
+          "questionRu": "Где Грейс находит металлическую коробку?",
+          "options": ["In Eleanor's house", "Among old unlabeled boxes in the back room", "In the newspaper office", "Buried near the bridge"],
+          "answer": 1,
+          "explanationRu": "Среди старых коробок без надписей в задней комнате."
+        },
+        {
+          "id": "intermediate-q3",
+          "type": "choice",
+          "question": "What does the watch confirm?",
+          "questionRu": "Что подтверждают часы?",
+          "options": ["That Thomas moved away safely", "That the watch belonged to Thomas and was found near the bridge", "That Eleanor had lied about the story", "That Grace had known the truth all along"],
+          "answer": 1,
+          "explanationRu": "Часы принадлежали Томасу и были найдены у моста."
+        }
+      ]
+    },
+
+    "challenge": {
+      "label": { "en": "Challenge", "ru": "Вызов" },
+      "cefr": "B2",
+      "wordCount": 266,
+      "readingMinutes": 5,
+
+      "paragraphs": [
+        {
+          "id": "challenge-1",
+          "en": "Maya returned to the archive that same afternoon, eager to share what she'd uncovered, expecting perhaps a flicker of recognition from Grace. What she found instead was something closer to genuine alarm. In fifty years of **stewarding** the town's records, Grace said, she had never once encountered mention of that repair.",
+          "ru": "Майя вернулась в архив в тот же день, стремясь поделиться своей находкой, ожидая, быть может, проблеска узнавания на лице Грейс. Вместо этого она увидела нечто похожее на неподдельную тревогу. За пятьдесят лет бережного хранения городских записей, сказала Грейс, она ни разу не встречала упоминания об этом ремонте."
+        },
+        {
+          "id": "challenge-2",
+          "en": "\"Wait,\" Grace said abruptly, straightening in her chair. \"The old repair crews used to keep their own private logs, separate from the official records — sometimes noting whatever they happened to find while working. Nothing formal. But it might still exist somewhere in this building.\" She vanished into the back room and returned several minutes later, arms **laden** with unlabeled boxes.",
+          "ru": "«Подождите, — резко сказала Грейс, выпрямляясь в кресле. — Старые ремонтные бригады вели свои собственные, неофициальные журналы, отдельно от официальных записей — иногда фиксировали то, что случайно находили во время работы. Ничего формального. Но это, возможно, всё ещё существует где-то в этом здании». Она скрылась в задней комнате и вернулась через несколько минут с руками, нагруженными коробками без надписей."
+        },
+        {
+          "id": "challenge-3",
+          "en": "After nearly twenty minutes of searching, Grace extracted a small, **rust-spotted** metal box from beneath a stack of ledgers. A faded paper tag, tied to its handle with brittle string, read simply: \"Found near east arch.\" Inside, wrapped in a scrap of oilcloth, lay an old pocket watch — stopped, its hands frozen at a quarter past midnight.",
+          "ru": "После почти двадцати минут поисков Грейс извлекла из-под стопки гроссбухов маленькую металлическую коробку, покрытую ржавыми пятнами. К её ручке хрупкой бечёвкой была привязана выцветшая бумажная бирка, гласившая просто: «Найдено у восточной арки». Внутри, завёрнутые в лоскут промасленной ткани, лежали старые карманные часы — остановившиеся, со стрелками, застывшими на четверти первого ночи."
+        },
+        {
+          "id": "challenge-4",
+          "en": "Engraved on the case's **reverse** were two initials: T.H. Grace's hands began to tremble visibly as she turned the watch over in her palm. \"Thomas Hale,\" she said, her voice **barely** above a whisper. \"This was his. I'd know that watch anywhere.\"",
+          "ru": "На обратной стороне корпуса были выгравированы два инициала: T.H. Руки Грейс заметно задрожали, когда она перевернула часы в ладони. «Томас Хейл, — сказала она, её голос был едва слышен. — Это были его часы. Я узнаю их где угодно»."
+        },
+        {
+          "id": "challenge-5",
+          "en": "Maya understood, finally, with a clarity that felt almost **unbearable**. Thomas hadn't abandoned Eleanor that night at all — he had been on the bridge, and something had happened to him there, something no one, in fifty years, had ever thought to connect to his disappearance. Now, at last, someone would have to tell Eleanor the truth.",
+          "ru": "Майя наконец поняла — с ясностью, которая казалась почти невыносимой. Томас вовсе не бросил Элеонору в ту ночь — он был на мосту, и там с ним что-то случилось, то, что никто за пятьдесят лет так и не связал с его исчезновением. Теперь, наконец, кому-то придётся рассказать Элеоноре правду."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "steward (verb)",
+          "translationRu": "заботливо хранить, оберегать",
+          "definitionEn": "To take care of and manage something responsibly over time.",
+          "partOfSpeech": "verb",
+          "exampleEn": "In fifty years of stewarding the town's records.",
+          "exampleRu": "За пятьдесят лет бережного хранения городских записей."
+        },
+        {
+          "word": "laden",
+          "translationRu": "нагруженный",
+          "definitionEn": "Heavily loaded or carrying a lot of something.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Arms laden with unlabeled boxes.",
+          "exampleRu": "Руки, нагруженные коробками без надписей."
+        },
+        {
+          "word": "unbearable",
+          "translationRu": "невыносимый",
+          "definitionEn": "Too difficult or painful to accept or endure.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A clarity that felt almost unbearable.",
+          "exampleRu": "Ясность, которая казалась почти невыносимой."
+        },
+        {
+          "word": "reverse (noun)",
+          "translationRu": "обратная сторона",
+          "definitionEn": "The back or opposite side of something.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Engraved on the case's reverse.",
+          "exampleRu": "Выгравировано на обратной стороне корпуса."
+        },
+        {
+          "word": "rust-spotted",
+          "translationRu": "покрытый ржавыми пятнами",
+          "definitionEn": "Marked with small spots of rust from age or moisture.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A rust-spotted metal box.",
+          "exampleRu": "Металлическая коробка, покрытая ржавыми пятнами."
+        },
+        {
+          "word": "barely",
+          "translationRu": "едва, еле",
+          "definitionEn": "Almost not at all; only just.",
+          "partOfSpeech": "adverb",
+          "exampleEn": "Her voice barely above a whisper.",
+          "exampleRu": "Её голос был едва слышен."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "challenge-q1",
+          "type": "choice",
+          "question": "What is notable about Grace's reaction to Maya's news?",
+          "questionRu": "Что примечательно в реакции Грейс на новость Майи?",
+          "options": ["Mild curiosity", "Something closer to genuine alarm, despite her decades of records-keeping", "Complete indifference", "Immediate denial"],
+          "answer": 1,
+          "explanationRu": "Её реакция похожа скорее на неподдельную тревогу, несмотря на десятилетия работы с записями."
+        },
+        {
+          "id": "challenge-q2",
+          "type": "choice",
+          "question": "What kind of record turns out to hold the key clue?",
+          "questionRu": "В каком типе записей находится ключевая улика?",
+          "options": ["An official newspaper archive", "An unofficial, private log kept by the repair crew", "A police report", "A personal diary of Eleanor's"],
+          "answer": 1,
+          "explanationRu": "Ключевая улика — в неофициальном частном журнале ремонтной бригады."
+        },
+        {
+          "id": "challenge-q3",
+          "type": "choice",
+          "question": "What realization does Maya reach by the end of the passage?",
+          "questionRu": "К какому осознанию приходит Майя к концу отрывка?",
+          "options": ["That the whole story was fabricated", "That Thomas was on the bridge that night and something happened to him there", "That Grace was responsible for the accident", "That Eleanor already knew about the watch"],
+          "answer": 1,
+          "explanationRu": "Она понимает, что Томас был на мосту в ту ночь, и там с ним что-то случилось."
+        }
+      ]
+    }
+  }
+}

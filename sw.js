@@ -1,4 +1,4 @@
-const CACHE_NAME = 'enguply-v2-c9ad9ab7';
+const CACHE_NAME = 'enguply-v2-648cccff';
 
 // Критическое логирование для важных событий
 const log = (category, ...args) => {
@@ -222,19 +222,44 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 8. JS/CSS — network-first
+  // 8. JS/CSS — для хешированных файлов cache-first, для остальных network-first
   if (
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css')
   ) {
-    log('FETCH', `🎨 JS/CSS файл, network-first: ${url.pathname}`);
-    event.respondWith(
-      fetch(request, { cache: 'no-store' })
-        .catch(() => {
-          logCache('FALLBACK', url.pathname, '🔄 Попытка взять из кеша');
-          return caches.match(request);
+    // Проверяем есть ли хеш в имени файла (например ENG.9a88c94c.js)
+    const hasHash = /\.[a-f0-9]{8,}\.(js|css)$/i.test(url.pathname);
+    
+    if (hasHash) {
+      // Хешированные файлы - cache-first
+      log('FETCH', `🎨 Хешированный JS/CSS, cache-first: ${url.pathname}`);
+      event.respondWith(
+        caches.open(CACHE_NAME).then(async cache => {
+          const cached = await cache.match(request);
+          if (cached) {
+            logCache('CACHED', url.pathname, '✅ Взято из кеша');
+            return cached;
+          }
+          logCache('NETWORK', url.pathname, '🌐 Загрузка из сети');
+          const response = await fetch(request);
+          if (response.ok) {
+            await cache.put(request, response.clone());
+            logCache('SAVE', url.pathname, '💾 Сохранено в кеш');
+          }
+          return response;
         })
-    );
+      );
+    } else {
+      // Файлы без хеша - network-first
+      log('FETCH', `🎨 JS/CSS файл без хеша, network-first: ${url.pathname}`);
+      event.respondWith(
+        fetch(request, { cache: 'no-store' })
+          .catch(() => {
+            logCache('FALLBACK', url.pathname, '🔄 Попытка взять из кеша');
+            return caches.match(request);
+          })
+      );
+    }
     return;
   }
 
@@ -254,16 +279,24 @@ self.addEventListener('fetch', event => {
   // 10. Картинки, шрифты — cache-first
   log('FETCH', `🖼️ Картинка/шрифт, cache-first: ${url.pathname}`);
   event.respondWith(
-    caches.match(request).then(cached => {
+    caches.open(CACHE_NAME).then(async cache => {
+      const cached = await cache.match(request);
       if (cached) {
         logCache('CACHED', url.pathname, '✅ Взято из кеша');
         return cached;
       }
       logCache('NETWORK', url.pathname, '🌐 Загрузка из сети');
-      return fetch(request).catch(() => {
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          await cache.put(request, response.clone());
+          logCache('SAVE', url.pathname, '💾 Сохранено в кеш');
+        }
+        return response;
+      } catch (error) {
         logCache('ERROR', url.pathname, '❌ Ошибка загрузки');
         return new Response('Error', { status: 500 });
-      });
+      }
     })
   );
 });

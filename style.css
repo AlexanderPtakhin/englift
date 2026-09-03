@@ -3699,6 +3699,9 @@ body.story-modal-active main,
 body.settings-modal-active main {
   padding-bottom: 1rem !important;
 }
+body.story-modal-active #read-story-modal {
+  z-index: 9999;
+}
 body.story-modal-active #read-story-modal .modal-box {
   min-height: 100dvh;
 }

@@ -1,0 +1,353 @@
+{
+  "id": "2026-09-02-the-whistling-bridge-day-5",
+  "date": "2026-09-02",
+  "slug": "the-whistling-bridge-day-5",
+  "folder": "The Whistling Bridge/Day 5",
+  "seriesDay": 5,
+  "seriesTotal": 7,
+  "imagePath": "story/The Whistling Bridge/Day 5/foto.webp",
+
+  "title": {
+    "en": "The Whistling Bridge — Day 5: The Repair Log",
+    "ru": "Мост, который свистит — День 5: Журнал ремонта"
+  },
+
+  "summary": {
+    "en": "In the town hall's old engineering records, Maya finds a repair entry that matches the exact night Thomas disappeared.",
+    "ru": "В старых инженерных записях мэрии Майя находит запись о ремонте, дата которой совпадает с той самой ночью, когда пропал Томас."
+  },
+
+  "levels": {
+    "easy": {
+      "label": { "en": "Easy", "ru": "Легко" },
+      "cefr": "A1-A2",
+      "wordCount": 118,
+      "readingMinutes": 2,
+
+      "paragraphs": [
+        {
+          "id": "easy-1",
+          "en": "Maya wants to know what really happened. She decides to check the old town records — not newspapers this time, but engineering documents about the bridge itself.",
+          "ru": "Майя хочет узнать, что произошло на самом деле. Она решает проверить старые городские записи — на этот раз не газеты, а инженерные документы про сам мост."
+        },
+        {
+          "id": "easy-2",
+          "en": "At the **town hall**, a young **clerk** helps her find old files. It takes a long time. Finally, they find a thick, dusty book: \"Bridge Repairs — Records.\"",
+          "ru": "В мэрии молодой служащий помогает ей найти старые документы. Это занимает много времени. Наконец они находят толстую пыльную книгу: «Ремонт моста — записи»."
+        },
+        {
+          "id": "easy-3",
+          "en": "Maya turns the pages carefully. She looks for the date — the same night Thomas disappeared. And there, she finds something.",
+          "ru": "Майя аккуратно листает страницы. Она ищет дату — ту самую ночь, когда пропал Томас. И там она находит кое-что."
+        },
+        {
+          "id": "easy-4",
+          "en": "A short **note**, written by hand, says: \"Stone arch **damaged**. East side. Repaired quietly, no public notice.\" The date matches **exactly**.",
+          "ru": "Короткая записка, написанная от руки, гласит: «Каменная арка повреждена. Восточная сторона. Отремонтировано тихо, без огласки». Дата совпадает точно."
+        },
+        {
+          "id": "easy-5",
+          "en": "Maya sits back, her heart beating fast. Maybe Thomas didn't run away that night. Maybe something happened to him — right there, on the bridge.",
+          "ru": "Майя откидывается назад, её сердце бьётся быстро. Может быть, Томас не убежал в ту ночь. Может быть, что-то случилось с ним — прямо там, на мосту."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "town hall",
+          "translationRu": "мэрия, ратуша",
+          "definitionEn": "The building where a town's local government offices are located.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Maya goes to the town hall.",
+          "exampleRu": "Майя идёт в мэрию."
+        },
+        {
+          "word": "clerk",
+          "translationRu": "клерк, служащий",
+          "definitionEn": "A person who works in an office, often handling documents.",
+          "partOfSpeech": "noun",
+          "exampleEn": "A young clerk helps her.",
+          "exampleRu": "Молодой служащий помогает ей."
+        },
+        {
+          "word": "note",
+          "translationRu": "записка",
+          "definitionEn": "A short piece of writing.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Maya finds a short note.",
+          "exampleRu": "Майя находит короткую записку."
+        },
+        {
+          "word": "damage",
+          "translationRu": "повреждение / повреждать",
+          "definitionEn": "Harm that makes something broken or weaker.",
+          "partOfSpeech": "noun / verb",
+          "exampleEn": "The stone arch was damaged.",
+          "exampleRu": "Каменная арка была повреждена."
+        },
+        {
+          "word": "exactly",
+          "translationRu": "точно, именно",
+          "definitionEn": "Precisely, with no difference at all.",
+          "partOfSpeech": "adverb",
+          "exampleEn": "The date matches exactly.",
+          "exampleRu": "Дата совпадает точно."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "easy-q1",
+          "type": "choice",
+          "question": "Where does Maya go this time?",
+          "questionRu": "Куда идёт Майя на этот раз?",
+          "options": ["To the café", "To the town hall", "To Eleanor's house", "To the bridge"],
+          "answer": 1,
+          "explanationRu": "На этот раз она идёт в мэрию, а не в архив газет."
+        },
+        {
+          "id": "easy-q2",
+          "type": "choice",
+          "question": "What does the old book contain?",
+          "questionRu": "Что содержит старая книга?",
+          "options": ["Newspaper articles", "Photos of the town", "Records about bridge repairs", "Letters from Thomas"],
+          "answer": 2,
+          "explanationRu": "Это книга с записями о ремонте моста."
+        },
+        {
+          "id": "easy-q3",
+          "type": "choice",
+          "question": "What does Maya find that matches the date?",
+          "questionRu": "Что находит Майя, совпадающее по дате?",
+          "options": ["A wedding record", "A note about damage to the bridge", "A police report", "A weather report"],
+          "answer": 1,
+          "explanationRu": "Она находит записку о повреждении моста, дата которой совпадает с ночью исчезновения Томаса."
+        }
+      ]
+    },
+
+    "intermediate": {
+      "label": { "en": "Intermediate", "ru": "Средне" },
+      "cefr": "B1",
+      "wordCount": 176,
+      "readingMinutes": 3,
+
+      "paragraphs": [
+        {
+          "id": "intermediate-1",
+          "en": "Maya couldn't shake the feeling that something didn't add up. Eleanor's confession had reopened questions Maya thought she'd already answered, so instead of returning to the newspaper archive, she decided to try somewhere she hadn't yet considered: the town's engineering records.",
+          "ru": "Майя не могла избавиться от ощущения, что что-то не сходится. Признание Элеоноры вновь открыло вопросы, которые Майя считала уже решёнными, и вместо того чтобы вернуться в газетный архив, она решила попробовать место, которое ещё не рассматривала: инженерные записи города."
+        },
+        {
+          "id": "intermediate-2",
+          "en": "At the town hall, a young clerk led her down to a basement room lined with old filing cabinets. It took nearly an hour of searching before they found what she was looking for — a heavy, leather-bound **ledger** simply titled \"Bridge Maintenance Records.\"",
+          "ru": "В мэрии молодой служащий провёл её вниз, в подвальную комнату, уставленную старыми картотечными шкафами. Поиски заняли почти час, прежде чем они нашли то, что искали — тяжёлую книгу в кожаном переплёте, просто озаглавленную «Записи об обслуживании моста»."
+        },
+        {
+          "id": "intermediate-3",
+          "en": "Maya turned the brittle pages slowly, scanning for a date. When she found it — the exact night Thomas disappeared — **her breath caught**.",
+          "ru": "Майя медленно переворачивала хрупкие страницы, ища дату. Когда она её нашла — ту самую ночь, когда пропал Томас, — у неё перехватило дыхание."
+        },
+        {
+          "id": "intermediate-4",
+          "en": "A brief **handwritten** entry read: \"East arch — stone damage. Repaired **discreetly**. No public announcement.\" Nothing more. No explanation, no follow-up, no mention of anyone missing that same night.",
+          "ru": "Краткая запись от руки гласила: «Восточная арка — повреждение камня. Отремонтировано незаметно. Без публичного объявления». Больше ничего. Ни объяснения, ни дальнейших сведений, ни упоминания о том, что в ту же ночь кто-то пропал."
+        },
+        {
+          "id": "intermediate-5",
+          "en": "Maya sat back in her chair, **pulse** quickening. If part of the bridge had genuinely given way that night, then Thomas might never have made it across at all — and the story everyone had told for fifty years might be entirely wrong.",
+          "ru": "Майя откинулась на спинку стула, её пульс участился. Если часть моста действительно обрушилась в ту ночь, то Томас, возможно, вообще не смог перейти на другую сторону — и история, которую все рассказывали пятьдесят лет, могла быть полностью неверной."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "ledger",
+          "translationRu": "гроссбух, книга учёта",
+          "definitionEn": "A large book used to record official information or accounts.",
+          "partOfSpeech": "noun",
+          "exampleEn": "They found a heavy ledger.",
+          "exampleRu": "Они нашли тяжёлую книгу учёта."
+        },
+        {
+          "word": "one's breath caught",
+          "translationRu": "перехватило дыхание",
+          "definitionEn": "To suddenly stop breathing for a moment, from shock or emotion.",
+          "partOfSpeech": "idiom",
+          "exampleEn": "Her breath caught when she read it.",
+          "exampleRu": "У неё перехватило дыхание, когда она это прочитала."
+        },
+        {
+          "word": "discreetly",
+          "translationRu": "незаметно, скрытно",
+          "definitionEn": "In a careful and quiet way, without drawing attention.",
+          "partOfSpeech": "adverb",
+          "exampleEn": "The damage was repaired discreetly.",
+          "exampleRu": "Повреждение отремонтировали незаметно."
+        },
+        {
+          "word": "handwritten",
+          "translationRu": "написанный от руки",
+          "definitionEn": "Written by hand, not printed.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A brief handwritten entry.",
+          "exampleRu": "Краткая запись от руки."
+        },
+        {
+          "word": "pulse",
+          "translationRu": "пульс",
+          "definitionEn": "The regular beat of blood moving through your body, felt e.g. at the wrist.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Her pulse quickened.",
+          "exampleRu": "Её пульс участился."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "intermediate-q1",
+          "type": "choice",
+          "question": "Why does Maya go to the town hall instead of the newspaper archive?",
+          "questionRu": "Почему Майя идёт в мэрию, а не в газетный архив?",
+          "options": ["She wants a new kind of source she hasn't checked yet", "Grace told her to go there", "She lost her press card", "She wants to pay a bill"],
+          "answer": 0,
+          "explanationRu": "Она хочет попробовать источник, который ещё не рассматривала — инженерные записи."
+        },
+        {
+          "id": "intermediate-q2",
+          "type": "choice",
+          "question": "What is significant about the ledger entry Maya finds?",
+          "questionRu": "Чем примечательна запись, которую находит Майя?",
+          "options": ["It confirms Thomas moved to another city", "Its date matches the night Thomas disappeared", "It is signed by Eleanor", "It mentions Grace by name"],
+          "answer": 1,
+          "explanationRu": "Дата записи совпадает с ночью исчезновения Томаса."
+        },
+        {
+          "id": "intermediate-q3",
+          "type": "choice",
+          "question": "What does the entry NOT mention?",
+          "questionRu": "О чём НЕ упоминает запись?",
+          "options": ["The location of the damage", "Any missing person from that night", "The type of repair", "That it happened at the bridge"],
+          "answer": 1,
+          "explanationRu": "Запись никак не упоминает о пропавшем в ту ночь человеке."
+        }
+      ]
+    },
+
+    "challenge": {
+      "label": { "en": "Challenge", "ru": "Вызов" },
+      "cefr": "B2",
+      "wordCount": 247,
+      "readingMinutes": 5,
+
+      "paragraphs": [
+        {
+          "id": "challenge-1",
+          "en": "The feeling that something in the story failed to add up had lodged itself firmly in Maya's mind, and Eleanor's confession had reopened questions she'd believed, until recently, to be settled. Rather than returning to the newspaper archive, she found herself drawn toward a source she hadn't yet considered: the town's engineering records, filed away in the basement of the municipal building.",
+          "ru": "Ощущение, что в истории что-то не сходится, прочно засело в голове Майи, а признание Элеоноры вновь открыло вопросы, которые она до недавнего времени считала закрытыми. Вместо того чтобы вернуться в газетный архив, она обнаружила, что её тянет к источнику, который она ещё не рассматривала: инженерным записям города, хранящимся в подвале здания муниципалитета."
+        },
+        {
+          "id": "challenge-2",
+          "en": "A young clerk, visibly **unaccustomed** to requests of this kind, led her down a narrow staircase into a room lined with **sagging** filing cabinets. Nearly an hour of searching passed before they located what she'd come for — a heavy, leather-bound ledger labelled, in faded ink, \"Bridge Maintenance Records.\"",
+          "ru": "Молодой служащий, явно непривычный к подобным просьбам, провёл её по узкой лестнице в комнату, уставленную провисшими картотечными шкафами. Прошёл почти час поисков, прежде чем они нашли то, за чем она пришла — тяжёлую книгу в кожаном переплёте с надписью выцветшими чернилами: «Записи об обслуживании моста»."
+        },
+        {
+          "id": "challenge-3",
+          "en": "Maya turned the brittle pages with deliberate care, scanning for a single date. When she finally located it — the exact night of Thomas's disappearance — she found her breath catching in her throat before she'd even read the entry.",
+          "ru": "Майя переворачивала хрупкие страницы с нарочитой осторожностью, выискивая одну-единственную дату. Когда она наконец нашла её — ту самую ночь исчезновения Томаса, — у неё перехватило дыхание в горле ещё до того, как она прочла запись."
+        },
+        {
+          "id": "challenge-4",
+          "en": "A brief, handwritten note read simply: \"East arch — stone damage. Repaired discreetly. No public announcement.\" Nothing further followed. No explanation of the damage's cause, no **cross-reference**, no **acknowledgment** whatsoever that a young man had vanished from that same bridge on that same night.",
+          "ru": "Короткая рукописная запись гласила просто: «Восточная арка — повреждение камня. Отремонтировано незаметно. Без публичного объявления». Дальше не следовало ничего. Ни объяснения причины повреждения, ни перекрёстной ссылки, ни какого-либо упоминания о том, что молодой человек пропал с того же самого моста в ту же самую ночь."
+        },
+        {
+          "id": "challenge-5",
+          "en": "Maya sat back, her pulse quickening despite herself. If part of the bridge had genuinely failed that night — if the stone had given way beneath someone's weight — then Thomas might never have reached the far side at all. And the story the town had told itself for fifty years might be, in every essential **particular**, wrong.",
+          "ru": "Майя откинулась назад, её пульс участился помимо её воли. Если часть моста действительно разрушилась в ту ночь — если камень поддался под чьим-то весом, — то Томас, возможно, вообще не добрался до другой стороны. И история, которую город рассказывал сам себе пятьдесят лет, могла оказаться неверной в каждой существенной детали."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "unaccustomed",
+          "translationRu": "непривычный",
+          "definitionEn": "Not used to something; unfamiliar with a situation.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A clerk unaccustomed to such requests.",
+          "exampleRu": "Служащий, непривычный к подобным просьбам."
+        },
+        {
+          "word": "sagging",
+          "translationRu": "провисший, обвисший",
+          "definitionEn": "Bending or hanging down from age, weight, or weakness.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "A room lined with sagging filing cabinets.",
+          "exampleRu": "Комната, уставленная провисшими картотечными шкафами."
+        },
+        {
+          "word": "cross-reference",
+          "translationRu": "перекрёстная ссылка",
+          "definitionEn": "A note directing the reader to related information elsewhere.",
+          "partOfSpeech": "noun",
+          "exampleEn": "No cross-reference to the missing man.",
+          "exampleRu": "Никакой перекрёстной ссылки на пропавшего человека."
+        },
+        {
+          "word": "acknowledgment",
+          "translationRu": "признание, упоминание",
+          "definitionEn": "A statement recognizing that something exists or happened.",
+          "partOfSpeech": "noun",
+          "exampleEn": "No acknowledgment that a man had vanished.",
+          "exampleRu": "Никакого упоминания о том, что человек пропал."
+        },
+        {
+          "word": "particular",
+          "translationRu": "деталь, подробность",
+          "definitionEn": "A specific detail or fact.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Wrong in every essential particular.",
+          "exampleRu": "Неверно в каждой существенной детали."
+        },
+        {
+          "word": "discreetly",
+          "translationRu": "незаметно, скрытно",
+          "definitionEn": "In a careful and quiet way, without drawing attention.",
+          "partOfSpeech": "adverb",
+          "exampleEn": "Repaired discreetly, with no public announcement.",
+          "exampleRu": "Отремонтировано незаметно, без публичного объявления."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "challenge-q1",
+          "type": "choice",
+          "question": "What prompts Maya to search the engineering records specifically?",
+          "questionRu": "Что именно побуждает Майю обратиться к инженерным записям?",
+          "options": ["A tip from Walter", "The sense that something in Eleanor's account doesn't add up", "An order from her editor", "A public records request deadline"],
+          "answer": 1,
+          "explanationRu": "Её не покидает ощущение, что в рассказе Элеоноры что-то не сходится."
+        },
+        {
+          "id": "challenge-q2",
+          "type": "choice",
+          "question": "What is notable about how the repair was documented?",
+          "questionRu": "Что примечательного в том, как был задокументирован ремонт?",
+          "options": ["It was reported publicly with photos", "It was recorded briefly, with no public announcement", "It was investigated by the police", "It included witness statements"],
+          "answer": 1,
+          "explanationRu": "Ремонт был записан кратко и без публичного объявления."
+        },
+        {
+          "id": "challenge-q3",
+          "type": "choice",
+          "question": "What possibility does this discovery raise for the first time?",
+          "questionRu": "Какую возможность впервые открывает эта находка?",
+          "options": ["That Eleanor invented the whole story", "That Thomas may never have made it across the bridge that night", "That Grace was involved in a cover-up", "That the newspaper article was fabricated"],
+          "answer": 1,
+          "explanationRu": "Впервые появляется версия, что Томас мог вообще не добраться до другой стороны моста в ту ночь."
+        }
+      ]
+    }
+  }
+}

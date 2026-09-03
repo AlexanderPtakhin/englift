@@ -388,8 +388,7 @@ function playSound(type) {
 
     // Возобновляем аудиоконтекст если он приостановлен
     if (ctx.state === 'suspended') {
-      // Не воспроизводим звук если пользователь еще не взаимодействовал с страницей
-      return;
+      ctx.resume();
     }
 
     let audioPath;

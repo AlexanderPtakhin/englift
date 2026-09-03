@@ -1,0 +1,353 @@
+{
+  "id": "2026-09-02-the-whistling-bridge-day-7",
+  "date": "2026-09-02",
+  "slug": "the-whistling-bridge-day-7",
+  "folder": "The Whistling Bridge/Day 7",
+  "seriesDay": 7,
+  "seriesTotal": 7,
+  "imagePath": "story/The Whistling Bridge/Day 7/foto.webp",
+
+  "title": {
+    "en": "The Whistling Bridge — Day 7: What the River Knew",
+    "ru": "Мост, который свистит — День 7: То, что знала река"
+  },
+
+  "summary": {
+    "en": "Maya brings Eleanor the watch and the truth. Fifty years of doubt finally come to rest — and so, it seems, does the bridge.",
+    "ru": "Майя приносит Элеоноре часы и правду. Пятьдесят лет сомнений наконец находят покой — и, кажется, вместе с ними и мост."
+  },
+
+  "levels": {
+    "easy": {
+      "label": { "en": "Easy", "ru": "Легко" },
+      "cefr": "A1-A2",
+      "wordCount": 143,
+      "readingMinutes": 3,
+
+      "paragraphs": [
+        {
+          "id": "easy-1",
+          "en": "The next morning, Maya walks to Eleanor's house again. This time, she is carrying something small in her hand — the old pocket watch.",
+          "ru": "На следующее утро Майя снова идёт к дому Элеоноры. На этот раз в руке она держит кое-что маленькое — старые карманные часы."
+        },
+        {
+          "id": "easy-2",
+          "en": "Eleanor opens the door. She sees Maya's face and knows immediately: something has changed. \"Come in,\" she says quietly.",
+          "ru": "Элеонора открывает дверь. Она смотрит на лицо Майи и сразу понимает: что-то изменилось. «Заходите», — тихо говорит она."
+        },
+        {
+          "id": "easy-3",
+          "en": "Maya sits down and tells her everything — the repair record, the hidden box, the watch with Thomas's initials. Then she places the watch **gently** in Eleanor's hands.",
+          "ru": "Майя садится и рассказывает ей всё — про запись о ремонте, про спрятанную коробку, про часы с инициалами Томаса. Потом она нежно вкладывает часы в руки Элеоноры."
+        },
+        {
+          "id": "easy-4",
+          "en": "For a long moment, Eleanor says nothing. She **holds** the watch **close**, and **tears** fill her eyes. \"He didn't leave me,\" she whispers. \"He never left me.\" After fifty years, she finally knows the truth.",
+          "ru": "Долгое время Элеонора молчит. Она крепко держит часы, и её глаза наполняются слезами. «Он не бросил меня, — шепчет она. — Он никогда меня не бросал». После пятидесяти лет она наконец знает правду."
+        },
+        {
+          "id": "easy-5",
+          "en": "Maya writes the real story for the newspaper. The whole town reads it. And that evening, when Maya walks past the old bridge one last time, everything is quiet. No whistling. Just the river, moving softly under the **stars**.",
+          "ru": "Майя пишет настоящую историю для газеты. Весь город читает её. А тем вечером, когда Майя в последний раз проходит мимо старого моста, всё тихо. Ни свиста. Только река, тихо текущая под звёздами."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "tears",
+          "translationRu": "слёзы",
+          "definitionEn": "Drops of water that come from your eyes when you cry.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Tears fill her eyes.",
+          "exampleRu": "Её глаза наполняются слезами."
+        },
+        {
+          "word": "gently",
+          "translationRu": "нежно, мягко",
+          "definitionEn": "In a soft, careful way.",
+          "partOfSpeech": "adverb",
+          "exampleEn": "She places the watch gently in Eleanor's hands.",
+          "exampleRu": "Она нежно вкладывает часы в руки Элеоноры."
+        },
+        {
+          "word": "hold",
+          "translationRu": "держать",
+          "definitionEn": "To have something in your hands.",
+          "partOfSpeech": "verb",
+          "exampleEn": "She holds the watch close.",
+          "exampleRu": "Она крепко держит часы."
+        },
+        {
+          "word": "close (adverb)",
+          "translationRu": "близко, крепко",
+          "definitionEn": "Near to your body, tightly.",
+          "partOfSpeech": "adverb",
+          "exampleEn": "She holds the watch close.",
+          "exampleRu": "Она держит часы крепко прижатыми."
+        },
+        {
+          "word": "star",
+          "translationRu": "звезда",
+          "definitionEn": "A bright point of light in the night sky.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The river moves under the stars.",
+          "exampleRu": "Река течёт под звёздами."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "easy-q1",
+          "type": "choice",
+          "question": "What does Maya bring to Eleanor's house?",
+          "questionRu": "Что Майя приносит в дом Элеоноры?",
+          "options": ["A newspaper", "The old pocket watch", "A photograph", "A letter from Grace"],
+          "answer": 1,
+          "explanationRu": "Она приносит старые карманные часы."
+        },
+        {
+          "id": "easy-q2",
+          "type": "choice",
+          "question": "How does Eleanor react when she learns the truth?",
+          "questionRu": "Как реагирует Элеонора, узнав правду?",
+          "options": ["She gets angry", "She cries and feels relief", "She doesn't believe Maya", "She asks Maya to leave"],
+          "answer": 1,
+          "explanationRu": "Она плачет, испытывая облегчение после стольких лет неведения."
+        },
+        {
+          "id": "easy-q3",
+          "type": "choice",
+          "question": "What happens at the bridge that evening?",
+          "questionRu": "Что происходит у моста тем вечером?",
+          "options": ["Maya hears the whistling again", "Everything is quiet — no whistling", "The bridge collapses", "Eleanor meets Maya there"],
+          "answer": 1,
+          "explanationRu": "Всё тихо — свиста больше нет."
+        }
+      ]
+    },
+
+    "intermediate": {
+      "label": { "en": "Intermediate", "ru": "Средне" },
+      "cefr": "B1",
+      "wordCount": 210,
+      "readingMinutes": 4,
+
+      "paragraphs": [
+        {
+          "id": "intermediate-1",
+          "en": "The next morning, Maya walked to Eleanor's house once more, this time carrying something small and heavy in her coat pocket — the old watch, still stopped at a quarter past midnight.",
+          "ru": "На следующее утро Майя снова пошла к дому Элеоноры, на этот раз неся в кармане пальто что-то маленькое и тяжёлое — старые часы, всё ещё остановившиеся на четверти первого ночи."
+        },
+        {
+          "id": "intermediate-2",
+          "en": "Eleanor opened the door before Maya had even knocked, as though she'd been waiting. One look at Maya's face seemed to tell her everything she needed to know. \"Come in,\" she said softly. \"I think it's time.\"",
+          "ru": "Элеонора открыла дверь ещё до того, как Майя постучала, будто она ждала. Один взгляд на лицо Майи, казалось, сказал ей всё, что нужно было знать. «Заходите, — мягко сказала она. — Думаю, пора»."
+        },
+        {
+          "id": "intermediate-3",
+          "en": "Maya sat across from her and explained it all, carefully — the repair record, the hidden crew log, the small metal box, the watch itself. Then, without a word, she placed it gently in Eleanor's open **palms**.",
+          "ru": "Майя села напротив неё и рассказала всё по порядку — про запись о ремонте, про скрытый журнал бригады, про маленькую металлическую коробку, про сами часы. Затем, без единого слова, она бережно положила их в открытые ладони Элеоноры."
+        },
+        {
+          "id": "intermediate-4",
+          "en": "For a long moment, Eleanor simply held it, turning it over slowly, **tracing** the initials with one finger. When she finally spoke, her voice was **thick** with tears. \"He didn't leave me,\" she said. \"All this time, and he never left me.\" Fifty years of doubt, **resolved** in a single breath.",
+          "ru": "Долгое время Элеонора просто держала их, медленно переворачивая, проводя пальцем по инициалам. Когда она наконец заговорила, её голос был сдавлен от слёз. «Он не бросил меня, — сказала она. — Всё это время, а он так и не оставил меня». Пятьдесят лет сомнений разрешились за один вдох."
+        },
+        {
+          "id": "intermediate-5",
+          "en": "Maya wrote the true story for the paper that week, and the whole town read it. That evening, walking home past the old bridge one final time, she found everything silent — no whistling, no waiting, nothing but the river moving quietly beneath the stars, as if the bridge, too, had finally been allowed to **rest**.",
+          "ru": "На той неделе Майя написала настоящую историю для газеты, и весь город прочитал её. Тем вечером, идя домой мимо старого моста в последний раз, она обнаружила полную тишину — ни свиста, ни ожидания, только река, тихо текущая под звёздами, будто мосту наконец позволили отдохнуть."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "palm",
+          "translationRu": "ладонь",
+          "definitionEn": "The inside surface of your hand.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Maya placed it in Eleanor's open palms.",
+          "exampleRu": "Майя положила их в открытые ладони Элеоноры."
+        },
+        {
+          "word": "trace",
+          "translationRu": "проводить пальцем, прослеживать",
+          "definitionEn": "To follow the shape of something carefully, often with a finger.",
+          "partOfSpeech": "verb",
+          "exampleEn": "She traced the initials with one finger.",
+          "exampleRu": "Она провела пальцем по инициалам."
+        },
+        {
+          "word": "thick (voice)",
+          "translationRu": "сдавленный (о голосе)",
+          "definitionEn": "Sounding heavy or unclear because of strong emotion.",
+          "partOfSpeech": "adjective",
+          "exampleEn": "Her voice was thick with tears.",
+          "exampleRu": "Её голос был сдавлен от слёз."
+        },
+        {
+          "word": "resolve",
+          "translationRu": "разрешаться, находить разрешение",
+          "definitionEn": "To come to an end or be settled, especially a problem or doubt.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Fifty years of doubt, resolved in a single breath.",
+          "exampleRu": "Пятьдесят лет сомнений разрешились за один вдох."
+        },
+        {
+          "word": "rest (verb)",
+          "translationRu": "обрести покой, отдыхать",
+          "definitionEn": "To stop being active; here, to finally find peace.",
+          "partOfSpeech": "verb",
+          "exampleEn": "The bridge had finally been allowed to rest.",
+          "exampleRu": "Мосту наконец позволили отдохнуть."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "intermediate-q1",
+          "type": "choice",
+          "question": "How does Eleanor seem to know something important is about to happen?",
+          "questionRu": "Как Элеонора будто заранее чувствует, что должно произойти что-то важное?",
+          "options": ["Maya calls ahead to warn her", "She simply reads it in Maya's face", "Walter had already told her", "She saw the newspaper article first"],
+          "answer": 1,
+          "explanationRu": "Она просто читает всё по лицу Майи."
+        },
+        {
+          "id": "intermediate-q2",
+          "type": "choice",
+          "question": "What does Eleanor's reaction to the watch reveal?",
+          "questionRu": "Что показывает реакция Элеоноры на часы?",
+          "options": ["Anger at being deceived", "A mix of grief and relief after fifty years of doubt", "Confusion about who Thomas was", "Disbelief that dismisses the watch as false"],
+          "answer": 1,
+          "explanationRu": "Это смесь горя и облегчения после пятидесяти лет сомнений."
+        },
+        {
+          "id": "intermediate-q3",
+          "type": "choice",
+          "question": "What does Maya notice at the bridge on her final walk home?",
+          "questionRu": "Что замечает Майя у моста на своём последнем пути домой?",
+          "options": ["The whistling is louder than ever", "Everything is silent, with no whistling at all", "A crowd has gathered there", "The bridge is closed for repairs"],
+          "answer": 1,
+          "explanationRu": "Всё тихо — свиста больше нет вовсе."
+        }
+      ]
+    },
+
+    "challenge": {
+      "label": { "en": "Challenge", "ru": "Вызов" },
+      "cefr": "B2",
+      "wordCount": 305,
+      "readingMinutes": 6,
+
+      "paragraphs": [
+        {
+          "id": "challenge-1",
+          "en": "The next morning, Maya walked to Eleanor's house once more, carrying something small and unexpectedly heavy in her coat pocket — the old pocket watch, its hands still frozen at a quarter past midnight, exactly as they had been for fifty years.",
+          "ru": "На следующее утро Майя снова пошла к дому Элеоноры, неся в кармане пальто что-то маленькое и неожиданно тяжёлое — старые карманные часы, чьи стрелки всё ещё были застывшими на четверти первого ночи, точно так же, как и все эти пятьдесят лет."
+        },
+        {
+          "id": "challenge-2",
+          "en": "Eleanor opened the door before Maya had even raised her hand to knock, as though some part of her had been waiting all along. A single glance at Maya's expression seemed to tell her everything she needed to know before a word was spoken. \"Come in,\" she said, her voice unusually soft. \"I think it's time.\"",
+          "ru": "Элеонора открыла дверь ещё до того, как Майя успела поднять руку, чтобы постучать, будто какая-то часть её всё это время ждала. Один взгляд на выражение лица Майи, казалось, сказал ей всё, что нужно было знать, ещё до того, как прозвучало хоть слово. «Заходите, — сказала она непривычно мягким голосом. — Думаю, пора»."
+        },
+        {
+          "id": "challenge-3",
+          "en": "Maya sat across from her and recounted it all, carefully and without **embellishment** — the repair record buried in the town hall's basement, the unofficial crew log Grace had **unearthed**, the small rusted box, the watch itself. Then, without further explanation, she placed it gently into Eleanor's open palms.",
+          "ru": "Майя села напротив неё и пересказала всё, тщательно и без прикрас — запись о ремонте, погребённую в подвале мэрии, неофициальный журнал бригады, который откопала Грейс, маленькую заржавевшую коробку, сами часы. Затем, без дальнейших объяснений, она бережно вложила их в открытые ладони Элеоноры."
+        },
+        {
+          "id": "challenge-4",
+          "en": "For a long moment, Eleanor said nothing at all. She simply held the watch, turning it slowly between her fingers, tracing the engraved initials as though reading them by touch rather than sight. When she finally spoke, her voice had **thickened** with something between grief and relief. \"He didn't leave me,\" she said. \"All this time — and he never left me.\" Fifty years of **uncertainty** resolved themselves, quietly, in the space of a single breath.",
+          "ru": "Долгое время Элеонора вообще ничего не говорила. Она просто держала часы, медленно поворачивая их в пальцах, проводя по выгравированным инициалам, будто читая их на ощупь, а не глазами. Когда она наконец заговорила, её голос стал хриплым от чего-то среднего между горем и облегчением. «Он не бросил меня, — сказала она. — Всё это время — а он так и не оставил меня». Пятьдесят лет неопределённости разрешились тихо, за один вдох."
+        },
+        {
+          "id": "challenge-5",
+          "en": "Maya wrote the true story for the paper that week, and the whole town read it, many for the first time understanding what had actually happened on that bridge half a century earlier. That evening, walking home past the old stone **arches** one final time, she found everything entirely silent — no whistling **drifting** through the dark, no answer waiting to be found, nothing but the river moving quietly beneath the stars, as though the bridge itself had finally, after fifty years, been allowed to rest.",
+          "ru": "На той неделе Майя написала настоящую историю для газеты, и весь город прочитал её — многие впервые поняли, что на самом деле произошло на этом мосту полвека назад. Тем вечером, проходя домой мимо старых каменных арок в последний раз, она обнаружила полную, абсолютную тишину — ни свиста, доносящегося сквозь темноту, ни ответа, который нужно было искать, лишь река, тихо текущая под звёздами, будто самому мосту наконец, спустя пятьдесят лет, позволили отдохнуть."
+        }
+      ],
+
+      "vocabulary": [
+        {
+          "word": "embellishment",
+          "translationRu": "приукрашивание",
+          "definitionEn": "Extra details added to a story, sometimes making it more dramatic than it really was.",
+          "partOfSpeech": "noun",
+          "exampleEn": "She recounted it all, without embellishment.",
+          "exampleRu": "Она пересказала всё без прикрас."
+        },
+        {
+          "word": "unearth",
+          "translationRu": "откопать, обнаружить скрытое",
+          "definitionEn": "To discover something that was hidden or buried.",
+          "partOfSpeech": "verb",
+          "exampleEn": "The log Grace had unearthed.",
+          "exampleRu": "Журнал, который откопала Грейс."
+        },
+        {
+          "word": "thicken (voice)",
+          "translationRu": "становиться хриплым (о голосе)",
+          "definitionEn": "To become heavier or less clear, especially a voice full of emotion.",
+          "partOfSpeech": "verb",
+          "exampleEn": "Her voice had thickened with grief.",
+          "exampleRu": "Её голос стал хриплым от горя."
+        },
+        {
+          "word": "uncertainty",
+          "translationRu": "неопределённость",
+          "definitionEn": "A state of not knowing something for sure.",
+          "partOfSpeech": "noun",
+          "exampleEn": "Fifty years of uncertainty resolved themselves.",
+          "exampleRu": "Пятьдесят лет неопределённости разрешились."
+        },
+        {
+          "word": "drift",
+          "translationRu": "доноситься, плыть",
+          "definitionEn": "To move slowly, often carried by air or water.",
+          "partOfSpeech": "verb",
+          "exampleEn": "No whistling drifting through the dark.",
+          "exampleRu": "Ни свиста, доносящегося сквозь темноту."
+        },
+        {
+          "word": "arch",
+          "translationRu": "арка",
+          "definitionEn": "A curved structure, often part of a bridge or doorway.",
+          "partOfSpeech": "noun",
+          "exampleEn": "The old stone arches of the bridge.",
+          "exampleRu": "Старые каменные арки моста."
+        }
+      ],
+
+      "quiz": [
+        {
+          "id": "challenge-q1",
+          "type": "choice",
+          "question": "How does Maya recount the discovery to Eleanor?",
+          "questionRu": "Как Майя пересказывает находку Элеоноре?",
+          "options": ["With dramatic exaggeration", "Carefully and without embellishment", "Reluctantly and incompletely", "Through a written letter instead of speaking"],
+          "answer": 1,
+          "explanationRu": "Она рассказывает всё тщательно и без прикрас."
+        },
+        {
+          "id": "challenge-q2",
+          "type": "choice",
+          "question": "What emotional complexity does Eleanor's response capture?",
+          "questionRu": "Какую эмоциональную сложность отражает реакция Элеоноры?",
+          "options": ["Pure anger at the truth", "A blend of grief and relief after decades of uncertainty", "Total indifference to the discovery", "Suspicion that Maya is lying"],
+          "answer": 1,
+          "explanationRu": "Это смесь горя и облегчения после десятилетий неопределённости."
+        },
+        {
+          "id": "challenge-q3",
+          "type": "choice",
+          "question": "What does the final image of the silent bridge suggest?",
+          "questionRu": "На что намекает финальный образ тихого моста?",
+          "options": ["That the mystery remains completely unsolved", "A sense of closure, as though the bridge itself can finally rest", "That the whistling will return the next night", "That Maya plans to leave Ashbrook"],
+          "answer": 1,
+          "explanationRu": "Это ощущение завершённости — будто сам мост наконец обрёл покой."
+        }
+      ]
+    }
+  }
+}

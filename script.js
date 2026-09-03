@@ -1036,7 +1036,14 @@ function bindTooltip(el) {
 
   el.addEventListener('blur', close);
 
-  // Телефон и планшет
+  // Телефон и планшет - используем touchstart для мгновенного открытия
+  el.addEventListener('touchstart', (e) => {
+    // Предотвращаем двойной тап
+    e.preventDefault();
+    open(e);
+  }, { passive: false });
+  
+  // Также добавляем click как fallback
   el.addEventListener('click', open);
 }
 
@@ -10410,7 +10417,8 @@ function isStoryVisible(story) {
 // Загрузка истории из JSON
 async function loadStoryFromJSON(storyPath) {
   try {
-    const response = await fetch(storyPath);
+    const fullPath = `story/${storyPath}`;
+    const response = await fetch(fullPath);
     const story = await response.json();
     // Добавляем путь к картинке, если есть папка
     if (story.folder) {
@@ -10981,21 +10989,28 @@ function generateStoryContent(story, levelData) {
   }
   return html;
 }
-function attachStoryContentHandlers(content, levelData) {
-  // Обработчик кнопки показа перевода
+function attachTranslationButtonHandler() {
   const toggleBtn = document.getElementById('toggle-translation-btn');
   const translationDiv = document.getElementById('story-translation');
   if (toggleBtn && translationDiv) {
-    toggleBtn.addEventListener('click', () => {
+    // Удаляем старые обработчики клонированием
+    const newBtn = toggleBtn.cloneNode(true);
+    toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
+    
+    newBtn.addEventListener('click', () => {
       if (translationDiv.style.display === 'none') {
         translationDiv.style.display = 'block';
-        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Скрыть перевод';
+        newBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Скрыть перевод';
       } else {
         translationDiv.style.display = 'none';
-        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Показать перевод';
+        newBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Показать перевод';
       }
     });
   }
+}
+
+function attachStoryContentHandlers(content, levelData) {
+  // Обработчик кнопки показа перевода УБРАН - вешается отдельно
   // Настройка аудио плеера
   const audioElement = document.getElementById('story-audio');
   if (audioElement) {
@@ -11143,6 +11158,8 @@ function openStoryModal(story) {
     console.error('[STORIES] Модальное окно не найдено');
     return;
   }
+  // Сбрасываем уровень на A2 при каждом открытии
+  window.currentStoryLevel = 'easy';
   // Получаем данные для текущего уровня
   const levelData = getStoryLevelText(story, window.currentStoryLevel);
   if (!levelData) {
@@ -11207,6 +11224,8 @@ function openStoryModal(story) {
           tabContent.innerHTML = generateStoryContent(story, newLevelData);
           // Добавляем обработчики для нового контента
           attachStoryContentHandlers(tabContent, newLevelData);
+          // Перевешиваем обработчик кнопки перевода так как story-translation перерисовался
+          attachTranslationButtonHandler();
           // Загружаем аудио для нового уровня
           loadStoryAudio(story, newLevel);
         }
@@ -11217,20 +11236,8 @@ function openStoryModal(story) {
   modal.style.display = 'flex';
   // Скрываем хедер и меню как в практике
   document.body.classList.add('story-modal-active');
-  // Обработчик кнопки показа перевода
-  const toggleBtn = document.getElementById('toggle-translation-btn');
-  const translationDiv = document.getElementById('story-translation');
-  if (toggleBtn && translationDiv) {
-    toggleBtn.addEventListener('click', () => {
-      if (translationDiv.style.display === 'none') {
-        translationDiv.style.display = 'block';
-        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Скрыть перевод';
-      } else {
-        translationDiv.style.display = 'none';
-        toggleBtn.innerHTML = '<span class="material-symbols-outlined story-translation-icon">translate</span> Показать перевод';
-      }
-    });
-  }
+  // Вешаем обработчик кнопки перевода
+  attachTranslationButtonHandler();
   // Обработчики кнопок проверки ответов
   content.querySelectorAll('.check-answer-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -15416,58 +15423,3 @@ window.downloadWords = function() {
   URL.revokeObjectURL(url);
   toast('Слова скачаны!', 'success');
 };
-// Тестовая кнопка для Service Worker
-function addDebugButton() {
-  const debugBtn = document.createElement('button');
-  debugBtn.textContent = '🔧 Debug SW';
-  debugBtn.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 10000;
-    padding: 10px 15px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  `;
-  debugBtn.addEventListener('click', async () => {
-    console.log('[DEBUG] === Service Worker Debug Info ===');
-    // Показываем версию SW
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration();
-      console.log('[DEBUG] SW Registration:', registration);
-      if (registration) {
-        console.log('[DEBUG] Active SW:', registration.active?.scriptURL);
-        console.log('[DEBUG] Waiting SW:', registration.waiting?.scriptURL);
-        console.log('[DEBUG] Installing SW:', registration.installing?.scriptURL);
-      }
-    }
-    // Показываем состояние кеша
-    const caches = await window.caches.keys();
-    console.log('[DEBUG] All caches:', caches);
-    for (const cacheName of caches) {
-      const cache = await window.caches.open(cacheName);
-      const keys = await cache.keys();
-      console.log(`[DEBUG] Cache "${cacheName}": ${keys.length} items`);
-      console.log('[DEBUG] Items:', keys.map(k => k.url));
-    }
-    // Показываем localStorage
-    console.log('[DEBUG] localStorage keys:', Object.keys(localStorage));
-    // Спрашиваем о очистке кеша
-    if (confirm('Информация собрана. Очистить все кеши?')) {
-      const cacheNames = await window.caches.keys();
-      await Promise.all(cacheNames.map(name => window.caches.delete(name)));
-      console.log('[DEBUG] ✅ Все кеши очищены');
-      location.reload();
-    }
-  });
-  document.body.appendChild(debugBtn);
-}
-// Добавляем debug кнопку после загрузки
-setTimeout(() => {
-  addDebugButton();
-}, 2000);
