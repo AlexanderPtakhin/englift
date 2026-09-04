@@ -1846,6 +1846,82 @@ html.dark {
 
 }
 
+/* Тема Cream (кремово-бежевая) */
+
+.theme-cream {
+
+  --primary: #E8B89C;
+
+  --primary-text: #C89A7E;
+
+  --primary-light: #F2D5C4;
+
+  --primary-dark: #D4A586;
+
+  --primary-rgb: 232, 184, 156;
+
+  --bg: #FDF9F5;
+
+  --card: #FFFFFF;
+
+  --text: #1A1A2E;
+
+  --muted: #8A8A8C;
+
+  --border: #F0E8E0;
+
+  --shadow: 0 4px 20px rgba(232, 184, 156, 0.15);
+
+  --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+
+  --btn-gradient: linear-gradient(135deg, #E8B89C, #F2D5C4);
+
+  --btn-gradient-hover: linear-gradient(135deg, #D4A586, #E8B89C);
+
+  --accent-gradient: linear-gradient(135deg, #D4A586 0%, #E8B89C 45%, #F2D5C4 100%);
+
+}
+
+/* Тёмная кремовая */
+
+.dark.theme-cream {
+
+  --primary: #F2D5C4;
+
+  --primary-text: var(--primary);
+
+  --primary-light: #F8E8DD;
+
+  --primary-rgb: 242, 213, 196;
+
+  --bg: #1A1815;
+
+  --card: #252221;
+
+  --text: #F4F7FA;
+
+  --muted: #A4A0A0;
+
+  --border: #3D3630;
+
+  --shadow: 0 4px 20px rgba(242, 213, 196, 0.25);
+
+  --shadow-hover: 0 8px 30px rgba(242, 213, 196, 0.35);
+
+  --danger-rgb: 239, 68, 68;
+
+  /* Градиенты */
+
+  --btn-gradient: linear-gradient(135deg, #F2D5C4, #F8E8DD);
+
+  --btn-gradient-hover: linear-gradient(135deg, #E8B89C, #F2D5C4);
+
+  --accent-gradient: linear-gradient(135deg, #E8B89C 0%, #F2D5C4 45%, #F8E8DD 100%);
+
+}
+
 /* ═══════════════════════════════════════════════════════════════
 
    STAT TRIADS — тематические цвета для трёх полос статистики
@@ -2648,7 +2724,7 @@ header nav {
 
   color: var(--muted);
 
-  transition: color 0.2s;
+  transition: color 0.3s ease;
 
 }
 
@@ -2660,7 +2736,7 @@ header nav {
 
   color: var(--muted);
 
-  transition: color 0.2s;
+  transition: color 0.3s ease;
 
 }
 
@@ -3078,29 +3154,27 @@ nav {
 
 .nav-btn {
 
-  min-width: 80px; /* чтобы текст + иконка помещались */
-
-  justify-content: center;
+  min-width: auto; /* для pill style */
 
   position: relative;
 
   background: none;
 
-  border: none;
+  border: 2px solid transparent; /* прозрачный бордер в неактивном состоянии */
 
-  padding: 0.5rem 1rem;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease; /* убрали border-color из перехода */
 
-  border-radius: 10px;
+  padding: 0.5rem 1.2rem;
+
+  border-radius: 30px; /* pill style */
 
   cursor: pointer;
 
-  font-size: 0.875rem;
+  font-size: 0.9rem;
 
-  font-weight: 700;
+  font-weight: 600;
 
   color: var(--muted);
-
-  transition: all 0.2s;
 
   display: flex;
 
@@ -3354,6 +3428,8 @@ nav {
 
   color: var(--primary);
 
+  transition: all 0.3s ease;
+
 }
 
 .nav-btn:hover .material-symbols-outlined {
@@ -3368,6 +3444,10 @@ nav {
 
   color: var(--primary-text, var(--primary));
 
+  border-color: var(--primary); /* теперь цвет меняется мгновенно, т.к. нет перехода для border-color */
+
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+
 }
 
 .nav-btn.active .material-symbols-outlined,
@@ -3380,9 +3460,9 @@ nav {
 
 .nav-btn .material-symbols-outlined {
 
-  font-size: 18px;
+  font-size: 1.2rem;
 
-  color: inherit;
+  color: currentColor;
 
 }
 
@@ -16988,87 +17068,7 @@ html.dark header {
 
 /* ===== НАВИГАЦИОННЫЕ КНОПКИ (PILL STYLE) ===== */
 
-.nav-btn {
-
-  min-width: auto;
-
-  padding: 0.5rem 1.2rem;
-
-  border-radius: 30px; /* Сильное скругление */
-
-  background: transparent;
-
-  border: none;
-
-  color: var(--muted);
-
-  font-weight: 600;
-
-  font-size: 0.9rem;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 0.4rem;
-
-  transition: all 0.2s ease;
-
-  cursor: pointer;
-
-}
-
-.nav-btn .material-symbols-outlined {
-
-  font-size: 1.2rem;
-
-  color: currentColor;
-
-}
-
-.nav-btn:hover {
-
-  background: var(--border); /* Используем цвет границы как фон при наведении */
-
-  color: var(--text);
-
-  transform: translateY(-1px);
-
-}
-
-.nav-btn.active {
-
-  background: transparent;
-
-  color: var(--primary);
-
-  border: 2px solid var(--primary);
-
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
-
-  font-weight: 700;
-
-}
-
-/* Адаптация для мобильных (кнопки в шапке скрыты, но оставим для планшетов) */
-
-@media (max-width: 1000px) {
-
-  .nav-btn {
-
-    padding: 0.4rem 1rem;
-
-    font-size: 0.8rem;
-
-  }
-
-  .nav-btn .material-symbols-outlined {
-
-    font-size: 1rem;
-
-  }
-
-}
+/* Дублирующие стили удалены - используем основные определения выше */
 
 /* ===== АВАТАР ПОЛЬЗОВАТЕЛЯ ===== */
 
@@ -20690,7 +20690,7 @@ html
 
   color: white;
 
-  display: flex;
+  display: none; /* Скрыта по умолчанию */
 
   align-items: center;
 
@@ -20702,7 +20702,7 @@ html
 
   transition: all 0.2s ease;
 
-  z-index: 1001;
+  z-index: 10000;
 
 }
 

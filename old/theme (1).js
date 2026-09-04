@@ -15,7 +15,6 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     'theme-sky',
     'theme-sand',
     'theme-graphite',
-    'theme-cream',
     'dark',
   );
 
@@ -36,22 +35,13 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
   window.user_settings.baseTheme = baseTheme;
   window.user_settings.dark = dark;
 
-  // Сохраняем в localStorage (все настройки, не только тему)
+  // Сохраняем в localStorage
   const saved = JSON.parse(
     localStorage.getItem('englift_user_settings') || '{}',
   );
   saved.baseTheme = baseTheme;
   saved.dark = dark;
   saved._themeManuallySet = true; // Помечаем что пользователь выбрал тему вручную
-
-  // Сохраняем и другие настройки, если они есть
-  if (window.user_settings) {
-    if (window.user_settings.voice) saved.voice = window.user_settings.voice;
-    if (window.user_settings.reviewLimit) saved.reviewLimit = window.user_settings.reviewLimit;
-    if (window.user_settings.showPhonetic !== undefined) saved.showPhonetic = window.user_settings.showPhonetic;
-    if (window.user_settings.bankWordLevel) saved.bankWordLevel = window.user_settings.bankWordLevel;
-  }
-
   localStorage.setItem('englift_user_settings', JSON.stringify(saved));
 
   // Обновляем чекбокс в дропдауне (если есть)
@@ -94,7 +84,6 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
       sky: '#242C34',      // Небесная
       sand: '#2E2925',     // Песок
       graphite: '#232830', // Графит
-      cream: '#252221',    // Крем
     };
     
     let color = dark ? (darkColors[baseTheme] || darkColors.lavender) : lightColor;
@@ -139,7 +128,6 @@ export function initTheme() {
     'theme-sky',
     'theme-sand',
     'theme-graphite',
-    'theme-cream',
     'dark',
   );
   if (baseTheme !== 'lavender') html.classList.add(`theme-${baseTheme}`);
@@ -150,12 +138,6 @@ export function initTheme() {
   window.user_settings.baseTheme = baseTheme;
   window.user_settings.dark = dark;
   window.user_settings._themeManuallySet = saved._themeManuallySet || false;
-
-  // Загружаем и другие настройки из localStorage
-  if (saved.voice) window.user_settings.voice = saved.voice;
-  if (saved.reviewLimit) window.user_settings.reviewLimit = saved.reviewLimit;
-  if (saved.showPhonetic !== undefined) window.user_settings.showPhonetic = saved.showPhonetic;
-  if (saved.bankWordLevel) window.user_settings.bankWordLevel = saved.bankWordLevel;
 
   // Создаём или обновляем theme-color мета-тег
   let metaTheme = document.querySelector('meta[name="theme-color"]');
@@ -176,11 +158,9 @@ export function initTheme() {
     sky: '#242C34',
     sand: '#2E2925',
     graphite: '#232830',
-    cream: '#252221',
   };
   let color = dark ? (darkColors[baseTheme] || darkColors.lavender) : lightColor;
   metaTheme.content = color;
-
 
   // Инициализируем иконку темы
   updateThemeIcon();
