@@ -997,15 +997,22 @@ function bindTooltip(el) {
   if (!el || el.dataset.tooltipBound === 'true') return;
   el.dataset.tooltipBound = 'true';
 
-  const open = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
+  // Флаг, что это мобильное устройство (сенсорный экран)
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    if (
-      currentTooltipTarget === el &&
-      currentTooltip
-    ) {
-      hideTooltip();
+  let lastTouchTime = 0;
+  let touchHandled = false;
+
+  const open = (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    // Если тултип уже открыт для этого элемента – не трогаем
+    if (currentTooltipTarget === el && currentTooltip) {
+      // Если нужно закрыть при повторном тапе – раскомментируйте
+      // hideTooltip();
       return;
     }
 
@@ -1018,33 +1025,55 @@ function bindTooltip(el) {
     hideTooltip();
   };
 
-  // Компьютер
-  el.addEventListener('mouseenter', () => {
-    showTooltip(el.dataset.tooltip || '', el, {
-      autoHide: false
+  // --- Компьютер: mouse + keyboard ---
+  if (!isTouchDevice) {
+    el.addEventListener('mouseenter', () => {
+      showTooltip(el.dataset.tooltip || '', el, { autoHide: false });
     });
-  });
-
-  el.addEventListener('mouseleave', close);
-
-  // Клавиатура
-  el.addEventListener('focus', () => {
-    showTooltip(el.dataset.tooltip || '', el, {
-      autoHide: false
+    el.addEventListener('mouseleave', close);
+    el.addEventListener('focus', () => {
+      showTooltip(el.dataset.tooltip || '', el, { autoHide: false });
     });
-  });
+    el.addEventListener('blur', close);
+  }
 
-  el.addEventListener('blur', close);
-
-  // Телефон и планшет - используем touchstart для мгновенного открытия
+  // --- Мобильные: только touch ---
   el.addEventListener('touchstart', (e) => {
-    // Предотвращаем двойной тап
-    e.preventDefault();
-    open(e);
-  }, { passive: false });
-  
-  // Также добавляем click как fallback
-  el.addEventListener('click', open);
+    touchHandled = true;
+    lastTouchTime = Date.now();
+  }, { passive: true });
+
+  el.addEventListener('touchend', (e) => {
+    if (!touchHandled) return;
+    touchHandled = false;
+
+    // Небольшая задержка, чтобы убедиться, что это не скролл
+    setTimeout(() => {
+      if (Date.now() - lastTouchTime < 300) {
+        open(e);
+      }
+    }, 50);
+  }, { passive: true });
+
+  // --- Click — только для десктопа (игнорируем, если был touch) ---
+  if (!isTouchDevice) {
+    el.addEventListener('click', (e) => {
+      // На десктопе click работает как обычно
+      open(e);
+    });
+  } else {
+    // На мобильных click блокируем, чтобы не дублировал
+    el.addEventListener('click', (e) => {
+      // Если был недавний touch — игнорируем
+      if (Date.now() - lastTouchTime < 800) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      // Если всё же click без touch (редко) — можно открыть
+      open(e);
+    });
+  }
 }
 
 // Глобальное закрытие тултипа при клике вне
@@ -5371,7 +5400,12 @@ async function updateExpandedContent(card) {
       '<div class="word-examples wc-empty-tab"><span class="material-symbols-outlined">format_quote</span><p>No examples</p></div>';
   }
   extraDiv.innerHTML = examplesHtml + tagsHtml + actionsHtml;
-  card.appendChild(extraDiv);
+  const contentDiv = card.querySelector('.story-card-content');
+  if (contentDiv) {
+    contentDiv.appendChild(extraDiv);
+  } else {
+    card.appendChild(extraDiv);
+  }
 }
 // Глобальная функция для получения HTML примера
 function getExampleHtmlForCard(card, index) {
@@ -10574,6 +10608,48 @@ function renderStories() {
   }
 }
 
+function initStoryImageLazyLoad() {
+  const lazyImages = document.querySelectorAll('.story-card-img-lazy');
+  lazyImages.forEach(img => {
+    const fullImageSrc = img.dataset.fullImage;
+    if (!fullImageSrc) return;
+    
+    // Подгружаем полное изображение после загрузки маленького
+    const fullImg = new Image();
+    fullImg.onload = () => {
+      img.src = fullImageSrc;
+      img.classList.remove('story-card-img-lazy');
+    };
+    fullImg.onerror = () => {
+      console.warn('[STORIES] Не удалось загрузить полное изображение:', fullImageSrc);
+    };
+    // Начинаем загрузку с небольшой задержкой
+    setTimeout(() => {
+      fullImg.src = fullImageSrc;
+    }, 200);
+  });
+}
+function initModalImageLazyLoad() {
+  const lazyImage = document.querySelector('.story-modal-img-lazy');
+  if (!lazyImage) return;
+  
+  const fullImageSrc = lazyImage.dataset.fullImage;
+  if (!fullImageSrc) return;
+  
+  // Подгружаем полное изображение после загрузки маленького
+  const fullImg = new Image();
+  fullImg.onload = () => {
+    lazyImage.src = fullImageSrc;
+    lazyImage.classList.remove('story-modal-img-lazy');
+  };
+  fullImg.onerror = () => {
+    console.warn('[STORIES] Не удалось загрузить полное изображение в модальном окне:', fullImageSrc);
+  };
+  // Начинаем загрузку с небольшой задержкой
+  setTimeout(() => {
+    fullImg.src = fullImageSrc;
+  }, 200);
+}
 function renderStoriesGrid(stories, grid, empty, bankWrap) {
   try {
     window.stories = stories;
@@ -10612,7 +10688,17 @@ function renderStoriesGrid(stories, grid, empty, bankWrap) {
       const summary = story.summary || story.description;
       const storyDate = story.publishedAt ? new Date(story.publishedAt).toLocaleDateString('ru-RU') :
                          story.date ? new Date(story.date).toLocaleDateString('ru-RU') : 'Без даты';
-      const imageHtml = story.imagePath ? `
+      const imageHtml = story.imagePathSmall ? `
+        <div class="story-card-image">
+          <img src="${story.imagePathSmall}" 
+               data-full-image="${story.imagePath}"
+               alt="${esc(story.title.en)}" 
+               loading="${isMainStory ? 'eager' : 'lazy'}" 
+               fetchpriority="${isMainStory ? 'high' : 'auto'}" 
+               onerror="this.style.display='none'"
+               class="story-card-img-lazy">
+        </div>
+      ` : story.imagePath ? `
         <div class="story-card-image">
           <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="${isMainStory ? 'eager' : 'lazy'}" fetchpriority="${isMainStory ? 'high' : 'auto'}" onerror="this.style.display='none'">
         </div>
@@ -10621,25 +10707,29 @@ function renderStoriesGrid(stories, grid, empty, bankWrap) {
       html += `
         <div class="${cardClass}" data-id="${story.id}">
           ${imageHtml}
-          <div class="word-card-header">
-            <div class="word-main">
-              <h3 class="word-title">${esc(story.title.en)}</h3>
+          <div class="story-card-content">
+            <div class="word-card-header">
+              <div class="word-main">
+                <h3 class="word-title">${esc(story.title.en)}</h3>
+              </div>
+              <div class="word-actions">
+                <button class="audio-btn story-read-btn" data-story-id="${story.id}" title="Читать полностью">
+                  <span class="material-symbols-outlined">menu_book</span>
+                </button>
+              </div>
             </div>
-            <div class="word-actions">
-              <button class="audio-btn story-read-btn" data-story-id="${story.id}" title="Читать полностью">
-                <span class="material-symbols-outlined">menu_book</span>
-              </button>
+            <div class="word-translation">${esc(summary?.en || '')}</div>
+            <div class="word-card-footer">
+              <span class="expand-hint">Нажмите, чтобы прочитать</span>
+              <span class="material-symbols-outlined expand-icon">expand_more</span>
             </div>
-          </div>
-          <div class="word-translation">${esc(summary?.en || '')}</div>
-          <div class="word-card-footer">
-            <span class="expand-hint">Нажмите, чтобы прочитать</span>
-            <span class="material-symbols-outlined expand-icon">expand_more</span>
           </div>
         </div>
       `;
     });
     grid.innerHTML = html;
+    // Инициализация lazy loading для изображений
+    initStoryImageLazyLoad();
     // Добавляем обработчики для раскрытия
     grid.querySelectorAll('.word-card').forEach(card => {
       // Обработчик клика для раскрытия
@@ -10751,7 +10841,12 @@ function renderStoryBankOnly(story) {
           ${titleRu ? `<div class="word-bank-en">${esc(titleRu)}</div>` : ''}
           <div class="word-bank-ru">${esc(summary?.ru || '')}</div>
         `;
-        bankCard.appendChild(extraDiv);
+        const contentDiv = bankCard.querySelector('.story-card-content');
+        if (contentDiv) {
+          contentDiv.appendChild(extraDiv);
+        } else {
+          bankCard.appendChild(extraDiv);
+        }
       } else {
         if (expandHint) expandHint.textContent = 'Нажмите, чтобы увидеть перевод';
         if (expandIcon) expandIcon.textContent = 'expand_more';
@@ -11172,7 +11267,16 @@ function openStoryModal(story) {
   const levels = ['easy', 'intermediate', 'challenge'];
   const levelLabels = { easy: 'Easy (A2)', intermediate: 'Intermediate (B1)', challenge: 'Challenge (B2)' };
   // Добавляем картинку если есть
-  const imageHtml = story.imagePath ? `
+  const imageHtml = story.imagePathSmall ? `
+    <div class="story-modal-image">
+      <img src="${story.imagePathSmall}" 
+           data-full-image="${story.imagePath}"
+           alt="${esc(story.title.en)}" 
+           loading="lazy" 
+           onerror="this.style.display='none'"
+           class="story-modal-img-lazy">
+    </div>
+  ` : story.imagePath ? `
     <div class="story-modal-image">
       <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="lazy" onerror="this.style.display='none'">
     </div>
@@ -11192,6 +11296,9 @@ function openStoryModal(story) {
     </div>
   `;
   content.innerHTML = html;
+
+  // Инициализация lazy loading для изображения в модальном окне
+  initModalImageLazyLoad();
 
   // Подключаем обработчики для начального контента
   const initialTabContent = content.querySelector('.story-tab-content');
@@ -11309,7 +11416,12 @@ function showFullStoryContent(card) {
     ${titleRu ? `<h3 class="word-title">${esc(titleRu)}</h3>` : ''}
     <div class="word-translation">${esc(summary?.ru || '')}</div>
   `;
-  card.appendChild(extraDiv);
+  const contentDiv = card.querySelector('.story-card-content');
+  if (contentDiv) {
+    contentDiv.appendChild(extraDiv);
+  } else {
+    card.appendChild(extraDiv);
+  }
 }
 window.renderStories = renderStories;
 // REMOVED: Обработчик поиска для идиом (idioms-search)
