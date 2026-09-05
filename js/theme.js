@@ -2,7 +2,7 @@
 // THEME MANAGEMENT MODULE
 // =============================================
 
-// Применяет тему к странице
+// Применяет тему к страницу
 export function applyTheme(baseTheme = 'lavender', dark = false) {
   const html = document.documentElement;
 
@@ -78,29 +78,6 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     themeText.textContent = dark ? 'Дневной режим' : 'Ночной режим';
   }
 
-  // Обновляем theme-color (цвет брови в PWA)
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) {
-    // В светлой теме везде белый
-    const lightColor = '#fff';
-    
-    // В тёмной теме используем цвет --card из CSS
-    const darkColors = {
-      lavender: '#23252b',  // Янтарь
-      sunset: '#2D2625',   // Закат
-      forest: '#242D28',   // Лес
-      ocean: '#222A33',    // Океан
-      purple: '#2A2633',   // Лаванда
-      sky: '#242C34',      // Небесная
-      sand: '#2E2925',     // Песок
-      graphite: '#232830', // Графит
-      cream: '#252221',    // Крем
-    };
-    
-    let color = dark ? (darkColors[baseTheme] || darkColors.lavender) : lightColor;
-    metaTheme.content = color;
-  }
-
   // Помечаем профиль грязный для синхронизации с сервером
   // Фикс 1: Не дёргаем профиль при инициализации
   if (
@@ -126,8 +103,8 @@ export function initTheme() {
     localStorage.getItem('englift_user_settings') || '{}',
   );
   const baseTheme = saved.baseTheme || 'lavender';
-  // Если пользователь не выбирал тему вручную, используем системные настройки
-  const dark = saved._themeManuallySet ? saved.dark : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // Всегда используем сохраненную тему, игнорируем системные настройки
+  const dark = saved.dark !== undefined ? saved.dark : false;
 
   // Применяем классы напрямую (без вызова applyTheme, чтобы не запускать лишнюю логику)
   const html = document.documentElement;
@@ -156,31 +133,6 @@ export function initTheme() {
   if (saved.reviewLimit) window.user_settings.reviewLimit = saved.reviewLimit;
   if (saved.showPhonetic !== undefined) window.user_settings.showPhonetic = saved.showPhonetic;
   if (saved.bankWordLevel) window.user_settings.bankWordLevel = saved.bankWordLevel;
-
-  // Создаём или обновляем theme-color мета-тег
-  let metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (!metaTheme) {
-    metaTheme = document.createElement('meta');
-    metaTheme.name = 'theme-color';
-    document.head.appendChild(metaTheme);
-  }
-  
-  // Устанавливаем цвет брови
-  const lightColor = '#fff';
-  const darkColors = {
-    lavender: '#23252b',
-    sunset: '#2D2625',
-    forest: '#242D28',
-    ocean: '#222A33',
-    purple: '#2A2633',
-    sky: '#242C34',
-    sand: '#2E2925',
-    graphite: '#232830',
-    cream: '#252221',
-  };
-  let color = dark ? (darkColors[baseTheme] || darkColors.lavender) : lightColor;
-  metaTheme.content = color;
-
 
   // Инициализируем иконку темы
   updateThemeIcon();

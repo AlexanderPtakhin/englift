@@ -190,64 +190,13 @@ async function backgroundLoad() {
   console.log('[API] Фоновая загрузка уровней:', remaining);
 
   try {
-    // Загружаем все файлы параллельно
-    const levelPromises = remaining.map(async level => {
+    // Загружаем ПОСЛЕДОВАТЕЛЬНО, чтобы не душить сеть и картинки
+    for (const level of remaining) {
       try {
-        const response = await fetch(`${level}/dict-${level}.json`);
-        if (!response.ok) {
-          console.warn(
-            `[API] Уровень ${level} недоступен (${response.status}), пропускаем`,
-          );
-          return null;
-        }
-        const words = await response.json();
-        console.log(
-          `[API] Фоновая загрузка: ${level} загружен, ${words.length} слов`,
-        );
-        return { level, words };
+        await loadLevel(level);
       } catch (e) {
-        console.warn(`[API] Ошибка загрузки ${level}:`, e.message);
-        return null;
+        console.warn(`[API] Ошибка фоновой загрузки ${level}:`, e.message);
       }
-    });
-
-    const levelData = (await Promise.all(levelPromises)).filter(Boolean);
-    console.log(`[API] Фоновая загрузка: ${levelData.length} уровней скачано`);
-
-    // Сохраняем последовательно чтобы не перегружать IndexedDB
-    for (const { level, words } of levelData) {
-      const isCurrentVersion = await checkLevelVersion(level);
-      const isLoaded = await isLevelLoaded(level);
-
-      if (isLoaded && isCurrentVersion) {
-        console.log(`[API] ${level} already current, skipping`);
-        levelsLoaded.add(level);
-        continue;
-      }
-
-      if (isLoaded && !isCurrentVersion) {
-        console.log(`[API] ${level} version outdated, clearing...`);
-        await clearLevel(level);
-      }
-
-      const wordsWithIdAndCefr = words.map((word, index) => ({
-        ...word,
-        id: `${word.en}_${level}_${index}`,
-        cefr: level,
-      }));
-
-      await window.WordBankDB.saveWordsBatch(wordsWithIdAndCefr);
-
-      const manifest = await loadDataManifest();
-      const version = manifest?.[level]?.hash || manifest?.[level]?.version;
-      if (version) {
-        localStorage.setItem(`dict_${level}_version`, version);
-      }
-
-      levelsLoaded.add(level);
-      cachedWordBank = null; // Сбрасываем кеш чтобы новые слова были доступны
-      cachedWordBankByLevel = null;
-      console.log(`[API] Фоновая загрузка: ${level} ✅`);
     }
 
     console.log('[API] Фоновая загрузка завершена 🎉');

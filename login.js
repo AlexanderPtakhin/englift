@@ -702,11 +702,11 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-// Инициализация темы на основе системных настроек
+// Инициализация темы на основе сохраненных настроек
 function initLoginTheme() {
   const saved = JSON.parse(localStorage.getItem('englift_user_settings') || '{}');
-  // Если пользователь выбирал тему вручную, используем её, иначе системную
-  const dark = saved._themeManuallySet ? saved.dark : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // Используем только сохраненные настройки, игнорируем системные
+  const dark = saved.dark !== undefined ? saved.dark : false;
   if (dark) {
     document.documentElement.classList.add('dark');
   } else {

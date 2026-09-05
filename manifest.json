@@ -4,8 +4,7 @@
   "description": "Изучай английский легко и красиво вместе с EngUply.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#17181d",
-  "theme_color": "#17181d",
+  "background_color": "#ffffff",
   "orientation": "portrait",
   "scope": "/",
   "icons": [

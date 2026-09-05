@@ -5151,6 +5151,34 @@ function setupLoadMoreObserver(totalCount) {
   );
   intersectionObserver.observe(trigger);
 }
+
+// Observer для ленивой загрузки больших картинок (data-full-image)
+let imageIntersectionObserver = null;
+function setupImageLazyLoad() {
+  if (imageIntersectionObserver) imageIntersectionObserver.disconnect();
+
+  imageIntersectionObserver = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          const fullImage = img.dataset.fullImage;
+          if (fullImage && img.src !== fullImage) {
+            img.src = fullImage;
+            img.removeAttribute('data-full-image');
+            imageIntersectionObserver.unobserve(img);
+          }
+        }
+      });
+    },
+    { root: null, threshold: 0.1, rootMargin: '100px' }
+  );
+
+  // Наблюдаем за всеми картинками с data-full-image
+  document.querySelectorAll('img[data-full-image]').forEach(img => {
+    imageIntersectionObserver.observe(img);
+  });
+}
 function sortWords(list, sortBy) {
   // Защита от non-iterable
   if (!list || !Array.isArray(list)) {
@@ -10275,7 +10303,6 @@ function initPWA() {
     start_url: './',
     display: 'standalone',
     background_color: '#F0F2FF',
-    theme_color: '#6C63FF',
     icons: [
       {
         src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%236C63FF"/><text y=".9em" font-size="80" x="10">📚</text></svg>',
@@ -10610,46 +10637,12 @@ function renderStories() {
 }
 
 function initStoryImageLazyLoad() {
-  const lazyImages = document.querySelectorAll('.story-card-img-lazy');
-  lazyImages.forEach(img => {
-    const fullImageSrc = img.dataset.fullImage;
-    if (!fullImageSrc) return;
-    
-    // Подгружаем полное изображение после загрузки маленького
-    const fullImg = new Image();
-    fullImg.onload = () => {
-      img.src = fullImageSrc;
-      img.classList.remove('story-card-img-lazy');
-    };
-    fullImg.onerror = () => {
-      console.warn('[STORIES] Не удалось загрузить полное изображение:', fullImageSrc);
-    };
-    // Начинаем загрузку с небольшой задержкой
-    setTimeout(() => {
-      fullImg.src = fullImageSrc;
-    }, 200);
-  });
+  // Используем общий Intersection Observer для всех картинок с data-full-image
+  setupImageLazyLoad();
 }
 function initModalImageLazyLoad() {
-  const lazyImage = document.querySelector('.story-modal-img-lazy');
-  if (!lazyImage) return;
-  
-  const fullImageSrc = lazyImage.dataset.fullImage;
-  if (!fullImageSrc) return;
-  
-  // Подгружаем полное изображение после загрузки маленького
-  const fullImg = new Image();
-  fullImg.onload = () => {
-    lazyImage.src = fullImageSrc;
-    lazyImage.classList.remove('story-modal-img-lazy');
-  };
-  fullImg.onerror = () => {
-    console.warn('[STORIES] Не удалось загрузить полное изображение в модальном окне:', fullImageSrc);
-  };
-  // Начинаем загрузку с небольшой задержкой
-  setTimeout(() => {
-    fullImg.src = fullImageSrc;
-  }, 200);
+  // Используем общий Intersection Observer для всех картинок с data-full-image
+  setupImageLazyLoad();
 }
 function renderStoriesGrid(stories, grid, empty, bankWrap) {
   try {
@@ -10691,17 +10684,17 @@ function renderStoriesGrid(stories, grid, empty, bankWrap) {
                          story.date ? new Date(story.date).toLocaleDateString('ru-RU') : 'Без даты';
       const imageHtml = story.imagePathSmall ? `
         <div class="story-card-image">
-          <img src="${story.imagePathSmall}" 
+          <img src="${story.imagePathSmall}"
                data-full-image="${story.imagePath}"
-               alt="${esc(story.title.en)}" 
-               loading="${isMainStory ? 'eager' : 'lazy'}" 
-               fetchpriority="${isMainStory ? 'high' : 'auto'}" 
+               alt="${esc(story.title.en)}"
+               loading="${isMainStory ? 'eager' : 'lazy'}"
+               fetchpriority="${isMainStory ? 'high' : 'low'}"
                onerror="this.style.display='none'"
                class="story-card-img-lazy">
         </div>
       ` : story.imagePath ? `
         <div class="story-card-image">
-          <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="${isMainStory ? 'eager' : 'lazy'}" fetchpriority="${isMainStory ? 'high' : 'auto'}" onerror="this.style.display='none'">
+          <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="${isMainStory ? 'eager' : 'lazy'}" fetchpriority="${isMainStory ? 'high' : 'low'}" onerror="this.style.display='none'">
         </div>
       ` : '';
       const cardClass = isMainStory ? 'word-card story-card story-bank-card' : 'word-card story-card';
@@ -10781,7 +10774,7 @@ function renderStoryBankOnly(story) {
   const summary = story.summary || story.description;
   const imageHtml = story.imagePath ? `
     <div class="story-bank-image">
-      <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="lazy" onerror="this.style.display='none'">
+      <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="lazy" fetchpriority="low" onerror="this.style.display='none'">
     </div>
   ` : '';
   bankWrap.innerHTML = `
@@ -11270,16 +11263,17 @@ function openStoryModal(story) {
   // Добавляем картинку если есть
   const imageHtml = story.imagePathSmall ? `
     <div class="story-modal-image">
-      <img src="${story.imagePathSmall}" 
+      <img src="${story.imagePathSmall}"
            data-full-image="${story.imagePath}"
-           alt="${esc(story.title.en)}" 
-           loading="lazy" 
+           alt="${esc(story.title.en)}"
+           loading="lazy"
+           fetchpriority="low"
            onerror="this.style.display='none'"
            class="story-modal-img-lazy">
     </div>
   ` : story.imagePath ? `
     <div class="story-modal-image">
-      <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="lazy" onerror="this.style.display='none'">
+      <img src="${story.imagePath}" alt="${esc(story.title.en)}" loading="lazy" fetchpriority="low" onerror="this.style.display='none'">
     </div>
   ` : '';
   // Формируем контент с табами

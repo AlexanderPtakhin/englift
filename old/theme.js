@@ -18,7 +18,7 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     'dark',
   );
 
-  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию (янтарь))
+  // Добавляем новую тему (если не lavender, потому что lavender — класс по умолчанию (терракота))
   if (baseTheme !== 'lavender') {
     html.classList.add(`theme-${baseTheme}`);
   }
@@ -41,7 +41,6 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
   );
   saved.baseTheme = baseTheme;
   saved.dark = dark;
-  saved._themeManuallySet = true; // Помечаем что пользователь выбрал тему вручную
   localStorage.setItem('englift_user_settings', JSON.stringify(saved));
 
   // Обновляем чекбокс в дропдауне (если есть)
@@ -59,35 +58,7 @@ export function applyTheme(baseTheme = 'lavender', dark = false) {
     '#dropdown-theme-toggle .material-symbols-outlined',
   );
   if (themeIcon) {
-    themeIcon.textContent = dark ? 'light_mode' : 'dark_mode';
-  }
-
-  // Обновляем текст в дропдауне
-  const themeText = document.getElementById('theme-toggle-text');
-  if (themeText) {
-    themeText.textContent = dark ? 'Дневной режим' : 'Ночной режим';
-  }
-
-  // Обновляем theme-color (цвет брови в PWA)
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) {
-    // В светлой теме везде белый
-    const lightColor = '#fff';
-    
-    // В тёмной теме используем цвет --card из CSS
-    const darkColors = {
-      lavender: '#23252b',  // Янтарь
-      sunset: '#2D2625',   // Закат
-      forest: '#242D28',   // Лес
-      ocean: '#222A33',    // Океан
-      purple: '#2A2633',   // Лаванда
-      sky: '#242C34',      // Небесная
-      sand: '#2E2925',     // Песок
-      graphite: '#232830', // Графит
-    };
-    
-    let color = dark ? (darkColors[baseTheme] || darkColors.lavender) : lightColor;
-    metaTheme.content = color;
+    themeIcon.textContent = dark ? 'moon' : 'dark_mode';
   }
 
   // Помечаем профиль грязный для синхронизации с сервером
@@ -115,8 +86,7 @@ export function initTheme() {
     localStorage.getItem('englift_user_settings') || '{}',
   );
   const baseTheme = saved.baseTheme || 'lavender';
-  // Если пользователь не выбирал тему вручную, используем системные настройки
-  const dark = saved._themeManuallySet ? saved.dark : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = saved.dark ?? false;
 
   // Применяем классы напрямую (без вызова applyTheme, чтобы не запускать лишнюю логику)
   const html = document.documentElement;
@@ -137,30 +107,6 @@ export function initTheme() {
   window.user_settings = window.user_settings || {};
   window.user_settings.baseTheme = baseTheme;
   window.user_settings.dark = dark;
-  window.user_settings._themeManuallySet = saved._themeManuallySet || false;
-
-  // Создаём или обновляем theme-color мета-тег
-  let metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (!metaTheme) {
-    metaTheme = document.createElement('meta');
-    metaTheme.name = 'theme-color';
-    document.head.appendChild(metaTheme);
-  }
-  
-  // Устанавливаем цвет брови
-  const lightColor = '#fff';
-  const darkColors = {
-    lavender: '#23252b',
-    sunset: '#2D2625',
-    forest: '#242D28',
-    ocean: '#222A33',
-    purple: '#2A2633',
-    sky: '#242C34',
-    sand: '#2E2925',
-    graphite: '#232830',
-  };
-  let color = dark ? (darkColors[baseTheme] || darkColors.lavender) : lightColor;
-  metaTheme.content = color;
 
   // Инициализируем иконку темы
   updateThemeIcon();
